@@ -27,6 +27,7 @@ controllers:
           N8N_HOST: &hostName n8n.pitower.link
           N8N_LOG_LEVEL: info
           N8N_LOG_OUTPUT: console
+          WEBHOOK_URL: https://n8n-webhook.pitower.link
           # N8N_ENCRYPTION_KEY:
           #   valueFrom:
           #     secretKeyRef:
