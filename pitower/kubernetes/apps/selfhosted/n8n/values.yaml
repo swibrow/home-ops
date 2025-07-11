@@ -28,11 +28,6 @@ controllers:
           N8N_LOG_LEVEL: info
           N8N_LOG_OUTPUT: console
           WEBHOOK_URL: https://n8n-webhook.pitower.link
-          # N8N_ENCRYPTION_KEY:
-          #   valueFrom:
-          #     secretKeyRef:
-          #       name: n8n-secret
-          #       key: N8N_ENCRYPTION_KEY
         resources:
           requests:
             cpu: 5m
@@ -82,29 +77,3 @@ ingress:
             service:
               identifier: app
               port: *port
-# route:
-#   app:
-#     hostnames:
-#       - *hostName
-#     parentRefs:
-#       - name: internal
-#         namespace: kube-system
-#         sectionName: https
-#     rules:
-#       - backendRefs:
-#           - identifier: app
-#             port: *port
-#   webhooks:
-#     hostnames:
-#       - n8n-webhook.pitower.link
-#     parentRefs:
-#       - name: external
-#         namespace: kube-system
-#         sectionName: https
-#     rules:
-#       - matches:
-#           - path:
-#               value: /webhook
-#         backendRefs:
-#           - identifier: app
-#             port: *port

@@ -11,9 +11,7 @@ includes:
   tf:
     taskfile: .taskfiles/terraform
     dir: .taskfiles/terraform
-  # pitower:
-  #   taskfile: pitower
-  #   dir: pitower
+
   talos:
     taskfile: pitower/talos
     dir: pitower/talos
@@ -25,19 +23,6 @@ includes:
 env:
   TERRAFORM_WORKING_DIR: "terraform"
   ENVIRONMENT: "dev"
-
-# dotenv:
-#   - .envrc
-#   - .config/.env.{{.ENVIRONMENT}}
-
-# vars:
-#   SECRET_PATHS_REGEX:
-#     sh: yq e '.creation_rules[].path_regex' .sops.yaml |  awk '{print "./"$0}' | tr '\n' '|'
-#   SECRET_FILES:
-#     sh: |
-#       {{ if eq OS "linux" }} find \
-#       {{ else if eq OS "darwin"}} gfind \
-#       {{ end }} -type f -regextype posix-egrep -regex "{{.SECRET_PATHS_REGEX}}"
 
 tasks:
   pre-commit:init:
