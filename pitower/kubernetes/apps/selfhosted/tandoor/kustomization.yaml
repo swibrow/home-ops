@@ -13,4 +13,5 @@ helmCharts:
     repo: oci://ghcr.io/bjw-s-labs/helm
     version: 4.2.0
     releaseName: tandoor
+    namespace: selfhosted
     valuesFile: values.yaml

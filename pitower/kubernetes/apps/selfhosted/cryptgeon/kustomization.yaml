@@ -8,6 +8,7 @@ helmCharts:
     repo: https://swibrow.github.io/helm-charts/
     version: 0.2.0
     releaseName: cryptgeon
+    namespace: selfhosted
     valuesInline:
       valkey:
         enabled: true

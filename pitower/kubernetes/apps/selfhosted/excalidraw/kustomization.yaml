@@ -8,4 +8,5 @@ helmCharts:
     repo: oci://ghcr.io/bjw-s-labs/helm
     version: 4.2.0
     releaseName: excalidraw
+    namespace: selfhosted
     valuesFile: values.yaml

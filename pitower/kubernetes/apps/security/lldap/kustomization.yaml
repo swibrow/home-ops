@@ -11,4 +11,5 @@ helmCharts:
     repo: oci://ghcr.io/bjw-s-labs/helm
     version: 4.2.0
     releaseName: lldap
+    namespace: security
     valuesFile: values.yaml

@@ -12,7 +12,7 @@ controllers:
             spec:
               httpGet:
                 path: /
-                port: 3000
+                port: &port 3000
               initialDelaySeconds: 0
               periodSeconds: 10
               timeoutSeconds: 1
@@ -32,7 +32,7 @@ service:
     controller: openspeedtest
     ports:
       http:
-        port: 3000
+        port: *port
 
 route:
   app:
@@ -43,27 +43,3 @@ route:
       - name: envoy-external
         namespace: networking
         sectionName: https
-    rules:
-      - backendRefs:
-          - group: ''
-            kind: Service
-            name: openspeedtest
-            namespace: networking
-            port: 3000
-            weight: 1
-        matches:
-          - path:
-              type: PathPrefix
-              value: /
-# ingress:
-#   app:
-#     className: external
-#     annotations:
-#       external-dns.alpha.kubernetes.io/target: external.pitower.link
-#     hosts:
-#       - host: openspeedtest.pitower.link
-#         paths:
-#           - path: /
-#             service:
-#               identifier: app
-#               port: http

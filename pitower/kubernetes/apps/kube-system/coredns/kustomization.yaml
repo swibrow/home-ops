@@ -24,5 +24,5 @@ helmCharts:
         type: LoadBalancer
         port: 53
         annotations:
-          io.cilium/lb-ipam-ips: "192.168.0.220"
+          lbipam.cilium.io/ips: "192.168.0.220"
         externalTrafficPolicy: Cluster

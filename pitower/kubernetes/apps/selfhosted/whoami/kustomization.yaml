@@ -9,4 +9,5 @@ helmCharts:
     repo: oci://ghcr.io/bjw-s-labs/helm
     version: 4.2.0
     releaseName: whoami
+    namespace: selfhosted
     valuesFile: values.yaml

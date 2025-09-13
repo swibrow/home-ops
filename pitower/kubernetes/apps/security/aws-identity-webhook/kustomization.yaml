@@ -9,4 +9,5 @@ helmCharts:
     repo: https://jkroepke.github.io/helm-charts/
     version: 2.5.2
     releaseName: amazon-eks-pod-identity-webhook
+    namespace: security
     valuesFile: values.yaml
