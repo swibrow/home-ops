@@ -33,7 +33,7 @@ route:
       - house-hunter.pitower.link
     parentRefs:
       - name: envoy-external
-        namespace: network
+        namespace: networking
         sectionName: https
 
 # ingress:

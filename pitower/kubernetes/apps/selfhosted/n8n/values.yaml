@@ -57,7 +57,7 @@ route:
       - n8n.pitower.link
     parentRefs:
       - name: envoy-external
-        namespace: network
+        namespace: networking
         sectionName: https
   webhooks:
     enabled: true
@@ -65,7 +65,7 @@ route:
       - n8n-webhook.pitower.link
     parentRefs:
       - name: envoy-external
-        namespace: network
+        namespace: networking
         sectionName: https
     rules:
       - matches:

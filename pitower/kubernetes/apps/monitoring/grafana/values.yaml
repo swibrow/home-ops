@@ -230,7 +230,7 @@ route:
       - grafana.pitower.link
     parentRefs:
       - name: envoy-external
-        namespace: network
+        namespace: networking
         sectionName: https
 
 # ingress:

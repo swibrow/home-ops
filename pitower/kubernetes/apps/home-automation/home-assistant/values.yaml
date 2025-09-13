@@ -71,7 +71,7 @@ route:
       - ha.pitower.link
     parentRefs:
       - name: envoy-external
-        namespace: network
+        namespace: networking
         sectionName: https
     rules:
       - backendRefs:
@@ -82,7 +82,7 @@ route:
       - ha-code.pitower.link
     parentRefs:
       - name: envoy-internal
-        namespace: network
+        namespace: networking
         sectionName: https
     rules:
       - backendRefs:

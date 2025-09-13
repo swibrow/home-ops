@@ -41,14 +41,14 @@ route:
       - openspeedtest.pitower.link
     parentRefs:
       - name: envoy-external
-        namespace: network
+        namespace: networking
         sectionName: https
     rules:
       - backendRefs:
           - group: ''
             kind: Service
             name: openspeedtest
-            namespace: argocd
+            namespace: networking
             port: 3000
             weight: 1
         matches:
