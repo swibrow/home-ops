@@ -29,7 +29,6 @@ controllers:
               periodSeconds: 5
 service:
   app:
-    controller: echo-server
     ports:
       http:
         port: 8080
@@ -42,20 +41,3 @@ route:
       - name: envoy-external
         namespace: networking
         sectionName: https
-
-# ingress:
-#   app:
-#     enabled: true
-#     className: external
-#     annotations:
-#       external-dns.alpha.kubernetes.io/target: external.pitower.link
-#     hosts:
-#       - host: echo.pitower.link
-#         paths:
-#           - path: /
-#             service:
-#               identifier: app
-#               port: http
-#     tls:
-#       - hosts:
-#           - echo.pitower.link

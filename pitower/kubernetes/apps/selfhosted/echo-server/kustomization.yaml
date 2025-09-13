@@ -5,8 +5,8 @@ namespace: selfhosted
 # Helm chart configuration
 helmCharts:
   - name: app-template
-    repo: oci://ghcr.io/bjw-s/helm
-    version: 3.7.3
+    repo: oci://ghcr.io/bjw-s-labs/helm
+    version: 4.2.0
     releaseName: echo-server
     namespace: selfhosted
     valuesFile: values.yaml

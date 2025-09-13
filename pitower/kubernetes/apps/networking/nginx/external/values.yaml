@@ -4,7 +4,7 @@ controller:
   service:
     annotations:
       external-dns.alpha.kubernetes.io/hostname: "external.pitower.link"
-      io.cilium/lb-ipam-ips: "192.168.0.231"
+      lbipam.cilium.io/ips: "192.168.0.231"
     externalTrafficPolicy: Cluster
   ingressClassResource:
     name: external
