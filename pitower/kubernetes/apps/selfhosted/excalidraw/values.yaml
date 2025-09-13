@@ -27,21 +27,32 @@ service:
     ports:
       http:
         port: *port
-ingress:
+
+route:
   app:
-    className: external
-    annotations:
-      external-dns.alpha.kubernetes.io/target: external.pitower.link
-    hosts:
-      - host: &host draw.pitower.link
-        paths:
-          - path: /
-            service:
-              identifier: app
-              port: http
-    tls:
-      - hosts:
-          - *host
+    enabled: true
+    hostnames:
+      - draw.pitower.link
+    parentRefs:
+      - name: envoy-external
+        namespace: network
+        sectionName: https
+
+# ingress:
+#   app:
+#     className: external
+#     annotations:
+#       external-dns.alpha.kubernetes.io/target: external.pitower.link
+#     hosts:
+#       - host: &host draw.pitower.link
+#         paths:
+#           - path: /
+#             service:
+#               identifier: app
+#               port: http
+#     tls:
+#       - hosts:
+#           - *host
 persistence:
   data:
     enabled: true

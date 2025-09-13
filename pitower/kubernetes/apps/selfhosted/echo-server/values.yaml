@@ -33,19 +33,29 @@ service:
     ports:
       http:
         port: 8080
-ingress:
+route:
   app:
     enabled: true
-    className: external
-    annotations:
-      external-dns.alpha.kubernetes.io/target: external.pitower.link
-    hosts:
-      - host: echo.pitower.link
-        paths:
-          - path: /
-            service:
-              identifier: app
-              port: http
-    tls:
-      - hosts:
-          - echo.pitower.link
+    hostnames:
+      - echo.pitower.link
+    parentRefs:
+      - name: envoy-external
+        namespace: network
+        sectionName: https
+
+# ingress:
+#   app:
+#     enabled: true
+#     className: external
+#     annotations:
+#       external-dns.alpha.kubernetes.io/target: external.pitower.link
+#     hosts:
+#       - host: echo.pitower.link
+#         paths:
+#           - path: /
+#             service:
+#               identifier: app
+#               port: http
+#     tls:
+#       - hosts:
+#           - echo.pitower.link

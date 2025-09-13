@@ -49,31 +49,57 @@ persistence:
       n8n:
         app:
           - path: /home/node/.n8n
-ingress:
+
+route:
   app:
     enabled: true
-    className: external
-    annotations:
-      external-dns.alpha.kubernetes.io/target: external.pitower.link
-    hosts:
-      - host: n8n.pitower.link
-        paths:
-          - path: /
-            service:
-              identifier: app
-              port: *port
-    tls:
-      - hosts:
-          - echo.pitower.link
+    hostnames:
+      - n8n.pitower.link
+    parentRefs:
+      - name: envoy-external
+        namespace: network
+        sectionName: https
   webhooks:
     enabled: true
-    className: external
-    annotations:
-      external-dns.alpha.kubernetes.io/target: external.pitower.link
-    hosts:
-      - host: n8n-webhook.pitower.link
-        paths:
-          - path: /webhook
-            service:
-              identifier: app
-              port: *port
+    hostnames:
+      - n8n-webhook.pitower.link
+    parentRefs:
+      - name: envoy-external
+        namespace: network
+        sectionName: https
+    rules:
+      - matches:
+          - path:
+              value: /webhook
+        backendRefs:
+          - name: app
+            port: *port
+
+# ingress:
+#   app:
+#     enabled: true
+#     className: external
+#     annotations:
+#       external-dns.alpha.kubernetes.io/target: external.pitower.link
+#     hosts:
+#       - host: n8n.pitower.link
+#         paths:
+#           - path: /
+#             service:
+#               identifier: app
+#               port: *port
+#     tls:
+#       - hosts:
+#           - echo.pitower.link
+#   webhooks:
+#     enabled: true
+#     className: external
+#     annotations:
+#       external-dns.alpha.kubernetes.io/target: external.pitower.link
+#     hosts:
+#       - host: n8n-webhook.pitower.link
+#         paths:
+#           - path: /webhook
+#             service:
+#               identifier: app
+#               port: *port

@@ -34,15 +34,36 @@ service:
       http:
         port: 3000
 
-ingress:
+route:
   app:
-    className: external
-    annotations:
-      external-dns.alpha.kubernetes.io/target: external.pitower.link
-    hosts:
-      - host: openspeedtest.pitower.link
-        paths:
-          - path: /
-            service:
-              identifier: app
-              port: http
+    enabled: true
+    hostnames:
+      - openspeedtest.pitower.link
+    parentRefs:
+      - name: envoy-external
+        namespace: network
+        sectionName: https
+    rules:
+      - backendRefs:
+          - group: ''
+            kind: Service
+            name: openspeedtest
+            namespace: argocd
+            port: 3000
+            weight: 1
+        matches:
+          - path:
+              type: PathPrefix
+              value: /
+# ingress:
+#   app:
+#     className: external
+#     annotations:
+#       external-dns.alpha.kubernetes.io/target: external.pitower.link
+#     hosts:
+#       - host: openspeedtest.pitower.link
+#         paths:
+#           - path: /
+#             service:
+#               identifier: app
+#               port: http

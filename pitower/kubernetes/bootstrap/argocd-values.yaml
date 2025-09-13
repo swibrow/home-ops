@@ -94,6 +94,7 @@ server:
     minAvailable: 1
   deploymentAnnotations:
     reloader.stakater.com/auto: "true"
+
   ingress:
     enabled: true
     ingressClassName: external

@@ -13,8 +13,8 @@ controllers:
     containers:
       app:
         image:
-          repository: ghcr.io/onedr0p/home-assistant
-          tag: 2025.3.3@sha256:9e2a7177b4600653d6cb46dff01b1598189a5ae93be0b99242fbc039d32d79f1
+          repository: ghcr.io/home-operations/home-assistant
+          tag: 2025.9.2
         resources:
           requests:
             cpu: 47m
@@ -59,48 +59,71 @@ service:
     controller: home-assistant
     type: LoadBalancer
     annotations:
-      io.cilium/lb-ipam-ips: 192.168.0.227
+      ilbipam.cilium.io/ips: 192.168.0.227
     ports:
       http:
         port: 8123
       code-server:
         port: 12321
-
-ingress:
+route:
   app:
-    className: external
-    annotations:
-      external-dns.alpha.kubernetes.io/target: external.pitower.link
-      nginx.ingress.kubernetes.io/rewrite-target: /$1
-    hosts:
-      - host: &host ha.pitower.link
-        paths:
-          - path: /(.*)
-            service:
-              identifier: app
-              port: http
-    tls:
-      - hosts:
-          - *host
-  code-server:
-    className: external
-    annotations:
-      external-dns.alpha.kubernetes.io/target: external.pitower.link
-      nginx.ingress.kubernetes.io/rewrite-target: /$2
-      nginx.ingress.kubernetes.io/auth-method: "GET"
-      nginx.ingress.kubernetes.io/auth-url: "http://authelia.security.svc.cluster.local/api/authz/auth-request"
-      nginx.ingress.kubernetes.io/auth-signin: "https://auth.pitower.link?rm=$request_method"
-      nginx.ingress.kubernetes.io/auth-response-headers: "Remote-User,Remote-Name,Remote-Groups,Remote-Email"
-    hosts:
-      - host: *host
-        paths:
-          - path: /code(/|$)(.*)
-            service:
-              identifier: app
-              port: code-server
-    tls:
-      - hosts:
-          - *host
+    hostnames:
+      - ha.pitower.link
+    parentRefs:
+      - name: envoy-external
+        namespace: network
+        sectionName: https
+    rules:
+      - backendRefs:
+          - identifier: app
+            port: 8123
+  code:
+    hostnames:
+      - ha-code.pitower.link
+    parentRefs:
+      - name: envoy-internal
+        namespace: network
+        sectionName: https
+    rules:
+      - backendRefs:
+          - identifier: code-server
+            port: 12321
+
+# ingress:
+#   app:
+#     className: external
+#     annotations:
+#       external-dns.alpha.kubernetes.io/target: external.pitower.link
+#       nginx.ingress.kubernetes.io/rewrite-target: /$1
+#     hosts:
+#       - host: &host ha.pitower.link
+#         paths:
+#           - path: /(.*)
+#             service:
+#               identifier: app
+#               port: http
+#     tls:
+#       - hosts:
+#           - *host
+#   code-server:
+#     className: external
+#     annotations:
+#       external-dns.alpha.kubernetes.io/target: external.pitower.link
+#       nginx.ingress.kubernetes.io/rewrite-target: /$2
+#       nginx.ingress.kubernetes.io/auth-method: "GET"
+#       nginx.ingress.kubernetes.io/auth-url: "http://authelia.security.svc.cluster.local/api/authz/auth-request"
+#       nginx.ingress.kubernetes.io/auth-signin: "https://auth.pitower.link?rm=$request_method"
+#       nginx.ingress.kubernetes.io/auth-response-headers: "Remote-User,Remote-Name,Remote-Groups,Remote-Email"
+#     hosts:
+#       - host: *host
+#         paths:
+#           - path: /code(/|$)(.*)
+#             service:
+#               identifier: app
+#               port: code-server
+#     tls:
+#       - hosts:
+#           - *host
 persistence:
   config:
     existingClaim: home-assistant-config

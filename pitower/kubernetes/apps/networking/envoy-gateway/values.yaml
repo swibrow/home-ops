@@ -1,0 +1,16 @@
+global:
+  imageRegistry: mirror.gcr.io
+
+certgen:
+  job:
+    args:
+      - certgen
+      - --disable-topology-injector
+
+config:
+  envoyGateway:
+    provider:
+      type: Kubernetes
+      kubernetes:
+        deploy:
+          type: GatewayNamespace
