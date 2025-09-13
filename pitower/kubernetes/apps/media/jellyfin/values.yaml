@@ -33,21 +33,33 @@ service:
       http:
         port: 8096
 
-ingress:
+route:
   app:
-    className: external
-    annotations:
-      external-dns.alpha.kubernetes.io/target: external.pitower.link
-    hosts:
-      - host: &host jellyfin.pitower.link
-        paths:
-          - path: /
-            service:
-              identifier: app
-              port: http
-    tls:
-      - hosts:
-          - *host
+    hostnames:
+      - jellyfin.pitower.link
+    parentRefs:
+      - name: envoy-external
+        namespace: network
+        sectionName: https
+    rules:
+      - backendRefs:
+          - identifier: app
+            port: 8096
+# ingress:
+#   app:
+#     className: external
+#     annotations:
+#       external-dns.alpha.kubernetes.io/target: external.pitower.link
+#     hosts:
+#       - host: &host jellyfin.pitower.link
+#         paths:
+#           - path: /
+#             service:
+#               identifier: app
+#               port: http
+#     tls:
+#       - hosts:
+#           - *host
 
 persistence:
   config:

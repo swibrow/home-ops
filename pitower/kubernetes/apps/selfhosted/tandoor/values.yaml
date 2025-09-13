@@ -77,21 +77,31 @@ service:
       http:
         port: 8080
 
-ingress:
+route:
   app:
-    className: external
-    annotations:
-      external-dns.alpha.kubernetes.io/target: external.pitower.link
-    hosts:
-      - host: &hostName tandoor.pitower.link
-        paths:
-          - path: /
-            service:
-              identifier: app
-              port: http
-    tls:
-      - hosts:
-          - *hostName
+    enabled: true
+    hostnames:
+      - tandoor.pitower.link
+    parentRefs:
+      - name: envoy-external
+        namespace: network
+        sectionName: https
+
+# ingress:
+#   app:
+#     className: external
+#     annotations:
+#       external-dns.alpha.kubernetes.io/target: external.pitower.link
+#     hosts:
+#       - host: &hostName tandoor.pitower.link
+#         paths:
+#           - path: /
+#             service:
+#               identifier: app
+#               port: http
+#     tls:
+#       - hosts:
+#           - *hostName
 
 persistence:
   files:

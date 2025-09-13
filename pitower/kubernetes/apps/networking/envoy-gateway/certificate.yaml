@@ -1,0 +1,15 @@
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: "pitower-link-production"
+  namespace: networking
+spec:
+  secretName: "pitower-link-production-tls"
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+  commonName: "pitower.link"
+  dnsNames:
+    - "pitower.link"
+    - "*.pitower.link"
