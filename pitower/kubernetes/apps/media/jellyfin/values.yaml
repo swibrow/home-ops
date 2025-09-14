@@ -27,7 +27,7 @@ service:
     controller: jellyfin
     type: LoadBalancer
     annotations:
-      external-dns.alpha.kubernetes.io/hostname: jellyfin.pitower.link
+      # external-dns.alpha.kubernetes.io/hostname: jellyfin.pitower.link
       lbipam.cilium.io/ips: "192.168.0.229"
     ports:
       http:
