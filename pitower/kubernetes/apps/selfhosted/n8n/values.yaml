@@ -72,7 +72,7 @@ route:
           - path:
               value: /webhook
         backendRefs:
-          - name: app
+          - name: n8n
             port: *port
 
 # ingress:
