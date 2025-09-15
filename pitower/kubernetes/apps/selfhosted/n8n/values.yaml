@@ -70,9 +70,9 @@ route:
     rules:
       - matches:
           - path:
-              value: /webhook
+              value: /
         backendRefs:
-          - name: app
+          - name: n8n
             port: *port
 
 # ingress:
