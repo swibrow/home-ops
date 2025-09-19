@@ -13,7 +13,7 @@ controllers:
       app:
         image:
           repository: ghcr.io/miniflux/miniflux
-          tag: 2.2.12-distroless
+          tag: 2.2.13-distroless
         env:
           BASE_URL: https://miniflux.pitower.link
           CREATE_ADMIN: "1"
