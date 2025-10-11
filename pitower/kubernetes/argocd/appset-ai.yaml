@@ -1,0 +1,50 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: ai
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/swibrow/home-ops
+        revision: main
+        directories:
+          - path: pitower/kubernetes/apps/ai/*
+  template:
+    metadata:
+      name: "{{index .path.segments 3}}-{{.path.basename}}"
+      namespace: argocd
+      labels:
+        app.kubernetes.io/category: "{{index .path.segments 3}}"
+        app.kubernetes.io/name: "{{.path.basename}}"
+        app.kubernetes.io/instance: "{{.path.basename}}"
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: apps
+      source:
+        repoURL: https://github.com/swibrow/home-ops
+        targetRevision: main
+        path: "{{.path.path}}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{index .path.segments 3}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: false
+          allowEmpty: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+          - SkipDryRunOnMissingResource=true
+          - ApplyOutOfSyncOnly=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+      revisionHistoryLimit: 3
