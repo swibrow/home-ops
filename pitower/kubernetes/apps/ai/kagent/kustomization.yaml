@@ -5,6 +5,7 @@ kind: Kustomization
 namespace: kagent
 resources:
   - ./namespace.yaml
+  - ./route.yaml
   # - externalsecret.yaml
   # - pvc.yaml
 helmCharts:
