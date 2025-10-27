@@ -13,7 +13,7 @@ helmCharts:
     valuesFile: values.yaml
   - name: k8s-gateway
     repo: https://k8s-gateway.github.io/k8s_gateway/
-    version: 3.2.7
+    version: 3.2.8
     releaseName: k8s-gateway
     namespace: kube-system
     valuesInline:
