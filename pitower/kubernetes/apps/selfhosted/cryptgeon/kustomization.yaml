@@ -25,7 +25,8 @@ helmCharts:
       env:
         - name: REDIS
           value: redis://valkey-primary:6379
-
+        - name: SIZE_LIMIT
+          value: 104857600 # 100MB
       ingress:
         enabled: true
         className: external
