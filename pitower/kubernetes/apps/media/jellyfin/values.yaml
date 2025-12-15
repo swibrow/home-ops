@@ -11,7 +11,7 @@ controllers:
       app:
         image:
           repository: ghcr.io/jellyfin/jellyfin
-          tag: 10.10.7@sha256:e4d1dc5374344446a3a78e43dd211247f22afba84ea2e5a13cbe1a94e1ff2141
+          tag: 10.11.5@sha256:cd7e4cb71812dd76988a725da615e37c6d0d24c200be904ad5d183e51f1dc6ed
         env:
           DOTNET_SYSTEM_IO_DISABLEFILELOCKING: "true"
         resources:
