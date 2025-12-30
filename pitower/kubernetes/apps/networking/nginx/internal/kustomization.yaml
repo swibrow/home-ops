@@ -6,7 +6,7 @@ namespace: networking
 helmCharts:
   - name: ingress-nginx
     repo: https://kubernetes.github.io/ingress-nginx
-    version: 4.12.3
+    version: 4.14.1
     releaseName: nginx-internal
     namespace: networking
     valuesFile: values.yaml
