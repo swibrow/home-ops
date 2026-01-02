@@ -1,7 +1,7 @@
 ---
 machine:
   install:
-    image: factory.talos.dev/installer/f19ad7b4a5d29151f3a59ef2d9c581cf89e77142e52f0abb5022e8f0b95ad0b9:v1.10.3
+    image: factory.talos.dev/installer/f19ad7b4a5d29151f3a59ef2d9c581cf89e77142e52f0abb5022e8f0b95ad0b9:v1.10.7
   network:
     hostname: worker-02
     interfaces:
@@ -9,4 +9,4 @@ machine:
           physical: true
         dhcp: true
         vip:
-          ip: 192.168.0.250
+          ip: 192.168.0.200

@@ -40,8 +40,8 @@ controllers:
           ZIGBEE2MQTT_CONFIG_PERMIT_JOIN: true
           ZIGBEE2MQTT_CONFIG_SERIAL_BAUDRATE: 115200
           ZIGBEE2MQTT_CONFIG_SERIAL_DISABLE_LED: false
-          ZIGBEE2MQTT_CONFIG_SERIAL_PORT: /dev/ttyACM0
-          ZIGBEE2MQTT_CONFIG_SERIAL_ADAPTER: ember
+          ZIGBEE2MQTT_CONFIG_SERIAL_PORT: tcp://slzb-06:6638  # /dev/ttyACM0
+          ZIGBEE2MQTT_CONFIG_SERIAL_ADAPTER: zstack # ember
         securityContext:
           privileged: true
       code-server:

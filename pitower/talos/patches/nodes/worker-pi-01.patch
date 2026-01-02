@@ -7,6 +7,6 @@ machine:
           physical: true
         dhcp: true
   install:
-    image: factory.talos.dev/installer/de94b242ed9adec9def2581ffbf1e2d1873e42b17032771770d241dee54d7c00:v1.10.3
+    image: factory.talos.dev/installer/de94b242ed9adec9def2581ffbf1e2d1873e42b17032771770d241dee54d7c00:v1.10.7
     extraKernelArgs:
       - initcall_blacklist=sensors_nct6683_init
