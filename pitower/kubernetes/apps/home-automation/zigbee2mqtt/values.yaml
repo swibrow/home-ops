@@ -105,9 +105,9 @@ persistence:
           - path: /data
         code-server:
           - path: /data
-  usb:
-    type: hostPath
-    hostPath: /dev/ttyACM0
-    hostPathType: CharDevice
-    globalMounts:
-      - path: /dev/ttyACM0
+  # usb:
+  #   type: hostPath
+  #   hostPath: /dev/ttyACM0
+  #   hostPathType: CharDevice
+  #   globalMounts:
+  #     - path: /dev/ttyACM0
