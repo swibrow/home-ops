@@ -86,7 +86,7 @@ route:
         sectionName: https
     rules:
       - backendRefs:
-          - identifier: code-server
+          - identifier: app
             port: 12321
 
 # ingress:
