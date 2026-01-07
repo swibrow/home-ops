@@ -6,7 +6,7 @@ namespace: selfhosted
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm
-    version: 4.2.0
+    version: 4.6.0
     releaseName: glance
     namespace: selfhosted
     valuesFile: values.yaml
