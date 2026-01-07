@@ -14,7 +14,7 @@ controllers:
       app:
         image:
           repository: ghcr.io/home-operations/home-assistant
-          tag: 2025.9.4
+          tag: 2026.1.0
         resources:
           requests:
             cpu: 47m
