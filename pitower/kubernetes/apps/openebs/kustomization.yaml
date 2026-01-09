@@ -8,7 +8,7 @@ resources:
 helmCharts:
   - name: openebs
     repo: https://openebs.github.io/openebs
-    version: 4.3.3
+    version: 4.4.0
     releaseName: openebs
     valuesFile: values.yaml
     includeCRDs: true
