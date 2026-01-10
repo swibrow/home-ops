@@ -10,8 +10,8 @@ controllers:
       app:
         nameOverride: qbittorrent
         image:
-          repository: ghcr.io/home-operations/qbittorrent-beta
-          tag: 5.0.3@sha256:4b9de3356475bd97fda3fb4d98f213e8d139aef15e7bd20dab72973e661901dd
+          repository: ghcr.io/home-operations/qbittorrent
+          tag: 5.1.4@sha256:e9c2c24ad2b39fa0ee44de682bf26b14bf23cffea1de9e1f082f26caed4277f9
         env:
           UMASK: "022"
           QBT_WEBUI_PORT: &port 8080
