@@ -1,0 +1,121 @@
+blueprint:
+  name: Aqara H2 Wireless Button
+  description: |
+    Use an Aqara H2 switch as a wireless button to control any entity.
+
+    **Setup Requirements:**
+    - Switch must be in decoupled mode via zigbee2mqtt
+    - Enable "Flip indicator light" if you want LED to show target state
+
+    Supports WS-K07E (single rocker) and WS-K08E (double rocker) models.
+  domain: automation
+  input:
+    button_device:
+      name: Button Device
+      description: The Aqara H2 switch to use as a wireless button
+      selector:
+        device:
+    button_actions:
+      name: Button Actions
+      description: |
+        Actions that trigger the control.
+        WS-K07E: single_up, single_down, double_down, hold_down
+        WS-K08E: single_left/right, single_left/right_down, double/hold variants
+      selector:
+        select:
+          multiple: true
+          options:
+            - single_up
+            - single_down
+            - double_down
+            - hold_down
+            - single_left
+            - single_left_down
+            - double_left_down
+            - hold_left_down
+            - single_right
+            - single_right_down
+            - double_right_down
+            - hold_right_down
+      default:
+        - single_up
+        - single_down
+    target_entity:
+      name: Target Entity
+      description: The entity to control (light, switch, etc.)
+      selector:
+        entity:
+    sync_led:
+      name: Sync LED Indicator
+      description: Keep button LED in sync with target entity state
+      selector:
+        boolean:
+      default: true
+    mqtt_base_topic:
+      name: MQTT Base Topic
+      description: Your zigbee2mqtt base topic
+      selector:
+        text:
+      default: zigbee2mqtt
+
+mode: queued
+max: 5
+
+trigger_variables:
+  mqtt_base: !input mqtt_base_topic
+
+trigger:
+  - platform: mqtt
+    topic: "{{ mqtt_base }}/+"
+    id: mqtt_action
+  - platform: state
+    entity_id: !input target_entity
+    id: target_changed
+
+variables:
+  sync_led: !input sync_led
+  mqtt_topic: !input mqtt_base_topic
+  button_id: !input button_device
+  button_name: "{{ device_attr(button_id, 'name') }}"
+  button_actions: !input button_actions
+  target_entity: !input target_entity
+
+condition:
+  - condition: or
+    conditions:
+      - condition: trigger
+        id: target_changed
+      - condition: template
+        value_template: >-
+          {% set payload = trigger.payload | from_json if trigger.payload is defined else {} %}
+          {% set action = payload.get('action', '') %}
+          {{ action in button_actions }}
+
+action:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: mqtt_action
+          - condition: template
+            value_template: >-
+              {% set payload = trigger.payload | from_json %}
+              {% set device = trigger.topic.split('/')[-1] %}
+              {% set action = payload.get('action', '') %}
+              {{ device == button_name and action in button_actions }}
+        sequence:
+          - service: homeassistant.toggle
+            target:
+              entity_id: !input target_entity
+
+      - conditions:
+          - condition: trigger
+            id: target_changed
+          - condition: template
+            value_template: "{{ sync_led }}"
+          - condition: template
+            value_template: "{{ trigger.to_state.state in ['on', 'off'] }}"
+        sequence:
+          - service: mqtt.publish
+            data:
+              topic: "{{ mqtt_topic }}/{{ button_name }}/set"
+              payload: '{"led_indicator": "{{ ''ON'' if states(target_entity) == ''on'' else ''OFF'' }}"}'

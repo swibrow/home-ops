@@ -1,0 +1,59 @@
+esphome:
+  name: nodemcu-lcd
+
+esp8266:
+  board: nodemcu
+
+
+wifi:
+  ssid: foo
+  password: bar
+
+api:
+
+logger:
+
+ota:
+  platform: esphome
+
+display:
+  - platform: lcd_gpio
+    dimensions: 16x2
+    data_pins: [GPIO14, GPIO12, GPIO13, GPIO15]  # Maps to D5, D6, D7, D8
+    enable_pin: GPIO5    # Maps to D1
+    rs_pin: GPIO4        # Maps to D2
+    rw_pin: GPIO16       # Maps to D0, optionally connect RW to GND instead
+    lambda: |-
+      it.print(0, 0, "Hello");
+    update_interval: 1s  # Redraws the screen every second
+    id: my_lcd  # Optionally specify an ID for code generation
+
+# sensor:
+#   - platform: dht
+#     pin: D5
+#     temperature:
+#       name: "Living Room Temperature"
+#     humidity:
+#       name: "Living Room Humidity"
+#     update_interval: 60s
+
+# binary_sensor:
+#   - platform: gpio
+#     pin:
+#       number: GPIO0
+#       mode: INPUT_PULLUP
+#       inverted: True
+#     name: "Sonoff Basic Button"
+#     on_press:
+#       - switch.toggle: relay
+
+# switch:
+#   - platform: gpio
+#     name: "Sonoff Basic Relay"
+#     pin: GPIO12
+#     id: relay
+
+# status_led:
+#   pin:
+#     number: GPIO13
+#     inverted: yes
