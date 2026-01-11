@@ -1,5 +1,6 @@
 blueprint:
   name: Aqara H2 Wireless Button
+  source_url: https://github.com/swibrow/home-ops/blob/main/iot/homeassistant/blueprints/aqara_h2_wireless_button.yaml
   description: |
     Use an Aqara H2 switch as a wireless button to control any entity.
 

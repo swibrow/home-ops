@@ -1,5 +1,6 @@
 blueprint:
   name: Aqara H2 Two-Way Switch
+  source_url: https://github.com/swibrow/home-ops/blob/main/iot/homeassistant/blueprints/aqara_h2_two_way_switch.yaml
   description: |
     Create a two-way (or multi-way) switch setup with Aqara H2 devices.
     One master switch controls the light relay, secondary switches control it wirelessly.

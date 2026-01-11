@@ -1,0 +1,181 @@
+blueprint:
+  name: Aqara H2 Button Actions
+  source_url: https://github.com/swibrow/home-ops/blob/main/iot/homeassistant/blueprints/aqara_h2_button_actions.yaml
+  description: |
+    Map Aqara H2 switch button presses to custom actions.
+    Supports both WS-K07E (single rocker) and WS-K08E (double rocker) models.
+
+    **Button behavior:**
+    - Top buttons toggle relays (in control_relay mode) or send events only (in decoupled mode)
+    - Bottom buttons support single, double, hold, and release events
+    - Enable "Multi click" in zigbee2mqtt for double/hold/release events (adds ~1s delay)
+    - Release events only follow hold events
+
+    **Note:** Switches without neutral wire have slower event triggering.
+  domain: automation
+  input:
+    switch_device:
+      name: Switch Device
+      description: The Aqara H2 switch device
+      selector:
+        device:
+          filter:
+            - integration: mqtt
+
+    # Single rocker (WS-K07E) actions
+    single_up:
+      name: Single Up (WS-K07E)
+      description: Top button pressed on single rocker
+      default: []
+      selector:
+        action: {}
+    single_down:
+      name: Single Down (WS-K07E)
+      description: Bottom button pressed on single rocker
+      default: []
+      selector:
+        action: {}
+    double_down:
+      name: Double Down (WS-K07E)
+      description: Bottom button double-pressed on single rocker
+      default: []
+      selector:
+        action: {}
+    hold_down:
+      name: Hold Down (WS-K07E)
+      description: Bottom button held on single rocker
+      default: []
+      selector:
+        action: {}
+    release_down:
+      name: Release Down (WS-K07E)
+      description: Bottom button released after hold on single rocker
+      default: []
+      selector:
+        action: {}
+
+    # Double rocker (WS-K08E) left side actions
+    single_left:
+      name: Single Left Up (WS-K08E)
+      description: Left top button pressed
+      default: []
+      selector:
+        action: {}
+    single_left_down:
+      name: Single Left Down (WS-K08E)
+      description: Left bottom button pressed
+      default: []
+      selector:
+        action: {}
+    double_left_down:
+      name: Double Left Down (WS-K08E)
+      description: Left bottom button double-pressed
+      default: []
+      selector:
+        action: {}
+    hold_left_down:
+      name: Hold Left Down (WS-K08E)
+      description: Left bottom button held
+      default: []
+      selector:
+        action: {}
+    release_left_down:
+      name: Release Left Down (WS-K08E)
+      description: Left bottom button released after hold
+      default: []
+      selector:
+        action: {}
+
+    # Double rocker (WS-K08E) right side actions
+    single_right:
+      name: Single Right Up (WS-K08E)
+      description: Right top button pressed
+      default: []
+      selector:
+        action: {}
+    single_right_down:
+      name: Single Right Down (WS-K08E)
+      description: Right bottom button pressed
+      default: []
+      selector:
+        action: {}
+    double_right_down:
+      name: Double Right Down (WS-K08E)
+      description: Right bottom button double-pressed
+      default: []
+      selector:
+        action: {}
+    hold_right_down:
+      name: Hold Right Down (WS-K08E)
+      description: Right bottom button held
+      default: []
+      selector:
+        action: {}
+    release_right_down:
+      name: Release Right Down (WS-K08E)
+      description: Right bottom button released after hold
+      default: []
+      selector:
+        action: {}
+
+mode: queued
+max: 5
+
+trigger_variables:
+  switch_id: !input switch_device
+
+trigger:
+  - platform: mqtt
+    topic: "zigbee2mqtt/+"
+
+variables:
+  switch_name: "{{ device_attr(switch_id, 'name') }}"
+
+condition:
+  - condition: template
+    value_template: >-
+      {% set payload = trigger.payload | from_json if trigger.payload is defined else {} %}
+      {% set device = trigger.topic.split('/')[-1] %}
+      {% set action = payload.get('action', '') %}
+      {{ device == switch_name and action != '' }}
+
+action:
+  - variables:
+      command: "{{ (trigger.payload | from_json).get('action', '') }}"
+
+  - choose:
+      # Single rocker (WS-K07E)
+      - conditions: "{{ command == 'single_up' }}"
+        sequence: !input single_up
+      - conditions: "{{ command == 'single_down' }}"
+        sequence: !input single_down
+      - conditions: "{{ command == 'double_down' }}"
+        sequence: !input double_down
+      - conditions: "{{ command == 'hold_down' }}"
+        sequence: !input hold_down
+      - conditions: "{{ command == 'release_down' }}"
+        sequence: !input release_down
+
+      # Double rocker (WS-K08E) - Left
+      - conditions: "{{ command == 'single_left' }}"
+        sequence: !input single_left
+      - conditions: "{{ command == 'single_left_down' }}"
+        sequence: !input single_left_down
+      - conditions: "{{ command == 'double_left_down' }}"
+        sequence: !input double_left_down
+      - conditions: "{{ command == 'hold_left_down' }}"
+        sequence: !input hold_left_down
+      - conditions: "{{ command == 'release_left_down' }}"
+        sequence: !input release_left_down
+
+      # Double rocker (WS-K08E) - Right
+      - conditions: "{{ command == 'single_right' }}"
+        sequence: !input single_right
+      - conditions: "{{ command == 'single_right_down' }}"
+        sequence: !input single_right_down
+      - conditions: "{{ command == 'double_right_down' }}"
+        sequence: !input double_right_down
+      - conditions: "{{ command == 'hold_right_down' }}"
+        sequence: !input hold_right_down
+      - conditions: "{{ command == 'release_right_down' }}"
+        sequence: !input release_right_down

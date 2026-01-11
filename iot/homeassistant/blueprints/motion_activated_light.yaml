@@ -1,0 +1,66 @@
+blueprint:
+  name: Motion-activated Light/Switch
+  source_url: https://github.com/swibrow/home-ops/blob/main/iot/homeassistant/blueprints/motion_activated_light.yaml
+  description: |
+    Turn on a light or switch when motion is detected.
+    Supports both light and switch entities for Aqara H2 and similar devices.
+
+    The light/switch will turn on when motion is detected and turn off
+    after a configurable delay once motion stops.
+  domain: automation
+  author: Home Assistant
+  input:
+    motion_entity:
+      name: Motion Sensor
+      description: The motion or occupancy sensor to monitor
+      selector:
+        entity:
+          filter:
+            - device_class: occupancy
+              domain: binary_sensor
+            - device_class: motion
+              domain: binary_sensor
+    target_entity:
+      name: Light or Switch
+      description: The light or switch to control
+      selector:
+        entity:
+          filter:
+            - domain: light
+            - domain: switch
+    no_motion_wait:
+      name: Wait time
+      description: Time to leave the light/switch on after last motion is detected
+      default: 120
+      selector:
+        number:
+          min: 0
+          max: 3600
+          unit_of_measurement: seconds
+
+mode: restart
+max_exceeded: silent
+
+triggers:
+  - trigger: state
+    entity_id: !input motion_entity
+    from: "off"
+    to: "on"
+
+actions:
+  - alias: "Turn on the light/switch"
+    action: homeassistant.turn_on
+    target:
+      entity_id: !input target_entity
+  - alias: "Wait until there is no motion from device"
+    wait_for_trigger:
+      trigger: state
+      entity_id: !input motion_entity
+      from: "on"
+      to: "off"
+  - alias: "Wait the number of seconds that has been set"
+    delay: !input no_motion_wait
+  - alias: "Turn off the light/switch"
+    action: homeassistant.turn_off
+    target:
+      entity_id: !input target_entity
