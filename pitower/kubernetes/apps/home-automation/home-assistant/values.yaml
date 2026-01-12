@@ -9,7 +9,9 @@ controllers:
         runAsGroup: 2000
         fsGroup: 2000
         fsGroupChangePolicy: OnRootMismatch
-
+      nodeSelector:
+        # sonoff.feature.node.kubernetes.io/zigbee: "true"
+        kubernetes.io/hostname: worker-04
     containers:
       app:
         image:
@@ -145,3 +147,9 @@ persistence:
             subPath: code-server-tmp
           - path: /nonexistent
             subPath: nonexistent
+  usb:
+    type: hostPath
+    hostPath: /dev/ttyACM0
+    hostPathType: CharDevice
+    globalMounts:
+      - path: /dev/ttyACM0
