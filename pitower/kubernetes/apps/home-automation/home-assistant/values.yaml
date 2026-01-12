@@ -2,7 +2,6 @@ controllers:
   home-assistant:
     annotations:
       reloader.stakater.com/auto: "true"
-
     pod:
       securityContext:
         runAsUser: 2000
@@ -24,11 +23,12 @@ controllers:
           limits:
             memory: 2Gi
         securityContext:
-          allowPrivilegeEscalation: false
+          # allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
-          capabilities:
-            drop:
-              - ALL
+          # capabilities:
+          #   drop:
+          #     - ALL
+          privileged: true
         envFrom:
           - secretRef:
               name: home-assistant-secret
@@ -90,42 +90,6 @@ route:
       - backendRefs:
           - identifier: app
             port: 12321
-
-# ingress:
-#   app:
-#     className: external
-#     annotations:
-#       external-dns.alpha.kubernetes.io/target: external.pitower.link
-#       nginx.ingress.kubernetes.io/rewrite-target: /$1
-#     hosts:
-#       - host: &host ha.pitower.link
-#         paths:
-#           - path: /(.*)
-#             service:
-#               identifier: app
-#               port: http
-#     tls:
-#       - hosts:
-#           - *host
-#   code-server:
-#     className: external
-#     annotations:
-#       external-dns.alpha.kubernetes.io/target: external.pitower.link
-#       nginx.ingress.kubernetes.io/rewrite-target: /$2
-#       nginx.ingress.kubernetes.io/auth-method: "GET"
-#       nginx.ingress.kubernetes.io/auth-url: "http://authelia.security.svc.cluster.local/api/authz/auth-request"
-#       nginx.ingress.kubernetes.io/auth-signin: "https://auth.pitower.link?rm=$request_method"
-#       nginx.ingress.kubernetes.io/auth-response-headers: "Remote-User,Remote-Name,Remote-Groups,Remote-Email"
-#     hosts:
-#       - host: *host
-#         paths:
-#           - path: /code(/|$)(.*)
-#             service:
-#               identifier: app
-#               port: code-server
-#     tls:
-#       - hosts:
-#           - *host
 persistence:
   config:
     existingClaim: home-assistant-config
