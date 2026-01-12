@@ -1,0 +1,99 @@
+blueprint:
+  name: Aqara H2 Single Rocker (WS-K07E)
+  source_url: https://github.com/swibrow/home-ops/blob/main/iot/homeassistant/blueprints/aqara_h2_single_rocker.yaml
+  description: |
+    Map Aqara H2 WS-K07E (single rocker) button presses to custom actions.
+
+    **Button layout:**
+    ```
+    ┌─────────┐
+    │   UP    │  ← Top button
+    ├─────────┤
+    │  DOWN   │  ← Bottom button
+    └─────────┘
+    ```
+
+    **Button behavior:**
+    - Top button: Toggles relay (control_relay mode) or sends event only (decoupled mode)
+    - Bottom button: Supports single, double, hold, and release events
+    - Enable "Multi click" in zigbee2mqtt for double/hold/release events (adds ~1s delay)
+    - Release events only follow hold events
+
+    **Note:** Switches without neutral wire have slower event triggering.
+  domain: automation
+  input:
+    switch_device:
+      name: Switch Device
+      description: The Aqara H2 WS-K07E switch device
+      selector:
+        device:
+          filter:
+            - integration: mqtt
+
+    single_up:
+      name: Single Up
+      description: Top button pressed
+      default: []
+      selector:
+        action: {}
+    single_down:
+      name: Single Down
+      description: Bottom button pressed
+      default: []
+      selector:
+        action: {}
+    double_down:
+      name: Double Down
+      description: Bottom button double-pressed (requires Multi click enabled)
+      default: []
+      selector:
+        action: {}
+    hold_down:
+      name: Hold Down
+      description: Bottom button held (requires Multi click enabled)
+      default: []
+      selector:
+        action: {}
+    release_down:
+      name: Release Down
+      description: Bottom button released after hold
+      default: []
+      selector:
+        action: {}
+
+mode: queued
+max: 5
+
+trigger_variables:
+  switch_id: !input switch_device
+
+trigger:
+  - platform: mqtt
+    topic: "zigbee2mqtt/+"
+
+variables:
+  switch_name: "{{ device_attr(switch_id, 'name') }}"
+
+condition:
+  - condition: template
+    value_template: >-
+      {% set payload = trigger.payload | from_json if trigger.payload is defined else {} %}
+      {% set device = trigger.topic.split('/')[-1] %}
+      {% set action = payload.get('action', '') %}
+      {{ device == switch_name and action != '' }}
+
+action:
+  - variables:
+      command: "{{ (trigger.payload | from_json).get('action', '') }}"
+
+  - choose:
+      - conditions: "{{ command == 'single_up' }}"
+        sequence: !input single_up
+      - conditions: "{{ command == 'single_down' }}"
+        sequence: !input single_down
+      - conditions: "{{ command == 'double_down' }}"
+        sequence: !input double_down
+      - conditions: "{{ command == 'hold_down' }}"
+        sequence: !input hold_down
+      - conditions: "{{ command == 'release_down' }}"
+        sequence: !input release_down

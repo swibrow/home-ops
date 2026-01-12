@@ -1,0 +1,145 @@
+blueprint:
+  name: Aqara H2 Double Rocker (WS-K08E)
+  source_url: https://github.com/swibrow/home-ops/blob/main/iot/homeassistant/blueprints/aqara_h2_double_rocker.yaml
+  description: |
+    Map Aqara H2 WS-K08E (double rocker) button presses to custom actions.
+
+    **Button layout:**
+    ```
+    ┌─────────┬─────────┐
+    │ LEFT UP │ RIGHT UP│  ← Top buttons
+    ├─────────┼─────────┤
+    │LEFT DOWN│RIGHT DWN│  ← Bottom buttons
+    └─────────┴─────────┘
+    ```
+
+    **Button behavior:**
+    - Top buttons: Toggle relays (control_relay mode) or send events only (decoupled mode)
+    - Bottom buttons: Support single, double, hold, and release events
+    - Enable "Multi click" in zigbee2mqtt for double/hold/release events (adds ~1s delay)
+    - Release events only follow hold events
+
+    **Note:** Switches without neutral wire have slower event triggering.
+  domain: automation
+  input:
+    switch_device:
+      name: Switch Device
+      description: The Aqara H2 WS-K08E switch device
+      selector:
+        device:
+          filter:
+            - integration: mqtt
+
+    # Left side
+    single_left:
+      name: Single Left Up
+      description: Left top button pressed
+      default: []
+      selector:
+        action: {}
+    single_left_down:
+      name: Single Left Down
+      description: Left bottom button pressed
+      default: []
+      selector:
+        action: {}
+    double_left_down:
+      name: Double Left Down
+      description: Left bottom button double-pressed (requires Multi click enabled)
+      default: []
+      selector:
+        action: {}
+    hold_left_down:
+      name: Hold Left Down
+      description: Left bottom button held (requires Multi click enabled)
+      default: []
+      selector:
+        action: {}
+    release_left_down:
+      name: Release Left Down
+      description: Left bottom button released after hold
+      default: []
+      selector:
+        action: {}
+
+    # Right side
+    single_right:
+      name: Single Right Up
+      description: Right top button pressed
+      default: []
+      selector:
+        action: {}
+    single_right_down:
+      name: Single Right Down
+      description: Right bottom button pressed
+      default: []
+      selector:
+        action: {}
+    double_right_down:
+      name: Double Right Down
+      description: Right bottom button double-pressed (requires Multi click enabled)
+      default: []
+      selector:
+        action: {}
+    hold_right_down:
+      name: Hold Right Down
+      description: Right bottom button held (requires Multi click enabled)
+      default: []
+      selector:
+        action: {}
+    release_right_down:
+      name: Release Right Down
+      description: Right bottom button released after hold
+      default: []
+      selector:
+        action: {}
+
+mode: queued
+max: 5
+
+trigger_variables:
+  switch_id: !input switch_device
+
+trigger:
+  - platform: mqtt
+    topic: "zigbee2mqtt/+"
+
+variables:
+  switch_name: "{{ device_attr(switch_id, 'name') }}"
+
+condition:
+  - condition: template
+    value_template: >-
+      {% set payload = trigger.payload | from_json if trigger.payload is defined else {} %}
+      {% set device = trigger.topic.split('/')[-1] %}
+      {% set action = payload.get('action', '') %}
+      {{ device == switch_name and action != '' }}
+
+action:
+  - variables:
+      command: "{{ (trigger.payload | from_json).get('action', '') }}"
+
+  - choose:
+      # Left side
+      - conditions: "{{ command == 'single_left' }}"
+        sequence: !input single_left
+      - conditions: "{{ command == 'single_left_down' }}"
+        sequence: !input single_left_down
+      - conditions: "{{ command == 'double_left_down' }}"
+        sequence: !input double_left_down
+      - conditions: "{{ command == 'hold_left_down' }}"
+        sequence: !input hold_left_down
+      - conditions: "{{ command == 'release_left_down' }}"
+        sequence: !input release_left_down
+
+      # Right side
+      - conditions: "{{ command == 'single_right' }}"
+        sequence: !input single_right
+      - conditions: "{{ command == 'single_right_down' }}"
+        sequence: !input single_right_down
+      - conditions: "{{ command == 'double_right_down' }}"
+        sequence: !input double_right_down
+      - conditions: "{{ command == 'hold_right_down' }}"
+        sequence: !input hold_right_down
+      - conditions: "{{ command == 'release_right_down' }}"
+        sequence: !input release_right_down

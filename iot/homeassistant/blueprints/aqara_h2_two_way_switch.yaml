@@ -4,12 +4,10 @@ blueprint:
   description: |
     Create a two-way (or multi-way) switch setup with Aqara H2 devices.
     One master switch controls the light relay, secondary switches control it wirelessly.
-    LED indicators on secondary switches sync with the master relay state.
 
     **Setup Requirements:**
     - Master switch: Keep in default mode (control_relay)
     - Secondary switches: Set to decoupled mode via zigbee2mqtt
-    - Secondary switches: Enable "Flip indicator light" for correct LED sync
 
     Supports WS-K07E (single rocker) and WS-K08E (double rocker) models.
   domain: automation
@@ -104,12 +102,6 @@ blueprint:
             - hold_right_down
       default: []
 
-    sync_led:
-      name: Sync LED Indicators
-      description: Keep secondary switch LEDs in sync with master relay state
-      selector:
-        boolean:
-      default: true
     mqtt_base_topic:
       name: MQTT Base Topic
       description: Your zigbee2mqtt base topic
@@ -126,13 +118,8 @@ trigger_variables:
 trigger:
   - platform: mqtt
     topic: "{{ mqtt_base }}/+"
-    id: mqtt_action
-  - platform: state
-    entity_id: !input master_switch
-    id: relay_changed
 
 variables:
-  sync_led: !input sync_led
   mqtt_topic: !input mqtt_base_topic
   master_switch: !input master_switch
   dev1_id: !input secondary_device_1
@@ -144,49 +131,18 @@ variables:
   dev1_actions: !input secondary_actions_1
   dev2_actions: !input secondary_actions_2
   dev3_actions: !input secondary_actions_3
-  secondary_devices: "{{ [dev1_name, dev2_name, dev3_name] | reject('eq', '') | list }}"
 
 condition:
-  - condition: or
-    conditions:
-      - condition: trigger
-        id: relay_changed
-      - condition: template
-        value_template: >-
-          {% set payload = trigger.payload | from_json if trigger.payload is defined else {} %}
-          {% set action = payload.get('action', '') %}
-          {{ action in (dev1_actions + dev2_actions + dev3_actions) }}
+  - condition: template
+    value_template: >-
+      {% set payload = trigger.payload | from_json if trigger.payload is defined else {} %}
+      {% set device = trigger.topic.split('/')[-1] %}
+      {% set action = payload.get('action', '') %}
+      {{ (device == dev1_name and action in dev1_actions) or
+         (device == dev2_name and action in dev2_actions) or
+         (device == dev3_name and action in dev3_actions) }}
 
 action:
-  - choose:
-      - conditions:
-          - condition: trigger
-            id: mqtt_action
-          - condition: template
-            value_template: >-
-              {% set payload = trigger.payload | from_json %}
-              {% set device = trigger.topic.split('/')[-1] %}
-              {% set action = payload.get('action', '') %}
-              {{ (device == dev1_name and action in dev1_actions) or
-                 (device == dev2_name and action in dev2_actions) or
-                 (device == dev3_name and action in dev3_actions) }}
-        sequence:
-          - service: switch.toggle
-            target:
-              entity_id: !input master_switch
-
-      - conditions:
-          - condition: trigger
-            id: relay_changed
-          - condition: template
-            value_template: "{{ sync_led and secondary_devices | length > 0 }}"
-          - condition: template
-            value_template: "{{ trigger.to_state.state in ['on', 'off'] }}"
-        sequence:
-          - repeat:
-              for_each: "{{ secondary_devices }}"
-              sequence:
-                - service: mqtt.publish
-                  data:
-                    topic: "{{ mqtt_topic }}/{{ repeat.item }}/set"
-                    payload: '{"led_indicator": "{{ ''ON'' if states(master_switch) == ''on'' else ''OFF'' }}"}'
+  - service: switch.toggle
+    target:
+      entity_id: !input master_switch
