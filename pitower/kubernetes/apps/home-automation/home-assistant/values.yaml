@@ -24,7 +24,7 @@ controllers:
             memory: 2Gi
         securityContext:
           # allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: true
+          # readOnlyRootFilesystem: true
           # capabilities:
           #   drop:
           #     - ALL
@@ -114,6 +114,6 @@ persistence:
   usb:
     type: hostPath
     hostPath: /dev/ttyACM0
-    hostPathType: CharDevice
+    hostPathType: ""  # or remove this line entirely
     globalMounts:
       - path: /dev/ttyACM0
