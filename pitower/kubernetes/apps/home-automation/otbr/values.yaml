@@ -17,8 +17,6 @@ controllers:
           # Sonoff dongle Thread RCP device
           RADIO_URL: spinel+hdlc+uart:///dev/ttyACM0?uart-baudrate=460800
           BACKBONE_INTERFACE: eth0
-          OTBR_WEB_PORT: &webport 8086
-          OTBR_REST_PORT: &restport 8081
         resources:
           requests:
             cpu: 10m
@@ -40,9 +38,9 @@ service:
       lbipam.cilium.io/ips: 192.168.0.230
     ports:
       web:
-        port: *webport
+        port: 80
       rest:
-        port: *restport
+        port: 8081
 
 route:
   app:
@@ -55,7 +53,7 @@ route:
     rules:
       - backendRefs:
           - identifier: app
-            port: *webport
+            port: 80
 
 persistence:
   usb:
