@@ -56,9 +56,8 @@ route:
             port: 80
 
 persistence:
-  usb:
+  dev:
     type: hostPath
-    hostPath: /dev/ttyACM0
-    hostPathType: ""
+    hostPath: /dev
     globalMounts:
-      - path: /dev/ttyACM0
+      - path: /dev
