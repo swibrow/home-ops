@@ -15,7 +15,7 @@ controllers:
         env:
           TZ: Europe/Zurich
           # Sonoff dongle Thread RCP device
-          OTBR_AGENT_OPTS: "-I wpan0 -B eth0 spinel+hdlc+uart:///dev/ttyACM1?uart-baudrate=460800"
+          OTBR_AGENT_OPTS: "-I wpan0 -B eth0 spinel+hdlc+uart:///dev/ttyACM0?uart-baudrate=460800"
           OTBR_WEB_PORT: &webport 8086
           OTBR_REST_PORT: &restport 8081
         resources:
@@ -59,7 +59,7 @@ route:
 persistence:
   usb:
     type: hostPath
-    hostPath: /dev/ttyACM1
+    hostPath: /dev/ttyACM0
     hostPathType: CharDevice
     globalMounts:
-      - path: /dev/ttyACM1
+      - path: /dev/ttyACM0
