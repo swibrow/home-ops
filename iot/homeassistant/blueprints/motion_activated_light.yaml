@@ -3,18 +3,20 @@ blueprint:
   source_url: https://github.com/swibrow/home-ops/blob/main/iot/homeassistant/blueprints/motion_activated_light.yaml
   description: |
     Run custom actions when motion is detected.
-    Supports any action for both motion detected and motion cleared events.
+    Supports multiple motion sensors and any action for both motion detected
+    and motion cleared events.
 
-    Actions are triggered when motion is detected and again after a
-    configurable delay once motion stops.
+    Actions are triggered when any sensor detects motion and again after a
+    configurable delay once all sensors are clear.
   domain: automation
   author: Home Assistant
   input:
-    motion_entity:
-      name: Motion Sensor
-      description: The motion or occupancy sensor to monitor
+    motion_entities:
+      name: Motion Sensors
+      description: One or more motion or occupancy sensors to monitor
       selector:
         entity:
+          multiple: true
           filter:
             - device_class: occupancy
               domain: binary_sensor
@@ -28,7 +30,7 @@ blueprint:
         action: {}
     motion_cleared_action:
       name: Motion Cleared Action
-      description: Action to run after motion stops and wait time elapses (e.g., turn off light)
+      description: Action to run after all motion stops and wait time elapses (e.g., turn off light)
       default: []
       selector:
         action: {}
@@ -47,21 +49,20 @@ max_exceeded: silent
 
 triggers:
   - trigger: state
-    entity_id: !input motion_entity
+    entity_id: !input motion_entities
     from: "off"
     to: "on"
+
+variables:
+  motion_sensors: !input motion_entities
 
 actions:
   - alias: "Run motion detected action"
     choose:
       - conditions: "{{ true }}"
         sequence: !input motion_detected_action
-  - alias: "Wait until there is no motion from device"
-    wait_for_trigger:
-      trigger: state
-      entity_id: !input motion_entity
-      from: "on"
-      to: "off"
+  - alias: "Wait until all motion sensors are clear"
+    wait_template: "{{ expand(motion_sensors) | selectattr('state', 'eq', 'on') | list | count == 0 }}"
   - alias: "Wait the number of seconds that has been set"
     delay: !input no_motion_wait
   - alias: "Run motion cleared action"
