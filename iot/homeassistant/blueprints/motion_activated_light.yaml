@@ -2,11 +2,11 @@ blueprint:
   name: Motion-activated Light/Switch
   source_url: https://github.com/swibrow/home-ops/blob/main/iot/homeassistant/blueprints/motion_activated_light.yaml
   description: |
-    Turn on a light or switch when motion is detected.
-    Supports both light and switch entities for Aqara H2 and similar devices.
+    Run custom actions when motion is detected.
+    Supports any action for both motion detected and motion cleared events.
 
-    The light/switch will turn on when motion is detected and turn off
-    after a configurable delay once motion stops.
+    Actions are triggered when motion is detected and again after a
+    configurable delay once motion stops.
   domain: automation
   author: Home Assistant
   input:
@@ -20,17 +20,21 @@ blueprint:
               domain: binary_sensor
             - device_class: motion
               domain: binary_sensor
-    target_entity:
-      name: Light or Switch
-      description: The light or switch to control
+    motion_detected_action:
+      name: Motion Detected Action
+      description: Action to run when motion is detected (e.g., turn on light, run scene)
+      default: []
       selector:
-        entity:
-          filter:
-            - domain: light
-            - domain: switch
+        action: {}
+    motion_cleared_action:
+      name: Motion Cleared Action
+      description: Action to run after motion stops and wait time elapses (e.g., turn off light)
+      default: []
+      selector:
+        action: {}
     no_motion_wait:
       name: Wait time
-      description: Time to leave the light/switch on after last motion is detected
+      description: Time to wait after last motion before running motion cleared action
       default: 120
       selector:
         number:
@@ -48,10 +52,10 @@ triggers:
     to: "on"
 
 actions:
-  - alias: "Turn on the light/switch"
-    action: homeassistant.turn_on
-    target:
-      entity_id: !input target_entity
+  - alias: "Run motion detected action"
+    choose:
+      - conditions: "{{ true }}"
+        sequence: !input motion_detected_action
   - alias: "Wait until there is no motion from device"
     wait_for_trigger:
       trigger: state
@@ -60,7 +64,7 @@ actions:
       to: "off"
   - alias: "Wait the number of seconds that has been set"
     delay: !input no_motion_wait
-  - alias: "Turn off the light/switch"
-    action: homeassistant.turn_off
-    target:
-      entity_id: !input target_entity
+  - alias: "Run motion cleared action"
+    choose:
+      - conditions: "{{ true }}"
+        sequence: !input motion_cleared_action
