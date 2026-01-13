@@ -16,7 +16,7 @@ controllers:
           TZ: Europe/Zurich
           # Sonoff dongle Thread RCP device
           RADIO_URL: spinel+hdlc+uart:///dev/serial/by-id/usb-ITEAD_SONOFF_Zigbee_3.0_USB_Dongle_Plus_V2_20220811090018-if00?uart-baudrate=460800
-          BACKBONE_INTERFACE: eth0
+          BACKBONE_INTERFACE: enp2s0
         resources:
           requests:
             cpu: 10m
