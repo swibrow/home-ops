@@ -60,6 +60,6 @@ persistence:
   usb:
     type: hostPath
     hostPath: /dev/ttyACM0
-    hostPathType: CharDevice
+    hostPathType: ""
     globalMounts:
       - path: /dev/ttyACM0
