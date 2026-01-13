@@ -18,8 +18,7 @@ controllers:
           RADIO_URL: spinel+hdlc+uart:///dev/serial/by-id/usb-ITEAD_SONOFF_Zigbee_3.0_USB_Dongle_Plus_V2_20220811090018-if00?uart-baudrate=460800
           BACKBONE_INTERFACE: enp2s0
           # Bind to all interfaces
-          OTBR_WEB_LISTEN_ADDRESS: 0.0.0.0
-          OTBR_REST_LISTEN_ADDRESS: 0.0.0.0
+          REST_HOST: 0.0.0.0
         resources:
           requests:
             cpu: 10m
