@@ -15,7 +15,8 @@ controllers:
         env:
           TZ: Europe/Zurich
           # Sonoff dongle Thread RCP device
-          OTBR_AGENT_OPTS: "-I wpan0 -B eth0 spinel+hdlc+uart:///dev/ttyACM0?uart-baudrate=460800"
+          RADIO_URL: spinel+hdlc+uart:///dev/ttyACM0?uart-baudrate=460800
+          BACKBONE_INTERFACE: eth0
           OTBR_WEB_PORT: &webport 8086
           OTBR_REST_PORT: &restport 8081
         resources:
