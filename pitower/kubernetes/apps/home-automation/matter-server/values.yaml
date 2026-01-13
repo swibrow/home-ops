@@ -1,0 +1,70 @@
+controllers:
+  matter-server:
+    annotations:
+      reloader.stakater.com/auto: "true"
+    pod:
+      # Host network required for Matter mDNS discovery
+      hostNetwork: true
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
+        fsGroup: 0
+        fsGroupChangePolicy: OnRootMismatch
+      nodeSelector:
+        # Run on same node as home-assistant for easier integration
+        kubernetes.io/hostname: worker-04
+    containers:
+      app:
+        image:
+          repository: ghcr.io/home-assistant-libs/python-matter-server
+          tag: 8.1.0@sha256:170aa093ce91c76cde4cc390918307590f0f5558fcec93f913af3cb019e6562a
+        env:
+          TZ: Europe/Zurich
+          MATTER_SERVER__INSTANCE_NAME: matter-server
+          MATTER_SERVER__PORT: &port 5580
+          MATTER_SERVER__APPLICATION_URL: &host matter.pitower.link
+          MATTER_SERVER__LOG_LEVEL: info
+        args:
+          - --storage-path
+          - /data
+          - --log-level
+          - info
+        resources:
+          requests:
+            cpu: 10m
+            memory: 64Mi
+          limits:
+            memory: 256Mi
+        securityContext:
+          privileged: true
+
+service:
+  app:
+    controller: matter-server
+    type: LoadBalancer
+    annotations:
+      lbipam.cilium.io/ips: 192.168.0.228
+    ports:
+      http:
+        port: *port
+
+route:
+  app:
+    hostnames:
+      - *host
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+    rules:
+      - backendRefs:
+          - identifier: app
+            port: *port
+
+persistence:
+  data:
+    existingClaim: matter-server
+  tmp:
+    type: emptyDir
+    globalMounts:
+      - path: /tmp
