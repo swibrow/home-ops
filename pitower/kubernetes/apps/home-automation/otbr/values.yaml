@@ -1,0 +1,65 @@
+controllers:
+  otbr:
+    annotations:
+      reloader.stakater.com/auto: "true"
+    pod:
+      # Host network required for Thread mesh
+      hostNetwork: true
+      nodeSelector:
+        kubernetes.io/hostname: worker-04
+    containers:
+      app:
+        image:
+          repository: openthread/otbr
+          tag: latest
+        env:
+          TZ: Europe/Zurich
+          # Sonoff dongle Thread RCP device
+          OTBR_AGENT_OPTS: "-I wpan0 -B eth0 spinel+hdlc+uart:///dev/ttyACM1?uart-baudrate=460800"
+          OTBR_WEB_PORT: &webport 8086
+          OTBR_REST_PORT: &restport 8081
+        resources:
+          requests:
+            cpu: 10m
+            memory: 64Mi
+          limits:
+            memory: 256Mi
+        securityContext:
+          privileged: true
+          capabilities:
+            add:
+              - NET_ADMIN
+              - SYS_ADMIN
+
+service:
+  app:
+    controller: otbr
+    type: LoadBalancer
+    annotations:
+      lbipam.cilium.io/ips: 192.168.0.230
+    ports:
+      web:
+        port: *webport
+      rest:
+        port: *restport
+
+route:
+  app:
+    hostnames:
+      - otbr.pitower.link
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+    rules:
+      - backendRefs:
+          - identifier: app
+            port: *webport
+
+persistence:
+  usb:
+    type: hostPath
+    hostPath: /dev/ttyACM1
+    hostPathType: CharDevice
+    globalMounts:
+      - path: /dev/ttyACM1
