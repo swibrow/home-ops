@@ -111,9 +111,3 @@ persistence:
             subPath: code-server-tmp
           - path: /nonexistent
             subPath: nonexistent
-  usb:
-    type: hostPath
-    hostPath: /dev/ttyACM0
-    hostPathType: ""  # or remove this line entirely
-    globalMounts:
-      - path: /dev/ttyACM0
