@@ -3,8 +3,6 @@ controllers:
     annotations:
       reloader.stakater.com/auto: "true"
     pod:
-      # Host network required for Thread mesh
-      hostNetwork: true
       nodeSelector:
         kubernetes.io/hostname: worker-04
     containers:
@@ -16,7 +14,7 @@ controllers:
           TZ: Europe/Zurich
           # Sonoff dongle Thread RCP device
           RADIO_URL: spinel+hdlc+uart:///dev/serial/by-id/usb-ITEAD_SONOFF_Zigbee_3.0_USB_Dongle_Plus_V2_20220811090018-if00?uart-baudrate=460800
-          BACKBONE_INTERFACE: enp2s0
+          BACKBONE_INTERFACE: eth0
           # Bind to all interfaces
           REST_HOST: 0.0.0.0
         resources:
