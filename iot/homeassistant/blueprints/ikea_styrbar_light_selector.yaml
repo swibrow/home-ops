@@ -29,15 +29,16 @@ blueprint:
         device:
           filter:
             - integration: mqtt
+              manufacturer: IKEA
+              model: Remote Control N2 (E2001/E2002)
 
     light_label:
       name: Light Label
       description: |
         The label applied to lights you want to control.
         All lights with this label will be included in the cycle.
-      default: "styrbar"
       selector:
-        text:
+        label:
 
     current_light_helper:
       name: Current Light Helper
