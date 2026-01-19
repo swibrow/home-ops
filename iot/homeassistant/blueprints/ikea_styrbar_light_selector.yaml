@@ -1,0 +1,278 @@
+blueprint:
+  name: IKEA STYRBAR Light Selector Controller
+  source_url: https://github.com/swibrow/home-ops/blob/main/iot/homeassistant/blueprints/ikea_styrbar_light_selector.yaml
+  description: |
+    Control multiple lights with an IKEA STYRBAR (E2001/E2002) remote.
+
+    **Button behavior:**
+    - **Left/Right press:** Cycle through lights, selected light flashes
+    - **Up/Down single press:** Adjust color temperature (Kelvin)
+    - **Up/Down hold:** Adjust brightness
+    - **Left/Right hold:** Confirm selection with long flash
+
+    **Requirements:**
+    - A label applied to lights you want to control (e.g., "styrbar")
+    - An input_text helper to track the currently selected light
+    - Lights must support color_temp for temperature control
+
+    **Setup:**
+    1. Create a label in Home Assistant (e.g., "styrbar")
+    2. Apply the label to lights/groups you want to control
+    3. Create an input_text helper to store the current selection
+    4. Configure this blueprint with your STYRBAR and settings
+  domain: automation
+  input:
+    controller_device:
+      name: STYRBAR Controller
+      description: The IKEA STYRBAR remote control device
+      selector:
+        device:
+          filter:
+            - integration: mqtt
+
+    light_label:
+      name: Light Label
+      description: |
+        The label applied to lights you want to control.
+        All lights with this label will be included in the cycle.
+      default: "styrbar"
+      selector:
+        text:
+
+    current_light_helper:
+      name: Current Light Helper
+      description: |
+        An input_text helper to store the currently selected light entity_id.
+        Create one via Settings > Devices & Services > Helpers > Text
+      selector:
+        entity:
+          filter:
+            - domain: input_text
+
+    color_temp_step:
+      name: Color Temperature Step
+      description: Kelvin change per button press (default 500K)
+      default: 500
+      selector:
+        number:
+          min: 50
+          max: 1000
+          step: 50
+          unit_of_measurement: K
+
+    brightness_step:
+      name: Brightness Step
+      description: Brightness percentage change while holding (default 10%)
+      default: 10
+      selector:
+        number:
+          min: 5
+          max: 25
+          step: 5
+          unit_of_measurement: "%"
+
+    flash_effect:
+      name: Flash Effect
+      description: How to indicate the selected light
+      default: short
+      selector:
+        select:
+          options:
+            - label: Short flash
+              value: short
+            - label: Long flash
+              value: long
+
+    min_color_temp:
+      name: Minimum Color Temperature
+      description: Warmest color temperature in Kelvin
+      default: 2200
+      selector:
+        number:
+          min: 1800
+          max: 3000
+          unit_of_measurement: K
+
+    max_color_temp:
+      name: Maximum Color Temperature
+      description: Coolest color temperature in Kelvin
+      default: 6500
+      selector:
+        number:
+          min: 4000
+          max: 7000
+          unit_of_measurement: K
+
+mode: restart
+max_exceeded: silent
+
+trigger_variables:
+  controller_id: !input controller_device
+
+trigger:
+  - platform: mqtt
+    topic: "zigbee2mqtt/+"
+
+variables:
+  controller_name: "{{ device_attr(controller_id, 'name') }}"
+  light_label: !input light_label
+  current_light_helper: !input current_light_helper
+  color_temp_step: !input color_temp_step
+  brightness_step: !input brightness_step
+  flash_effect: !input flash_effect
+  min_color_temp: !input min_color_temp
+  max_color_temp: !input max_color_temp
+  # Get all lights with the specified label
+  labeled_lights: >-
+    {{ label_entities(light_label) | select('match', 'light\\.') | list | sort }}
+  current_light: "{{ states(current_light_helper) }}"
+  # Get current index, default to 0 if not found
+  current_index: >-
+    {% if current_light in labeled_lights %}
+      {{ labeled_lights.index(current_light) }}
+    {% else %}
+      0
+    {% endif %}
+
+condition:
+  - condition: template
+    value_template: >-
+      {% set payload = trigger.payload | from_json if trigger.payload is defined else {} %}
+      {% set device = trigger.topic.split('/')[-1] %}
+      {% set action = payload.get('action', '') %}
+      {{ device == controller_name and action != '' }}
+
+action:
+  - variables:
+      command: "{{ (trigger.payload | from_json).get('action', '') }}"
+
+  # Initialize current light if empty or invalid
+  - if:
+      - condition: template
+        value_template: "{{ labeled_lights | length > 0 and (current_light == '' or current_light not in labeled_lights) }}"
+    then:
+      - service: input_text.set_value
+        target:
+          entity_id: "{{ current_light_helper }}"
+        data:
+          value: "{{ labeled_lights[0] }}"
+      - variables:
+          current_light: "{{ labeled_lights[0] }}"
+
+  # Stop if no lights are labeled
+  - condition: template
+    value_template: "{{ labeled_lights | length > 0 }}"
+
+  - choose:
+      # Left arrow - Previous light
+      - conditions: "{{ command == 'arrow_left_click' }}"
+        sequence:
+          - variables:
+              new_index: "{{ (current_index - 1) % labeled_lights | length }}"
+              new_light: "{{ labeled_lights[new_index | int] }}"
+          - service: input_text.set_value
+            target:
+              entity_id: "{{ current_light_helper }}"
+            data:
+              value: "{{ new_light }}"
+          - service: light.turn_on
+            target:
+              entity_id: "{{ new_light }}"
+            data:
+              flash: "{{ flash_effect }}"
+
+      # Right arrow - Next light
+      - conditions: "{{ command == 'arrow_right_click' }}"
+        sequence:
+          - variables:
+              new_index: "{{ (current_index + 1) % labeled_lights | length }}"
+              new_light: "{{ labeled_lights[new_index | int] }}"
+          - service: input_text.set_value
+            target:
+              entity_id: "{{ current_light_helper }}"
+            data:
+              value: "{{ new_light }}"
+          - service: light.turn_on
+            target:
+              entity_id: "{{ new_light }}"
+            data:
+              flash: "{{ flash_effect }}"
+
+      # Up single press - Increase color temperature (cooler)
+      - conditions: "{{ command == 'on' }}"
+        sequence:
+          - service: light.turn_on
+            target:
+              entity_id: "{{ current_light }}"
+            data:
+              color_temp_kelvin: >-
+                {% set current = state_attr(current_light, 'color_temp_kelvin') | default(4000) %}
+                {% set new_temp = current + color_temp_step %}
+                {{ [new_temp, max_color_temp] | min }}
+
+      # Down single press - Decrease color temperature (warmer)
+      - conditions: "{{ command == 'off' }}"
+        sequence:
+          - service: light.turn_on
+            target:
+              entity_id: "{{ current_light }}"
+            data:
+              color_temp_kelvin: >-
+                {% set current = state_attr(current_light, 'color_temp_kelvin') | default(4000) %}
+                {% set new_temp = current - color_temp_step %}
+                {{ [new_temp, min_color_temp] | max }}
+
+      # Up hold - Increase brightness
+      - conditions: "{{ command == 'brightness_move_up' }}"
+        sequence:
+          - repeat:
+              while:
+                - condition: template
+                  value_template: "{{ true }}"
+              sequence:
+                - service: light.turn_on
+                  target:
+                    entity_id: "{{ current_light }}"
+                  data:
+                    brightness_step_pct: "{{ brightness_step }}"
+                - delay:
+                    milliseconds: 200
+
+      # Down hold - Decrease brightness
+      - conditions: "{{ command == 'brightness_move_down' }}"
+        sequence:
+          - repeat:
+              while:
+                - condition: template
+                  value_template: "{{ true }}"
+              sequence:
+                - service: light.turn_on
+                  target:
+                    entity_id: "{{ current_light }}"
+                  data:
+                    brightness_step_pct: "{{ brightness_step * -1 }}"
+                - delay:
+                    milliseconds: 200
+
+      # Brightness stop - Stop brightness adjustment (release)
+      - conditions: "{{ command == 'brightness_stop' }}"
+        sequence: []
+
+      # Double press simulation for confirmation
+      # Left hold - Confirm with flash
+      - conditions: "{{ command == 'arrow_left_hold' }}"
+        sequence:
+          - service: light.turn_on
+            target:
+              entity_id: "{{ current_light }}"
+            data:
+              flash: long
+
+      # Right hold - Confirm with flash
+      - conditions: "{{ command == 'arrow_right_hold' }}"
+        sequence:
+          - service: light.turn_on
+            target:
+              entity_id: "{{ current_light }}"
+            data:
+              flash: long
