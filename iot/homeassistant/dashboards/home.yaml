@@ -1,0 +1,102 @@
+title: Home
+views:
+  - title: Basement
+    path: basement
+    icon: mdi:home-floor-b
+    cards:
+      - type: heading
+        heading: Lights
+        heading_style: title
+      - type: entities
+        entities: []
+        # Add your basement light entities here, e.g.:
+        # - light.basement_main
+        # - light.basement_storage
+        state_color: true
+        show_header_toggle: true
+
+      - type: heading
+        heading: Switches
+        heading_style: title
+      - type: entities
+        entities: []
+        # Add your basement switch entities here, e.g.:
+        # - switch.basement_fan
+        state_color: true
+        show_header_toggle: true
+
+  - title: Ground
+    path: ground
+    icon: mdi:home-floor-g
+    cards:
+      - type: heading
+        heading: Lights
+        heading_style: title
+      - type: entities
+        entities: []
+        # Add your ground floor light entities here, e.g.:
+        # - light.living_room
+        # - light.kitchen
+        # - light.hallway
+        state_color: true
+        show_header_toggle: true
+
+      - type: heading
+        heading: Switches
+        heading_style: title
+      - type: entities
+        entities: []
+        # Add your ground floor switch entities here, e.g.:
+        # - switch.living_room_fan
+        state_color: true
+        show_header_toggle: true
+
+  - title: First
+    path: first
+    icon: mdi:home-floor-1
+    cards:
+      - type: heading
+        heading: Lights
+        heading_style: title
+      - type: entities
+        entities: []
+        # Add your first floor light entities here, e.g.:
+        # - light.bedroom
+        # - light.bathroom
+        # - light.office
+        state_color: true
+        show_header_toggle: true
+
+      - type: heading
+        heading: Switches
+        heading_style: title
+      - type: entities
+        entities: []
+        # Add your first floor switch entities here, e.g.:
+        # - switch.bedroom_fan
+        state_color: true
+        show_header_toggle: true
+
+  - title: Attic
+    path: attic
+    icon: mdi:home-roof
+    cards:
+      - type: heading
+        heading: Lights
+        heading_style: title
+      - type: entities
+        entities: []
+        # Add your attic light entities here, e.g.:
+        # - light.attic_main
+        state_color: true
+        show_header_toggle: true
+
+      - type: heading
+        heading: Switches
+        heading_style: title
+      - type: entities
+        entities: []
+        # Add your attic switch entities here, e.g.:
+        # - switch.attic_fan
+        state_color: true
+        show_header_toggle: true

@@ -14,6 +14,19 @@ Map button presses to custom actions on the Aqara H2 double rocker switch.
 
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fswibrow%2Fhome-ops%2Fmain%2Fiot%2Fhomeassistant%2Fblueprints%2Faqara_h2_double_rocker.yaml)
 
+## IKEA
+
+### STYRBAR Light Selector Controller
+
+Control multiple lights with an IKEA STYRBAR (E2001/E2002) remote using labels.
+
+- **Left/Right press:** Cycle through lights, selected light flashes
+- **Up/Down press:** Adjust color temperature (Kelvin)
+- **Up/Down hold:** Adjust brightness
+- **Left/Right hold:** Confirm selection with long flash
+
+[![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fswibrow%2Fhome-ops%2Fmain%2Fiot%2Fhomeassistant%2Fblueprints%2Fikea_styrbar_light_selector.yaml)
+
 ## Motion
 
 ### Motion-activated Light/Switch
