@@ -16,7 +16,7 @@ repos:
         #   - .yamllint.yaml
 
   - repo: https://github.com/antonbabenko/pre-commit-terraform
-    rev: v1.99.5
+    rev: v1.105.0
     hooks:
       - id: terraform_fmt
         args:
