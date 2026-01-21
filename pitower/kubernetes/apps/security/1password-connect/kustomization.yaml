@@ -6,7 +6,7 @@ namespace: security
 helmCharts:
   - name: connect
     repo: https://1password.github.io/connect-helm-charts
-    version: 1.17.1
+    version: 2.2.1
     releaseName: onepassword-connect
     namespace: security
     valuesFile: values.yaml
