@@ -7,7 +7,7 @@ namespace: kube-system
 helmCharts:
   - name: coredns
     repo: https://coredns.github.io/helm
-    version: 1.43.3
+    version: 1.45.2
     releaseName: coredns
     namespace: kube-system
     valuesFile: values.yaml
