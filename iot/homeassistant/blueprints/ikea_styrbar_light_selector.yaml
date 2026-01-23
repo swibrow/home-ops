@@ -169,7 +169,7 @@ action:
       - conditions: "{{ command == 'arrow_left_click' }}"
         sequence:
           - variables:
-              new_index: "{{ (current_index - 1) % labeled_lights | length }}"
+              new_index: "{{ (current_index - 1) % (labeled_lights | length) }}"
               new_light: "{{ labeled_lights[new_index | int] }}"
           - service: input_text.set_value
             target:
@@ -186,7 +186,7 @@ action:
       - conditions: "{{ command == 'arrow_right_click' }}"
         sequence:
           - variables:
-              new_index: "{{ (current_index + 1) % labeled_lights | length }}"
+              new_index: "{{ (current_index + 1) % (labeled_lights | length) }}"
               new_light: "{{ labeled_lights[new_index | int] }}"
           - service: input_text.set_value
             target:
