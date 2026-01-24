@@ -11,7 +11,7 @@ resources:
 helmCharts:
   - name: kagent-crds
     repo: oci://ghcr.io/kagent-dev/kagent/helm
-    version: 0.7.9
+    version: 0.7.11
     releaseName: kagent-crds
     namespace: kagent
   - name: kagent
