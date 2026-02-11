@@ -51,6 +51,8 @@ service:
   rtc:
     controller: sharkord
     type: LoadBalancer
+    annotations:
+      lbipam.cilium.io/ips: 192.168.0.237
     ports:
       rtc-udp:
         port: 40000
@@ -147,7 +149,6 @@ persistence:
 
 route:
   app:
-    enabled: true
     hostnames:
       - sharkord.pitower.link
     parentRefs:
@@ -155,9 +156,6 @@ route:
         namespace: networking
         sectionName: https
     rules:
-      - matches:
-          - path:
-              value: /
-        backendRefs:
-          - name: sharkord-app
+      - backendRefs:
+          - identifier: app
             port: *port

@@ -61,7 +61,7 @@ service:
     controller: home-assistant
     type: LoadBalancer
     annotations:
-      ilbipam.cilium.io/ips: 192.168.0.227
+      lbipam.cilium.io/ips: 192.168.0.227
     ports:
       http:
         port: 8123
