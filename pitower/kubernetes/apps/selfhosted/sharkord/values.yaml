@@ -154,3 +154,10 @@ route:
       - name: envoy-external
         namespace: networking
         sectionName: https
+    rules:
+      - matches:
+          - path:
+              value: /
+        backendRefs:
+          - name: sharkord
+            port: *port
