@@ -159,5 +159,5 @@ route:
           - path:
               value: /
         backendRefs:
-          - name: sharkord
+          - name: sharkord-app
             port: *port
