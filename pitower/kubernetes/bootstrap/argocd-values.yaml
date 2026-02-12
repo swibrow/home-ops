@@ -96,10 +96,16 @@ server:
     reloader.stakater.com/auto: "true"
 
   ingress:
+    enabled: false
+
+  httproute:
     enabled: true
-    ingressClassName: external
-    annotations:
-      external-dns.alpha.kubernetes.io/target: external.pitower.link
+    hostnames:
+      - argocd.pitower.link
+    parentRefs:
+      - name: envoy-external
+        namespace: networking
+        sectionName: https
 
 repoServer:
   # autoscaling:

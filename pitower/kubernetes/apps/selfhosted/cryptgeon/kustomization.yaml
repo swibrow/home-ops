@@ -2,41 +2,12 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: selfhosted
-
+resources:
+  - ./pvc.yaml
 helmCharts:
-  - name: cryptgeon
-    repo: https://swibrow.github.io/helm-charts/
-    version: 0.2.1
+  - name: app-template
+    repo: oci://ghcr.io/bjw-s-labs/helm
+    version: 4.6.2
     releaseName: cryptgeon
     namespace: selfhosted
-    valuesInline:
-      valkey:
-        enabled: true
-        fullnameOverride: valkey
-        architecture: standalone
-        auth:
-          enabled: false
-        primary:
-          persistence:
-            enabled: true
-            size: 256Mi
-        metrics:
-          enabled: true
-      env:
-        - name: REDIS
-          value: redis://valkey-primary:6379
-        - name: SIZE_LIMIT
-          value: "104857600" # 100MB
-      ingress:
-        enabled: true
-        className: external
-        annotations:
-          external-dns.alpha.kubernetes.io/target: external.pitower.link
-        hosts:
-          - host: secrets.pitower.link
-            paths:
-              - path: /
-                pathType: Prefix
-        tls:
-          - hosts:
-              - secrets.pitower.link
+    valuesFile: values.yaml

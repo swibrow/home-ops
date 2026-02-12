@@ -1,0 +1,68 @@
+controllers:
+  cryptgeon:
+    annotations:
+      reloader.stakater.com/auto: "true"
+
+    containers:
+      app:
+        image:
+          repository: cupcakearmy/cryptgeon
+          tag: 2.9.1
+        env:
+          REDIS: redis://localhost:6379
+          SIZE_LIMIT: "104857600" # 100MB
+        resources:
+          requests:
+            cpu: 5m
+            memory: 32Mi
+          limits:
+            memory: 128Mi
+        probes:
+          liveness:
+            enabled: true
+          readiness:
+            enabled: true
+          startup:
+            enabled: true
+            spec:
+              failureThreshold: 30
+              periodSeconds: 5
+
+      valkey:
+        image:
+          repository: valkey/valkey
+          tag: 8.1
+        resources:
+          requests:
+            cpu: 5m
+            memory: 32Mi
+          limits:
+            memory: 128Mi
+
+service:
+  app:
+    controller: cryptgeon
+    ports:
+      http:
+        port: &port 8000
+
+persistence:
+  valkey-data:
+    existingClaim: cryptgeon-valkey
+    advancedMounts:
+      cryptgeon:
+        valkey:
+          - path: /data
+
+route:
+  app:
+    hostnames:
+      - secrets.pitower.link
+    parentRefs:
+      - name: envoy-external
+        namespace: networking
+        sectionName: https
+    rules:
+      - backendRefs:
+          - identifier: app
+            port: *port
