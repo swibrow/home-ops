@@ -16,7 +16,7 @@ helmCharts:
     namespace: kagent
   - name: kagent
     repo: oci://ghcr.io/kagent-dev/kagent/helm
-    version: 0.7.13
+    version: 0.7.14
     releaseName: kagent
     namespace: kagent
     valuesFile: values.yaml
