@@ -150,7 +150,8 @@ persistence:
 route:
   app:
     annotations:
-      external-dns.alpha.kubernetes.io/exclude: "true"
+      external-dns.alpha.kubernetes.io/target: ip.pitower.link
+      external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     hostnames:
       - sharkord.pitower.link
     parentRefs:
