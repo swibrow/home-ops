@@ -1,0 +1,14 @@
+---
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: sharkord
+  namespace: selfhosted
+spec:
+  endpoints:
+    - dnsName: "sharkord.pitower.link"
+      recordType: CNAME
+      targets: ["ip.pitower.link"]
+      providerSpecific:
+        - name: external-dns.alpha.kubernetes.io/cloudflare-proxied
+          value: "false"

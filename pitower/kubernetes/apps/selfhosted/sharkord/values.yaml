@@ -149,6 +149,8 @@ persistence:
 
 route:
   app:
+    annotations:
+      external-dns.alpha.kubernetes.io/exclude: "true"
     hostnames:
       - sharkord.pitower.link
     parentRefs:
