@@ -9,6 +9,10 @@ configs:
     admin.enabled: true
     statusbadge.enabled: true
     kustomize.buildOptions: --enable-helm --load-restrictor LoadRestrictionsNone
+    resource.customizations.ignoreDifferences.gateway.networking.k8s.io_HTTPRoute: |
+      jqPathExpressions:
+        - .spec.parentRefs[].group
+        - .spec.parentRefs[].kind
     dex.config: |
       connectors:
         - type: github
