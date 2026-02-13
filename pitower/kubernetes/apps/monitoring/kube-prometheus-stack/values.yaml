@@ -108,14 +108,14 @@ prometheus:
     scrapeConfigSelectorNilUsesHelmValues: false
     enableAdminAPI: true
     walCompression: true
-    retentionSize: 8GB
+    retentionSize: 15GB
     storageSpec:
       volumeClaimTemplate:
         spec:
           storageClassName: ceph-block
           resources:
             requests:
-              storage: 10Gi
+              storage: 20Gi
 grafana:
   enabled: false
   forceDeployDashboards: true
