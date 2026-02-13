@@ -47,19 +47,18 @@ service:
         port: *port
       ldap:
         port: *ldapPort
-ingress:
+route:
   app:
-    className: internal
-    hosts:
-      - host: &host "{{ .Release.Name }}.pitower.link"
-        paths:
-          - path: /
-            service:
-              identifier: app
-              port: http
-    tls:
-      - hosts:
-          - *host
+    hostnames:
+      - lldap.pitower.link
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+    rules:
+      - backendRefs:
+          - identifier: app
+            port: 8080
 
 persistence:
   data:

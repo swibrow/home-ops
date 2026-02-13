@@ -19,12 +19,7 @@ hubble:
     enabled: true
     rollOutPods: true
     ingress:
-      enabled: true
-      className: internal
-      annotations:
-        external-dns.alpha.kubernetes.io/target: external.pitower.link
-      hosts:
-        - hubble.pitower.link
+      enabled: false
   serviceMonitor:
     enabled: true
 

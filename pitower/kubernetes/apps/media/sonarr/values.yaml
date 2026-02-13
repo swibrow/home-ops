@@ -39,20 +39,14 @@ service:
       http:
         port: *port
 
-ingress:
+route:
   app:
-    enabled: true
-    className: "internal"
-    hosts:
-      - host: &host "sonarr.pitower.link"
-        paths:
-          - path: /
-            service:
-              identifier: app
-              port: http
-    tls:
-      - hosts:
-          - *host
+    hostnames:
+      - sonarr.pitower.link
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
 
 persistence:
   config:

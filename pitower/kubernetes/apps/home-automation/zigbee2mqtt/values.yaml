@@ -77,25 +77,31 @@ service:
       code-server:
         port: 12321
 
-ingress:
+route:
   app:
-    className: internal
-    annotations:
-      nginx.ingress.kubernetes.io/rewrite-target: /$1
-    hosts:
-      - host: &host "zigbee.pitower.link"
-        paths:
-          - path: /(.*)
-            service:
-              identifier: app
-              port: http
-          - path: /code/(.*)
-            service:
-              identifier: app
-              port: code-server
-    tls:
-      - hosts:
-          - *host
+    hostnames:
+      - zigbee.pitower.link
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+    rules:
+      - matches:
+          - path:
+              type: PathPrefix
+              value: /code
+        backendRefs:
+          - identifier: app
+            port: 12321
+        filters:
+          - type: URLRewrite
+            urlRewrite:
+              path:
+                type: ReplacePrefixMatch
+                replacePrefixMatch: /
+      - backendRefs:
+          - identifier: app
+            port: 8080
 persistence:
   data:
     existingClaim: zigbee2mqtt

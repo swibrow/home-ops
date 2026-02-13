@@ -53,13 +53,11 @@ service:
       http:
         port: *port
 
-ingress:
+route:
   app:
-    className: internal
-    hosts:
-      - host: autobrr.pitower.link
-        paths:
-          - path: /
-            service:
-              identifier: app
-              port: http
+    hostnames:
+      - autobrr.pitower.link
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https

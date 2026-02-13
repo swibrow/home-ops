@@ -6,14 +6,17 @@ monitoring:
   createPrometheusRules: true
 
 ingress:
-  ingressClassName: internal
+  dashboard: {}
+
+route:
   dashboard:
     host:
-      name: &host rook.pitower.link
-      path: "/"
-    tls:
-      - hosts:
-          - *host
+      name: rook.pitower.link
+      path: /
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
 
 cephClusterSpec:
   network:

@@ -53,20 +53,14 @@ service:
       http:
         port: *port
 
-ingress:
+route:
   app:
-    enabled: true
-    className: internal
-    hosts:
-      - host: &host radarr.pitower.link
-        paths:
-          - path: /
-            service:
-              identifier: app
-              port: http
-    tls:
-      - hosts:
-          - *host
+    hostnames:
+      - radarr.pitower.link
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
 
 persistence:
   config:

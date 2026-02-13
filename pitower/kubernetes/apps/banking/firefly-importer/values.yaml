@@ -27,18 +27,11 @@ service:
     ports:
       http:
         port: 8080
-ingress:
+route:
   app:
-    className: internal
-    annotations:
-      nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"
-    hosts:
-      - host: &host money-import.pitower.link
-        paths:
-          - path: /
-            service:
-              identifier: app
-              port: http
-    tls:
-      - hosts:
-          - *host
+    hostnames:
+      - money-import.pitower.link
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https

@@ -49,16 +49,14 @@ service:
       http:
         port: *port
 
-ingress:
+route:
   app:
-    className: internal
-    hosts:
-      - host: qbittorrent.pitower.link
-        paths:
-          - path: /
-            service:
-              identifier: app
-              port: http
+    hostnames:
+      - qbittorrent.pitower.link
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
 
 persistence:
   config:

@@ -88,17 +88,16 @@ kubeProxy:
   enabled: false # Disabled due to eBPF
 prometheus:
   ingress:
-    enabled: true
-    ingressClassName: internal
-    annotations:
-      hajimari.io/appName: Prometheus
-      hajimari.io/icon: simple-icons:prometheus
-    pathType: Prefix
-    hosts:
-      - "prometheus.pitower.link"
-    tls:
-      - hosts:
-          - "prometheus.pitower.link"
+    enabled: false
+  route:
+    main:
+      enabled: true
+      hostnames:
+        - prometheus.pitower.link
+      parentRefs:
+        - name: envoy-internal
+          namespace: networking
+          sectionName: https
   prometheusSpec:
     externalLabels:
       cluster: pitower
