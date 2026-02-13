@@ -5,6 +5,7 @@ kind: Kustomization
 namespace: networking
 resources:
   - certificate.yaml
+  - direct.yaml
   - external.yaml
   - internal.yaml
   - envoy.yaml
