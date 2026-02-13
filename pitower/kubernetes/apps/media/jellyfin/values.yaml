@@ -35,10 +35,12 @@ service:
 
 route:
   app:
+    annotations:
+      external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     hostnames:
       - jellyfin.pitower.link
     parentRefs:
-      - name: envoy-external
+      - name: envoy-direct
         namespace: networking
         sectionName: https
 
