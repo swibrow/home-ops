@@ -1,11 +1,5 @@
 crds:
   enabled: true
-  upgradeJob:
-    enabled: true
-    forceConflicts: true
-    image:
-      kubectl:
-        tag: "1.33.1"
 cleanPrometheusOperatorObjectNames: true
 alertmanager:
   enabled: false
