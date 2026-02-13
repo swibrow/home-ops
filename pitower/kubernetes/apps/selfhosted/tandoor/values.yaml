@@ -136,5 +136,10 @@ persistence:
         app:
           - path: /tmp
             subPath: app-tmp
+          - path: /run
+            subPath: app-run
           - path: /opt/recipes/cookbook/static/django_js_reverse
             subPath: django_js_reverse
+        nginx:
+          - path: /run
+            subPath: nginx-run
