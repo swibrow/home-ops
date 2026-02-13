@@ -37,9 +37,11 @@ service:
 route:
   app:
     enabled: true
+    annotations:
+      external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     hostnames:
       - openspeedtest.pitower.link
     parentRefs:
-      - name: envoy-external
+      - name: envoy-direct
         namespace: networking
         sectionName: https
