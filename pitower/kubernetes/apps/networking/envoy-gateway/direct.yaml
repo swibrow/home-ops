@@ -4,6 +4,8 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
   name: envoy-direct
+  labels:
+    external-dns.alpha.kubernetes.io/enabled: "true"
   annotations:
     external-dns.alpha.kubernetes.io/target: &hostname ip.pitower.link
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
