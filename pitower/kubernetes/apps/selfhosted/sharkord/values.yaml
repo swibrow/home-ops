@@ -50,9 +50,6 @@ service:
         port: *port
   rtc:
     controller: sharkord
-    type: LoadBalancer
-    annotations:
-      lbipam.cilium.io/ips: 192.168.0.236
     ports:
       rtc-udp:
         port: 40000

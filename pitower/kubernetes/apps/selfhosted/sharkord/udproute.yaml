@@ -1,0 +1,315 @@
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: UDPRoute
+metadata:
+  name: sharkord-rtc-40000
+  namespace: selfhosted
+spec:
+  parentRefs:
+    - name: envoy-direct
+      namespace: networking
+      sectionName: udp-40000
+  rules:
+    - backendRefs:
+        - name: sharkord-rtc
+          port: 40000
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: UDPRoute
+metadata:
+  name: sharkord-rtc-40001
+  namespace: selfhosted
+spec:
+  parentRefs:
+    - name: envoy-direct
+      namespace: networking
+      sectionName: udp-40001
+  rules:
+    - backendRefs:
+        - name: sharkord-rtc
+          port: 40001
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: UDPRoute
+metadata:
+  name: sharkord-rtc-40002
+  namespace: selfhosted
+spec:
+  parentRefs:
+    - name: envoy-direct
+      namespace: networking
+      sectionName: udp-40002
+  rules:
+    - backendRefs:
+        - name: sharkord-rtc
+          port: 40002
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: UDPRoute
+metadata:
+  name: sharkord-rtc-40003
+  namespace: selfhosted
+spec:
+  parentRefs:
+    - name: envoy-direct
+      namespace: networking
+      sectionName: udp-40003
+  rules:
+    - backendRefs:
+        - name: sharkord-rtc
+          port: 40003
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: UDPRoute
+metadata:
+  name: sharkord-rtc-40004
+  namespace: selfhosted
+spec:
+  parentRefs:
+    - name: envoy-direct
+      namespace: networking
+      sectionName: udp-40004
+  rules:
+    - backendRefs:
+        - name: sharkord-rtc
+          port: 40004
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: UDPRoute
+metadata:
+  name: sharkord-rtc-40005
+  namespace: selfhosted
+spec:
+  parentRefs:
+    - name: envoy-direct
+      namespace: networking
+      sectionName: udp-40005
+  rules:
+    - backendRefs:
+        - name: sharkord-rtc
+          port: 40005
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: UDPRoute
+metadata:
+  name: sharkord-rtc-40006
+  namespace: selfhosted
+spec:
+  parentRefs:
+    - name: envoy-direct
+      namespace: networking
+      sectionName: udp-40006
+  rules:
+    - backendRefs:
+        - name: sharkord-rtc
+          port: 40006
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: UDPRoute
+metadata:
+  name: sharkord-rtc-40007
+  namespace: selfhosted
+spec:
+  parentRefs:
+    - name: envoy-direct
+      namespace: networking
+      sectionName: udp-40007
+  rules:
+    - backendRefs:
+        - name: sharkord-rtc
+          port: 40007
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: UDPRoute
+metadata:
+  name: sharkord-rtc-40008
+  namespace: selfhosted
+spec:
+  parentRefs:
+    - name: envoy-direct
+      namespace: networking
+      sectionName: udp-40008
+  rules:
+    - backendRefs:
+        - name: sharkord-rtc
+          port: 40008
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: UDPRoute
+metadata:
+  name: sharkord-rtc-40009
+  namespace: selfhosted
+spec:
+  parentRefs:
+    - name: envoy-direct
+      namespace: networking
+      sectionName: udp-40009
+  rules:
+    - backendRefs:
+        - name: sharkord-rtc
+          port: 40009
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: UDPRoute
+metadata:
+  name: sharkord-rtc-40010
+  namespace: selfhosted
+spec:
+  parentRefs:
+    - name: envoy-direct
+      namespace: networking
+      sectionName: udp-40010
+  rules:
+    - backendRefs:
+        - name: sharkord-rtc
+          port: 40010
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: UDPRoute
+metadata:
+  name: sharkord-rtc-40011
+  namespace: selfhosted
+spec:
+  parentRefs:
+    - name: envoy-direct
+      namespace: networking
+      sectionName: udp-40011
+  rules:
+    - backendRefs:
+        - name: sharkord-rtc
+          port: 40011
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: UDPRoute
+metadata:
+  name: sharkord-rtc-40012
+  namespace: selfhosted
+spec:
+  parentRefs:
+    - name: envoy-direct
+      namespace: networking
+      sectionName: udp-40012
+  rules:
+    - backendRefs:
+        - name: sharkord-rtc
+          port: 40012
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: UDPRoute
+metadata:
+  name: sharkord-rtc-40013
+  namespace: selfhosted
+spec:
+  parentRefs:
+    - name: envoy-direct
+      namespace: networking
+      sectionName: udp-40013
+  rules:
+    - backendRefs:
+        - name: sharkord-rtc
+          port: 40013
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: UDPRoute
+metadata:
+  name: sharkord-rtc-40014
+  namespace: selfhosted
+spec:
+  parentRefs:
+    - name: envoy-direct
+      namespace: networking
+      sectionName: udp-40014
+  rules:
+    - backendRefs:
+        - name: sharkord-rtc
+          port: 40014
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: UDPRoute
+metadata:
+  name: sharkord-rtc-40015
+  namespace: selfhosted
+spec:
+  parentRefs:
+    - name: envoy-direct
+      namespace: networking
+      sectionName: udp-40015
+  rules:
+    - backendRefs:
+        - name: sharkord-rtc
+          port: 40015
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: UDPRoute
+metadata:
+  name: sharkord-rtc-40016
+  namespace: selfhosted
+spec:
+  parentRefs:
+    - name: envoy-direct
+      namespace: networking
+      sectionName: udp-40016
+  rules:
+    - backendRefs:
+        - name: sharkord-rtc
+          port: 40016
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: UDPRoute
+metadata:
+  name: sharkord-rtc-40017
+  namespace: selfhosted
+spec:
+  parentRefs:
+    - name: envoy-direct
+      namespace: networking
+      sectionName: udp-40017
+  rules:
+    - backendRefs:
+        - name: sharkord-rtc
+          port: 40017
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: UDPRoute
+metadata:
+  name: sharkord-rtc-40018
+  namespace: selfhosted
+spec:
+  parentRefs:
+    - name: envoy-direct
+      namespace: networking
+      sectionName: udp-40018
+  rules:
+    - backendRefs:
+        - name: sharkord-rtc
+          port: 40018
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: UDPRoute
+metadata:
+  name: sharkord-rtc-40019
+  namespace: selfhosted
+spec:
+  parentRefs:
+    - name: envoy-direct
+      namespace: networking
+      sectionName: udp-40019
+  rules:
+    - backendRefs:
+        - name: sharkord-rtc
+          port: 40019
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: UDPRoute
+metadata:
+  name: sharkord-rtc-40020
+  namespace: selfhosted
+spec:
+  parentRefs:
+    - name: envoy-direct
+      namespace: networking
+      sectionName: udp-40020
+  rules:
+    - backendRefs:
+        - name: sharkord-rtc
+          port: 40020

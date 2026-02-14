@@ -33,6 +33,174 @@ spec:
           - group: ''
             kind: Secret
             name: pitower-link-production-tls
+    - name: udp-40000
+      protocol: UDP
+      port: 40000
+      allowedRoutes:
+        namespaces:
+          from: All
+        kinds:
+          - kind: UDPRoute
+    - name: udp-40001
+      protocol: UDP
+      port: 40001
+      allowedRoutes:
+        namespaces:
+          from: All
+        kinds:
+          - kind: UDPRoute
+    - name: udp-40002
+      protocol: UDP
+      port: 40002
+      allowedRoutes:
+        namespaces:
+          from: All
+        kinds:
+          - kind: UDPRoute
+    - name: udp-40003
+      protocol: UDP
+      port: 40003
+      allowedRoutes:
+        namespaces:
+          from: All
+        kinds:
+          - kind: UDPRoute
+    - name: udp-40004
+      protocol: UDP
+      port: 40004
+      allowedRoutes:
+        namespaces:
+          from: All
+        kinds:
+          - kind: UDPRoute
+    - name: udp-40005
+      protocol: UDP
+      port: 40005
+      allowedRoutes:
+        namespaces:
+          from: All
+        kinds:
+          - kind: UDPRoute
+    - name: udp-40006
+      protocol: UDP
+      port: 40006
+      allowedRoutes:
+        namespaces:
+          from: All
+        kinds:
+          - kind: UDPRoute
+    - name: udp-40007
+      protocol: UDP
+      port: 40007
+      allowedRoutes:
+        namespaces:
+          from: All
+        kinds:
+          - kind: UDPRoute
+    - name: udp-40008
+      protocol: UDP
+      port: 40008
+      allowedRoutes:
+        namespaces:
+          from: All
+        kinds:
+          - kind: UDPRoute
+    - name: udp-40009
+      protocol: UDP
+      port: 40009
+      allowedRoutes:
+        namespaces:
+          from: All
+        kinds:
+          - kind: UDPRoute
+    - name: udp-40010
+      protocol: UDP
+      port: 40010
+      allowedRoutes:
+        namespaces:
+          from: All
+        kinds:
+          - kind: UDPRoute
+    - name: udp-40011
+      protocol: UDP
+      port: 40011
+      allowedRoutes:
+        namespaces:
+          from: All
+        kinds:
+          - kind: UDPRoute
+    - name: udp-40012
+      protocol: UDP
+      port: 40012
+      allowedRoutes:
+        namespaces:
+          from: All
+        kinds:
+          - kind: UDPRoute
+    - name: udp-40013
+      protocol: UDP
+      port: 40013
+      allowedRoutes:
+        namespaces:
+          from: All
+        kinds:
+          - kind: UDPRoute
+    - name: udp-40014
+      protocol: UDP
+      port: 40014
+      allowedRoutes:
+        namespaces:
+          from: All
+        kinds:
+          - kind: UDPRoute
+    - name: udp-40015
+      protocol: UDP
+      port: 40015
+      allowedRoutes:
+        namespaces:
+          from: All
+        kinds:
+          - kind: UDPRoute
+    - name: udp-40016
+      protocol: UDP
+      port: 40016
+      allowedRoutes:
+        namespaces:
+          from: All
+        kinds:
+          - kind: UDPRoute
+    - name: udp-40017
+      protocol: UDP
+      port: 40017
+      allowedRoutes:
+        namespaces:
+          from: All
+        kinds:
+          - kind: UDPRoute
+    - name: udp-40018
+      protocol: UDP
+      port: 40018
+      allowedRoutes:
+        namespaces:
+          from: All
+        kinds:
+          - kind: UDPRoute
+    - name: udp-40019
+      protocol: UDP
+      port: 40019
+      allowedRoutes:
+        namespaces:
+          from: All
+        kinds:
+          - kind: UDPRoute
+    - name: udp-40020
+      protocol: UDP
+      port: 40020
+      allowedRoutes:
+        namespaces:
+          from: All
+        kinds:
+          - kind: UDPRoute
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/gateway.networking.k8s.io/httproute_v1.json
 apiVersion: gateway.networking.k8s.io/v1
