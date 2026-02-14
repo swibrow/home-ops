@@ -211,7 +211,9 @@ metadata:
     external-dns.alpha.kubernetes.io/controller: none
 spec:
   parentRefs:
-    - name: envoy-direct
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: envoy-direct
       namespace: networking
       sectionName: http
   rules:
