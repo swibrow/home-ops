@@ -13,8 +13,11 @@ spec:
       sectionName: udp-40000
   rules:
     - backendRefs:
-        - name: sharkord-rtc
+        - group: ''
+          kind: Service
+          name: sharkord-rtc
           port: 40000
+          weight: 1
 ---
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: UDPRoute
@@ -30,8 +33,11 @@ spec:
       sectionName: udp-40001
   rules:
     - backendRefs:
-        - name: sharkord-rtc
+        - group: ''
+          kind: Service
+          name: sharkord-rtc
           port: 40001
+          weight: 1
 ---
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: UDPRoute
@@ -47,8 +53,11 @@ spec:
       sectionName: udp-40002
   rules:
     - backendRefs:
-        - name: sharkord-rtc
+        - group: ''
+          kind: Service
+          name: sharkord-rtc
           port: 40002
+          weight: 1
 ---
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: UDPRoute
@@ -64,8 +73,11 @@ spec:
       sectionName: udp-40003
   rules:
     - backendRefs:
-        - name: sharkord-rtc
+        - group: ''
+          kind: Service
+          name: sharkord-rtc
           port: 40003
+          weight: 1
 ---
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: UDPRoute
@@ -81,8 +93,11 @@ spec:
       sectionName: udp-40004
   rules:
     - backendRefs:
-        - name: sharkord-rtc
+        - group: ''
+          kind: Service
+          name: sharkord-rtc
           port: 40004
+          weight: 1
 ---
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: UDPRoute
@@ -98,8 +113,11 @@ spec:
       sectionName: udp-40005
   rules:
     - backendRefs:
-        - name: sharkord-rtc
+        - group: ''
+          kind: Service
+          name: sharkord-rtc
           port: 40005
+          weight: 1
 ---
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: UDPRoute
@@ -115,8 +133,11 @@ spec:
       sectionName: udp-40006
   rules:
     - backendRefs:
-        - name: sharkord-rtc
+        - group: ''
+          kind: Service
+          name: sharkord-rtc
           port: 40006
+          weight: 1
 ---
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: UDPRoute
@@ -132,8 +153,11 @@ spec:
       sectionName: udp-40007
   rules:
     - backendRefs:
-        - name: sharkord-rtc
+        - group: ''
+          kind: Service
+          name: sharkord-rtc
           port: 40007
+          weight: 1
 ---
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: UDPRoute
@@ -149,8 +173,11 @@ spec:
       sectionName: udp-40008
   rules:
     - backendRefs:
-        - name: sharkord-rtc
+        - group: ''
+          kind: Service
+          name: sharkord-rtc
           port: 40008
+          weight: 1
 ---
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: UDPRoute
@@ -166,8 +193,11 @@ spec:
       sectionName: udp-40009
   rules:
     - backendRefs:
-        - name: sharkord-rtc
+        - group: ''
+          kind: Service
+          name: sharkord-rtc
           port: 40009
+          weight: 1
 ---
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: UDPRoute
@@ -183,8 +213,11 @@ spec:
       sectionName: udp-40010
   rules:
     - backendRefs:
-        - name: sharkord-rtc
+        - group: ''
+          kind: Service
+          name: sharkord-rtc
           port: 40010
+          weight: 1
 ---
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: UDPRoute
@@ -200,8 +233,11 @@ spec:
       sectionName: udp-40011
   rules:
     - backendRefs:
-        - name: sharkord-rtc
+        - group: ''
+          kind: Service
+          name: sharkord-rtc
           port: 40011
+          weight: 1
 ---
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: UDPRoute
@@ -217,8 +253,11 @@ spec:
       sectionName: udp-40012
   rules:
     - backendRefs:
-        - name: sharkord-rtc
+        - group: ''
+          kind: Service
+          name: sharkord-rtc
           port: 40012
+          weight: 1
 ---
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: UDPRoute
@@ -234,8 +273,11 @@ spec:
       sectionName: udp-40013
   rules:
     - backendRefs:
-        - name: sharkord-rtc
+        - group: ''
+          kind: Service
+          name: sharkord-rtc
           port: 40013
+          weight: 1
 ---
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: UDPRoute
@@ -251,8 +293,11 @@ spec:
       sectionName: udp-40014
   rules:
     - backendRefs:
-        - name: sharkord-rtc
+        - group: ''
+          kind: Service
+          name: sharkord-rtc
           port: 40014
+          weight: 1
 ---
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: UDPRoute
@@ -268,8 +313,11 @@ spec:
       sectionName: udp-40015
   rules:
     - backendRefs:
-        - name: sharkord-rtc
+        - group: ''
+          kind: Service
+          name: sharkord-rtc
           port: 40015
+          weight: 1
 ---
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: UDPRoute
@@ -285,8 +333,11 @@ spec:
       sectionName: udp-40016
   rules:
     - backendRefs:
-        - name: sharkord-rtc
+        - group: ''
+          kind: Service
+          name: sharkord-rtc
           port: 40016
+          weight: 1
 ---
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: UDPRoute
@@ -302,8 +353,11 @@ spec:
       sectionName: udp-40017
   rules:
     - backendRefs:
-        - name: sharkord-rtc
+        - group: ''
+          kind: Service
+          name: sharkord-rtc
           port: 40017
+          weight: 1
 ---
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: UDPRoute
@@ -319,8 +373,11 @@ spec:
       sectionName: udp-40018
   rules:
     - backendRefs:
-        - name: sharkord-rtc
+        - group: ''
+          kind: Service
+          name: sharkord-rtc
           port: 40018
+          weight: 1
 ---
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: UDPRoute
@@ -336,8 +393,11 @@ spec:
       sectionName: udp-40019
   rules:
     - backendRefs:
-        - name: sharkord-rtc
+        - group: ''
+          kind: Service
+          name: sharkord-rtc
           port: 40019
+          weight: 1
 ---
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: UDPRoute
@@ -353,5 +413,8 @@ spec:
       sectionName: udp-40020
   rules:
     - backendRefs:
-        - name: sharkord-rtc
+        - group: ''
+          kind: Service
+          name: sharkord-rtc
           port: 40020
+          weight: 1
