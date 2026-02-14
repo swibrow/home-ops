@@ -15,7 +15,7 @@ controllers:
       app:
         image:
           repository: ghcr.io/tandoorrecipes/recipes
-          tag: 2.4.2
+          tag: 2.5.3
         env:
           COMMENT_PREF_DEFAULT: 0
           DEBUG: 1
