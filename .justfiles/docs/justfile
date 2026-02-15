@@ -1,0 +1,25 @@
+# Create Python virtual environment
+[no-cd]
+venv:
+    uv venv
+
+# Sync docs dependencies
+[no-cd]
+sync:
+    #!/usr/bin/env bash
+    source .venv/bin/activate
+    uv pip install -r docs/requirements.txt
+
+# Serve docs locally with live reload
+[no-cd]
+serve:
+    #!/usr/bin/env bash
+    source .venv/bin/activate
+    mkdocs serve --dirtyreload --dev-addr localhost:8888
+
+# Build docs (strict mode)
+[no-cd]
+build:
+    #!/usr/bin/env bash
+    source .venv/bin/activate
+    mkdocs build --strict

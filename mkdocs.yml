@@ -1,0 +1,172 @@
+site_name: Home-Ops
+site_url: https://swibrow.github.io/home-ops
+site_description: Knowledge base for the Kubernetes home lab
+site_author: swibrow
+repo_name: swibrow/home-ops
+repo_url: https://github.com/swibrow/home-ops
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  custom_dir: docs/overrides
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Inter
+    code: JetBrains Mono
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.indexes
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - toc.follow
+
+extra_css:
+  - stylesheets/extra.css
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.betterem
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.snippets:
+      auto_append:
+        - docs/includes/abbreviations.md
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+plugins:
+  - search
+  - minify:
+      minify_html: true
+  - git-revision-date-localized:
+      enable_creation_date: true
+      fallback_to_build_date: true
+      enable_git_follow: false
+
+not_in_nav: |
+  /includes/**
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - getting-started/index.md
+      - Prerequisites: getting-started/prerequisites.md
+      - Architecture Overview: getting-started/architecture-overview.md
+  - Infrastructure:
+      - infrastructure/index.md
+      - Hardware: infrastructure/hardware.md
+      - Talos Linux: infrastructure/talos-linux.md
+      - Cluster Bootstrap: infrastructure/cluster-bootstrap.md
+      - Node Management: infrastructure/node-management.md
+  - Networking:
+      - networking/index.md
+      - Cilium CNI: networking/cilium-cni.md
+      - Envoy Gateway: networking/envoy-gateway.md
+      - DNS Management: networking/dns-management.md
+      - External DNS: networking/external-dns.md
+      - Cloudflare Tunnel: networking/cloudflare-tunnel.md
+      - Tailscale: networking/tailscale.md
+      - Load Balancers: networking/load-balancers.md
+  - GitOps:
+      - gitops/index.md
+      - ArgoCD Setup: gitops/argocd-setup.md
+      - ApplicationSets: gitops/application-sets.md
+      - Sync Policies: gitops/sync-policies.md
+      - Adding Apps: gitops/adding-apps.md
+  - Storage:
+      - storage/index.md
+      - Rook Ceph: storage/rook-ceph.md
+      - OpenEBS: storage/openebs.md
+      - Backup & Restore: storage/backup-restore.md
+  - Security:
+      - security/index.md
+      - Authelia: security/authelia.md
+      - LLDAP: security/lldap.md
+      - External Secrets: security/external-secrets.md
+      - SOPS: security/sops.md
+      - Cert Manager: security/cert-manager.md
+  - Monitoring:
+      - monitoring/index.md
+      - Prometheus Stack: monitoring/prometheus-stack.md
+      - Grafana: monitoring/grafana.md
+      - Loki: monitoring/loki.md
+      - Fluent Bit: monitoring/fluent-bit.md
+  - Applications:
+      - applications/index.md
+      - Media Stack:
+          - applications/media-stack/index.md
+          - Jellyfin: applications/media-stack/jellyfin.md
+          - Arr Stack: applications/media-stack/arr-stack.md
+          - Downloaders: applications/media-stack/downloaders.md
+      - Home Automation:
+          - applications/home-automation/index.md
+          - Home Assistant: applications/home-automation/home-assistant.md
+          - Zigbee2MQTT: applications/home-automation/zigbee2mqtt.md
+          - Mosquitto: applications/home-automation/mosquitto.md
+      - Self-Hosted: applications/selfhosted/index.md
+      - Databases: applications/databases/index.md
+  - Operations:
+      - operations/index.md
+      - Justfile Recipes: operations/justfile-recipes.md
+      - Talos Commands: operations/talos-commands.md
+      - Troubleshooting: operations/troubleshooting.md
+      - Upgrades: operations/upgrades.md
+  - CI/CD:
+      - ci-cd/index.md
+      - GitHub Actions: ci-cd/github-actions.md
+      - Docker Builds: ci-cd/docker-builds.md
+      - Renovate: ci-cd/renovate.md
+  - Development:
+      - development/index.md
+      - App Template: development/app-template.md
+      - Adding Apps: development/adding-apps.md
+  - Reference:
+      - reference/index.md
+      - IP Allocation: reference/ip-allocation.md
+      - App Catalog: reference/app-catalog.md

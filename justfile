@@ -1,3 +1,4 @@
+mod docs '.justfiles/docs'
 mod gh '.justfiles/gh'
 mod k8s '.justfiles/k8s'
 mod sops '.justfiles/sops'

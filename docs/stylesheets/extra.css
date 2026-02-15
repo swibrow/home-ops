@@ -1,0 +1,15 @@
+/* Mermaid diagram sizing */
+.mermaid {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* Code block tweaks */
+.md-typeset code {
+  font-size: 0.85em;
+}
+
+/* Table layout */
+.md-typeset table:not([class]) {
+  display: table;
+}
