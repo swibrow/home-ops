@@ -9,13 +9,7 @@ ingress:
   dashboard: {}
 
 route:
-  dashboard:
-    host:
-      name: rook.pitower.link
-    parentRefs:
-      - name: envoy-internal
-        namespace: networking
-        sectionName: https
+  dashboard: {}
 
 cephClusterSpec:
   network:
