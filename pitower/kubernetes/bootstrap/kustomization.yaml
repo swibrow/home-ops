@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - appproject.yaml
+  - externalsecret.yaml
 
 helmCharts:
   - name: argo-cd
