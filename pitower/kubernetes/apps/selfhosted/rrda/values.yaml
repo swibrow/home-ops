@@ -12,12 +12,22 @@ controllers:
             custom: true
             spec:
               httpGet:
-                path: /8.8.8.8:53/example.com/A
+                path: /127.0.0.1:53/example.com/A
                 port: &port 8080
               initialDelaySeconds: 5
               periodSeconds: 30
               timeoutSeconds: 5
           readiness: *probes
+      dns-over-https:
+        image:
+          repository: docker.io/cloudflare/cloudflared
+          tag: "2026.2.0"
+        args:
+          - proxy-dns
+          - --port=53
+          - --address=0.0.0.0
+          - --upstream=https://1.1.1.1/dns-query
+          - --upstream=https://1.0.0.1/dns-query
 
 service:
   app:
