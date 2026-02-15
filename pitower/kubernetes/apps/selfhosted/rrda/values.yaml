@@ -21,7 +21,7 @@ controllers:
       dns-over-https:
         image:
           repository: docker.io/cloudflare/cloudflared
-          tag: "2026.2.0"
+          tag: "2025.11.1"
         args:
           - proxy-dns
           - --port=53
