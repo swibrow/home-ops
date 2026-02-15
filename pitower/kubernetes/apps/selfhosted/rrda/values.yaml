@@ -20,14 +20,13 @@ controllers:
           readiness: *probes
       dns-over-https:
         image:
-          repository: docker.io/cloudflare/cloudflared
-          tag: "2025.11.1"
+          repository: docker.io/adguard/dnsproxy
+          tag: v0.78.2
         args:
-          - proxy-dns
-          - --port=53
-          - --address=0.0.0.0
+          - --listen=0.0.0.0:53
           - --upstream=https://1.1.1.1/dns-query
           - --upstream=https://1.0.0.1/dns-query
+          - --bootstrap=9.9.9.9:53
 
 service:
   app:
