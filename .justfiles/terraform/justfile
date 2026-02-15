@@ -1,0 +1,35 @@
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+export TERRAFORM_WORKING_DIR := "terraform"
+
+# Run Terraform init and plan for all modules
+all:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for dir in $(find "${TERRAFORM_WORKING_DIR}" -mindepth 1 -maxdepth 1 -type d); do
+        echo "Working on ${ENVIRONMENT} in ${dir}"
+        cd "${dir}"
+        terraform init
+        terraform plan
+        terraform apply
+        cd -
+    done
+
+# Run Terraform init for a stack
+init environment stack:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    set -a
+    source .config/.env.{{ environment }}
+    set +a
+    cd {{ TERRAFORM_WORKING_DIR }}/{{ stack }}
+    echo "Working on {{ environment }} in {{ stack }}"
+    echo "Working on ${TF_WORKSPACE}"
+
+# Run Terraform init and plan for a specific environment
+environment environment:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for dir in $(find "${TERRAFORM_WORKING_DIR}" -mindepth 1 -maxdepth 1 -type d -name "{{ environment }}"); do
+        echo "Working on {{ environment }} in ${dir}"
+    done

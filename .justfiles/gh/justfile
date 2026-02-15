@@ -1,0 +1,7 @@
+# Open the repository in the browser
+repo:
+    gh repo view --web
+
+# Update the environment variables in the repository
+update-environment-variables environment:
+    gh variable set -f .config/.env.{{ environment }} --env {{ environment }}

@@ -1,0 +1,11 @@
+# Delete pods with Failed phase
+delete-failed-pods cluster:
+    kubectl --context {{ cluster }} delete pods --field-selector status.phase=Failed -A --ignore-not-found=true
+
+# Delete pods with Succeeded phase
+delete-succeeded-pods cluster:
+    kubectl --context {{ cluster }} delete pods --field-selector status.phase=Succeeded -A --ignore-not-found=true
+
+# Delete pods with Pending phase
+delete-pending-pods cluster:
+    kubectl --context {{ cluster }} delete pods --field-selector status.phase=Pending -A --ignore-not-found=true

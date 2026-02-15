@@ -1,0 +1,147 @@
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+cp_image := "factory.talos.dev/installer/de94b242ed9adec9def2581ffbf1e2d1873e42b17032771770d241dee54d7c00:v1.10.7"
+cp_amd_image := "factory.talos.dev/installer/f19ad7b4a5d29151f3a59ef2d9c581cf89e77142e52f0abb5022e8f0b95ad0b9:v1.10.7"
+worker_intel_image := "factory.talos.dev/installer/97bf8e92fc6bba0f03928b859c08295d7615737b29db06a97be51dc63004e403:v1.10.9"
+worker_rpi_image := "factory.talos.dev/installer/a862538d0862e8ad5b17fadc2b56599677101537b3f75926085d8cbff4a411b9:v1.10.7"
+
+# Generate talos config from secrets
+config:
+    sops -d ./secrets.sops.yaml > ./secrets.yaml
+    talosctl gen config \
+        pitower \
+        https://192.168.0.200:6443 \
+        --with-secrets ./secrets.yaml \
+        --with-examples=true \
+        --config-patch-control-plane @patches/controlplane.patch \
+        --config-patch @patches/general.patch \
+        --output ./clusterconfig \
+        --force
+
+# Patch machine configs for all nodes
+[working-directory: 'clusterconfig']
+patch:
+    talosctl machineconfig patch ./controlplane.yaml --patch @../patches/nodes/worker-01.patch --output worker-01.yaml
+    talosctl machineconfig patch ./controlplane.yaml --patch @../patches/nodes/worker-02.patch --output worker-02.yaml
+    talosctl machineconfig patch ./controlplane.yaml --patch @../patches/nodes/worker-03.patch --output worker-03.yaml
+    talosctl machineconfig patch ./worker.yaml --patch @../patches/nodes/worker-04.patch --output worker-04.yaml
+    talosctl machineconfig patch ./worker.yaml --patch @../patches/nodes/worker-05.patch --output worker-05.yaml
+    talosctl machineconfig patch ./worker.yaml --patch @../patches/nodes/worker-06.patch --output worker-06.yaml
+    talosctl machineconfig patch ./worker.yaml --patch @../patches/nodes/worker-pi-01.patch --output worker-pi-01.yaml
+    talosctl machineconfig patch ./worker.yaml --patch @../patches/nodes/worker-pi-02.patch --output worker-pi-02.yaml
+    talosctl machineconfig patch ./worker.yaml --patch @../patches/nodes/worker-pi-03.patch --output worker-pi-03.yaml
+
+# Bootstrap the Talos cluster
+[working-directory: 'clusterconfig']
+bootstrap:
+    talosctl bootstrap --nodes 192.168.0.201
+    talosctl kubeconfig --nodes 192.168.0.200
+
+# Apply configs to control plane nodes
+[working-directory: 'clusterconfig']
+apply-controlplanes:
+    talosctl apply-config --endpoints 192.168.0.201 --nodes 192.168.0.201 --file ./worker-01.yaml
+    talosctl apply-config --endpoints 192.168.0.202 --nodes 192.168.0.202 --file ./worker-02.yaml
+    talosctl apply-config --endpoints 192.168.0.203 --nodes 192.168.0.203 --file ./worker-03.yaml
+
+# Apply configs to worker nodes
+[working-directory: 'clusterconfig']
+apply-workers:
+    talosctl apply-config --nodes 192.168.0.204 --file ./worker-04.yaml
+    talosctl apply-config --nodes 192.168.0.211 --file ./worker-pi-01.yaml
+    talosctl apply-config --nodes 192.168.0.212 --file ./worker-pi-02.yaml
+    talosctl apply-config --nodes 192.168.0.213 --file ./worker-pi-03.yaml
+
+# Apply config to a specific worker by number (e.g. just apply-worker 4)
+[working-directory: 'clusterconfig']
+apply-worker id:
+    talosctl apply-config --nodes 192.168.0.21{{ id }} --file ./worker-0{{ id }}.yaml --wait
+
+# Reboot control plane nodes sequentially
+[working-directory: 'clusterconfig']
+reboot-controlplanes:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for i in 1 2 3; do
+        talosctl reboot --endpoints "192.168.0.20${i}" --nodes "192.168.0.20${i}" --wait
+    done
+
+# Reboot worker nodes sequentially
+reboot-workers:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for i in 1 2 3 4; do
+        talosctl reboot --nodes "192.168.0.21${i}" --wait
+    done
+
+# Build and apply kustomize addons
+addons:
+    kustomize build ./addons --enable-helm | kubectl apply -f -
+
+# Reset a Talos node by last octet (e.g. just reset 04)
+reset suffix:
+    talosctl reset \
+        --system-labels-to-wipe=EPHEMERAL \
+        --system-labels-to-wipe=META \
+        --reboot \
+        --graceful=false \
+        -n 192.168.0.2{{ suffix }}
+
+# Upgrade control plane nodes (ARM)
+upgrade-controlplanes:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for i in 1 2 3; do
+        talosctl upgrade \
+            --image {{ cp_image }} \
+            --nodes "192.168.0.20${i}" \
+            --preserve \
+            --wait
+    done
+
+# Upgrade control plane nodes (AMD)
+upgrade-controlplanes-amd:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for i in 3; do
+        talosctl upgrade \
+            --image {{ cp_amd_image }} \
+            --nodes "192.168.0.20${i}" \
+            --preserve \
+            --wait
+    done
+
+# Upgrade Intel worker nodes
+upgrade-workers-intel:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for i in 4; do
+        talosctl upgrade \
+            --image {{ worker_intel_image }} \
+            --nodes "192.168.0.20${i}" \
+            --preserve \
+            --wait
+    done
+
+# Upgrade Raspberry Pi worker nodes
+upgrade-workers-rpi:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for i in 1 2 3; do
+        talosctl upgrade \
+            --image {{ worker_rpi_image }} \
+            --nodes "192.168.0.21${i}" \
+            --preserve \
+            --wait
+    done
+
+# Print Talos factory image IDs from extension files
+[working-directory: 'extensions']
+image-id:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for f in amd.yaml intel.yaml rpi-poe.yaml; do
+        name="${f%.yaml}"
+        id=$(curl -sX POST --data-binary "@${f}" https://factory.talos.dev/schematics | jq -r .id)
+        echo "${name}: ${id}"
+    done

@@ -1,0 +1,11 @@
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+# Decrypt and re-encrypt all sops secrets
+re-encrypt:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for f in $(find . -type f -name '*.sops.yaml' ! -name '.sops.yaml'); do
+        echo "Re-encrypting $f"
+        sops --decrypt --in-place "$f"
+        sops --encrypt --in-place "$f"
+    done

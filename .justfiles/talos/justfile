@@ -1,0 +1,27 @@
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+nodes := "192.168.0.201 192.168.0.202 192.168.0.203 192.168.0.204"
+
+# Show uptime for all Talos nodes
+uptime:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for node in {{ nodes }}; do
+        raw=$(talosctl -n "$node" read /proc/uptime 2>/dev/null | awk '{print $1}')
+        days=$((${raw%.*} / 86400))
+        hours=$(( (${raw%.*} % 86400) / 3600 ))
+        mins=$(( (${raw%.*} % 3600) / 60 ))
+        printf "%-16s %dd %dh %dm\n" "$node" "$days" "$hours" "$mins"
+    done
+
+# Show node versions and IPs
+nodes:
+    @talosctl get members -o table
+
+# Run talosctl health check
+health:
+    talosctl health
+
+# List services on a node
+services node="192.168.0.201":
+    talosctl -n {{ node }} services
