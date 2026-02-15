@@ -1,8 +1,10 @@
 FROM golang:1.23-alpine AS build
 
+ARG RRDA_VERSION=1.4.1
+
 RUN apk add --no-cache git
 
-RUN git clone https://github.com/fcambus/rrda.git /src/rrda
+RUN git clone --branch ${RRDA_VERSION} --depth 1 https://github.com/fcambus/rrda.git /src/rrda
 
 WORKDIR /src/rrda
 

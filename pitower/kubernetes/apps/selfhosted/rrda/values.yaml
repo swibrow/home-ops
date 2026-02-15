@@ -5,7 +5,7 @@ controllers:
       app:
         image:
           repository: ghcr.io/swibrow/rrda
-          tag: latest
+          tag: 1.4.1
         probes:
           liveness: &probes
             enabled: true
