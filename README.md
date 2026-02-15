@@ -47,15 +47,15 @@ This repository is the single source of truth for my Kubernetes home lab. Everyt
 
 | Node | Role | Hardware | CPU | RAM | Storage |
 |:-----|:-----|:---------|:----|:----|:--------|
-| worker-01 | Control Plane | Lenovo ThinkPad 440p | Intel i5-4300M | 8 GB | 128 GB SSD |
-| worker-02 | Control Plane | Lenovo ThinkPad 440p | Intel i5-4300M | 8 GB | 128 GB SSD |
-| worker-03 | Control Plane | Raspberry Pi 4 | Cortex-A72 | 8 GB | 128 GB SSD |
-| worker-04 | Worker (Intel) | Acemagician AM06 | Intel N100 | 16 GB | 128 GB SSD + 512 GB NVMe |
-| worker-05 | Worker (Intel) | Acemagician AM06 | Intel N100 | 16 GB | 128 GB SSD + 512 GB NVMe |
-| worker-06 | Worker (Intel) | Acemagician AM06 | Intel N100 | 16 GB | 128 GB SSD + 512 GB NVMe |
-| worker-pi-01 | Worker (RPi) | Raspberry Pi 4 | Cortex-A72 | 4 GB | 128 GB SSD |
-| worker-pi-02 | Worker (RPi) | Raspberry Pi 4 | Cortex-A72 | 4 GB | 128 GB SSD |
-| worker-pi-03 | Worker (RPi) | Raspberry Pi 4 | Cortex-A72 | 4 GB | 128 GB SSD |
+| worker-04 | Control Plane | Acemagician AM06 | Intel N100 | 16 GB | 128 GB SSD + 512 GB NVMe |
+| worker-05 | Control Plane | Acemagician AM06 | Intel N100 | 16 GB | 128 GB SSD + 512 GB NVMe |
+| worker-06 | Control Plane | Acemagician AM06 | Intel N100 | 16 GB | 128 GB SSD + 512 GB NVMe |
+| worker-01 | Worker | Lenovo ThinkPad 440p | Intel i5-4300M | 8 GB | 128 GB SSD |
+| worker-02 | Worker | Lenovo ThinkPad 440p | Intel i5-4300M | 8 GB | 128 GB SSD |
+| worker-03 | Worker | Raspberry Pi 4 | Cortex-A72 | 8 GB | 128 GB SSD |
+| worker-pi-01 | Worker | Raspberry Pi 4 | Cortex-A72 | 4 GB | 128 GB SSD |
+| worker-pi-02 | Worker | Raspberry Pi 4 | Cortex-A72 | 4 GB | 128 GB SSD |
+| worker-pi-03 | Worker | Raspberry Pi 4 | Cortex-A72 | 4 GB | 128 GB SSD |
 
 ### Network
 
