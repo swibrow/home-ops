@@ -12,7 +12,6 @@ route:
   dashboard:
     host:
       name: rook.pitower.link
-      path: /
     parentRefs:
       - name: envoy-internal
         namespace: networking
