@@ -1,0 +1,13 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: selfhosted
+
+helmCharts:
+  - name: app-template
+    repo: oci://ghcr.io/bjw-s-labs/helm
+    version: 4.6.2
+    releaseName: rrda
+    namespace: selfhosted
+    valuesFile: values.yaml

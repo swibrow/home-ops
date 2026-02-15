@@ -1,0 +1,37 @@
+controllers:
+  rrda:
+    strategy: RollingUpdate
+    containers:
+      app:
+        image:
+          repository: ghcr.io/swibrow/rrda
+          tag: latest
+        probes:
+          liveness: &probes
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /8.8.8.8:53/example.com/A
+                port: &port 8080
+              initialDelaySeconds: 5
+              periodSeconds: 30
+              timeoutSeconds: 5
+          readiness: *probes
+
+service:
+  app:
+    controller: rrda
+    ports:
+      http:
+        port: *port
+
+route:
+  app:
+    enabled: true
+    hostnames:
+      - rrda.pitower.link
+    parentRefs:
+      - name: envoy-external
+        namespace: networking
+        sectionName: https

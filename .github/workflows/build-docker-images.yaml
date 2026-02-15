@@ -1,0 +1,64 @@
+name: Build Docker Images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - docker/**
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      images: ${{ steps.set-matrix.outputs.images }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - id: changed
+        if: github.event_name == 'push'
+        uses: tj-actions/changed-files@24d32ffd492484c1d75e0c0b894501ddb9d30d62 # v47
+        with:
+          dir_names: "true"
+          dir_names_max_depth: "2"
+          files: docker/**
+          json: "true"
+          escape_json: "false"
+
+      - id: set-matrix
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "images=$(ls -d docker/*/ | xargs -I{} basename {} | jq -R -s -c 'split("\n") | map(select(length > 0))')" >> "$GITHUB_OUTPUT"
+          else
+            echo "images=$(echo '${{ steps.changed.outputs.all_changed_files }}' | jq -c '[.[] | ltrimstr("docker/")]')" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: discover
+    if: needs.discover.outputs.images != '[]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        image: ${{ fromJson(needs.discover.outputs.images) }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@263435318d21b8e681c14492fe198e19c816612b # v6
+        with:
+          context: docker/${{ matrix.image }}
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/swibrow/${{ matrix.image }}:latest
+            ${{ env.REGISTRY }}/swibrow/${{ matrix.image }}:${{ github.sha }}
