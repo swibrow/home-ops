@@ -6,6 +6,7 @@ namespace: selfhosted
 resources:
   - rbac.yaml
   - configmap.yaml
+  - externalsecret.yaml
 
 helmCharts:
   - name: app-template

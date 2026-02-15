@@ -5,83 +5,148 @@ metadata:
   name: homepage-config
 data:
   bookmarks.yaml: |
+    - Developer:
+        - GitHub:
+            - icon: github.svg
+              href: https://github.com/swibrow/home-ops
+        - HackerNews:
+            - icon: hacker-news.svg
+              href: https://news.ycombinator.com
     - Media:
         - YouTube:
-            - href: https://youtube.com/feed/subscriptions
-    - Tech:
-        - HackerNews:
-            - href: https://news.ycombinator.com
-        - Moronix:
-            - href: https://www.phoronix.com
+            - icon: youtube.svg
+              href: https://youtube.com/feed/subscriptions
+    - Tools:
+        - Excalidraw:
+            - icon: excalidraw.svg
+              href: https://draw.pitower.link
+        - Miniflux:
+            - icon: miniflux.svg
+              href: https://miniflux.pitower.link
   docker.yaml: ""
   kubernetes.yaml: |
     mode: cluster
-    ingress: true
   services.yaml: |
-    - Calendar:
-        - Agenda:
+    - Media:
+        - Jellyfin:
+            icon: jellyfin.svg
+            href: https://jellyfin.pitower.link
+            description: Media server
             widget:
-              type: calendar
-              view: agenda # optional - possible values monthly, agenda
-              maxEvents: 20 # optional - defaults to 10
-              integrations: # optional
-                - type: sonarr # active widget type that is currently enabled on homepage - possible values: radarr, sonarr>
-                  service_group: Downloads # group name where widget exists
-                  service_name: Sonarr # service name for that widget
-                - type: radarr # active widget type that is currently enabled on homepage - possible values: radarr, sonarr>
-                  service_group: Downloads # group name where widget exists
-                  service_name: Radarr # service name for that widget
-    - Automation:
+              type: jellyfin
+              url: http://jellyfin.media.svc.cluster.local:8096
+              key: "{{HOMEPAGE_VAR_JELLYFIN_TOKEN}}"
+              enableNowPlaying: true
+        - Sonarr:
+            icon: sonarr.svg
+            href: https://sonarr.pitower.link
+            description: TV shows
+            widget:
+              type: sonarr
+              url: http://sonarr.media.svc.cluster.local:8989
+              key: "{{HOMEPAGE_VAR_SONARR_TOKEN}}"
+        - Radarr:
+            icon: radarr.svg
+            href: https://radarr.pitower.link
+            description: Movies
+            widget:
+              type: radarr
+              url: http://radarr.media.svc.cluster.local:7878
+              key: "{{HOMEPAGE_VAR_RADARR_TOKEN}}"
+        - Prowlarr:
+            icon: prowlarr.svg
+            href: https://prowlarr.pitower.link
+            description: Indexer manager
+            widget:
+              type: prowlarr
+              url: http://prowlarr.media.svc.cluster.local:9696
+              key: "{{HOMEPAGE_VAR_PROWLARR_TOKEN}}"
+        - qBittorrent:
+            icon: qbittorrent.svg
+            href: https://qbittorrent.pitower.link
+            description: Torrent client
+            widget:
+              type: qbittorrent
+              url: http://qbittorrent.media.svc.cluster.local:8080
+        - SABnzbd:
+            icon: sabnzbd.svg
+            href: https://sabnzbd.pitower.link
+            description: Usenet client
+            widget:
+              type: sabnzbd
+              url: http://sabnzbd.media.svc.cluster.local:8080
+              key: "{{HOMEPAGE_VAR_SABNZBD_TOKEN}}"
+    - Home Automation:
         - Home Assistant:
-            href: https://ha.pitower.link
             icon: home-assistant.svg
+            href: https://ha.pitower.link
+            description: Home automation
             widget:
               type: homeassistant
-              url: http://ha.pitower.link:8123
-              key: {{HOMEPAGE_VAR_HASS_TOKEN}}
-    - Infrastructure:
-        - Unifi:
-            href: https://unifi.pitower.link
-            icon: unifi.png
+              url: http://home-assistant.home-automation.svc.cluster.local:8123
+              key: "{{HOMEPAGE_VAR_HASS_TOKEN}}"
+    - Selfhosted:
+        - Tandoor:
+            icon: tandoor.svg
+            href: https://tandoor.pitower.link
+            description: Recipe manager
+        - n8n:
+            icon: n8n.svg
+            href: https://n8n.pitower.link
+            description: Workflow automation
+        - Glance:
+            icon: glance.svg
+            href: https://glance.pitower.link
+            description: Dashboard
+        - Cryptgeon:
+            icon: mdi-lock-outline
+            href: https://secrets.pitower.link
+            description: Secret sharing
+    - Monitoring:
+        - Grafana:
+            icon: grafana.svg
+            href: https://grafana.pitower.link
+            description: Dashboards
             widget:
-              type: unifi
-              url: https://unifi.pitower.link
-              key: {{HOMEPAGE_VAR_UNIFI_TOKEN}}
+              type: grafana
+              url: http://grafana.monitoring.svc.cluster.local:3000
+              username: "{{HOMEPAGE_VAR_GRAFANA_USER}}"
+              password: "{{HOMEPAGE_VAR_GRAFANA_PASS}}"
+        - Prometheus:
+            icon: prometheus.svg
+            href: https://prometheus.pitower.link
+            description: Metrics
+            widget:
+              type: prometheus
+              url: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+    - Infrastructure:
+        - Ceph:
+            icon: ceph.svg
+            href: https://ceph.pitower.link
+            description: Distributed storage
   settings.yaml: |
-    title: Dashboard
-    background: https://images.unsplash.com/photo-1502790671504-542ad42d5189?auto=format&fit=crop&w=2560&q=80
+    title: Home
+    favicon: https://raw.githubusercontent.com/gethomepage/homepage/main/public/homepage.png
     theme: dark
     color: slate
     headerStyle: boxed
+    statusStyle: dot
+    hideVersion: true
     layout:
-      Calendar:
-        style: columns
-      Automation:
-        style: columns
-      Selfhosted:
-        style: row
-        columns: 2
-      Downloads:
+      Media:
         style: row
         columns: 3
-      Games:
+      Home Automation:
         style: row
-      Infrastructure:
+      Selfhosted:
         style: row
         columns: 2
       Monitoring:
         style: row
-        columns: 3
+        columns: 2
+      Infrastructure:
+        style: row
   widgets.yaml: |
-    - resources:
-        backend: kubernetes
-        cpu: true
-        expanded: true
-        memory: true
-    - search:
-        provider: [google]
-        focus: false
-        target: _blank
     - kubernetes:
         cluster:
           cpu: true
@@ -91,8 +156,12 @@ data:
         nodes:
           cpu: true
           memory: true
-          show: false
+          show: true
           showLabel: true
+    - search:
+        provider: [google]
+        focus: false
+        target: _blank
     - openmeteo:
         label: Home
         units: metric
