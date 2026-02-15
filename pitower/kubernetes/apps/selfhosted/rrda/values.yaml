@@ -23,8 +23,8 @@ controllers:
           repository: docker.io/adguard/dnsproxy
           tag: v0.78.2
         args:
-          - --listen=udp://0.0.0.0:53
-          - --listen=tcp://0.0.0.0:53
+          - --listen=0.0.0.0
+          - --port=53
           - --upstream=https://1.1.1.1/dns-query
           - --upstream=https://1.0.0.1/dns-query
           - --bootstrap=9.9.9.9:53
