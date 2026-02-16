@@ -14,6 +14,7 @@ controllers:
           tag: 10.11.6@sha256:25db4eb10143c1c12adb79ed978e31d94fc98dc499fbae2d38b2c935089ced3e
         env:
           DOTNET_SYSTEM_IO_DISABLEFILELOCKING: "true"
+          JELLYFIN_PublishedServerUrl: https://jellyfin.pitower.link
         resources:
           requests:
             cpu: 100m
