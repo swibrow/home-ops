@@ -5,6 +5,7 @@ kind: Kustomization
 namespace: security
 resources:
   - externalsecret.yaml
+  - tcproute.yaml
 
 helmCharts:
   - name: app-template

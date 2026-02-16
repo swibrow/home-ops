@@ -1,0 +1,14 @@
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: TCPRoute
+metadata:
+  name: lldap
+spec:
+  parentRefs:
+    - name: envoy-internal
+      namespace: networking
+      sectionName: ldap
+  rules:
+    - backendRefs:
+        - name: lldap
+          port: 5389
