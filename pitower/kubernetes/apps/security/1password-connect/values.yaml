@@ -1,4 +1,0 @@
-connect:
-  create: true
-operator:
-  create: false
