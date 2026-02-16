@@ -5,6 +5,15 @@ kind: Kustomization
 namespace: ai
 resources:
   - externalsecret.yaml
+  - pvc.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+  - name: zeroclaw-config
+    files:
+      - config.toml
 
 helmCharts:
   - name: app-template

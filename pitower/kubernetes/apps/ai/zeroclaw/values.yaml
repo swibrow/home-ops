@@ -40,3 +40,16 @@ route:
       - backendRefs:
           - identifier: app
             port: 3000
+
+persistence:
+  config:
+    type: configMap
+    name: zeroclaw-config
+    globalMounts:
+      - path: /zeroclaw-data/.zeroclaw/config.toml
+        subPath: config.toml
+        readOnly: true
+  data:
+    existingClaim: zeroclaw-data
+    globalMounts:
+      - path: /zeroclaw-data/workspace

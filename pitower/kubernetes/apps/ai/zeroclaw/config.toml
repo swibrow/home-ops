@@ -1,0 +1,32 @@
+workspace_dir = "/zeroclaw-data/workspace"
+config_path = "/zeroclaw-data/.zeroclaw/config.toml"
+api_key = ""
+default_provider = "anthropic"
+default_model = "claude-sonnet-4-20250514"
+default_temperature = 0.7
+
+[gateway]
+port = 3000
+host = "[::]"
+allow_public_bind = true
+
+[memory]
+backend = "sqlite"
+auto_save = true
+hygiene_enabled = true
+archive_after_days = 7
+purge_after_days = 30
+conversation_retention_days = 30
+embedding_provider = "none"
+embedding_model = "text-embedding-3-small"
+embedding_dimensions = 1536
+vector_weight = 0.7
+keyword_weight = 0.3
+embedding_cache_size = 10000
+chunk_max_tokens = 512
+response_cache_enabled = false
+response_cache_ttl_minutes = 60
+response_cache_max_entries = 5000
+snapshot_enabled = false
+snapshot_on_hygiene = false
+auto_hydrate = true
