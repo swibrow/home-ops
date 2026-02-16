@@ -5,10 +5,15 @@ metadata:
   name: lldap
 spec:
   parentRefs:
-    - name: envoy-internal
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: envoy-internal
       namespace: networking
       sectionName: ldap
   rules:
     - backendRefs:
-        - name: lldap
+        - group: ""
+          kind: Service
+          name: lldap
           port: 5389
+          weight: 1
