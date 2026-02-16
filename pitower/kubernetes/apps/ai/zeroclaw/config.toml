@@ -30,3 +30,10 @@ response_cache_max_entries = 5000
 snapshot_enabled = false
 snapshot_on_hygiene = false
 auto_hydrate = true
+
+[channels_config]
+cli = false
+
+[channels_config.telegram]
+bot_token = "{{ .telegram_bot_token }}"
+allowed_users = ["*"]
