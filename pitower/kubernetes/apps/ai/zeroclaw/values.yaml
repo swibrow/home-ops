@@ -1,0 +1,42 @@
+controllers:
+  zeroclaw:
+    annotations:
+      reloader.stakater.com/auto: "true"
+    containers:
+      app:
+        image:
+          repository: ghcr.io/theonlyhennygod/zeroclaw
+          tag: latest
+        env:
+          PROVIDER: anthropic
+          ZEROCLAW_GATEWAY_PORT: "3000"
+          ZEROCLAW_ALLOW_PUBLIC_BIND: "true"
+        envFrom:
+          - secretRef:
+              name: zeroclaw-secret
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            memory: 128Mi
+
+service:
+  app:
+    controller: zeroclaw
+    ports:
+      http:
+        port: 3000
+
+route:
+  app:
+    hostnames:
+      - zeroclaw.pitower.link
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+    rules:
+      - backendRefs:
+          - identifier: app
+            port: 3000
