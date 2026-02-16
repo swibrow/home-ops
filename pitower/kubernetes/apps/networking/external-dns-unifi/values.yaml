@@ -1,0 +1,44 @@
+fullnameOverride: external-dns-unifi
+logLevel: info
+domainFilters:
+  - pitower.link
+provider:
+  name: webhook
+  webhook:
+    image:
+      repository: ghcr.io/kashalls/external-dns-unifi-webhook
+      tag: v0.8.2
+    env:
+      - name: LOG_LEVEL
+        value: info
+      - name: UNIFI_HOST
+        value: https://192.168.0.1
+      - name: UNIFI_API_KEY
+        valueFrom:
+          secretKeyRef:
+            name: external-dns-unifi-secret
+            key: api-key
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: http-webhook
+      initialDelaySeconds: 10
+      timeoutSeconds: 5
+    readinessProbe:
+      httpGet:
+        path: /readyz
+        port: http-webhook
+      initialDelaySeconds: 10
+      timeoutSeconds: 5
+policy: sync
+sources:
+  - gateway-httproute
+  - gateway-udproute
+  - service
+triggerLoopOnEvent: true
+txtOwnerId: default
+txtPrefix: k8s.
+serviceMonitor:
+  enabled: true
+podAnnotations:
+  secret.reloader.stakater.com/reload: external-dns-unifi-secret
