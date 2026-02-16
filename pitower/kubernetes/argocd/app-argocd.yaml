@@ -12,6 +12,13 @@ spec:
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: argocd
+  ignoreDifferences:
+    - group: ""
+      kind: Secret
+      name: argocd-secret
+      namespace: argocd
+      jsonPointers:
+        - /data
   syncPolicy:
     automated:
       prune: true
@@ -20,3 +27,4 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
+      - RespectIgnoreDifferences=true
