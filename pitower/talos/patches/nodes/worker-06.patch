@@ -1,6 +1,9 @@
 ---
 machine:
   install:
-    image: factory.talos.dev/installer/97bf8e92fc6bba0f03928b859c08295d7615737b29db06a97be51dc63004e403:v1.10.7
-  network:
-    hostname: worker-06
+    image: factory.talos.dev/installer/97bf8e92fc6bba0f03928b859c08295d7615737b29db06a97be51dc63004e403:v1.12.4
+---
+apiVersion: v1alpha1
+kind: HostnameConfig
+auto: off
+hostname: worker-06

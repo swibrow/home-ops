@@ -1,9 +1,11 @@
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
-cp_image := "factory.talos.dev/installer/de94b242ed9adec9def2581ffbf1e2d1873e42b17032771770d241dee54d7c00:v1.10.7"
-cp_amd_image := "factory.talos.dev/installer/f19ad7b4a5d29151f3a59ef2d9c581cf89e77142e52f0abb5022e8f0b95ad0b9:v1.10.7"
-worker_intel_image := "factory.talos.dev/installer/97bf8e92fc6bba0f03928b859c08295d7615737b29db06a97be51dc63004e403:v1.10.9"
-worker_rpi_image := "factory.talos.dev/installer/a862538d0862e8ad5b17fadc2b56599677101537b3f75926085d8cbff4a411b9:v1.10.7"
+cp_image := "factory.talos.dev/installer/de94b242ed9adec9def2581ffbf1e2d1873e42b17032771770d241dee54d7c00:v1.12.4"
+cp_amd_image := "factory.talos.dev/installer/f19ad7b4a5d29151f3a59ef2d9c581cf89e77142e52f0abb5022e8f0b95ad0b9:v1.12.4"
+worker_intel_image := "factory.talos.dev/installer/97bf8e92fc6bba0f03928b859c08295d7615737b29db06a97be51dc63004e403:v1.12.4"
+worker_rpi_image := "factory.talos.dev/installer/a862538d0862e8ad5b17fadc2b56599677101537b3f75926085d8cbff4a411b9:v1.12.4"
+
+nodes := "192.168.0.201 192.168.0.202 192.168.0.203 192.168.0.204"
 
 # Generate talos config from secrets
 config:
@@ -52,10 +54,14 @@ apply-workers:
     talosctl apply-config --nodes 192.168.0.212 --file ./worker-pi-02.yaml
     talosctl apply-config --nodes 192.168.0.213 --file ./worker-pi-03.yaml
 
-# Apply config to a specific worker by number (e.g. just apply-worker 4)
+# Apply config to a specific worker by name (e.g. just apply-worker 04 or apply-worker pi-01)
 [working-directory: 'clusterconfig']
-apply-worker id:
-    talosctl apply-config --nodes 192.168.0.21{{ id }} --file ./worker-0{{ id }}.yaml --wait
+apply-worker name:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ip=$(talosctl get members -o json | jq -rs --arg h "worker-{{ name }}" '[.[] | select(.spec.hostname == $h) | .spec.addresses[0]][0]')
+    echo "Applying config to worker-{{ name }} (${ip})"
+    talosctl apply-config --nodes "${ip}" --file ./worker-{{ name }}.yaml
 
 # Reboot control plane nodes sequentially
 [working-directory: 'clusterconfig']
@@ -133,6 +139,20 @@ upgrade-workers-rpi:
             --nodes "192.168.0.21${i}" \
             --preserve \
             --wait
+    done
+
+# List container images on a node sorted by size
+image-list node:
+    talosctl -n {{ node }} image list | sort -k4 -h
+
+# Show image count and disk usage per node
+image-usage:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for node in {{ nodes }}; do
+        count=$(talosctl -n "$node" image list 2>/dev/null | tail -n +2 | wc -l)
+        size=$(talosctl -n "$node" usage /var/lib/containerd --depth 0 2>/dev/null | tail -1 | awk '{printf "%.1f", $2/1024/1024/1024}')
+        printf "%-16s %4d images  %s GB\n" "$node" "$count" "$size"
     done
 
 # Print Talos factory image IDs from extension files

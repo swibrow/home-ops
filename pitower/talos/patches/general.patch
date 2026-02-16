@@ -2,6 +2,9 @@ machine:
   kubelet:
     extraArgs:
       rotate-server-certificates: true
+    extraConfig:
+      imageGCHighThresholdPercent: 60
+      imageGCLowThresholdPercent: 50
     extraMounts:
       - destination: /var/mnt/extra
         type: bind
