@@ -144,6 +144,11 @@ data:
             icon: mdi-dns
             href: https://rrda.pitower.link
             description: DNS lookup
+    - AI:
+        - ZeroClaw:
+            icon: mdi-robot
+            href: https://zeroclaw.pitower.link
+            description: AI assistant gateway
     - Security:
         - Authelia:
             icon: authelia.svg
@@ -204,6 +209,8 @@ data:
       Selfhosted:
         style: row
         columns: 3
+      AI:
+        style: row
       Security:
         style: row
       Monitoring:
