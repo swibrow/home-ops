@@ -15,7 +15,6 @@ extraArgs:
 policy: sync
 sources:
   - crd
-  - ingress
   - gateway-httproute
 txtPrefix: k8s.
 txtOwnerId: default
