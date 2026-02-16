@@ -43,8 +43,8 @@ route:
 
 persistence:
   config:
-    type: configMap
-    name: zeroclaw-config
+    type: secret
+    name: zeroclaw-secret
     globalMounts:
       - path: /zeroclaw-data/.zeroclaw/config.toml
         subPath: config.toml
