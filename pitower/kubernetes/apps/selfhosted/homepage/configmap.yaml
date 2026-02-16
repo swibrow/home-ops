@@ -16,13 +16,6 @@ data:
         - YouTube:
             - icon: youtube.svg
               href: https://youtube.com/feed/subscriptions
-    - Tools:
-        - Excalidraw:
-            - icon: excalidraw.svg
-              href: https://draw.pitower.link
-        - Miniflux:
-            - icon: miniflux.svg
-              href: https://miniflux.pitower.link
   docker.yaml: ""
   kubernetes.yaml: |
     mode: cluster
@@ -61,6 +54,10 @@ data:
               type: prowlarr
               url: http://prowlarr.media.svc.cluster.local:9696
               key: "{{HOMEPAGE_VAR_PROWLARR_TOKEN}}"
+        - Autobrr:
+            icon: autobrr.svg
+            href: https://autobrr.pitower.link
+            description: Torrent automation
         - qBittorrent:
             icon: qbittorrent.svg
             href: https://qbittorrent.pitower.link
@@ -85,6 +82,31 @@ data:
               type: homeassistant
               url: http://home-assistant.home-automation.svc.cluster.local:8123
               key: "{{HOMEPAGE_VAR_HASS_TOKEN}}"
+        - HA Code Server:
+            icon: vscode.svg
+            href: https://ha-code.pitower.link
+            description: HA config editor
+        - Zigbee2MQTT:
+            icon: zigbee2mqtt.svg
+            href: https://zigbee.pitower.link
+            description: Zigbee bridge
+        - Matter Server:
+            icon: mdi-chip
+            href: https://matter.pitower.link
+            description: Matter controller
+        - OTBR:
+            icon: mdi-access-point-network
+            href: https://otbr.pitower.link
+            description: Thread border router
+    - Banking:
+        - Firefly III:
+            icon: firefly.svg
+            href: https://money.pitower.link
+            description: Financial manager
+        - Firefly Importer:
+            icon: firefly.svg
+            href: https://money-import.pitower.link
+            description: Transaction importer
     - Selfhosted:
         - Tandoor:
             icon: tandoor.svg
@@ -94,14 +116,43 @@ data:
             icon: n8n.svg
             href: https://n8n.pitower.link
             description: Workflow automation
+        - Miniflux:
+            icon: miniflux.svg
+            href: https://miniflux.pitower.link
+            description: RSS reader
         - Glance:
             icon: glance.svg
             href: https://glance.pitower.link
             description: Dashboard
+        - Excalidraw:
+            icon: excalidraw.svg
+            href: https://draw.pitower.link
+            description: Whiteboard
         - Cryptgeon:
             icon: mdi-lock-outline
             href: https://secrets.pitower.link
             description: Secret sharing
+        - Sharkord:
+            icon: mdi-music-note
+            href: https://sharkord.pitower.link
+            description: Music server
+        - House Hunter:
+            icon: mdi-home-search
+            href: https://house-hunter.pitower.link
+            description: Property tracker
+        - RRDA:
+            icon: mdi-dns
+            href: https://rrda.pitower.link
+            description: DNS lookup
+    - Security:
+        - Authelia:
+            icon: authelia.svg
+            href: https://auth.pitower.link
+            description: Authentication
+        - LLDAP:
+            icon: mdi-account-group
+            href: https://lldap.pitower.link
+            description: LDAP directory
     - Monitoring:
         - Grafana:
             icon: grafana.svg
@@ -119,11 +170,20 @@ data:
             widget:
               type: prometheus
               url: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+    - Networking:
+        - OpenSpeedTest:
+            icon: mdi-speedometer
+            href: https://openspeedtest.pitower.link
+            description: Speed test
     - Infrastructure:
-        - Ceph:
+        - Rook Ceph:
             icon: ceph.svg
-            href: https://ceph.pitower.link
+            href: https://rook.pitower.link
             description: Distributed storage
+        - Hubble:
+            icon: cilium.svg
+            href: https://hubble.pitower.link
+            description: Network observability
   settings.yaml: |
     title: Home
     favicon: https://raw.githubusercontent.com/gethomepage/homepage/main/public/homepage.png
@@ -135,15 +195,22 @@ data:
     layout:
       Media:
         style: row
-        columns: 3
+        columns: 4
       Home Automation:
+        style: row
+        columns: 3
+      Banking:
         style: row
       Selfhosted:
         style: row
-        columns: 2
+        columns: 3
+      Security:
+        style: row
       Monitoring:
         style: row
         columns: 2
+      Networking:
+        style: row
       Infrastructure:
         style: row
   widgets.yaml: |
