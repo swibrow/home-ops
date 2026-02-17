@@ -18,6 +18,7 @@ controllers:
           RESOLUTION_WIDTH: "1920"
           RESOLUTION_HEIGHT: "1080"
           CHROME_ARGS: "--no-sandbox"
+          VNC_PASSWORD: "changeme"
         envFrom:
           - secretRef:
               name: browser-use-secret
