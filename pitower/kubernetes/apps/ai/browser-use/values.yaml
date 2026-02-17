@@ -17,6 +17,7 @@ controllers:
           RESOLUTION: 1920x1080x24
           RESOLUTION_WIDTH: "1920"
           RESOLUTION_HEIGHT: "1080"
+          CHROME_ARGS: "--no-sandbox"
         envFrom:
           - secretRef:
               name: browser-use-secret
@@ -26,10 +27,6 @@ controllers:
             memory: 512Mi
           limits:
             memory: 4Gi
-        securityContext:
-          capabilities:
-            add:
-              - SYS_ADMIN
 
 service:
   app:
