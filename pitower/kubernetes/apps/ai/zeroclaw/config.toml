@@ -31,6 +31,11 @@ snapshot_enabled = false
 snapshot_on_hygiene = false
 auto_hydrate = true
 
+[browser]
+enabled = true
+allowed_domains = ["*"]
+backend = "auto"
+
 [channels_config]
 cli = false
 
