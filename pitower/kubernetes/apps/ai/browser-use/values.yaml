@@ -1,0 +1,73 @@
+controllers:
+  browser-use:
+    annotations:
+      reloader.stakater.com/auto: "true"
+    pod:
+      securityContext:
+        fsGroup: 1000
+    containers:
+      app:
+        image:
+          repository: ghcr.io/browser-use/web-ui
+          tag: latest
+        env:
+          ANONYMIZED_TELEMETRY: "false"
+          BROWSER_USE_LOGGING_LEVEL: info
+          KEEP_BROWSER_OPEN: "true"
+          RESOLUTION: 1920x1080x24
+          RESOLUTION_WIDTH: "1920"
+          RESOLUTION_HEIGHT: "1080"
+        envFrom:
+          - secretRef:
+              name: browser-use-secret
+        resources:
+          requests:
+            cpu: 100m
+            memory: 512Mi
+          limits:
+            memory: 4Gi
+        securityContext:
+          capabilities:
+            add:
+              - SYS_ADMIN
+
+service:
+  app:
+    controller: browser-use
+    ports:
+      http:
+        port: 7788
+      vnc:
+        port: 6080
+
+route:
+  app:
+    hostnames:
+      - browser-use.pitower.link
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+    rules:
+      - backendRefs:
+          - identifier: app
+            port: 7788
+  vnc:
+    hostnames:
+      - browser-vnc.pitower.link
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+    rules:
+      - backendRefs:
+          - identifier: app
+            port: 6080
+
+persistence:
+  shm:
+    type: emptyDir
+    medium: Memory
+    sizeLimit: 2Gi
+    globalMounts:
+      - path: /dev/shm

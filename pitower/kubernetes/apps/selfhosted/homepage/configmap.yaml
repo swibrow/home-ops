@@ -149,6 +149,10 @@ data:
             icon: mdi-robot
             href: https://zeroclaw.pitower.link
             description: AI assistant gateway
+        - Browser Use:
+            icon: mdi-web
+            href: https://browser-use.pitower.link
+            description: AI browser automation
     - Security:
         - Authelia:
             icon: authelia.svg
