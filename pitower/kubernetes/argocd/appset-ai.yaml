@@ -32,6 +32,11 @@ spec:
         server: https://kubernetes.default.svc
         namespace: "{{index .path.segments 3}}"
       syncPolicy:
+        managedNamespaceMetadata:
+          labels:
+            pod-security.kubernetes.io/enforce: privileged
+            pod-security.kubernetes.io/audit: privileged
+            pod-security.kubernetes.io/warn: privileged
         automated:
           prune: true
           selfHeal: false
