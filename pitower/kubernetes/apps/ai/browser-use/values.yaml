@@ -8,7 +8,7 @@ controllers:
     containers:
       app:
         image:
-          repository: ghcr.io/browser-use/web-ui
+          repository: ghcr.io/swibrow/browser-use
           tag: v3.0.0
         env:
           ANONYMIZED_TELEMETRY: "false"

@@ -1,0 +1,45 @@
+FROM python:3.11-slim-bookworm
+
+ARG BROWSER_USE_VERSION=v3.0.0
+ARG TARGETPLATFORM
+ARG NODE_MAJOR=20
+
+RUN apt-get update && apt-get install -y \
+    wget netcat-traditional gnupg curl unzip xvfb \
+    libxss1 libnss3 libnspr4 libasound2 libatk1.0-0 \
+    libatk-bridge2.0-0 libcups2 libdbus-1-3 libdrm2 \
+    libgbm1 libgtk-3-0 libxcomposite1 libxdamage1 \
+    libxfixes3 libxrandr2 xdg-utils fonts-liberation \
+    fonts-noto-color-emoji fonts-unifont dbus xauth \
+    x11vnc tigervnc-tools supervisor net-tools procps \
+    git python3-numpy fontconfig fonts-dejavu \
+    fonts-dejavu-core fonts-dejavu-extra \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN git clone https://github.com/novnc/noVNC.git /opt/novnc \
+    && git clone https://github.com/novnc/websockify /opt/novnc/utils/websockify \
+    && ln -s /opt/novnc/vnc.html /opt/novnc/index.html
+
+RUN mkdir -p /etc/apt/keyrings \
+    && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
+    && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list \
+    && apt-get update \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+RUN git clone --branch ${BROWSER_USE_VERSION} --depth 1 https://github.com/browser-use/web-ui.git /app
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-browsers
+RUN mkdir -p $PLAYWRIGHT_BROWSERS_PATH \
+    && PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0 playwright install chromium
+
+RUN mkdir -p /var/log/supervisor
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+EXPOSE 7788 6080 5901 9222
+
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
