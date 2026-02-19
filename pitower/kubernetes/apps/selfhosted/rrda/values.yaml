@@ -21,7 +21,7 @@ controllers:
       dns-over-https:
         image:
           repository: docker.io/adguard/dnsproxy
-          tag: v0.78.2
+          tag: v0.79.0
         args:
           - --listen=0.0.0.0
           - --port=53
