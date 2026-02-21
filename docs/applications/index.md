@@ -14,7 +14,7 @@ The cluster runs a wide range of self-hosted applications, organized by category
 | [Home Automation](home-automation/index.md) | 5 | `home-automation` | Home Assistant, Zigbee/Matter/Thread device management, MQTT broker |
 | [Self-Hosted](selfhosted/index.md) | 12 | `selfhosted` | Dashboards, productivity tools, DNS utilities, and more |
 | [Databases](databases/index.md) | -- | `cloudnative-pg` | CloudNative-PG PostgreSQL operator, clusters, and credential management |
-| AI | 1 | `ai` | kagent -- Kubernetes-native AI agent framework |
+| AI | 2 | `ai` | browser-use, zeroclaw -- AI agent workloads |
 | Banking | 2 | `banking` | Firefly III personal finance manager and data importer |
 
 ## Gateway Routing Pattern
@@ -47,7 +47,6 @@ route:
 |:------|:--------|:-------|
 | bjw-s app-template | v4.6.2 | `ghcr.io/bjw-s-labs/helm` |
 | CloudNative-PG | Latest | `cloudnative-pg.io` |
-| kagent | 0.6.19 | `kagent.dev` |
 
 ## Common Patterns
 

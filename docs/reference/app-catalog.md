@@ -30,7 +30,8 @@ Complete catalog of all applications deployed in the cluster, organized by categ
 
 | Name | Chart/Image | Gateway | URL | Description |
 |:-----|:------------|:--------|:----|:------------|
-| kagent | app-template | -- | -- | AI agent workload |
+| browser-use | custom | internal | `browser-use.pitower.link` | Browser automation agent |
+| zeroclaw | custom | internal | `zeroclaw.pitower.link` | AI agent workload |
 
 ---
 

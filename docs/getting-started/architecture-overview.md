@@ -83,7 +83,7 @@ Applications are organized into 14 categories:
 
 | Category | Example Applications |
 |:---------|:--------------------|
-| `ai` | kagent |
+| `ai` | browser-use, zeroclaw |
 | `banking` | -- |
 | `cert-manager` | cert-manager |
 | `cloudnative-pg` | CloudNativePG operator |

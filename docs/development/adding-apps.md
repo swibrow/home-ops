@@ -24,7 +24,7 @@ Applications are organized by category under `pitower/kubernetes/apps/`. Choose 
 
 | Category | Purpose | Examples |
 |:---------|:--------|:--------|
-| `ai` | AI and ML workloads | kagent |
+| `ai` | AI and ML workloads | browser-use, zeroclaw |
 | `banking` | Financial tools | firefly, firefly-importer |
 | `home-automation` | Smart home | home-assistant, zigbee2mqtt |
 | `media` | Media management | jellyfin, sonarr, radarr |
