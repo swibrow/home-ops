@@ -54,14 +54,14 @@ apply-workers:
     talosctl apply-config --nodes 192.168.0.212 --file ./worker-pi-02.yaml
     talosctl apply-config --nodes 192.168.0.213 --file ./worker-pi-03.yaml
 
-# Apply config to a specific worker by name (e.g. just apply-worker 04 or apply-worker pi-01)
+# Apply config to a specific worker by name (e.g. just apply-worker worker-04 or apply-worker worker-pi-01)
 [working-directory: 'clusterconfig']
 apply-worker name:
     #!/usr/bin/env bash
     set -euo pipefail
-    ip=$(talosctl get members -o json | jq -rs --arg h "worker-{{ name }}" '[.[] | select(.spec.hostname == $h) | .spec.addresses[0]][0]')
-    echo "Applying config to worker-{{ name }} (${ip})"
-    talosctl apply-config --nodes "${ip}" --file ./worker-{{ name }}.yaml
+    ip=$(talosctl get members -o json | jq -rs --arg h "{{ name }}" '[.[] | select(.spec.hostname == $h) | .spec.addresses[0]][0]')
+    echo "Applying config to {{ name }} (${ip})"
+    talosctl apply-config --nodes "${ip}" --file ./{{ name }}.yaml
 
 # Reboot control plane nodes sequentially
 [working-directory: 'clusterconfig']
