@@ -10,9 +10,6 @@ controllers:
         runAsGroup: 0
         fsGroup: 0
         fsGroupChangePolicy: OnRootMismatch
-      nodeSelector:
-        # Run on same node as home-assistant for easier integration
-        kubernetes.io/hostname: worker-04
     containers:
       app:
         image:

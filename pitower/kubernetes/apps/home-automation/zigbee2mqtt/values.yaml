@@ -2,10 +2,6 @@ controllers:
   zigbee2mqtt:
     annotations:
       reloader.stakater.com/auto: "true"
-    pod:
-      nodeSelector:
-        # sonoff.feature.node.kubernetes.io/zigbee: "true"
-        kubernetes.io/hostname: worker-04
     containers:
       app:
         image:

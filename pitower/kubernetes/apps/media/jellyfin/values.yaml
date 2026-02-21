@@ -7,6 +7,11 @@ controllers:
         intel.feature.node.kubernetes.io/gpu: "true"
         kubernetes.io/arch: amd64
         kubernetes.io/hostname: "worker-04"
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: media-home
+          effect: NoSchedule
     containers:
       app:
         image:

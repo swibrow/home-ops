@@ -5,6 +5,11 @@ controllers:
     pod:
       nodeSelector:
         kubernetes.io/hostname: worker-04
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: media-home
+          effect: NoSchedule
     containers:
       app:
         image:
