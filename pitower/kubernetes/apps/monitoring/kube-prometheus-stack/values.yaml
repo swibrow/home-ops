@@ -106,6 +106,8 @@ prometheus:
     enableAdminAPI: true
     walCompression: true
     retentionSize: 15GB
+    startupProbe:
+      failureThreshold: 120
     storageSpec:
       volumeClaimTemplate:
         spec:
