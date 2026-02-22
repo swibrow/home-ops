@@ -24,7 +24,7 @@ controllers:
           GUNICORN_MEDIA: 0
           MAX_OWNED_SPACES_PREF_DEFAULT: 5
           SHOPPING_MIN_AUTOSYNC_INTERVAL: 5
-          TANDOOR_PORT: &tandoorPort 8000
+          TANDOOR_PORT: 8000
         envFrom:
           - secretRef:
               name: tandoor-secret
@@ -37,7 +37,7 @@ controllers:
             spec:
               httpGet:
                 path: /accounts/login/
-                port: *tandoorPort
+                port: 8080
               initialDelaySeconds: 0
               periodSeconds: 10
               timeoutSeconds: 1
@@ -49,7 +49,7 @@ controllers:
             spec:
               httpGet:
                 path: /accounts/login/
-                port: *tandoorPort
+                port: 8080
               failureThreshold: 30
               periodSeconds: 10
         resources:
@@ -141,5 +141,7 @@ persistence:
           - path: /opt/recipes/cookbook/static/django_js_reverse
             subPath: django_js_reverse
         nginx:
+          - path: /tmp
+            subPath: app-tmp
           - path: /run
             subPath: nginx-run

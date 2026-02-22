@@ -112,7 +112,7 @@ prometheus:
           storageClassName: ceph-block
           resources:
             requests:
-              storage: 20Gi
+              storage: 50Gi
 grafana:
   enabled: false
   forceDeployDashboards: true
