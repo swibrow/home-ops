@@ -22,6 +22,10 @@ controllers:
           BACKBONE_INTERFACE: eth0
           # Bind to all interfaces
           REST_HOST: 0.0.0.0
+          # Disable iptables-based features (not available on Talos/nftables)
+          NAT64: "0"
+          NAT44: "0"
+          DOCKER: "0"
         resources:
           requests:
             cpu: 10m
