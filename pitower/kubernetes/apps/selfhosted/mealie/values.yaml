@@ -1,0 +1,48 @@
+controllers:
+  mealie:
+    containers:
+      app:
+        image:
+          repository: ghcr.io/mealie-recipes/mealie
+          tag: v2.8.0
+        env:
+          ALLOW_SIGNUP: "false"
+          BASE_URL: https://recipes.pitower.link
+          TZ: Europe/Zurich
+        probes:
+          liveness: &probes
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                port: &port 9000
+                path: /api/app/about
+          readiness: *probes
+          startup:
+            enabled: true
+            spec:
+              failureThreshold: 30
+              periodSeconds: 5
+
+service:
+  app:
+    controller: mealie
+    ports:
+      http:
+        port: *port
+
+route:
+  app:
+    enabled: true
+    hostnames:
+      - recipes.pitower.link
+    parentRefs:
+      - name: envoy-external
+        namespace: networking
+        sectionName: https
+
+persistence:
+  data:
+    existingClaim: mealie-data
+    globalMounts:
+      - path: /app/data

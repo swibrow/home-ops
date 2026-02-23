@@ -1,0 +1,94 @@
+controllers:
+  bar-assistant:
+    annotations:
+      reloader.stakater.com/auto: "true"
+
+    containers:
+      app:
+        image:
+          repository: barassistant/server
+          tag: v5
+        env:
+          APP_URL: https://bar.pitower.link
+          MEILISEARCH_HOST: http://localhost:7700
+          REDIS_HOST: localhost
+          CACHE_DRIVER: redis
+          SESSION_DRIVER: redis
+          ALLOW_REGISTRATION: "false"
+          TZ: Europe/Zurich
+        envFrom:
+          - secretRef:
+              name: bar-assistant-secret
+        probes:
+          liveness: &probes
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                port: 8080
+                path: /bar/login
+          readiness: *probes
+          startup:
+            enabled: true
+            spec:
+              failureThreshold: 30
+              periodSeconds: 5
+
+      salt-rim:
+        image:
+          repository: barassistant/salt-rim
+          tag: v4
+        env:
+          API_URL: https://bar.pitower.link/bar
+          MEILISEARCH_URL: https://bar.pitower.link/search
+
+      meilisearch:
+        image:
+          repository: getmeili/meilisearch
+          tag: v1.15
+        env:
+          MEILI_NO_ANALYTICS: "true"
+          MEILI_ENV: production
+        envFrom:
+          - secretRef:
+              name: bar-assistant-secret
+
+      redis:
+        image:
+          repository: valkey/valkey
+          tag: "8.1"
+
+service:
+  app:
+    controller: bar-assistant
+    ports:
+      http:
+        port: &port 3000
+
+route:
+  app:
+    enabled: true
+    hostnames:
+      - bar.pitower.link
+    parentRefs:
+      - name: envoy-external
+        namespace: networking
+        sectionName: https
+    rules:
+      - backendRefs:
+          - identifier: app
+            port: *port
+
+persistence:
+  data:
+    existingClaim: bar-assistant-data
+    advancedMounts:
+      bar-assistant:
+        app:
+          - path: /var/www/cocktails/storage/bar-assistant
+  meilisearch:
+    existingClaim: bar-assistant-meilisearch
+    advancedMounts:
+      bar-assistant:
+        meilisearch:
+          - path: /meili_data
