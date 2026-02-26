@@ -6,6 +6,8 @@ metadata:
 spec:
   goTemplate: true
   goTemplateOptions: ["missingkey=error"]
+  syncPolicy:
+    preserveResourcesOnDeletion: true
   generators:
     - git:
         repoURL: https://github.com/swibrow/home-ops
@@ -37,10 +39,10 @@ spec:
             pod-security.kubernetes.io/enforce: privileged
             pod-security.kubernetes.io/audit: privileged
             pod-security.kubernetes.io/warn: privileged
-        automated:
-          prune: true
-          selfHeal: false
-          allowEmpty: true
+        # automated:
+        #   prune: true
+        #   selfHeal: false
+        #   allowEmpty: true
         syncOptions:
           - CreateNamespace=true
           - ServerSideApply=true

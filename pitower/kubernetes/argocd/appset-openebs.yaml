@@ -12,8 +12,8 @@ spec:
         revision: main
         directories:
           - path: pitower/kubernetes/apps/openebs
-  # syncPolicy:
-  #   preserveResourcesOnDeletion: true # Prevents deletion of resources when the ApplicationSet is deleted
+  syncPolicy:
+    preserveResourcesOnDeletion: true
   template:
     metadata:
       name: "{{.path.basename}}"
@@ -34,10 +34,10 @@ spec:
         server: https://kubernetes.default.svc
         namespace: "{{index .path.segments 3}}"
       syncPolicy:
-        automated:
-          prune: true
-          selfHeal: false
-          allowEmpty: true
+        # automated:
+        #   prune: true
+        #   selfHeal: false
+        #   allowEmpty: true
         syncOptions:
           - CreateNamespace=true
           - ServerSideApply=true
