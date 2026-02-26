@@ -3,6 +3,7 @@ controllers:
     annotations:
       reloader.stakater.com/auto: "true"
     pod:
+      hostNetwork: true
       nodeSelector:
         kubernetes.io/hostname: worker-04
       tolerations:

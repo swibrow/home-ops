@@ -18,6 +18,8 @@ machine:
         enabled: true
         forwardKubeDNSToHost: false
         resolveMemberNames: true
+  sysctls:
+    net.ipv6.conf.all.forwarding: "1"
   # network:
   #   extraHostEntries:
   #     - ip: 192.168.0.200

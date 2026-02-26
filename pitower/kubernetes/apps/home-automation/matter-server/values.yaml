@@ -5,6 +5,13 @@ controllers:
     pod:
       # Host network required for Matter mDNS discovery
       hostNetwork: true
+      nodeSelector:
+        kubernetes.io/hostname: worker-04
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: media-home
+          effect: NoSchedule
       securityContext:
         runAsUser: 0
         runAsGroup: 0
