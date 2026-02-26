@@ -4,6 +4,11 @@ crds:
   enabled: true
 csi:
   enableCephfsDriver: false
+  pluginTolerations:
+    - key: dedicated
+      operator: Equal
+      value: media-home
+      effect: NoSchedule
 monitoring:
   enabled: false
 resources:
