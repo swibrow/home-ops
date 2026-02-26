@@ -1,0 +1,12 @@
+apiVersion: tailscale.com/v1alpha1
+kind: Connector
+metadata:
+  name: pitower
+spec:
+  hostname: pitower
+  subnetRouter:
+    advertiseRoutes:
+      - 10.244.0.0/16
+      - 10.96.0.0/12
+      - 192.168.0.0/24
+  exitNode: true

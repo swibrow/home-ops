@@ -1,11 +1,25 @@
 ---
 creation_rules:
-  - path_regex: kubernetes/pitower/.*\.sops\.ya?ml
+  # Shared kubernetes apps (all clusters)
+  - path_regex: kubernetes/apps/.*\.sops\.ya?ml
     encrypted_regex: "^(data|stringData)$"
     key_groups:
       - age:
           - "age1tkaddc3hgjx0eagjl6mqpxvzzkerd44e34rua6gzucv6emr5f5fs4mlu67"
+  # Pitower kubernetes bootstrap/argocd
+  - path_regex: pitower/kubernetes/.*\.sops\.ya?ml
+    encrypted_regex: "^(data|stringData)$"
+    key_groups:
+      - age:
+          - "age1tkaddc3hgjx0eagjl6mqpxvzzkerd44e34rua6gzucv6emr5f5fs4mlu67"
+  # Pitower talos secrets
   - path_regex: pitower/talos/.*\.sops\.ya?ml
+    encrypted_regex: "^(crt|id|token|key|secret|stringData|secretboxencryptionsecret|bootstraptoken)$"
+    key_groups:
+      - age:
+          - "age1tkaddc3hgjx0eagjl6mqpxvzzkerd44e34rua6gzucv6emr5f5fs4mlu67"
+  # Pikeep talos secrets
+  - path_regex: pikeep/talos/.*\.sops\.ya?ml
     encrypted_regex: "^(crt|id|token|key|secret|stringData|secretboxencryptionsecret|bootstraptoken)$"
     key_groups:
       - age:
@@ -14,7 +28,7 @@ creation_rules:
     key_groups:
       - age:
           - "age1tkaddc3hgjx0eagjl6mqpxvzzkerd44e34rua6gzucv6emr5f5fs4mlu67"
-
+  # Catch-all fallback
   - path_regex: .*\.sops\.ya?ml$
     key_groups:
       - age:
