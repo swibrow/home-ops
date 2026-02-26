@@ -5,6 +5,7 @@ mod sops '.justfiles/sops'
 mod tf '.justfiles/terraform'
 mod talos-ops '.justfiles/talos'
 mod pitower 'pitower'
+mod pikeep 'pikeep'
 
 export TERRAFORM_WORKING_DIR := "terraform"
 export ENVIRONMENT := "dev"
