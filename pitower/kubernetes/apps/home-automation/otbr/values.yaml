@@ -16,6 +16,9 @@ controllers:
         image:
           repository: openthread/otbr
           tag: latest
+        envFrom:
+          - secretRef:
+              name: otbr-thread-dataset
         env:
           TZ: Europe/Zurich
           # Sonoff dongle Thread RCP device
@@ -27,6 +30,24 @@ controllers:
           NAT64: "0"
           NAT44: "0"
           DOCKER: "0"
+        lifecycle:
+          postStart:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  # Wait for otbr-agent to be ready (up to 30s)
+                  for i in $(seq 1 30); do
+                    ot-ctl state >/dev/null 2>&1 && break
+                    sleep 1
+                  done
+                  # Apply Thread dataset and start network
+                  if [ -n "$THREAD_DATASET_TLV" ]; then
+                    ot-ctl dataset set active "$THREAD_DATASET_TLV"
+                    ot-ctl ifconfig up
+                    ot-ctl thread start
+                  fi
         resources:
           requests:
             cpu: 10m
