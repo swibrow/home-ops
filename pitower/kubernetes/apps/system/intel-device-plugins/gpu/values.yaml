@@ -1,3 +1,8 @@
 name: i915
 sharedDevNum: 2
 nodeFeatureRule: true
+tolerations:
+  - key: dedicated
+    operator: Equal
+    value: media-home
+    effect: NoSchedule

@@ -6,6 +6,11 @@ master:
       cpu: 21m
       memory: 51Mi
 worker:
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: media-home
+      effect: NoSchedule
   config:
     core:
       sources:
