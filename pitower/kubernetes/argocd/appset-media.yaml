@@ -12,8 +12,8 @@ spec:
         revision: main
         directories:
           - path: pitower/kubernetes/apps/media/*
-  # syncPolicy:
-  #   preserveResourcesOnDeletion: true # Prevents deletion of resources when the ApplicationSet is deleted
+  syncPolicy:
+    preserveResourcesOnDeletion: true
   template:
     metadata:
       name: "{{index .path.segments 3}}-{{.path.basename}}"
@@ -39,10 +39,10 @@ spec:
             pod-security.kubernetes.io/enforce: privileged
             pod-security.kubernetes.io/audit: privileged
             pod-security.kubernetes.io/warn: privileged
-        automated:
-          prune: true
-          selfHeal: false
-          allowEmpty: true
+        # automated:
+        #   prune: true
+        #   selfHeal: false
+        #   allowEmpty: true
         syncOptions:
           - CreateNamespace=true
           - ServerSideApply=true
