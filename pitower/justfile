@@ -1,4 +1,4 @@
-mod talos '../talos/pitower'
+mod talos '../kubernetes/talos/pitower'
 
 # Bootstrap the cluster (apply secrets and flux config)
 bootstrap:
