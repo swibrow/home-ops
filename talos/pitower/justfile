@@ -16,7 +16,7 @@ config:
         --with-secrets ./secrets.yaml \
         --with-examples=true \
         --config-patch-control-plane @patches/controlplane.patch \
-        --config-patch @patches/general.patch \
+        --config-patch @../shared/patches/general.patch \
         --output ./clusterconfig \
         --force
 
@@ -156,7 +156,7 @@ image-usage:
     done
 
 # Print Talos factory image IDs from extension files
-[working-directory: 'extensions']
+[working-directory: '../shared/extensions']
 image-id:
     #!/usr/bin/env bash
     set -euo pipefail
