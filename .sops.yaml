@@ -13,7 +13,7 @@ creation_rules:
       - age:
           - "age1tkaddc3hgjx0eagjl6mqpxvzzkerd44e34rua6gzucv6emr5f5fs4mlu67"
   # Talos secrets (all clusters)
-  - path_regex: talos/.*/.*\.sops\.ya?ml
+  - path_regex: kubernetes/talos/.*/.*\.sops\.ya?ml
     encrypted_regex: "^(crt|id|token|key|secret|stringData|secretboxencryptionsecret|bootstraptoken)$"
     key_groups:
       - age:
