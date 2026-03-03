@@ -1,0 +1,58 @@
+controllers:
+  ghostfolio:
+    annotations:
+      reloader.stakater.com/auto: "true"
+    containers:
+      app:
+        image:
+          repository: ghostfolio/ghostfolio
+          tag: 2.245.0
+        env:
+          NODE_ENV: production
+          REDIS_HOST: localhost
+          REDIS_PORT: "6379"
+        envFrom:
+          - secretRef:
+              name: ghostfolio-secrets
+          - secretRef:
+              name: ghostfolio-db-secrets
+        probes:
+          startup:
+            enabled: true
+            spec:
+              failureThreshold: 30
+              periodSeconds: 5
+          liveness:
+            enabled: true
+          readiness:
+            enabled: true
+        resources:
+          requests:
+            cpu: 15m
+            memory: 128Mi
+      valkey:
+        image:
+          repository: valkey/valkey
+          tag: "8.1"
+        command:
+          - sh
+        args:
+          - -c
+          - valkey-server --requirepass $REDIS_PASSWORD
+        envFrom:
+          - secretRef:
+              name: ghostfolio-secrets
+service:
+  app:
+    controller: ghostfolio
+    ports:
+      http:
+        port: 3333
+route:
+  app:
+    hostnames:
+      - portfolio.pitower.link
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
