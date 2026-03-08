@@ -33,7 +33,7 @@ controllers:
       valkey:
         image:
           repository: valkey/valkey
-          tag: "8.1"
+          tag: "9.0"
         command:
           - sh
         args:
