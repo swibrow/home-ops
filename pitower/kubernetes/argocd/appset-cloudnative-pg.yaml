@@ -7,21 +7,28 @@ spec:
   goTemplate: true
   goTemplateOptions: ["missingkey=error"]
   generators:
-    - git:
-        repoURL: https://github.com/swibrow/home-ops
-        revision: main
-        directories:
-          - path: pitower/kubernetes/apps/cloudnative-pg/*
-  # syncPolicy:
-  #   preserveResourcesOnDeletion: true # Prevents deletion of resources when the ApplicationSet is deleted
+    - matrix:
+        generators:
+          - clusters:
+              selector:
+                matchLabels:
+                  apps/cloudnative-pg: "true"
+          - git:
+              repoURL: https://github.com/swibrow/home-ops
+              revision: main
+              directories:
+                - path: kubernetes/apps/cloudnative-pg/*
+  syncPolicy:
+    preserveResourcesOnDeletion: true
   template:
     metadata:
-      name: "{{index .path.segments 3}}-{{.path.basename}}"
+      name: "{{.name}}-{{index .path.segments 2}}-{{.path.basename}}"
       namespace: argocd
       labels:
-        app.kubernetes.io/category: "{{index .path.segments 3}}"
-        app.kubernetes.io/name: "{{.path.basename}}"
-        app.kubernetes.io/instance: "{{.path.basename}}"
+        app.kubernetes.io/cluster: "{{.name}}"
+        app.kubernetes.io/category: "{{index .path.segments 2}}"
+        app.kubernetes.io/name: "{{index .path.segments 3}}"
+        app.kubernetes.io/instance: "{{index .path.segments 3}}"
       finalizers:
         - resources-finalizer.argocd.argoproj.io
     spec:
@@ -31,13 +38,13 @@ spec:
         targetRevision: main
         path: "{{.path.path}}"
       destination:
-        server: https://kubernetes.default.svc
-        namespace: "{{index .path.segments 3}}"
+        server: "{{.server}}"
+        namespace: "{{index .path.segments 2}}"
       syncPolicy:
-        automated:
-          prune: true
-          selfHeal: false
-          allowEmpty: true
+        # automated:
+        #   prune: true
+        #   selfHeal: false
+        #   allowEmpty: true
         syncOptions:
           - CreateNamespace=true
           - ServerSideApply=true

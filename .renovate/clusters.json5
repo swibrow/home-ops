@@ -2,9 +2,19 @@
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
   packageRules: [
     {
+      description: "Separate PRs for shared kubernetes apps",
+      matchFileNames: ["kubernetes/apps/**"],
+      additionalBranchPrefix: "kubernetes-",
+    },
+    {
       description: "Separate PRs for pitower cluster",
-      matchFileNames: ["**/kubernetes/pitower/**"],
+      matchFileNames: ["pitower/**"],
       additionalBranchPrefix: "pitower-",
+    },
+    {
+      description: "Separate PRs for pikeep cluster",
+      matchFileNames: ["pikeep/**"],
+      additionalBranchPrefix: "pikeep-",
     },
   ],
 }

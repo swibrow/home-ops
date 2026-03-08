@@ -1,0 +1,38 @@
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+# TODO: Update with actual pikeep factory image IDs
+cp_image := "factory.talos.dev/installer/<SCHEMATIC_ID>:v1.12.4"
+
+nodes := "" # TODO: Add pikeep node IPs
+
+# Generate talos config from secrets
+config:
+    sops -d ./secrets.sops.yaml > ./secrets.yaml
+    talosctl gen config \
+        pikeep \
+        https://<PIKEEP_VIP>:6443 \
+        --with-secrets ./secrets.yaml \
+        --with-examples=true \
+        --config-patch-control-plane @patches/controlplane.patch \
+        --config-patch @../shared/patches/general.patch \
+        --output ./clusterconfig \
+        --force
+
+# Bootstrap the Talos cluster
+[working-directory: 'clusterconfig']
+bootstrap:
+    talosctl bootstrap --nodes <PIKEEP_CP_IP>
+    talosctl kubeconfig --nodes <PIKEEP_VIP>
+
+# Apply config to a specific node by name
+[working-directory: 'clusterconfig']
+apply-node name:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ip=$(talosctl get members -o json | jq -rs --arg h "{{ name }}" '[.[] | select(.spec.hostname == $h) | .spec.addresses[0]][0]')
+    echo "Applying config to {{ name }} (${ip})"
+    talosctl apply-config --nodes "${ip}" --file ./{{ name }}.yaml
+
+# Build and apply kustomize addons
+addons:
+    kustomize build ./addons --enable-helm | kubectl apply -f -
