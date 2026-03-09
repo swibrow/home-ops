@@ -13,5 +13,7 @@ spec:
       sectionName: https
   rules:
     - backendRefs:
-        - name: home-assistant-external
+        - group: gateway.envoyproxy.io
+          kind: Backend
+          name: home-assistant-external
           port: 8123
