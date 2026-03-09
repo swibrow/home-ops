@@ -18,6 +18,12 @@ spec:
               revision: main
               directories:
                 - path: kubernetes/apps/home-automation/*
+                - path: kubernetes/apps/home-automation/home-assistant
+                  exclude: true
+                - path: kubernetes/apps/home-automation/zigbee2mqtt
+                  exclude: true
+                - path: kubernetes/apps/home-automation/mosquitto
+                  exclude: true
   syncPolicy:
     preserveResourcesOnDeletion: true
   template:
