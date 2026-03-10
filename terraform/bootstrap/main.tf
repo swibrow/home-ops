@@ -2,11 +2,12 @@ terraform {
   required_version = ">= 1.10"
 
   backend "s3" {
-    bucket       = "swibrow-pitower-tf-state"
-    key          = "bootstrap.tfstate"
-    region       = "eu-central-2"
-    use_lockfile = true
-    encrypt      = true
+    bucket                  = "swibrow-pitower-tf-state"
+    key                     = "bootstrap.tfstate"
+    region                  = "eu-central-2"
+    use_lockfile            = true
+    encrypt                 = true
+    skip_metadata_api_check = true
   }
 
   required_providers {
@@ -41,7 +42,7 @@ locals {
 ################################################################################
 
 module "iam_github_oidc_provider" {
-  source  = "terraform-aws-modules/iam/aws//modules/iam-github-oidc-provider"
+  source  = "terraform-aws-modules/iam/aws//modules/iam-oidc-provider"
   version = "6.4.0"
 
   tags = local.tags
@@ -52,16 +53,17 @@ module "iam_github_oidc_provider" {
 ################################################################################
 
 module "iam_github_oidc_role" {
-  source  = "terraform-aws-modules/iam/aws//modules/iam-github-oidc-role"
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role"
   version = "6.4.0"
 
-  name = "${local.name}-oidc"
+  name            = "${local.name}-oidc"
+  use_name_prefix = false
 
-  subjects = var.subjects
+  enable_github_oidc = true
+  oidc_subjects      = var.subjects
 
   policies = {
     additional = aws_iam_policy.additional.arn
-    # ManagedPolicy = "arn:aws:iam::aws:policy/ManagedPolicyName"
   }
 
   tags = local.tags
