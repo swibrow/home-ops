@@ -17,6 +17,3 @@ helmCharts:
           - kguardian
         containerdSockPath: /run/containerd/containerd.sock
         containerdBundlePath: /run/containerd/io.containerd.runtime.v2.task
-      database:
-        persistence:
-          enabled: true
