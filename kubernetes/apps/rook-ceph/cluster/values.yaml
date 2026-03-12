@@ -94,7 +94,10 @@ cephClusterSpec:
     confirmation: ""
 
 cephBlockPoolsVolumeSnapshotClass:
-  enabled: false # Enable this later
+  enabled: true
+  name: csi-ceph-blockpool
+  deletionPolicy: Delete
+  isDefault: false
 
 cephFileSystems: []
 
