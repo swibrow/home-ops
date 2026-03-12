@@ -5,7 +5,18 @@ kind: Kustomization
 namespace: selfhosted
 resources:
   - externalsecret.yaml
-  - pvc.yaml
+components:
+  - ../../../components/volsync
+configMapGenerator:
+  - name: volsync-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=nextcloud
+      - CLAIM_NAME=nextcloud
+      - SECRET_NAME=nextcloud-volsync
+      - STORAGE_SIZE=15Gi
+      - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/selfhosted/nextcloud
 helmCharts:
   - name: nextcloud
     repo: oci://ghcr.io/nextcloud/helm

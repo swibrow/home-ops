@@ -3,8 +3,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: home-automation
-resources:
-  - pvc.yaml
+components:
+  - ../../../components/volsync
 
 helmCharts:
   - name: app-template
@@ -18,6 +18,13 @@ configMapGenerator:
   - name: mosquitto-configmap
     files:
       - mosquitto.conf=./resources/mosquitto.conf
+  - name: volsync-config
+    literals:
+      - APP_NAME=mosquitto
+      - CLAIM_NAME=mosquitto
+      - SECRET_NAME=mosquitto-volsync
+      - STORAGE_SIZE=1Gi
+      - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/home-automation/mosquitto
 
 generatorOptions:
   disableNameSuffixHash: true

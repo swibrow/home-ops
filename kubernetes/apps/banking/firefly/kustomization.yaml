@@ -5,8 +5,18 @@ kind: Kustomization
 namespace: banking
 resources:
   - ./externalsecret.yaml
-  - ./pvc.yaml
-
+components:
+  - ../../../components/volsync
+configMapGenerator:
+  - name: volsync-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=firefly
+      - CLAIM_NAME=firefly-data
+      - SECRET_NAME=firefly-volsync
+      - STORAGE_SIZE=1Gi
+      - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/banking/firefly
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm
