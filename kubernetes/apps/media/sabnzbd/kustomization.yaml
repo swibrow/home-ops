@@ -5,7 +5,18 @@ kind: Kustomization
 namespace: media
 resources:
   - pvc.yaml
-
+components:
+  - ../../../components/volsync
+configMapGenerator:
+  - name: volsync-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=sabnzbd
+      - CLAIM_NAME=sabnzbd-config
+      - SECRET_NAME=sabnzbd-volsync
+      - STORAGE_SIZE=1Gi
+      - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/media/sabnzbd
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm

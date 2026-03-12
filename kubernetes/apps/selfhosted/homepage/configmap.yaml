@@ -108,11 +108,7 @@ data:
             href: https://money-import.pitower.link
             description: Transaction importer
     - Selfhosted:
-        - Tandoor:
-            icon: tandoor.svg
-            href: https://tandoor.pitower.link
-            description: Recipe manager
-        - n8n:
+- n8n:
             icon: n8n.svg
             href: https://n8n.pitower.link
             description: Workflow automation

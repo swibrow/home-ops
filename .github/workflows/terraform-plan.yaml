@@ -18,6 +18,7 @@ jobs:
       matrix:
         stack:
           - alexa
+          - bootstrap
           - general
       fail-fast: false
     name: Plan (${{ matrix.stack }})

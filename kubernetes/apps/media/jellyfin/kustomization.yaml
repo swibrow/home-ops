@@ -5,6 +5,18 @@ kind: Kustomization
 namespace: media
 resources:
   - pvc.yaml
+components:
+  - ../../../components/volsync
+configMapGenerator:
+  - name: volsync-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=jellyfin
+      - CLAIM_NAME=jellyfin
+      - SECRET_NAME=jellyfin-volsync
+      - STORAGE_SIZE=10Gi
+      - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/media/jellyfin
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm

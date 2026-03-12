@@ -5,7 +5,8 @@ kind: Kustomization
 namespace: security
 resources:
   - externalsecret.yaml
-  - pvc.yaml
+components:
+  - ../../../../components/volsync
 
 helmCharts:
   - name: app-template
@@ -19,6 +20,13 @@ configMapGenerator:
   - name: authelia-configmap
     files:
       - configuration.yaml=./config/configuration.yaml
+  - name: volsync-config
+    literals:
+      - APP_NAME=authelia
+      - CLAIM_NAME=authelia-data
+      - SECRET_NAME=authelia-volsync
+      - STORAGE_SIZE=100Mi
+      - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/security/authelia
 
 generatorOptions:
   disableNameSuffixHash: true

@@ -6,7 +6,18 @@ namespace: selfhosted
 resources:
   - ./pvc.yaml
   - ./externalsecret.yaml
-
+components:
+  - ../../../components/volsync
+configMapGenerator:
+  - name: volsync-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=bar-assistant
+      - CLAIM_NAME=bar-assistant-data
+      - SECRET_NAME=bar-assistant-volsync
+      - STORAGE_SIZE=1Gi
+      - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/selfhosted/bar-assistant
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm

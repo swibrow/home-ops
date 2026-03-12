@@ -5,8 +5,18 @@ kind: Kustomization
 namespace: media
 resources:
   - externalsecret.yaml
-  - pvc.yaml
-
+components:
+  - ../../../components/volsync
+configMapGenerator:
+  - name: volsync-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=prowlarr
+      - CLAIM_NAME=prowlarr-config
+      - SECRET_NAME=prowlarr-volsync
+      - STORAGE_SIZE=1Gi
+      - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/media/prowlarr
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm
