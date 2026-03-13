@@ -7,6 +7,8 @@ resources:
   - externalsecret.yaml
   - pitower-cluster-secret.yaml
   - pikeep-cluster-secret.yaml
+  - appset-pitower.yaml
+  - appset-pikeep.yaml
 
 helmCharts:
   - name: argo-cd
