@@ -108,7 +108,7 @@ data:
             href: https://money-import.pitower.link
             description: Transaction importer
     - Selfhosted:
-- n8n:
+        - n8n:
             icon: n8n.svg
             href: https://n8n.pitower.link
             description: Workflow automation
