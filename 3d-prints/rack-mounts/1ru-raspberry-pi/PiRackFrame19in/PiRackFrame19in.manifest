@@ -1,0 +1,10 @@
+{
+    "autodeskProduct": "Fusion",
+    "type": "script",
+    "author": "Home Ops",
+    "description": {
+        "": "19 inch 1RU Rack Mount Frame for Raspberry Pi - Based on uktricky's 10 inch modular design. Open frame construction with corner gussets, 4 Pi bays, split-printable."
+    },
+    "supportedOS": "windows|mac",
+    "editEnabled": true
+}

@@ -1,0 +1,10 @@
+{
+    "autodeskProduct": "Fusion",
+    "type": "script",
+    "author": "Home Ops",
+    "description": {
+        "": "19 inch 1RU Rack Mount Tray for Raspberry Pi with 2.5 inch HDD support. Solid tray design with ventilation, 4 Pi positions, split-printable."
+    },
+    "supportedOS": "windows|mac",
+    "editEnabled": true
+}
