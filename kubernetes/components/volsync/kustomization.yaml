@@ -73,7 +73,7 @@ replacements:
         fieldPaths:
           - metadata.name
           - spec.target.name
-  # ReplicationSource name (last - changes select identity)
+  # ReplicationSource name (changes select identity)
   - source:
       kind: ConfigMap
       name: volsync-config
@@ -82,5 +82,16 @@ replacements:
       - select:
           kind: ReplicationSource
           name: app
+        fieldPaths:
+          - metadata.name
+  # ConfigMap name (must be last - makes name unique per app to avoid namespace conflicts)
+  - source:
+      kind: ConfigMap
+      name: volsync-config
+      fieldPath: data.APP_NAME
+    targets:
+      - select:
+          kind: ConfigMap
+          name: volsync-config
         fieldPaths:
           - metadata.name
