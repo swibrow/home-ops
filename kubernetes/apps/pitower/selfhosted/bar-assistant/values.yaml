@@ -45,7 +45,7 @@ controllers:
       meilisearch:
         image:
           repository: getmeili/meilisearch
-          tag: v1.15
+          tag: v1.38
         env:
           MEILI_NO_ANALYTICS: "true"
           MEILI_ENV: production
