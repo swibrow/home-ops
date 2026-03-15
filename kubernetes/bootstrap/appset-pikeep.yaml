@@ -8,38 +8,16 @@ spec:
   goTemplate: true
   goTemplateOptions: ["missingkey=error"]
   generators:
-    - list:
-        elements:
-          # cert-manager
-          - path: kubernetes/apps/cert-manager/cert-manager
-            namespace: cert-manager
-          - path: kubernetes/apps/cert-manager/issuers
-            namespace: cert-manager
-          # kube-system
-          - path: kubernetes/apps/kube-system/coredns
-            namespace: kube-system
-          - path: kubernetes/apps/kube-system/metrics-server
-            namespace: kube-system
-          # monitoring
-          - path: kubernetes/apps/monitoring/fluent-bit
-            namespace: monitoring
-          # security
-          - path: kubernetes/apps/security/aws-identity-webhook
-            namespace: security
-          # system
-          - path: kubernetes/apps/system/kubelet-csr-approver
-            namespace: system
-          - path: kubernetes/apps/system/reloader
-            namespace: system
-          - path: kubernetes/apps/system/snapshot-controller
-            namespace: system
-          - path: kubernetes/apps/system/volsync
-            namespace: system
+    - git:
+        repoURL: https://github.com/swibrow/home-ops
+        revision: main
+        directories:
+          - path: kubernetes/apps/pikeep/*/*
   syncPolicy:
     preserveResourcesOnDeletion: true
   template:
     metadata:
-      name: 'pikeep-{{ regexReplaceAll "kubernetes/apps/" .path "" | replace "/" "-" }}'
+      name: "pikeep-{{index .path.segments 3}}-{{index .path.segments 4}}"
       namespace: argocd
       labels:
         app.kubernetes.io/cluster: pikeep
@@ -50,10 +28,10 @@ spec:
       source:
         repoURL: https://github.com/swibrow/home-ops
         targetRevision: main
-        path: "{{.path}}"
+        path: "{{.path.path}}"
       destination:
         name: pikeep
-        namespace: "{{.namespace}}"
+        namespace: "{{index .path.segments 3}}"
       syncPolicy:
         managedNamespaceMetadata:
           labels:

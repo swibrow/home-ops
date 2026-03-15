@@ -8,160 +8,16 @@ spec:
   goTemplate: true
   goTemplateOptions: ["missingkey=error"]
   generators:
-    - list:
-        elements:
-          # ai
-          - path: kubernetes/apps/ai/browser-use
-            namespace: ai
-          - path: kubernetes/apps/ai/zeroclaw
-            namespace: ai
-          # banking
-          - path: kubernetes/apps/banking/firefly
-            namespace: banking
-          - path: kubernetes/apps/banking/firefly-importer
-            namespace: banking
-          - path: kubernetes/apps/banking/ghostfolio
-            namespace: banking
-          # cert-manager
-          - path: kubernetes/apps/cert-manager/cert-manager
-            namespace: cert-manager
-          - path: kubernetes/apps/cert-manager/issuers
-            namespace: cert-manager
-          # cloudnative-pg
-          - path: kubernetes/apps/cloudnative-pg/cluster
-            namespace: cloudnative-pg
-          - path: kubernetes/apps/cloudnative-pg/clustersecretstore
-            namespace: cloudnative-pg
-          - path: kubernetes/apps/cloudnative-pg/operator
-            namespace: cloudnative-pg
-          # home-automation
-          - path: kubernetes/apps/home-automation/home-assistant
-            namespace: home-automation
-          - path: kubernetes/apps/home-automation/home-assistant-external
-            namespace: home-automation
-          - path: kubernetes/apps/home-automation/matter-server
-            namespace: home-automation
-          - path: kubernetes/apps/home-automation/mosquitto
-            namespace: home-automation
-          - path: kubernetes/apps/home-automation/otbr
-            namespace: home-automation
-          - path: kubernetes/apps/home-automation/zigbee2mqtt
-            namespace: home-automation
-          # kguardian
-          - path: kubernetes/apps/kguardian/kguardian
-            namespace: kguardian
-          # kube-system
-          - path: kubernetes/apps/kube-system/cilium/pitower
-            namespace: kube-system
-          - path: kubernetes/apps/kube-system/coredns
-            namespace: kube-system
-          - path: kubernetes/apps/kube-system/metrics-server
-            namespace: kube-system
-          # media
-          - path: kubernetes/apps/media/autobrr
-            namespace: media
-          - path: kubernetes/apps/media/jellyfin
-            namespace: media
-          - path: kubernetes/apps/media/prowlarr
-            namespace: media
-          - path: kubernetes/apps/media/qbittorrent
-            namespace: media
-          - path: kubernetes/apps/media/radarr
-            namespace: media
-          - path: kubernetes/apps/media/sabnzbd
-            namespace: media
-          - path: kubernetes/apps/media/sonarr
-            namespace: media
-          # monitoring
-          - path: kubernetes/apps/monitoring/fluent-bit
-            namespace: monitoring
-          - path: kubernetes/apps/monitoring/grafana/pitower
-            namespace: monitoring
-          - path: kubernetes/apps/monitoring/kube-prometheus-stack/pitower
-            namespace: monitoring
-          - path: kubernetes/apps/monitoring/loki/pitower
-            namespace: monitoring
-          # networking
-          - path: kubernetes/apps/networking/cloudflared/pitower
-            namespace: networking
-          - path: kubernetes/apps/networking/envoy-gateway/pitower
-            namespace: networking
-          - path: kubernetes/apps/networking/external-dns/pitower
-            namespace: networking
-          - path: kubernetes/apps/networking/external-dns-unifi/pitower
-            namespace: networking
-          - path: kubernetes/apps/networking/nginx/pitower
-            namespace: networking
-          - path: kubernetes/apps/networking/openspeedtest/pitower
-            namespace: networking
-          - path: kubernetes/apps/networking/tailscale/pitower
-            namespace: networking
-          # openebs
-          - path: kubernetes/apps/openebs/openebs
-            namespace: openebs
-          # rook-ceph
-          - path: kubernetes/apps/rook-ceph/add-ons
-            namespace: rook-ceph
-          - path: kubernetes/apps/rook-ceph/cluster
-            namespace: rook-ceph
-          - path: kubernetes/apps/rook-ceph/operator
-            namespace: rook-ceph
-          # security
-          - path: kubernetes/apps/security/authelia/pitower
-            namespace: security
-          - path: kubernetes/apps/security/aws-identity-webhook
-            namespace: security
-          - path: kubernetes/apps/security/external-secrets/pitower
-            namespace: security
-          - path: kubernetes/apps/security/lldap/pitower
-            namespace: security
-          # selfhosted
-          - path: kubernetes/apps/selfhosted/bar-assistant
-            namespace: selfhosted
-          - path: kubernetes/apps/selfhosted/cryptgeon
-            namespace: selfhosted
-          - path: kubernetes/apps/selfhosted/echo-server
-            namespace: selfhosted
-          - path: kubernetes/apps/selfhosted/excalidraw
-            namespace: selfhosted
-          - path: kubernetes/apps/selfhosted/glance
-            namespace: selfhosted
-          - path: kubernetes/apps/selfhosted/homepage
-            namespace: selfhosted
-          - path: kubernetes/apps/selfhosted/house-hunter
-            namespace: selfhosted
-          - path: kubernetes/apps/selfhosted/mealie
-            namespace: selfhosted
-          - path: kubernetes/apps/selfhosted/miniflux
-            namespace: selfhosted
-          - path: kubernetes/apps/selfhosted/n8n
-            namespace: selfhosted
-          - path: kubernetes/apps/selfhosted/nextcloud
-            namespace: selfhosted
-          - path: kubernetes/apps/selfhosted/rrda
-            namespace: selfhosted
-          - path: kubernetes/apps/selfhosted/sharkord
-            namespace: selfhosted
-          - path: kubernetes/apps/selfhosted/whoami
-            namespace: selfhosted
-          # system
-          - path: kubernetes/apps/system/intel-device-plugins/pitower
-            namespace: system
-          - path: kubernetes/apps/system/kubelet-csr-approver
-            namespace: system
-          - path: kubernetes/apps/system/node-feature-discovery/pitower
-            namespace: system
-          - path: kubernetes/apps/system/reloader
-            namespace: system
-          - path: kubernetes/apps/system/snapshot-controller
-            namespace: system
-          - path: kubernetes/apps/system/volsync
-            namespace: system
+    - git:
+        repoURL: https://github.com/swibrow/home-ops
+        revision: main
+        directories:
+          - path: kubernetes/apps/pitower/*/*
   syncPolicy:
     preserveResourcesOnDeletion: true
   template:
     metadata:
-      name: 'pitower-{{ regexReplaceAll "kubernetes/apps/" .path "" | replace "/" "-" }}'
+      name: "pitower-{{index .path.segments 3}}-{{index .path.segments 4}}"
       namespace: argocd
       labels:
         app.kubernetes.io/cluster: pitower
@@ -172,10 +28,10 @@ spec:
       source:
         repoURL: https://github.com/swibrow/home-ops
         targetRevision: main
-        path: "{{.path}}"
+        path: "{{.path.path}}"
       destination:
         server: https://kubernetes.default.svc
-        namespace: "{{.namespace}}"
+        namespace: "{{index .path.segments 3}}"
       syncPolicy:
         managedNamespaceMetadata:
           labels:
