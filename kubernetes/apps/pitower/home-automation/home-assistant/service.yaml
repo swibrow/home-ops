@@ -2,7 +2,7 @@
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: Backend
 metadata:
-  name: home-assistant-external
+  name: home-assistant
   namespace: home-automation
 spec:
   endpoints:
