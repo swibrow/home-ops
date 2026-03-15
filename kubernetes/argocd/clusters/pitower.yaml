@@ -20,7 +20,16 @@ spec:
       name: "pitower-{{index .path.segments 3}}-{{index .path.segments 4}}"
       namespace: argocd
       labels:
-        app.kubernetes.io/cluster: pitower
+        app.kubernetes.io/name: "{{index .path.segments 4}}"
+        app.kubernetes.io/instance: "pitower-{{index .path.segments 3}}-{{index .path.segments 4}}"
+        app.kubernetes.io/component: "{{index .path.segments 3}}"
+        app.kubernetes.io/part-of: pitower
+        app.kubernetes.io/managed-by: argocd
+        home-ops/cluster: pitower
+        home-ops/category: "{{index .path.segments 3}}"
+        home-ops/namespace: "{{index .path.segments 3}}"
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
     spec:
       project: apps
       source:
@@ -33,7 +42,7 @@ spec:
       syncPolicy:
         automated:
           prune: true
-          selfHeal: true
+          selfHeal: false
         managedNamespaceMetadata:
           labels:
             pod-security.kubernetes.io/enforce: privileged
