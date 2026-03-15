@@ -21,8 +21,6 @@ spec:
       namespace: argocd
       labels:
         app.kubernetes.io/cluster: pikeep
-      finalizers:
-        - resources-finalizer.argocd.argoproj.io
     spec:
       project: apps
       source:
