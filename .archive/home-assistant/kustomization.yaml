@@ -3,6 +3,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: home-automation
+resources:
+  - externalsecret.yaml
 components:
   - ../../../../components/volsync
 configMapGenerator:
@@ -10,15 +12,15 @@ configMapGenerator:
     options:
       disableNameSuffixHash: true
     literals:
-      - APP_NAME=matter-server
-      - CLAIM_NAME=matter-server
-      - SECRET_NAME=matter-server-volsync
+      - APP_NAME=home-assistant
+      - CLAIM_NAME=home-assistant-config
+      - SECRET_NAME=home-assistant-volsync
       - STORAGE_SIZE=1Gi
-      - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/home-automation/matter-server
+      - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/home-automation/home-assistant
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm
     version: 4.6.2
-    releaseName: matter-server
+    releaseName: home-assistant
     namespace: home-automation
     valuesFile: values.yaml
