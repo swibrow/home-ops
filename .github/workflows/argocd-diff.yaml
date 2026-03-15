@@ -47,6 +47,8 @@ jobs:
               fi
             elif [[ "$file" =~ ^kubernetes/components/ ]]; then
               component_files+=("$file")
+            elif [[ "$file" =~ ^kubernetes/argocd/ ]]; then
+              bootstrap_files+=("$file")
             elif [[ "$file" =~ ^kubernetes/bootstrap/ ]]; then
               bootstrap_files+=("$file")
             fi
