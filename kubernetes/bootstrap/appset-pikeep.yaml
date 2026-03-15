@@ -1,0 +1,50 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: pikeep
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/swibrow/home-ops
+        revision: main
+        directories:
+          - path: kubernetes/apps/pikeep/*/*
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  template:
+    metadata:
+      name: "pikeep-{{index .path.segments 3}}-{{index .path.segments 4}}"
+      namespace: argocd
+      labels:
+        app.kubernetes.io/cluster: pikeep
+    spec:
+      project: apps
+      source:
+        repoURL: https://github.com/swibrow/home-ops
+        targetRevision: main
+        path: "{{.path.path}}"
+      destination:
+        name: pikeep
+        namespace: "{{index .path.segments 3}}"
+      syncPolicy:
+        managedNamespaceMetadata:
+          labels:
+            pod-security.kubernetes.io/enforce: privileged
+            pod-security.kubernetes.io/audit: privileged
+            pod-security.kubernetes.io/warn: privileged
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+          - SkipDryRunOnMissingResource=true
+          - ApplyOutOfSyncOnly=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+      revisionHistoryLimit: 3

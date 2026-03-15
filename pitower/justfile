@@ -1,9 +1,0 @@
-mod talos '../kubernetes/talos/pitower'
-
-# Bootstrap the cluster (apply secrets and flux config)
-bootstrap:
-    sops --decrypt ./bootstrap/age-key.sops.yaml | kubectl apply -f -
-    sops --decrypt ./flux/vars/cluster-secrets.sops.yaml | kubectl apply -f -
-    kubectl apply --server-side --kustomize ./flux/config
-    kubectl apply --server-side --kustomize ./flux/repositories
-    kubectl apply --server-side --kustomize ./flux/vars

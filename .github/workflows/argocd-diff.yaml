@@ -1,0 +1,123 @@
+name: ArgoCD Diff
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - kubernetes/**
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  diff:
+    name: App Diff
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+
+      - name: Generate diff and comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          BASE="${{ github.event.pull_request.base.sha }}"
+
+          git diff --name-status --no-renames "$BASE"...HEAD -- kubernetes/ > /tmp/changes.txt
+
+          declare -A app_statuses
+          bootstrap_files=()
+          component_files=()
+
+          while IFS=$'\t' read -r status file; do
+            fs="${status:0:1}"
+
+            if [[ "$file" =~ ^kubernetes/apps/([^/]+)/([^/]+)/([^/]+)(/|$) ]]; then
+              key="${BASH_REMATCH[1]}/${BASH_REMATCH[2]}/${BASH_REMATCH[3]}"
+              prev="${app_statuses[$key]:-}"
+              if [ -z "$prev" ]; then
+                app_statuses[$key]="$fs"
+              elif [ "$prev" != "$fs" ]; then
+                app_statuses[$key]="X"
+              fi
+            elif [[ "$file" =~ ^kubernetes/components/ ]]; then
+              component_files+=("$file")
+            elif [[ "$file" =~ ^kubernetes/bootstrap/ ]]; then
+              bootstrap_files+=("$file")
+            fi
+          done < /tmp/changes.txt
+
+          added=()
+          removed=()
+          modified=()
+
+          for key in $(echo "${!app_statuses[@]}" | tr ' ' '\n' | sort); do
+            IFS='/' read -r cluster category app <<< "$key"
+            s="${app_statuses[$key]}"
+            label="${cluster}-${category}-${app}"
+
+            case "$s" in
+              A) added+=("$label|$cluster|$category") ;;
+              D) removed+=("$label|$cluster|$category") ;;
+              *) modified+=("$label|$cluster|$category") ;;
+            esac
+          done
+
+          # Build comment
+          body="<!-- argocd-diff -->"$'\n'
+          body+="## ArgoCD Diff"$'\n\n'
+
+          render_table() {
+            local title="$1"
+            shift
+            local entries=("$@")
+            body+="### ${title}"$'\n'
+            body+="| Application | Cluster | Category |"$'\n'
+            body+="|---|---|---|"$'\n'
+            for entry in "${entries[@]}"; do
+              IFS='|' read -r app cluster cat <<< "$entry"
+              body+="| \`${app}\` | ${cluster} | ${cat} |"$'\n'
+            done
+            body+=$'\n'
+          }
+
+          [ ${#added[@]} -gt 0 ] && render_table "Added" "${added[@]}"
+          [ ${#removed[@]} -gt 0 ] && render_table "Removed" "${removed[@]}"
+          [ ${#modified[@]} -gt 0 ] && render_table "Modified" "${modified[@]}"
+
+          if [ ${#component_files[@]} -gt 0 ]; then
+            body+="### Component Changes"$'\n'
+            for f in "${component_files[@]}"; do
+              body+="- \`${f}\`"$'\n'
+            done
+            body+=$'\n'
+          fi
+
+          if [ ${#bootstrap_files[@]} -gt 0 ]; then
+            body+="### Bootstrap Changes"$'\n'
+            for f in "${bootstrap_files[@]}"; do
+              body+="- \`${f}\`"$'\n'
+            done
+            body+=$'\n'
+          fi
+
+          if [ ${#added[@]} -eq 0 ] && [ ${#removed[@]} -eq 0 ] && [ ${#modified[@]} -eq 0 ] \
+              && [ ${#component_files[@]} -eq 0 ] && [ ${#bootstrap_files[@]} -eq 0 ]; then
+            body+="No ArgoCD application changes detected."$'\n'
+          fi
+
+          # Upsert PR comment
+          COMMENT_ID=$(gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
+            --jq '.[] | select(.body | startswith("<!-- argocd-diff -->")) | .id' | head -1)
+
+          if [ -n "$COMMENT_ID" ]; then
+            gh api "repos/${{ github.repository }}/issues/comments/${COMMENT_ID}" \
+              -X PATCH -f body="$body"
+          else
+            gh pr comment "$PR_NUMBER" --body "$body"
+          fi
