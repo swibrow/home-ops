@@ -26,6 +26,7 @@ configs:
   params:
     applicationsetcontroller.enable.progressive.syncs: true
     server.insecure: true
+    reposerver.timeout.seconds: "300"
 
   rbac:
     policy.default: role:admin

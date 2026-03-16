@@ -53,6 +53,7 @@ spec:
           - ServerSideApply=true
           - SkipDryRunOnMissingResource=true
           - ApplyOutOfSyncOnly=true
+          - Timeout=600
         retry:
           limit: 5
           backoff:
