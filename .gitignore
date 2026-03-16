@@ -53,7 +53,7 @@ secrets.yaml
 # Ingore all .exclude folders
 **/.exclude/*
 
-CLAUDE.md
+TODO.md
 
 # Infisical
 .infisical.json

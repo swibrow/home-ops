@@ -1,0 +1,82 @@
+controllers:
+  paperless:
+    annotations:
+      reloader.stakater.com/auto: "true"
+    containers:
+      app:
+        image:
+          repository: ghcr.io/paperless-ngx/paperless-ngx
+          tag: 2.20.11
+        env:
+          # Application
+          PAPERLESS_URL: "https://paperless.pitower.link"
+          PAPERLESS_PORT: "8000"
+          PAPERLESS_TIME_ZONE: Europe/Zurich
+          PAPERLESS_WEBSERVER_WORKERS: "2"
+          PAPERLESS_TASK_WORKERS: "2"
+          # Folder Importer
+          PAPERLESS_CONSUMER_POLLING: "60"
+          PAPERLESS_CONSUMER_RECURSIVE: "true"
+          PAPERLESS_CONSUMER_SUBDIRS_AS_TAGS: "true"
+          # Database
+          PAPERLESS_DBENGINE: postgresql
+          PAPERLESS_DBPORT: "5432"
+          PAPERLESS_DBNAME: paperless
+          # OCR
+          PAPERLESS_OCR_LANGUAGES: deu eng fra
+          PAPERLESS_OCR_LANGUAGE: deu
+          # Redis
+          PAPERLESS_REDIS: "redis://localhost:6379"
+          # Auth
+          PAPERLESS_ACCOUNT_ALLOW_SIGNUPS: "false"
+          PAPERLESS_SOCIALACCOUNT_ALLOW_SIGNUPS: "false"
+          # Folders
+          PAPERLESS_DATA_DIR: /data/local/data
+          PAPERLESS_MEDIA_ROOT: /data/local/media
+          PAPERLESS_CONSUMPTION_DIR: /data/local/consume
+          PAPERLESS_EXPORT_DIR: /data/local/export
+        envFrom:
+          - secretRef:
+              name: paperless-secrets
+          - secretRef:
+              name: paperless-db-secrets
+        resources:
+          requests:
+            cpu: 15m
+            memory: 256Mi
+          limits:
+            memory: 2048Mi
+      valkey:
+        image:
+          repository: valkey/valkey
+          tag: 8.1
+        resources:
+          requests:
+            cpu: 5m
+            memory: 32Mi
+          limits:
+            memory: 128Mi
+
+service:
+  app:
+    controller: paperless
+    ports:
+      http:
+        port: 8000
+
+route:
+  app:
+    hostnames:
+      - paperless.pitower.link
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+
+persistence:
+  data:
+    existingClaim: paperless-data
+    advancedMounts:
+      paperless:
+        app:
+          - path: /data/local

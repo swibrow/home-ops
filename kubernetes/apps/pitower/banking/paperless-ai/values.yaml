@@ -1,0 +1,49 @@
+controllers:
+  paperless-ai:
+    annotations:
+      reloader.stakater.com/auto: "true"
+    containers:
+      app:
+        image:
+          repository: clusterzx/paperless-ai
+          tag: 3.0.9
+        env:
+          PAPERLESS_AI_PORT: "3000"
+          PAPERLESS_API_URL: "http://paperless.banking.svc.cluster.local:8000/api"
+          SCAN_INTERVAL: "*/30 * * * *"
+          PROCESS_PREDEFINED_DOCUMENTS: "yes"
+          ADD_AI_PROCESSED_TAG: "yes"
+          AI_PROCESSED_TAG_NAME: ai-processed
+          USE_PROMPT_TAGS: "no"
+          USE_EXISTING_DATA: "no"
+        envFrom:
+          - secretRef:
+              name: paperless-ai-secrets
+        resources:
+          requests:
+            cpu: 10m
+            memory: 128Mi
+          limits:
+            memory: 512Mi
+
+service:
+  app:
+    controller: paperless-ai
+    ports:
+      http:
+        port: 3000
+
+route:
+  app:
+    hostnames:
+      - paperless-ai.pitower.link
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+
+persistence:
+  data:
+    existingClaim: paperless-ai-data
+    globalMounts:
+      - path: /app/data
