@@ -13,7 +13,7 @@ Adding a new application to the cluster requires no ArgoCD configuration changes
 To deploy a new application, you need to:
 
 1. Choose the appropriate category for your app.
-2. Create a directory under `pitower/kubernetes/apps/<category>/<app-name>/`.
+2. Create a directory under `kubernetes/apps/pitower/<category>/<app-name>/`.
 3. Add a `kustomization.yaml` and (optionally) a `values.yaml`.
 4. Push to `main`.
 5. ArgoCD auto-discovers and syncs the new app.
@@ -62,7 +62,7 @@ Pick the category that best fits your application:
 ### 2. Create the Directory
 
 ```bash
-mkdir -p pitower/kubernetes/apps/<category>/<app-name>
+mkdir -p kubernetes/apps/pitower/<category>/<app-name>
 ```
 
 The directory name becomes the app name in ArgoCD. Choose a name that is lowercase, uses hyphens for separation, and is descriptive:
@@ -73,7 +73,7 @@ The directory name becomes the app name in ArgoCD. Choose a name that is lowerca
 
 ### 3. Create the Manifests
 
-Most applications in the cluster use the [bjw-s app-template](https://github.com/bjw-s-labs/helm-charts) Helm chart (v4.6.2) inflated through Kustomize. This pattern requires two files:
+Most applications in the cluster use the [bjw-s app-template](https://github.com/bjw-s-labs/helm-charts) Helm chart inflated through Kustomize. This pattern requires two files:
 
 === "kustomization.yaml"
 
@@ -102,7 +102,6 @@ Most applications in the cluster use the [bjw-s app-template](https://github.com
               repository: <image-repo>
               tag: <image-tag>
             env:
-              # Environment variables
               TZ: Europe/Zurich
             resources:
               requests:
@@ -124,7 +123,7 @@ Most applications in the cluster use the [bjw-s app-template](https://github.com
       app:
         enabled: true
         hostnames:
-          - <app-name>.example.com
+          - <app-name>.pitower.link
         parentRefs:
           - name: envoy-internal
             namespace: networking
@@ -136,91 +135,14 @@ Most applications in the cluster use the [bjw-s app-template](https://github.com
 
     | Gateway | Use Case |
     |:--------|:---------|
-    | `envoy-external` | Accessible via Cloudflare tunnel (`*.example.com` proxied) |
-    | `envoy-internal` | Internal-only access (VPN/LAN via `internal.example.com`) |
+    | `envoy-external` | Accessible via Cloudflare tunnel (`*.pitower.link` proxied) |
+    | `envoy-internal` | Internal-only access (VPN/LAN via `internal.pitower.link`) |
+    | `envoy-direct` | Direct public IP access (non-proxied, via `ip.pitower.link`) |
 
-### 4. Complete Example: echo-server
-
-Here is a real example from the cluster -- the `echo-server` app in the `selfhosted` category.
-
-**Directory structure:**
-
-```
-pitower/kubernetes/apps/selfhosted/echo-server/
-├── kustomization.yaml
-└── values.yaml
-```
-
-**kustomization.yaml:**
-
-```yaml
----
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-namespace: selfhosted
-helmCharts:
-  - name: app-template
-    repo: oci://ghcr.io/bjw-s-labs/helm
-    version: 4.6.2
-    releaseName: echo-server
-    namespace: selfhosted
-    valuesFile: values.yaml
-```
-
-**values.yaml:**
-
-```yaml
-controllers:
-  echo-server:
-    annotations:
-      reloader.stakater.com/auto: "true"
-    containers:
-      app:
-        image:
-          repository: ghcr.io/mendhak/http-https-echo
-          tag: 39
-        env:
-          HTTP_PORT: 8080
-          LOG_WITHOUT_NEWLINE: "true"
-          LOG_IGNORE_PATH: /healthz
-        resources:
-          requests:
-            cpu: 5m
-            memory: 32Mi
-          limits:
-            memory: 64Mi
-        probes:
-          liveness:
-            enabled: true
-          readiness:
-            enabled: true
-          startup:
-            enabled: true
-            spec:
-              failureThreshold: 30
-              periodSeconds: 5
-service:
-  app:
-    ports:
-      http:
-        port: 8080
-route:
-  app:
-    enabled: true
-    hostnames:
-      - echo.example.com
-    parentRefs:
-      - name: envoy-external
-        namespace: networking
-        sectionName: https
-```
-
-This produces an ArgoCD Application named `selfhosted-echo-server` that deploys into the `selfhosted` namespace.
-
-### 5. Push and Verify
+### 4. Push and Verify
 
 ```bash
-git add pitower/kubernetes/apps/<category>/<app-name>/
+git add kubernetes/apps/pitower/<category>/<app-name>/
 git commit -m "feat(<category>): add <app-name>"
 git push origin main
 ```
@@ -229,22 +151,52 @@ After pushing, verify in ArgoCD:
 
 ```bash
 # Check that the Application was created
-argocd app list -l app.kubernetes.io/name=<app-name>
+kubectl get app -n argocd -l app.kubernetes.io/name=<app-name>
 
 # Watch the sync status
-argocd app get <category>-<app-name>
+kubectl get app -n argocd pitower-<category>-<app-name> -w
 
-# Or use kubectl
-kubectl get applications -n argocd <category>-<app-name>
+# Filter by category
+kubectl get app -n argocd -l home-ops/category=<category>
 ```
 
 ---
 
 ## Advanced Patterns
 
+### Apps with VolSync Backups
+
+To enable automated backups for an app with persistent data, include the volsync component:
+
+```yaml title="kustomization.yaml"
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: <category>
+components:
+  - ../../../../components/volsync
+helmCharts:
+  - name: app-template
+    repo: oci://ghcr.io/bjw-s-labs/helm
+    version: 4.6.2
+    releaseName: <app-name>
+    namespace: <category>
+    valuesFile: values.yaml
+configMapGenerator:
+  - name: volsync-config
+    literals:
+      - APP_NAME=<app-name>
+      - CLAIM_NAME=<pvc-name>
+      - SECRET_NAME=<app-name>-volsync
+      - STORAGE_SIZE=<size>
+      - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/<category>/<app-name>
+```
+
+See [Backup & Restore](../storage/backup-restore.md) for restore procedures.
+
 ### Apps with Extra Resources
 
-Some apps need additional Kubernetes resources beyond what the Helm chart provides (certificates, gateway routes, etc.). Add them as extra files and reference them in `kustomization.yaml`:
+Some apps need additional Kubernetes resources beyond what the Helm chart provides:
 
 ```yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
@@ -252,8 +204,7 @@ kind: Kustomization
 namespace: networking
 resources:
   - certificate.yaml
-  - external.yaml
-  - internal.yaml
+  - externalsecret.yaml
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm
@@ -277,23 +228,16 @@ resources:
   - httproute.yaml
 ```
 
-### Apps with SOPS Secrets
+### Per-Cluster App Variants
 
-For apps that need encrypted secrets, add the SOPS-encrypted file and reference it in `kustomization.yaml`:
+For apps that need different configuration per cluster, create a subdirectory per cluster:
 
-```yaml
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-namespace: <category>
-resources:
-  - secret.sops.yaml
-helmCharts:
-  - name: app-template
-    # ...
+```
+kubernetes/apps/pitower/networking/envoy-gateway/pitower/
+kubernetes/apps/pikeep/networking/envoy-gateway/pikeep/
 ```
 
-!!! warning "Never Commit Plaintext Secrets"
-    Always encrypt secrets with SOPS before committing. See the [SOPS documentation](../security/sops.md) for details.
+Each cluster's ApplicationSet only scans its own directory tree, so each cluster gets its own configuration.
 
 ---
 
@@ -303,7 +247,7 @@ To remove an application from the cluster:
 
 1. Delete the app directory:
     ```bash
-    rm -rf pitower/kubernetes/apps/<category>/<app-name>
+    rm -rf kubernetes/apps/pitower/<category>/<app-name>
     ```
 2. Push to `main`:
     ```bash
@@ -319,10 +263,11 @@ To remove an application from the cluster:
 
 Use this checklist when adding a new app:
 
-- [ ] Directory created at `pitower/kubernetes/apps/<category>/<app-name>/`
+- [ ] Directory created at `kubernetes/apps/pitower/<category>/<app-name>/`
 - [ ] `kustomization.yaml` with correct `namespace` and chart configuration
 - [ ] `values.yaml` with image, resources, probes, and service defined
-- [ ] HTTPRoute configured with the correct gateway (`envoy-external` or `envoy-internal`)
+- [ ] HTTPRoute configured with the correct gateway
 - [ ] Resource requests and limits set appropriately
-- [ ] Secrets encrypted with SOPS (if applicable)
-- [ ] Pushed to `main` and verified in ArgoCD UI
+- [ ] VolSync component included (if app has persistent data)
+- [ ] Secrets managed via ExternalSecret (if applicable)
+- [ ] Pushed to `main` and verified in ArgoCD

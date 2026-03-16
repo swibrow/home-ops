@@ -4,66 +4,52 @@ title: ApplicationSets
 
 # ApplicationSets
 
-ApplicationSets are the core mechanism that makes the GitOps workflow scalable. Instead of writing individual Application resources for each app, a single ApplicationSet per category automatically generates Applications based on the repository directory structure.
+ApplicationSets are the core mechanism that makes the GitOps workflow scalable. Instead of writing individual Application resources for each app, a single ApplicationSet per cluster automatically generates Applications based on the repository directory structure.
 
 ---
 
 ## Overview
 
-The cluster uses **15 ApplicationSets**, one per application category:
+The cluster uses **one ApplicationSet per cluster**, stored in `kubernetes/argocd/clusters/` and applied manually with `kubectl apply -f`:
 
-| ApplicationSet | Directory Scanned | Example Apps |
-|:---------------|:------------------|:-------------|
-| `ai` | `pitower/kubernetes/apps/ai/*` | AI/ML workloads |
-| `banking` | `pitower/kubernetes/apps/banking/*` | Financial tools |
-| `cert-manager` | `pitower/kubernetes/apps/cert-manager/*` | TLS certificate automation |
-| `cloudnative-pg` | `pitower/kubernetes/apps/cloudnative-pg/*` | PostgreSQL operator and clusters |
-| `home-automation` | `pitower/kubernetes/apps/home-automation/*` | Home Assistant, Zigbee2MQTT, Mosquitto |
-| `kube-system` | `pitower/kubernetes/apps/kube-system/*` | Core cluster components |
-| `media` | `pitower/kubernetes/apps/media/*` | Jellyfin, *arr stack, downloaders |
-| `monitoring` | `pitower/kubernetes/apps/monitoring/*` | Prometheus, Grafana, Loki |
-| `networking` | `pitower/kubernetes/apps/networking/*` | Envoy Gateway, Cilium, external-dns |
-| `openebs` | `pitower/kubernetes/apps/openebs/*` | Local PV storage |
-| `rook-ceph` | `pitower/kubernetes/apps/rook-ceph/*` | Distributed block storage |
-| `security` | `pitower/kubernetes/apps/security/*` | Authelia, LLDAP, External Secrets |
-| `selfhosted` | `pitower/kubernetes/apps/selfhosted/*` | Miniflux, Tandoor, Glance, and more |
-| `system` | `pitower/kubernetes/apps/system/*` | System-level utilities |
+| ApplicationSet | Directory Scanned | Cluster |
+|:---------------|:------------------|:--------|
+| `pitower` | `kubernetes/apps/pitower/*/*` | pitower (primary) |
+
+These are **not** managed by ArgoCD (no nesting) -- they are applied directly to the cluster.
 
 ---
 
 ## Git Directory Generator
 
-Each ApplicationSet uses the **Git directory generator**, which scans a specific path in the repository for subdirectories. Every subdirectory it finds becomes an ArgoCD Application.
+The ApplicationSet uses the **Git directory generator**, which scans a specific path in the repository for subdirectories. Every subdirectory it finds becomes an ArgoCD Application.
 
 ```mermaid
 flowchart LR
     subgraph "Repository Structure"
-        dir1["apps/networking/cloudflared/"]
-        dir2["apps/networking/envoy-gateway/"]
-        dir3["apps/networking/external-dns/"]
-        dir4["apps/networking/nginx/"]
-        dir5["apps/networking/tailscale/"]
+        dir1["apps/pitower/networking/cloudflared/"]
+        dir2["apps/pitower/networking/envoy-gateway/"]
+        dir3["apps/pitower/networking/external-dns/"]
+        dir4["apps/pitower/networking/tailscale/"]
     end
 
-    AS[ApplicationSet\nnetworking]
+    AS[ApplicationSet\npitower]
 
     subgraph "Generated Applications"
-        app1["networking-cloudflared"]
-        app2["networking-envoy-gateway"]
-        app3["networking-external-dns"]
-        app4["networking-nginx"]
-        app5["networking-tailscale"]
+        app1["pitower-networking-cloudflared"]
+        app2["pitower-networking-envoy-gateway"]
+        app3["pitower-networking-external-dns"]
+        app4["pitower-networking-tailscale"]
     end
 
-    dir1 & dir2 & dir3 & dir4 & dir5 --> AS
-    AS --> app1 & app2 & app3 & app4 & app5
+    dir1 & dir2 & dir3 & dir4 --> AS
+    AS --> app1 & app2 & app3 & app4
 
     style AS fill:#18b7be,color:#fff
     style app1 fill:#326ce5,color:#fff
     style app2 fill:#326ce5,color:#fff
     style app3 fill:#326ce5,color:#fff
     style app4 fill:#326ce5,color:#fff
-    style app5 fill:#326ce5,color:#fff
 ```
 
 The generator configuration:
@@ -74,17 +60,18 @@ generators:
       repoURL: https://github.com/swibrow/home-ops
       revision: main
       directories:
-        - path: pitower/kubernetes/apps/networking/*
+        - path: kubernetes/apps/pitower/*/*
 ```
 
 This produces the following template variables for each matched directory:
 
 | Variable | Example Value | Description |
 |:---------|:-------------|:------------|
-| `{{.path.path}}` | `pitower/kubernetes/apps/networking/envoy-gateway` | Full path to the directory |
+| `{{.path.path}}` | `kubernetes/apps/pitower/networking/envoy-gateway` | Full path to the directory |
 | `{{.path.basename}}` | `envoy-gateway` | Directory name (last segment) |
-| `{{index .path.segments 0}}` | `pitower` | First path segment |
-| `{{index .path.segments 3}}` | `networking` | Fourth segment (the category) |
+| `{{index .path.segments 2}}` | `pitower` | Cluster name |
+| `{{index .path.segments 3}}` | `networking` | Category (also the namespace) |
+| `{{index .path.segments 4}}` | `envoy-gateway` | App name |
 
 ---
 
@@ -100,18 +87,17 @@ spec:
 
 ### Naming Convention
 
-Application names follow the pattern `<category>-<app-name>`:
+Application names follow the pattern `<cluster>-<category>-<app-name>`:
 
 ```yaml
-name: "{{index .path.segments 3}}-{{.path.basename}}"
+name: "pitower-{{index .path.segments 3}}-{{index .path.segments 4}}"
 ```
 
 | Directory Path | Generated Application Name |
 |:---------------|:--------------------------|
-| `apps/networking/envoy-gateway` | `networking-envoy-gateway` |
-| `apps/media/jellyfin` | `media-jellyfin` |
-| `apps/security/authelia` | `security-authelia` |
-| `apps/selfhosted/miniflux` | `selfhosted-miniflux` |
+| `kubernetes/apps/pitower/networking/envoy-gateway` | `pitower-networking-envoy-gateway` |
+| `kubernetes/apps/pitower/media/jellyfin` | `pitower-media-jellyfin` |
+| `kubernetes/apps/pitower/security/authelia` | `pitower-security-authelia` |
 
 ### Namespace Derivation
 
@@ -122,37 +108,52 @@ destination:
   namespace: "{{index .path.segments 3}}"
 ```
 
-This means all apps in `apps/networking/*` deploy to the `networking` namespace, all apps in `apps/media/*` deploy to the `media` namespace, and so on.
+This means all apps in `kubernetes/apps/pitower/networking/*` deploy to the `networking` namespace, all apps in `kubernetes/apps/pitower/media/*` deploy to the `media` namespace, and so on.
 
 !!! tip "Namespace = Category"
     The namespace matches the category directory name. This convention keeps things predictable -- if an app is in the `selfhosted` category, its resources land in the `selfhosted` namespace.
 
 ### Labels
 
-Each generated Application receives three standard labels:
+Each generated Application receives labels for filtering:
 
 ```yaml
 labels:
-  app.kubernetes.io/category: "{{index .path.segments 3}}"
-  app.kubernetes.io/name: "{{.path.basename}}"
-  app.kubernetes.io/instance: "{{.path.basename}}"
+  app.kubernetes.io/name: "{{index .path.segments 4}}"
+  app.kubernetes.io/instance: "pitower-{{index .path.segments 3}}-{{index .path.segments 4}}"
+  app.kubernetes.io/component: "{{index .path.segments 3}}"
+  app.kubernetes.io/part-of: pitower
+  app.kubernetes.io/managed-by: argocd
+  home-ops/cluster: pitower
+  home-ops/category: "{{index .path.segments 3}}"
+  home-ops/namespace: "{{index .path.segments 3}}"
 ```
 
-These labels enable filtering in the ArgoCD UI and CLI. For example, to list all networking applications:
+These labels enable filtering in the ArgoCD UI and CLI:
 
 ```bash
-argocd app list -l app.kubernetes.io/category=networking
+# All media apps
+kubectl get app -n argocd -l home-ops/category=media
+
+# Specific app
+kubectl get app -n argocd -l app.kubernetes.io/name=jellyfin
+
+# All apps on pitower
+kubectl get app -n argocd -l home-ops/cluster=pitower
+
+# Combine filters
+kubectl get app -n argocd -l home-ops/cluster=pitower,home-ops/category=networking
 ```
 
 ---
 
-## Full Example: appset-networking.yaml
+## Full Example: pitower.yaml
 
-```yaml
+```yaml title="kubernetes/argocd/clusters/pitower.yaml"
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: networking
+  name: pitower
   namespace: argocd
 spec:
   goTemplate: true
@@ -162,15 +163,22 @@ spec:
         repoURL: https://github.com/swibrow/home-ops
         revision: main
         directories:
-          - path: pitower/kubernetes/apps/networking/*
+          - path: kubernetes/apps/pitower/*/*
+  syncPolicy:
+    preserveResourcesOnDeletion: true
   template:
     metadata:
-      name: "{{index .path.segments 3}}-{{.path.basename}}"
+      name: "pitower-{{index .path.segments 3}}-{{index .path.segments 4}}"
       namespace: argocd
       labels:
-        app.kubernetes.io/category: "{{index .path.segments 3}}"
-        app.kubernetes.io/name: "{{.path.basename}}"
-        app.kubernetes.io/instance: "{{.path.basename}}"
+        app.kubernetes.io/name: "{{index .path.segments 4}}"
+        app.kubernetes.io/instance: "pitower-{{index .path.segments 3}}-{{index .path.segments 4}}"
+        app.kubernetes.io/component: "{{index .path.segments 3}}"
+        app.kubernetes.io/part-of: pitower
+        app.kubernetes.io/managed-by: argocd
+        home-ops/cluster: pitower
+        home-ops/category: "{{index .path.segments 3}}"
+        home-ops/namespace: "{{index .path.segments 3}}"
       finalizers:
         - resources-finalizer.argocd.argoproj.io
     spec:
@@ -186,7 +194,11 @@ spec:
         automated:
           prune: true
           selfHeal: false
-          allowEmpty: true
+        managedNamespaceMetadata:
+          labels:
+            pod-security.kubernetes.io/enforce: privileged
+            pod-security.kubernetes.io/audit: privileged
+            pod-security.kubernetes.io/warn: privileged
         syncOptions:
           - CreateNamespace=true
           - ServerSideApply=true
@@ -203,61 +215,65 @@ spec:
 
 ---
 
-## Finalizers
+## Key Design Decisions
 
-Every generated Application includes the `resources-finalizer.argocd.argoproj.io` finalizer:
+### preserveResourcesOnDeletion
+
+```yaml
+syncPolicy:
+  preserveResourcesOnDeletion: true
+```
+
+When an ApplicationSet is deleted, the generated Applications are preserved (not deleted). This prevents accidental cascade deletion of all workloads during migrations or AppSet changes.
+
+### Finalizers
 
 ```yaml
 finalizers:
   - resources-finalizer.argocd.argoproj.io
 ```
 
-This ensures that when an Application is deleted (for example, by removing its directory from the repository), ArgoCD cleans up all Kubernetes resources that the Application managed. Without the finalizer, deleting the Application would leave orphaned resources in the cluster.
+Each generated Application includes the resources finalizer. When an Application is deleted (e.g. by removing its directory), ArgoCD cleans up all managed Kubernetes resources. Without the finalizer, deleting the Application would leave orphaned resources.
+
+### No selfHeal
+
+```yaml
+automated:
+  prune: true
+  selfHeal: false
+```
+
+Self-heal is disabled to allow manual changes in the cluster (e.g. scaling down for maintenance, restore operations) without ArgoCD reverting them. Apps still auto-sync on git changes.
+
+### Not Managed by ArgoCD
+
+The ApplicationSet files live in `kubernetes/argocd/clusters/` and are applied manually with `kubectl apply -f`. This avoids nesting (an ArgoCD Application managing the ApplicationSet that manages other Applications) and makes it easy to modify the AppSet without triggering cascading changes.
 
 ---
 
 ## Auto-Discovery in Action
 
-The power of this pattern is that **adding a new app requires zero ArgoCD configuration**. The ApplicationSet does all the work:
+**Adding a new app requires zero ArgoCD configuration.** The ApplicationSet does all the work:
 
-1. Create a new directory: `pitower/kubernetes/apps/networking/my-new-app/`
+1. Create a new directory: `kubernetes/apps/pitower/networking/my-new-app/`
 2. Add a `kustomization.yaml` and `values.yaml` inside it.
 3. Push to `main`.
 4. The Git directory generator detects the new directory.
-5. A new Application named `networking-my-new-app` is created automatically.
+5. A new Application named `pitower-networking-my-new-app` is created automatically.
 6. ArgoCD syncs the new Application to the cluster.
 
 Removing an app is equally simple -- delete the directory and push. The finalizer ensures all resources are cleaned up.
 
 !!! info "No ApplicationSet Changes Needed"
-    You never need to modify an ApplicationSet to add or remove an app. The directory structure is the only thing that matters.
+    You never need to modify the ApplicationSet to add or remove an app. The directory structure is the only thing that matters.
 
 ---
 
-## Creating a New ApplicationSet
+## Adding a New Cluster
 
-If you need a new category (rare), create a new ApplicationSet in `pitower/kubernetes/argocd/`:
+To add a new cluster (e.g. `pikeep`):
 
-```yaml
-# pitower/kubernetes/argocd/appset-<category>.yaml
-apiVersion: argoproj.io/v1alpha1
-kind: ApplicationSet
-metadata:
-  name: <category>
-  namespace: argocd
-spec:
-  goTemplate: true
-  goTemplateOptions: ["missingkey=error"]
-  generators:
-    - git:
-        repoURL: https://github.com/swibrow/home-ops
-        revision: main
-        directories:
-          - path: pitower/kubernetes/apps/<category>/*
-  template:
-    metadata:
-      name: "{{index .path.segments 3}}-{{.path.basename}}"
-      # ... (same template as above)
-```
-
-Then create the corresponding directory under `pitower/kubernetes/apps/<category>/` and add your first app inside it.
+1. Create the ApplicationSet at `kubernetes/argocd/clusters/pikeep.yaml`
+2. Create the app directory structure at `kubernetes/apps/pikeep/`
+3. Add a cluster secret in `kubernetes/bootstrap/` pointing to the remote cluster
+4. Apply the ApplicationSet: `kubectl apply -f kubernetes/argocd/clusters/pikeep.yaml`

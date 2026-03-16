@@ -4,7 +4,7 @@ title: Backup & Restore
 
 # Backup & Restore
 
-The cluster uses a combination of VolSync for PVC replication, the CSI Snapshot Controller for point-in-time snapshots, and the Synology NAS as a backup target. Together, these provide data protection across multiple failure scenarios.
+The cluster uses a combination of VolSync for PVC replication, the CSI Snapshot Controller for point-in-time snapshots, and S3 as a backup target. Together, these provide data protection across multiple failure scenarios.
 
 ## Architecture
 
@@ -17,41 +17,21 @@ flowchart TD
     end
 
     subgraph Backup Targets
-        SYN[(Synology NAS\nNFS / S3)]
+        S3[(AWS S3)]
     end
 
     PVC -->|VolumeSnapshot| SNAP
-    PVC -->|Restic / Rclone| VS
-    VS -->|Backup| SYN
+    PVC -->|Restic| VS
+    VS -->|Backup| S3
     SNAP -->|Restore| PVC
-    SYN -->|Restore| PVC
+    S3 -->|Restore| PVC
 ```
 
 ---
 
 ## VolSync
 
-[VolSync](https://volsync.readthedocs.io/) is a Kubernetes operator that replicates persistent volume data using Restic, Rclone, or Rsync. It runs in the `system` namespace and provides scheduled backups of PVCs to external storage.
-
-### Deployment
-
-VolSync is deployed via Helm (v0.14.0) in the `system` namespace:
-
-```yaml title="kustomization.yaml"
-helmCharts:
-  - name: volsync
-    repo: https://backube.github.io/helm-charts/
-    version: 0.14.0
-    releaseName: volsync
-    includeCRDs: true
-    namespace: system
-```
-
-```yaml title="values.yaml"
-manageCRDs: true
-metrics:
-  disableAuth: true
-```
+[VolSync](https://volsync.readthedocs.io/) is a Kubernetes operator that replicates persistent volume data using Restic. It runs in the `system` namespace and provides scheduled backups of PVCs to S3.
 
 ### How It Works
 
@@ -62,28 +42,16 @@ VolSync uses two custom resources:
 | `ReplicationSource` | Defines what to back up, the schedule, and the destination |
 | `ReplicationDestination` | Defines where to restore from and how to recreate the PVC |
 
-A typical `ReplicationSource` for backing up an application PVC:
+### Kustomize Component
+
+Apps opt into VolSync backups by including the volsync component in their `kustomization.yaml`:
 
 ```yaml
-apiVersion: volsync.backube/v1alpha1
-kind: ReplicationSource
-metadata:
-  name: my-app-backup
-  namespace: my-app
-spec:
-  sourcePVC: my-app-data
-  trigger:
-    schedule: "0 */6 * * *"  # Every 6 hours
-  restic:
-    pruneIntervalDays: 7
-    repository: my-app-restic-secret
-    retain:
-      daily: 7
-      weekly: 4
-      monthly: 6
-    storageClassName: ceph-block
-    copyMethod: Snapshot
+components:
+  - ../../../../components/volsync
 ```
+
+The component requires a `volsync-config` ConfigMap with app-specific settings. See [Adding Apps](../gitops/adding-apps.md) for details.
 
 ### Monitoring
 
@@ -121,58 +89,6 @@ spec:
 
 The [CSI Snapshot Controller](https://github.com/kubernetes-csi/external-snapshotter) enables point-in-time `VolumeSnapshot` resources for CSI-backed PVCs. It runs in the `system` namespace alongside its webhook.
 
-### Deployment
-
-```yaml title="kustomization.yaml"
-helmCharts:
-  - name: snapshot-controller
-    repo: https://piraeus.io/helm-charts/
-    version: 5.0.2
-    releaseName: snapshot-controller
-    includeCRDs: true
-    namespace: system
-```
-
-```yaml title="values.yaml"
-controller:
-  serviceMonitor:
-    create: true
-```
-
-### Webhook PKI
-
-The snapshot controller webhook uses self-signed certificates managed by cert-manager:
-
-```yaml title="pki.yaml"
-apiVersion: cert-manager.io/v1
-kind: Issuer
-metadata:
-  name: snapshot-controller-webhook-selfsign
-spec:
-  selfSigned: {}
----
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: snapshot-controller-webhook-ca
-spec:
-  secretName: snapshot-controller-webhook-ca
-  duration: 43800h # 5 years
-  issuerRef:
-    name: snapshot-controller-webhook-selfsign
-    kind: Issuer
-  commonName: "ca.k8s-ycl.cert-manager"
-  isCA: true
----
-apiVersion: cert-manager.io/v1
-kind: Issuer
-metadata:
-  name: snapshot-controller-webhook-ca
-spec:
-  ca:
-    secretName: snapshot-controller-webhook-ca
-```
-
 ### Usage
 
 Create a point-in-time snapshot of a PVC:
@@ -184,7 +100,7 @@ metadata:
   name: my-app-data-snapshot
   namespace: my-app
 spec:
-  volumeSnapshotClassName: csi-ceph-blockpool  # or appropriate class
+  volumeSnapshotClassName: csi-ceph-blockpool
   source:
     persistentVolumeClaimName: my-app-data
 ```
@@ -212,107 +128,154 @@ spec:
 
 ---
 
-## Synology NAS
+## Restore Procedures
 
-The 4-bay Synology NAS (8 TB total) serves as the primary off-cluster backup target and bulk storage endpoint.
+### Restore from VolSync (S3 Restic Backup)
 
-### NFS Shares
+#### 1. List available snapshots
 
-The Synology exports NFS shares used for:
+Run a temporary pod using the app's volsync secret to list snapshots in S3:
 
-- **Media storage** -- large media libraries mounted directly by applications (Jellyfin, *arr stack)
-- **Backup destinations** -- VolSync Restic repositories for PVC backups
-- **Bulk data** -- datasets too large for the Ceph cluster
+```bash
+kubectl run restic-list --restart=Never -n <namespace> \
+  --image=restic/restic:latest \
+  --env="AWS_ACCESS_KEY_ID=$(kubectl get secret <app>-volsync -n <namespace> -o jsonpath='{.data.AWS_ACCESS_KEY_ID}' | base64 -d)" \
+  --env="AWS_SECRET_ACCESS_KEY=$(kubectl get secret <app>-volsync -n <namespace> -o jsonpath='{.data.AWS_SECRET_ACCESS_KEY}' | base64 -d)" \
+  --env="RESTIC_PASSWORD=$(kubectl get secret <app>-volsync -n <namespace> -o jsonpath='{.data.RESTIC_PASSWORD}' | base64 -d)" \
+  --env="RESTIC_REPOSITORY=$(kubectl get secret <app>-volsync -n <namespace> -o jsonpath='{.data.RESTIC_REPOSITORY}' | base64 -d)" \
+  --command -- restic snapshots
+```
 
-NFS volumes are mounted via standard Kubernetes PVs:
+Retrieve output and clean up:
 
-```yaml
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: media-nfs
-spec:
-  capacity:
-    storage: 1Ti
-  accessModes:
-    - ReadWriteMany
-  nfs:
-    server: 192.168.0.x  # Synology IP
-    path: /volume1/media
----
+```bash
+kubectl logs restic-list -n <namespace>
+kubectl delete pod restic-list -n <namespace>
+```
+
+Each snapshot shows an ID, timestamp, and size. Identify the last known-good snapshot before any incident.
+
+#### 2. Disable auto-sync
+
+Prevent ArgoCD from scaling the app back up during restore:
+
+```bash
+kubectl patch app <app-name> -n argocd --type json \
+  -p '[{"op":"remove","path":"/spec/syncPolicy/automated"}]'
+```
+
+#### 3. Scale down the app and suspend backups
+
+```bash
+kubectl scale deploy <app> -n <namespace> --replicas=0
+```
+
+Suspend the ReplicationSource to prevent it from backing up empty/corrupt data:
+
+```bash
+kubectl patch replicationsource <app> -n <namespace> --type merge \
+  -p '{"spec":{"trigger":{"schedule":"0 0 31 2 *"}}}'
+```
+
+#### 4. Delete the existing PVC
+
+The data is safe in S3:
+
+```bash
+kubectl delete pvc <pvc-name> -n <namespace>
+```
+
+#### 5. Create an empty PVC
+
+Recreate the PVC with the original name and size:
+
+```bash
+kubectl apply -f - <<EOF
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: media-nfs
-  namespace: media
+  name: <pvc-name>
+  namespace: <namespace>
 spec:
-  accessModes:
-    - ReadWriteMany
-  storageClassName: ""
-  volumeName: media-nfs
+  accessModes: [ReadWriteOnce]
+  storageClassName: ceph-block
   resources:
     requests:
-      storage: 1Ti
+      storage: <size>
+EOF
 ```
 
----
+#### 6. Create a ReplicationDestination to restore
 
-## Restore Procedures
+Use `restoreAsOf` to select the snapshot by timestamp:
 
-### Restore from VolSync Backup
+```bash
+kubectl apply -f - <<EOF
+apiVersion: volsync.backube/v1alpha1
+kind: ReplicationDestination
+metadata:
+  name: <app>-restore
+  namespace: <namespace>
+spec:
+  trigger:
+    manual: restore-once
+  restic:
+    repository: <app>-volsync
+    destinationPVC: <pvc-name>
+    copyMethod: Direct
+    moverSecurityContext:
+      runAsUser: 0
+      runAsGroup: 0
+    restoreAsOf: "<timestamp-of-good-snapshot>"
+EOF
+```
 
-1. **Create a `ReplicationDestination`** pointing to the Restic repository:
+!!! warning "moverSecurityContext is required"
+    Without `runAsUser: 0`, the restic mover cannot set file ownership (`lchown`), causing the restore to fail with repeated retries. The data IS written to the PVC but restic exits non-zero. Running as root avoids this issue.
 
-    ```yaml
-    apiVersion: volsync.backube/v1alpha1
-    kind: ReplicationDestination
-    metadata:
-      name: my-app-restore
-      namespace: my-app
-    spec:
-      trigger:
-        manual: restore-once
-      restic:
-        repository: my-app-restic-secret
-        destinationPVC: my-app-data
-        storageClassName: ceph-block
-        accessModes:
-          - ReadWriteOnce
-        capacity: 10Gi
-        copyMethod: Direct
-    ```
+Monitor progress:
 
-2. **Scale down the application** to release the PVC (if it already exists):
+```bash
+kubectl get replicationdestination -n <namespace> -w
+```
 
-    ```bash
-    kubectl -n my-app scale deployment my-app --replicas=0
-    ```
+Wait for `CONDITION` to show `WaitingForManual` (success).
 
-3. **Delete the existing PVC** (if replacing):
+#### 7. Clean up and restart
 
-    ```bash
-    kubectl -n my-app delete pvc my-app-data
-    ```
+```bash
+kubectl delete replicationdestination <app>-restore -n <namespace>
+```
 
-4. **Apply the `ReplicationDestination`** to trigger the restore:
+Re-enable auto-sync on the ArgoCD Application. ArgoCD will scale the app back up and restore the ReplicationSource schedule:
 
-    ```bash
-    kubectl apply -f replication-destination.yaml
-    ```
+```bash
+kubectl patch app <app-name> -n argocd --type merge \
+  -p '{"spec":{"syncPolicy":{"automated":{"prune":true}}}}'
+```
 
-5. **Wait for completion**, then scale the application back up:
+#### 8. Verify
 
-    ```bash
-    kubectl -n my-app get replicationdestination my-app-restore -w
-    kubectl -n my-app scale deployment my-app --replicas=1
-    ```
+Check the app is running:
+
+```bash
+kubectl get pods -n <namespace> -l app.kubernetes.io/name=<app>
+```
+
+Verify restored data size with a temporary pod:
+
+```bash
+kubectl run check --rm -it --restart=Never -n <namespace> \
+  --image=busybox:latest \
+  --overrides='{"spec":{"containers":[{"name":"check","image":"busybox:latest","command":["sh","-c","du -sh /data && ls -la /data/"],"volumeMounts":[{"name":"data","mountPath":"/data"}]}],"volumes":[{"name":"data","persistentVolumeClaim":{"claimName":"<pvc-name>"}}]}}'
+```
 
 ### Restore from CSI Snapshot
 
 1. **List available snapshots**:
 
     ```bash
-    kubectl -n my-app get volumesnapshots
+    kubectl -n <namespace> get volumesnapshots
     ```
 
 2. **Create a new PVC from the snapshot** (see the [Usage section above](#usage))
