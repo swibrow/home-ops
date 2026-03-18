@@ -25,11 +25,14 @@ controllers:
           LLDAP_LDAP_BASE_DN: dc=pitower,dc=link
           LLDAP_KEY_FILE: ""
           # LLDAP_FORCE_LDAP_USER_PASS_RESET: "true" # Uncomment to force password reset
+          LLDAP_DATABASE_URL:
+            valueFrom:
+              secretKeyRef:
+                name: lldap-db-secret
+                key: DB_URL
         envFrom:
           - secretRef:
               name: lldap-secret
-          - secretRef:
-              name: lldap-db
         resources:
           requests:
             cpu: 10m

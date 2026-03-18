@@ -9,9 +9,32 @@ controllers:
           repository: ghcr.io/swibrow/house-hunter
           tag: latest
           pullPolicy: Always
-        envFrom:
-          - secretRef:
-              name: house-hunter-db-secret
+        env:
+          POSTGRES_HOST:
+            valueFrom:
+              secretKeyRef:
+                name: house-hunter-db-secret
+                key: DB_HOST
+          POSTGRES_PORT:
+            valueFrom:
+              secretKeyRef:
+                name: house-hunter-db-secret
+                key: DB_PORT
+          POSTGRES_USER:
+            valueFrom:
+              secretKeyRef:
+                name: house-hunter-db-secret
+                key: DB_USER
+          POSTGRES_PASSWORD:
+            valueFrom:
+              secretKeyRef:
+                name: house-hunter-db-secret
+                key: DB_PASS
+          POSTGRES_DB:
+            valueFrom:
+              secretKeyRef:
+                name: house-hunter-db-secret
+                key: DB_NAME
         resources:
           requests:
             cpu: 10m

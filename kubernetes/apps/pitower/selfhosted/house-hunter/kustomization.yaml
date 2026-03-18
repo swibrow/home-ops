@@ -3,9 +3,14 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: selfhosted
-resources:
-  - externalsecret.yaml
-
+components:
+  - ../../../../components/cnpg-db
+configMapGenerator:
+  - name: cnpg-db-config
+    literals:
+      - APP_NAME=house-hunter
+      - SECRET_NAME=house-hunter-db-secret
+      - CNPG_SECRET_KEY=house-hunter-app
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm

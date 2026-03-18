@@ -35,11 +35,24 @@ controllers:
           PAPERLESS_MEDIA_ROOT: /data/local/media
           PAPERLESS_CONSUMPTION_DIR: /data/local/consume
           PAPERLESS_EXPORT_DIR: /data/local/export
+          PAPERLESS_DBHOST:
+            valueFrom:
+              secretKeyRef:
+                name: paperless-db-secrets
+                key: DB_HOST
+          PAPERLESS_DBUSER:
+            valueFrom:
+              secretKeyRef:
+                name: paperless-db-secrets
+                key: DB_USER
+          PAPERLESS_DBPASS:
+            valueFrom:
+              secretKeyRef:
+                name: paperless-db-secrets
+                key: DB_PASS
         envFrom:
           - secretRef:
               name: paperless-secrets
-          - secretRef:
-              name: paperless-db-secrets
         resources:
           requests:
             cpu: 15m

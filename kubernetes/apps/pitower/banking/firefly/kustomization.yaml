@@ -7,7 +7,13 @@ resources:
   - ./externalsecret.yaml
 components:
   - ../../../../components/volsync
+  - ../../../../components/cnpg-db
 configMapGenerator:
+  - name: cnpg-db-config
+    literals:
+      - APP_NAME=firefly
+      - SECRET_NAME=firefly-db-secrets
+      - CNPG_SECRET_KEY=firefly-superuser
   - name: volsync-config
     options:
       disableNameSuffixHash: true

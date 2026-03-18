@@ -6,7 +6,14 @@ namespace: security
 resources:
   - externalsecret.yaml
   - tcproute.yaml
-
+components:
+  - ../../../../components/cnpg-db
+configMapGenerator:
+  - name: cnpg-db-config
+    literals:
+      - APP_NAME=lldap
+      - SECRET_NAME=lldap-db-secret
+      - CNPG_SECRET_KEY=lldap-superuser
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm

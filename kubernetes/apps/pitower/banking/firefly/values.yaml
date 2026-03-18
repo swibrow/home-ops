@@ -14,10 +14,34 @@ controllers:
         envFrom:
           - secretRef:
               name: firefly-secrets
-          - secretRef:
-              name: firefly-db-secrets
         env:
           TZ: Europe/Zurich
+          DB_CONNECTION: pgsql
+          DB_HOST:
+            valueFrom:
+              secretKeyRef:
+                name: firefly-db-secrets
+                key: DB_HOST
+          DB_PORT:
+            valueFrom:
+              secretKeyRef:
+                name: firefly-db-secrets
+                key: DB_PORT
+          DB_USERNAME:
+            valueFrom:
+              secretKeyRef:
+                name: firefly-db-secrets
+                key: DB_USER
+          DB_PASSWORD:
+            valueFrom:
+              secretKeyRef:
+                name: firefly-db-secrets
+                key: DB_PASS
+          DB_DATABASE:
+            valueFrom:
+              secretKeyRef:
+                name: firefly-db-secrets
+                key: DB_NAME
           TRUSTED_PROXIES: "**"
           MAIL_MAILER: log
           MAIL_HOST: smtp-relay.gmail.com

@@ -11,11 +11,15 @@ controllers:
           NODE_ENV: production
           REDIS_HOST: localhost
           REDIS_PORT: "6379"
+        env:
+          DATABASE_URL:
+            valueFrom:
+              secretKeyRef:
+                name: ghostfolio-db-secrets
+                key: DB_URL
         envFrom:
           - secretRef:
               name: ghostfolio-secrets
-          - secretRef:
-              name: ghostfolio-db-secrets
         probes:
           startup:
             enabled: true
