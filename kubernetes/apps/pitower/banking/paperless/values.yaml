@@ -6,7 +6,7 @@ controllers:
       app:
         image:
           repository: ghcr.io/paperless-ngx/paperless-ngx
-          tag: 2.20.12
+          tag: 2.20.13
         env:
           # Application
           PAPERLESS_URL: "https://paperless.pitower.link"
