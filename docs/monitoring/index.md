@@ -58,6 +58,7 @@ The monitoring stack follows a pull-based model for metrics and a push-based mod
 | [Grafana](grafana.md) | `grafana/grafana` | 10.5.15 | Dashboard visualization, SSO via Authelia |
 | [Loki](loki.md) | `grafana/loki` | 6.51.0 | Log aggregation and storage |
 | [Fluent Bit](fluent-bit.md) | `fluent/fluent-bit` | 0.55.0 | Log collection from all nodes |
+| Gatus | `app-template` (bjw-s) | v5.17.0 | Uptime monitoring and status page |
 
 ## Namespace Configuration
 
@@ -80,6 +81,7 @@ metadata:
 |:--------|:----|:--------|
 | Prometheus | `https://prometheus.example.com` | envoy-internal |
 | Grafana | `https://grafana.example.com` | envoy-external |
+| Gatus | `https://status.pitower.link` | envoy-internal |
 
 ## Key Design Decisions
 

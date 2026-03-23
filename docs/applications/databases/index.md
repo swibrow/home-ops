@@ -24,6 +24,7 @@ flowchart TD
             LL[lldap<br/>LDAP directory]
             FF[firefly<br/>Finance manager]
             MF[miniflux<br/>RSS reader]
+            GA[gatus<br/>Status page]
         end
     end
 
@@ -34,6 +35,7 @@ flowchart TD
         A4[LLDAP<br/>security]
         A5[Firefly III<br/>banking]
         A6[Miniflux<br/>selfhosted]
+        A7[Gatus<br/>monitoring]
     end
 
     OP -->|Manages| Clusters
@@ -46,11 +48,12 @@ flowchart TD
     LL -.->|ExternalSecret| A4
     FF -.->|ExternalSecret| A5
     MF -.->|ExternalSecret| A6
+    GA -.->|ExternalSecret| A7
 
     classDef operator fill:#7c3aed,stroke:#5b21b6,color:#fff
     classDef cluster fill:#00b894,stroke:#00a381,color:#fff
     class OP operator
-    class PG,TD,AB,BS,HH,LL,FF,MF cluster
+    class PG,TD,AB,BS,HH,LL,FF,MF,GA cluster
 ```
 
 ## Operator
@@ -82,6 +85,7 @@ All clusters run **PostgreSQL 16** (`ghcr.io/cloudnative-pg/postgresql:16`) with
 | `lldap` | `lldap` | `lldap` | 100 Mi | LLDAP |
 | `firefly` | `firefly` | `firefly` | 100 Mi | Firefly III |
 | `miniflux` | `miniflux` | `miniflux` | 100 Mi | Miniflux |
+| `gatus` | `gatus` | `gatus` | 100 Mi | Gatus |
 
 !!! info "Cluster Configuration"
     The `postgres` cluster has custom parameters for higher connection limits (`max_connections: 600`) and larger shared buffers (`shared_buffers: 512MB`) since it serves as the general-purpose database for multiple consumers.

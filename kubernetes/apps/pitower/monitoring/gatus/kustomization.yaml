@@ -1,0 +1,22 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: monitoring
+resources:
+  - configmap.yaml
+components:
+  - ../../../../components/cnpg-db
+configMapGenerator:
+  - name: cnpg-db-config
+    literals:
+      - APP_NAME=gatus
+      - SECRET_NAME=gatus-db-secret
+      - CNPG_SECRET_KEY=gatus-superuser
+helmCharts:
+  - name: app-template
+    repo: oci://ghcr.io/bjw-s-labs/helm
+    version: 4.6.2
+    releaseName: gatus
+    namespace: monitoring
+    valuesFile: values.yaml

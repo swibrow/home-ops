@@ -1,0 +1,44 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gatus-config
+  namespace: monitoring
+data:
+  config.yaml: |
+    storage:
+      type: postgres
+      path: "postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=disable"
+
+    ui:
+      title: Pitower Status
+      header: Pitower Status
+
+    endpoints:
+      - name: ArgoCD
+        group: Infrastructure
+        url: https://argocd.pitower.link
+        interval: 5m
+        conditions:
+          - "[STATUS] == 200"
+
+      - name: Grafana
+        group: Monitoring
+        url: https://grafana.pitower.link
+        interval: 5m
+        conditions:
+          - "[STATUS] == 200"
+
+      - name: Miniflux
+        group: Apps
+        url: https://miniflux.pitower.link
+        interval: 5m
+        conditions:
+          - "[STATUS] == 200"
+
+      - name: Homepage
+        group: Apps
+        url: https://home.pitower.link
+        interval: 5m
+        conditions:
+          - "[STATUS] == 200"

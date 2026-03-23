@@ -15,14 +15,14 @@ Complete catalog of all applications deployed in the cluster, organized by categ
 | [Home Automation](#home-automation) | 5 |
 | [Kube-System](#kube-system) | 3 |
 | [Media](#media) | 7 |
-| [Monitoring](#monitoring) | 4 |
+| [Monitoring](#monitoring) | 5 |
 | [Networking](#networking) | 6 |
 | [OpenEBS](#openebs) | 1 |
 | [Rook Ceph](#rook-ceph) | 3 |
 | [Security](#security) | 5 |
 | [Self-Hosted](#self-hosted) | 12 |
 | [System](#system) | 6 |
-| **Total** | **60** |
+| **Total** | **61** |
 
 ---
 
@@ -104,6 +104,7 @@ Complete catalog of all applications deployed in the cluster, organized by categ
 | Name | Chart/Image | Gateway | URL | Description |
 |:-----|:------------|:--------|:----|:------------|
 | fluent-bit | fluent-bit (Helm) | -- | -- | Log collector and forwarder |
+| gatus | app-template | internal | `status.pitower.link` | Uptime monitoring and status page |
 | grafana | grafana (Helm) | external | `grafana.example.com` | Metrics visualization and dashboards |
 | kube-prometheus-stack | kube-prometheus-stack (Helm) | external | `prometheus.example.com` | Prometheus, Alertmanager, and node exporters |
 | loki | loki (Helm) | -- | -- | Log aggregation system |
@@ -190,7 +191,7 @@ Complete catalog of all applications deployed in the cluster, organized by categ
 | Gateway | Count | Services |
 |:--------|:-----:|:---------|
 | envoy-external | ~26 | Most user-facing apps |
-| envoy-internal | ~2 | Internal tools (speedtest, etc.) |
+| envoy-internal | ~3 | Internal tools (speedtest, gatus, etc.) |
 | None | ~32 | Infrastructure, operators, system services |
 
 ---

@@ -1,0 +1,95 @@
+controllers:
+  gatus:
+    strategy: RollingUpdate
+    annotations:
+      reloader.stakater.com/auto: "true"
+
+    containers:
+      app:
+        image:
+          repository: ghcr.io/twin/gatus
+          tag: v5.17.0
+        env:
+          TZ: Europe/Zurich
+          GATUS_CONFIG_PATH: /config
+          DB_HOST:
+            valueFrom:
+              secretKeyRef:
+                name: gatus-db-secret
+                key: DB_HOST
+          DB_PORT:
+            valueFrom:
+              secretKeyRef:
+                name: gatus-db-secret
+                key: DB_PORT
+          DB_USER:
+            valueFrom:
+              secretKeyRef:
+                name: gatus-db-secret
+                key: DB_USER
+          DB_PASS:
+            valueFrom:
+              secretKeyRef:
+                name: gatus-db-secret
+                key: DB_PASS
+          DB_NAME:
+            valueFrom:
+              secretKeyRef:
+                name: gatus-db-secret
+                key: DB_NAME
+        probes:
+          liveness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /health
+                port: 8080
+              initialDelaySeconds: 30
+              periodSeconds: 10
+              timeoutSeconds: 1
+              failureThreshold: 3
+          readiness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /health
+                port: 8080
+              initialDelaySeconds: 5
+              periodSeconds: 10
+              timeoutSeconds: 1
+              failureThreshold: 3
+        resources:
+          requests:
+            cpu: 10m
+            memory: 64M
+          limits:
+            memory: 256M
+
+service:
+  app:
+    controller: gatus
+    ports:
+      http:
+        port: 8080
+
+route:
+  app:
+    enabled: true
+    hostnames:
+      - status.pitower.link
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+
+persistence:
+  config:
+    enabled: true
+    type: configMap
+    name: gatus-config
+    globalMounts:
+      - path: /config/config.yaml
+        subPath: config.yaml
+        readOnly: true
