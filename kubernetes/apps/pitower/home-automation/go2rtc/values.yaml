@@ -1,0 +1,82 @@
+controllers:
+  go2rtc:
+    strategy: RollingUpdate
+    annotations:
+      reloader.stakater.com/auto: "true"
+
+    containers:
+      app:
+        image:
+          repository: ghcr.io/alexxit/go2rtc
+          tag: v1.9.9
+        envFrom:
+          - secretRef:
+              name: go2rtc-secret
+        probes:
+          liveness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /
+                port: 1984
+              initialDelaySeconds: 10
+              periodSeconds: 10
+              timeoutSeconds: 1
+              failureThreshold: 3
+          readiness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /
+                port: 1984
+              initialDelaySeconds: 5
+              periodSeconds: 10
+              timeoutSeconds: 1
+              failureThreshold: 3
+        resources:
+          requests:
+            cpu: 10m
+            memory: 64M
+          limits:
+            memory: 512M
+
+service:
+  app:
+    controller: go2rtc
+    ports:
+      http:
+        port: 1984
+      webrtc-tcp:
+        port: 8555
+        protocol: TCP
+  webrtc-udp:
+    controller: go2rtc
+    type: LoadBalancer
+    annotations:
+      lbipam.cilium.io/ips: 192.168.0.236
+    ports:
+      webrtc-udp:
+        port: 8555
+        protocol: UDP
+
+route:
+  app:
+    enabled: true
+    hostnames:
+      - go2rtc.pitower.link
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+
+persistence:
+  config:
+    enabled: true
+    type: configMap
+    name: go2rtc-config
+    globalMounts:
+      - path: /config/go2rtc.yaml
+        subPath: go2rtc.yaml
+        readOnly: true
