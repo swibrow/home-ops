@@ -8,7 +8,7 @@ controllers:
       app:
         image:
           repository: ghcr.io/alexxit/go2rtc
-          tag: v1.9.9
+          tag: 1.9.14
         envFrom:
           - secretRef:
               name: go2rtc-secret
