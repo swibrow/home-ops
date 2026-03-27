@@ -1,4 +1,4 @@
-FROM python:3.11-slim-bookworm
+FROM python:3.14-slim-bookworm
 
 ARG BROWSER_USE_VERSION=v3.0.0
 ARG TARGETPLATFORM
