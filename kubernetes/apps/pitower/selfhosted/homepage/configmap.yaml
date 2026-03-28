@@ -80,7 +80,7 @@ data:
             description: Home automation
             widget:
               type: homeassistant
-              url: http://home-assistant.home-automation.svc.cluster.local:8123
+              url: https://ha.pitower.link
               key: "{{HOMEPAGE_VAR_HASS_TOKEN}}"
         - go2rtc:
             icon: mdi-video
