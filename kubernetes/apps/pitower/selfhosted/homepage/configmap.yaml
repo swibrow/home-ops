@@ -82,22 +82,10 @@ data:
               type: homeassistant
               url: http://home-assistant.home-automation.svc.cluster.local:8123
               key: "{{HOMEPAGE_VAR_HASS_TOKEN}}"
-        - HA Code Server:
-            icon: vscode.svg
-            href: https://ha-code.pitower.link
-            description: HA config editor
-        - Zigbee2MQTT:
-            icon: zigbee2mqtt.svg
-            href: https://zigbee.pitower.link
-            description: Zigbee bridge
-        - Matter Server:
-            icon: mdi-chip
-            href: https://matter.pitower.link
-            description: Matter controller
-        - OTBR:
-            icon: mdi-access-point-network
-            href: https://otbr.pitower.link
-            description: Thread border router
+        - go2rtc:
+            icon: mdi-video
+            href: https://go2rtc.pitower.link
+            description: Video streaming proxy
     - Banking:
         - Firefly III:
             icon: firefly.svg
@@ -107,6 +95,18 @@ data:
             icon: firefly.svg
             href: https://money-import.pitower.link
             description: Transaction importer
+        - Ghostfolio:
+            icon: ghostfolio.svg
+            href: https://portfolio.pitower.link
+            description: Portfolio tracker
+        - Paperless:
+            icon: paperless-ngx.svg
+            href: https://paperless.pitower.link
+            description: Document management
+        - Paperless AI:
+            icon: paperless-ngx.svg
+            href: https://paperless-ai.pitower.link
+            description: AI document processing
     - Selfhosted:
         - n8n:
             icon: n8n.svg
@@ -140,6 +140,14 @@ data:
             icon: mdi-dns
             href: https://rrda.pitower.link
             description: DNS lookup
+        - Mealie:
+            icon: mealie.svg
+            href: https://recipes.pitower.link
+            description: Recipe management
+        - Nextcloud:
+            icon: nextcloud.svg
+            href: https://nextcloud.pitower.link
+            description: Personal cloud
     - AI:
         - ZeroClaw:
             icon: mdi-robot
@@ -159,6 +167,10 @@ data:
             href: https://lldap.pitower.link
             description: LDAP directory
     - Monitoring:
+        - Gatus:
+            icon: gatus.svg
+            href: https://status.pitower.link
+            description: Status monitoring
         - Grafana:
             icon: grafana.svg
             href: https://grafana.pitower.link
@@ -185,10 +197,6 @@ data:
             icon: ceph.svg
             href: https://rook.pitower.link
             description: Distributed storage
-        - Hubble:
-            icon: cilium.svg
-            href: https://hubble.pitower.link
-            description: Network observability
   settings.yaml: |
     title: Home
     favicon: https://raw.githubusercontent.com/gethomepage/homepage/main/public/homepage.png
@@ -203,19 +211,20 @@ data:
         columns: 4
       Home Automation:
         style: row
-        columns: 3
+        columns: 2
       Banking:
         style: row
+        columns: 3
       Selfhosted:
         style: row
-        columns: 3
+        columns: 4
       AI:
         style: row
       Security:
         style: row
       Monitoring:
         style: row
-        columns: 2
+        columns: 3
       Networking:
         style: row
       Infrastructure:
