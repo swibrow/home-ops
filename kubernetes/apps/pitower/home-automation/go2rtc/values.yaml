@@ -70,6 +70,10 @@ route:
       - name: envoy-internal
         namespace: networking
         sectionName: https
+    rules:
+      - backendRefs:
+          - identifier: app
+            port: 1984
 
 persistence:
   config:
