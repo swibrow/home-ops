@@ -12,7 +12,7 @@ configMapGenerator:
     literals:
       - APP_NAME=ghostfolio
       - SECRET_NAME=ghostfolio-db-secrets
-      - CNPG_SECRET_KEY=ghostfolio-superuser
+      - CNPG_SECRET_KEY=ghostfolio-app
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm

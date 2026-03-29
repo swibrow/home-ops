@@ -12,7 +12,7 @@ configMapGenerator:
     literals:
       - APP_NAME=gatus
       - SECRET_NAME=gatus-db-secret
-      - CNPG_SECRET_KEY=gatus-superuser
+      - CNPG_SECRET_KEY=gatus-app
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm

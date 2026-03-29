@@ -13,7 +13,7 @@ configMapGenerator:
     literals:
       - APP_NAME=firefly
       - SECRET_NAME=firefly-db-secrets
-      - CNPG_SECRET_KEY=firefly-superuser
+      - CNPG_SECRET_KEY=firefly-app
   - name: volsync-config
     options:
       disableNameSuffixHash: true
