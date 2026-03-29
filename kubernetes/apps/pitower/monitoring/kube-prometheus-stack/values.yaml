@@ -102,7 +102,7 @@ prometheus:
       - name: default
         default: true
         metricRelabelings:
-          - target_label: cluster
+          - targetLabel: cluster
             replacement: pitower
     ruleSelectorNilUsesHelmValues: false
     serviceMonitorSelectorNilUsesHelmValues: false
