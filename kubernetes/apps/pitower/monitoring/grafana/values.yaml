@@ -100,9 +100,6 @@ dashboards:
       gnetId: 1860 # https://grafana.com/grafana/dashboards/1860?tab=revisions
       revision: 37
       datasource: Prometheus
-    cloudnativepg:
-      url: https://raw.githubusercontent.com/cloudnative-pg/grafana-dashboards/main/charts/cluster/grafana-dashboard.json
-      datasource: Prometheus
 sidecar:
   dashboards:
     enabled: true
