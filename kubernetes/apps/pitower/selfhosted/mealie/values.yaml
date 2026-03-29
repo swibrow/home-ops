@@ -9,6 +9,16 @@ controllers:
           ALLOW_SIGNUP: "false"
           BASE_URL: https://recipes.pitower.link
           TZ: Europe/Zurich
+          OIDC_AUTH_ENABLED: "true"
+          OIDC_CONFIGURATION_URL: https://auth.pitower.link/.well-known/openid-configuration
+          OIDC_CLIENT_ID: mealie
+          OIDC_AUTO_REDIRECT: "true"
+          OIDC_SIGNUP_ENABLED: "true"
+          OIDC_ADMIN_GROUP: admins
+          OIDC_USER_GROUP: people
+        envFrom:
+          - secretRef:
+              name: mealie-secret
         probes:
           liveness: &probes
             enabled: true

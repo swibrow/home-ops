@@ -18,6 +18,10 @@ controllers:
           AUTOBRR__HOST: 0.0.0.0
           AUTOBRR__PORT: &port 7474
           AUTOBRR__LOG_LEVEL: DEBUG
+          AUTOBRR__OIDC_ENABLED: "true"
+          AUTOBRR__OIDC_ISSUER: https://auth.pitower.link
+          AUTOBRR__OIDC_CLIENT_ID: autobrr
+          AUTOBRR__OIDC_REDIRECT_URL: https://autobrr.pitower.link/api/auth/oidc/callback
           AUTOBRR__DATABASE_TYPE: postgres
           AUTOBRR__POSTGRES_HOST:
             valueFrom:

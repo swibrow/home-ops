@@ -118,4 +118,84 @@ identity_providers:
           - "groups"
           - "email"
         userinfo_signed_response_alg: "none"
-        # token_endpoint_auth_method: 'client_secret_basic'
+
+      - client_id: miniflux
+        client_name: "Miniflux"
+        client_secret: "{{ .authelia_miniflux_secret }}"
+        public: false
+        authorization_policy: "one_factor"
+        consent_mode: implicit
+        require_pkce: true
+        pkce_challenge_method: "S256"
+        redirect_uris:
+          - "https://miniflux.pitower.link/oauth2/oidc/callback"
+        scopes:
+          - "openid"
+          - "profile"
+          - "email"
+        userinfo_signed_response_alg: "none"
+
+      - client_id: mealie
+        client_name: "Mealie"
+        client_secret: "{{ .authelia_mealie_secret }}"
+        public: false
+        authorization_policy: "one_factor"
+        consent_mode: implicit
+        require_pkce: true
+        pkce_challenge_method: "S256"
+        redirect_uris:
+          - "https://recipes.pitower.link/login"
+        scopes:
+          - "openid"
+          - "profile"
+          - "email"
+          - "groups"
+        userinfo_signed_response_alg: "none"
+
+      - client_id: paperless
+        client_name: "Paperless"
+        client_secret: "{{ .authelia_paperless_secret }}"
+        public: false
+        authorization_policy: "one_factor"
+        consent_mode: implicit
+        require_pkce: true
+        pkce_challenge_method: "S256"
+        redirect_uris:
+          - "https://paperless.pitower.link/accounts/oidc/authelia/login/callback/"
+        scopes:
+          - "openid"
+          - "profile"
+          - "email"
+        userinfo_signed_response_alg: "none"
+
+      - client_id: ghostfolio
+        client_name: "Ghostfolio"
+        client_secret: "{{ .authelia_ghostfolio_secret }}"
+        public: false
+        authorization_policy: "one_factor"
+        consent_mode: implicit
+        require_pkce: true
+        pkce_challenge_method: "S256"
+        redirect_uris:
+          - "https://portfolio.pitower.link/api/auth/oidc/callback"
+        scopes:
+          - "openid"
+          - "profile"
+          - "email"
+        userinfo_signed_response_alg: "none"
+
+      - client_id: autobrr
+        client_name: "Autobrr"
+        client_secret: "{{ .authelia_autobrr_secret }}"
+        public: false
+        authorization_policy: "one_factor"
+        consent_mode: implicit
+        require_pkce: true
+        pkce_challenge_method: "S256"
+        redirect_uris:
+          - "https://autobrr.pitower.link/api/auth/oidc/callback"
+        scopes:
+          - "openid"
+          - "profile"
+          - "email"
+        userinfo_signed_response_alg: "none"

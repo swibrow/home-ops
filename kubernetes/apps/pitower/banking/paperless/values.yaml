@@ -29,7 +29,9 @@ controllers:
           PAPERLESS_REDIS: "redis://localhost:6379"
           # Auth
           PAPERLESS_ACCOUNT_ALLOW_SIGNUPS: "false"
-          PAPERLESS_SOCIALACCOUNT_ALLOW_SIGNUPS: "false"
+          PAPERLESS_SOCIALACCOUNT_ALLOW_SIGNUPS: "true"
+          PAPERLESS_APPS: allauth.socialaccount.providers.openid_connect
+          PAPERLESS_REDIRECT_LOGIN_TO_SSO: "true"
           # Folders
           PAPERLESS_DATA_DIR: /data/local/data
           PAPERLESS_MEDIA_ROOT: /data/local/media
