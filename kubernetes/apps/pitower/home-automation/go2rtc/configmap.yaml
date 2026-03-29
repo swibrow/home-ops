@@ -9,6 +9,8 @@ data:
     streams:
       basement:
         - rtsp://${BASEMENT_USER}:${BASEMENT_PASSWORD}@Camera-G100-7C13.iot:8554/ch1
+      bedroom_juno:
+        - rtsp://${BASEMENT_USER}:${BASEMENT_PASSWORD}@Camera-G100-815D.iot:8554/ch1
 
     api:
       listen: ":1984"
