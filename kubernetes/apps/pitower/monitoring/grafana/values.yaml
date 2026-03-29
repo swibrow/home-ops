@@ -49,14 +49,6 @@ dashboardProviders:
         editable: true
         options:
           path: /var/lib/grafana/dashboards/default
-      - name: kubernetes
-        orgId: 1
-        folder: Kubernetes
-        type: file
-        disableDeletion: false
-        editable: true
-        options:
-          path: /var/lib/grafana/dashboards/kubernetes
 datasources:
   datasources.yaml:
     apiVersion: 1
@@ -110,25 +102,6 @@ dashboards:
       datasource: Prometheus
     cloudnativepg:
       url: https://raw.githubusercontent.com/cloudnative-pg/grafana-dashboards/main/charts/cluster/grafana-dashboard.json
-      datasource: Prometheus
-  kubernetes:
-    kubernetes-api-server:
-      url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-system-api-server.json
-      datasource: Prometheus
-    kubernetes-coredns:
-      url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-system-coredns.json
-      datasource: Prometheus
-    kubernetes-global:
-      url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-global.json
-      datasource: Prometheus
-    kubernetes-namespaces:
-      url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-namespaces.json
-      datasource: Prometheus
-    kubernetes-nodes:
-      url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-nodes.json
-      datasource: Prometheus
-    kubernetes-pods:
-      url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-pods.json
       datasource: Prometheus
 sidecar:
   dashboards:
