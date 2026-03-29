@@ -98,6 +98,12 @@ prometheus:
   prometheusSpec:
     externalLabels:
       cluster: pitower
+    scrapeClasses:
+      - name: default
+        default: true
+        metricRelabelings:
+          - target_label: cluster
+            replacement: pitower
     ruleSelectorNilUsesHelmValues: false
     serviceMonitorSelectorNilUsesHelmValues: false
     podMonitorSelectorNilUsesHelmValues: false
