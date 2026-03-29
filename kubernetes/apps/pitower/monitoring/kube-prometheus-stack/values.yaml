@@ -111,7 +111,7 @@ prometheus:
     scrapeConfigSelectorNilUsesHelmValues: false
     enableAdminAPI: true
     walCompression: true
-    retentionSize: 15GB
+    retentionSize: 50GB
     startupProbe:
       failureThreshold: 120
     storageSpec:
