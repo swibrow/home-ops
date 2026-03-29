@@ -20,7 +20,7 @@ configMapGenerator:
 helmCharts:
   - name: nextcloud
     repo: oci://ghcr.io/nextcloud/helm
-    version: 9.0.3
+    version: 9.0.4
     releaseName: nextcloud
     namespace: selfhosted
     valuesFile: values.yaml
