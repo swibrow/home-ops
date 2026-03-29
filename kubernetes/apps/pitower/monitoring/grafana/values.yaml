@@ -49,14 +49,6 @@ dashboardProviders:
         editable: true
         options:
           path: /var/lib/grafana/dashboards/default
-      - name: flux
-        orgId: 1
-        folder: Flux
-        type: file
-        disableDeletion: false
-        editable: true
-        options:
-          path: /var/lib/grafana/dashboards/flux
       - name: kubernetes
         orgId: 1
         folder: Kubernetes
@@ -65,30 +57,6 @@ dashboardProviders:
         editable: true
         options:
           path: /var/lib/grafana/dashboards/kubernetes
-      - name: nginx
-        orgId: 1
-        folder: Nginx
-        type: file
-        disableDeletion: false
-        editable: true
-        options:
-          path: /var/lib/grafana/dashboards/nginx
-      - name: github
-        orgId: 1
-        folder: GitHub
-        type: file
-        disableDeletion: false
-        editable: true
-        options:
-          path: /var/lib/grafana/dashboards/github
-      - name: ceph
-        orgId: 1
-        folder: Ceph
-        type: file
-        disableDeletion: false
-        editable: true
-        options:
-          path: /var/lib/grafana/dashboards/ceph
 datasources:
   datasources.yaml:
     apiVersion: 1
@@ -115,13 +83,6 @@ datasources:
         url: http://alertmanager.monitoring.svc.cluster.local:9093
         jsonData:
           implementation: prometheus
-      - name: GitHub
-        type: grafana-github-datasource
-        jsonData:
-          owner: ""
-          repository: ""
-        secureJsonData:
-          accessToken: "${SECRET_GRAFANA_GITHUB_TOKEN}"
 dashboards:
   default:
     authelia:
@@ -149,32 +110,6 @@ dashboards:
     cloudnativepg:
       url: https://raw.githubusercontent.com/cloudnative-pg/grafana-dashboards/main/charts/cluster/grafana-dashboard.json
       datasource: Prometheus
-  flux:
-    flux-cluster:
-      url: https://raw.githubusercontent.com/fluxcd/flux2-monitoring-example/main/monitoring/configs/dashboards/cluster.json
-      datasource: Prometheus
-    flux-control-plane:
-      url: https://raw.githubusercontent.com/fluxcd/flux2-monitoring-example/main/monitoring/configs/dashboards/control-plane.json
-      datasource: Prometheus
-    # flux-logs:
-    #   url: https://raw.githubusercontent.com/fluxcd/flux2-monitoring-example/main/monitoring/configs/dashboards/logs.json
-    #   datasource: Loki
-  ceph:
-    ceph-cluster:
-      # renovate: dashboardName="Ceph Cluster"
-      gnetId: 2842
-      revision: 18
-      datasource: Prometheus
-    ceph-osd:
-      # renovate: dashboardName="Ceph - OSD (Single)"
-      gnetId: 5336
-      revision: 9
-      datasource: Prometheus
-    ceph-pools:
-      # renovate: dashboardName="Ceph - Pools"
-      gnetId: 5342
-      revision: 9
-      datasource: Prometheus
   kubernetes:
     kubernetes-api-server:
       url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-system-api-server.json
@@ -194,18 +129,6 @@ dashboards:
     kubernetes-pods:
       url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-pods.json
       datasource: Prometheus
-  nginx:
-    nginx:
-      url: https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/grafana/dashboards/nginx.json
-      datasource: Prometheus
-    nginx-request-handling-performance:
-      url: https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/grafana/dashboards/request-handling-performance.json
-      datasource: Prometheus
-  github:
-    github-repo-insights:
-      gnetId: 14000 # https://grafana.com/grafana/dashboards/12239?tab=revisions
-      revision: 1
-      datasource: GitHub
 sidecar:
   dashboards:
     enabled: true
@@ -233,17 +156,6 @@ route:
         namespace: networking
         sectionName: https
 
-# ingress:
-#   enabled: true
-#   ingressClassName: external
-#   annotations:
-#     external-dns.alpha.kubernetes.io/target: external.pitower.link
-#   hosts:
-#     - &host "grafana.pitower.link"
-#   tls:
-#     - hosts:
-#         - *host
-
 persistence:
   enabled: false
 
@@ -251,12 +163,7 @@ testFramework:
   enabled: false
 
 plugins:
-  - grafana-worldmap-panel
   - grafana-clock-panel
-  - grafana-github-datasource
-
-servuceMonitor:
-  enabled: true
 
 imageRenderer:
   enabled: true
