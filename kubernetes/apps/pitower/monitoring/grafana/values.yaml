@@ -77,7 +77,7 @@ datasources:
       - name: VictoriaLogs
         type: victoriametrics-logs-datasource
         access: proxy
-        url: http://victoria-logs-server.monitoring.svc.cluster.local:9428
+        url: http://victoria-logs-victoria-logs-single-server.monitoring.svc.cluster.local:9428
       - name: Alertmanager
         type: alertmanager
         access: proxy

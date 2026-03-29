@@ -55,7 +55,7 @@ config:
     [OUTPUT]
       Name              http
       Match             kubernetes.*
-      Host              victoria-logs-server.monitoring.svc.cluster.local
+      Host              victoria-logs-victoria-logs-single-server.monitoring.svc.cluster.local
       Port              9428
       URI               /insert/elasticsearch/_bulk
       Format            json_lines
