@@ -4,7 +4,7 @@ controllers:
       app:
         image:
           repository: ghcr.io/mealie-recipes/mealie
-          tag: v2.8.0
+          tag: v3.14.0
         env:
           ALLOW_SIGNUP: "false"
           BASE_URL: https://recipes.pitower.link
