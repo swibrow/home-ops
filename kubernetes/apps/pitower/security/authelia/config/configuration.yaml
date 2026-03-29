@@ -104,6 +104,7 @@ identity_providers:
         client_secret: "{{ .authelia_grafana_secret }}"
         public: false
         authorization_policy: "one_factor"
+        consent_mode: implicit
         require_pkce: true
         pkce_challenge_method: "S256"
         redirect_uris:
