@@ -1,0 +1,5 @@
+---
+providerRegex: |
+  ^(worker-01|worker-02|worker-03)$
+
+bypassDnsResolution: true

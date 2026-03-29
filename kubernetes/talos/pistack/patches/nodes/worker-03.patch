@@ -1,16 +1,16 @@
 ---
 machine:
-  install:
-    image: factory.talos.dev/installer/f19ad7b4a5d29151f3a59ef2d9c581cf89e77142e52f0abb5022e8f0b95ad0b9:v1.12.6
   network:
     interfaces:
       - deviceSelector:
           physical: true
         dhcp: true
         vip:
-          ip: 192.168.0.200
+          ip: 10.20.20.0
+  install:
+    image: factory.talos.dev/installer/f73ac434130797d995211c3ea9717493a5a57c7237d255ed6de97c851dd7c7e3:v1.12.6
 ---
 apiVersion: v1alpha1
 kind: HostnameConfig
 auto: off
-hostname: worker-02
+hostname: worker-03

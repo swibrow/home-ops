@@ -34,9 +34,6 @@ bpf:
 bgp:
   enabled: false
 
-containerRuntime:
-  integration: containerd
-
 endpointRoutes:
   enabled: true
 
@@ -108,4 +105,4 @@ dashboards:
   annotations:
     grafana_folder: Cilium
 rollOutCiliumPods: true
-tunnel: disabled
+routingMode: native

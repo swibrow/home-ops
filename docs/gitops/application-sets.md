@@ -271,9 +271,9 @@ Removing an app is equally simple -- delete the directory and push. The finalize
 
 ## Adding a New Cluster
 
-To add a new cluster (e.g. `pikeep`):
+To add a new cluster (e.g. `pistack`):
 
-1. Create the ApplicationSet at `kubernetes/argocd/clusters/pikeep.yaml`
-2. Create the app directory structure at `kubernetes/apps/pikeep/`
+1. Create the ApplicationSet at `kubernetes/argocd/clusters/pistack.yaml`
+2. Create the app directory structure at `kubernetes/apps/pistack/`
 3. Add a cluster secret in `kubernetes/bootstrap/` pointing to the remote cluster
-4. Apply the ApplicationSet: `kubectl apply -f kubernetes/argocd/clusters/pikeep.yaml`
+4. Apply the ApplicationSet: `kubectl apply -f kubernetes/argocd/clusters/pistack.yaml`

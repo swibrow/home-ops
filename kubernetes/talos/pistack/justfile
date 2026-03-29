@@ -1,0 +1,74 @@
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+export SOPS_AGE_KEY_FILE := source_directory() / "../../../age.key"
+
+import '../shared/talos.justfile'
+
+cp_image := "factory.talos.dev/installer/f73ac434130797d995211c3ea9717493a5a57c7237d255ed6de97c851dd7c7e3:v1.12.6"
+
+talosconfig := source_directory() / "clusterconfig/talosconfig"
+nodes := "10.20.20.1 10.20.20.2 10.20.20.3"
+
+# Generate talos config from secrets
+config:
+    sops -d ./secrets.sops.yaml > ./secrets.yaml
+    talosctl gen config \
+        pistack \
+        https://10.20.20.0:6443 \
+        --with-secrets ./secrets.yaml \
+        --with-examples=true \
+        --config-patch-control-plane @patches/controlplane.patch \
+        --config-patch @../shared/patches/general.patch \
+        --output ./clusterconfig \
+        --force
+
+# Patch machine configs for all nodes
+[working-directory: 'clusterconfig']
+patch:
+    talosctl machineconfig patch ./controlplane.yaml --patch @../patches/nodes/worker-01.patch --output worker-01.yaml
+    talosctl machineconfig patch ./controlplane.yaml --patch @../patches/nodes/worker-02.patch --output worker-02.yaml
+    talosctl machineconfig patch ./controlplane.yaml --patch @../patches/nodes/worker-03.patch --output worker-03.yaml
+
+# Bootstrap the Talos cluster
+[working-directory: 'clusterconfig']
+bootstrap node_ip:
+    talosctl bootstrap --nodes {{ node_ip }} --endpoints {{ node_ip }} --talosconfig ./talosconfig
+    talosctl kubeconfig --nodes {{ node_ip }} --endpoints {{ node_ip }} --talosconfig ./talosconfig
+
+# Upgrade a single node by name (e.g. just upgrade worker-01)
+upgrade name:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ip=$(talosctl --talosconfig {{ talosconfig }} get members -o json | jq -rs --arg h "{{ name }}" '[.[] | select(.spec.hostname == $h) | .spec.addresses[0]][0]')
+    echo "Upgrading {{ name }} (${ip}) with {{ cp_image }}"
+    talosctl --talosconfig {{ talosconfig }} upgrade \
+        --image {{ cp_image }} \
+        --nodes "${ip}" \
+        --preserve \
+        --wait
+
+# Upgrade all nodes sequentially
+upgrade-all:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for name in worker-01 worker-02 worker-03; do
+        ip=$(talosctl --talosconfig {{ talosconfig }} get members -o json | jq -rs --arg h "$name" '[.[] | select(.spec.hostname == $h) | .spec.addresses[0]][0]')
+        echo "Upgrading $name (${ip})"
+        talosctl --talosconfig {{ talosconfig }} upgrade \
+            --image {{ cp_image }} \
+            --nodes "${ip}" \
+            --preserve \
+            --wait
+    done
+
+# Reset a node by name
+reset name:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ip=$(talosctl --talosconfig {{ talosconfig }} get members -o json | jq -rs --arg h "{{ name }}" '[.[] | select(.spec.hostname == $h) | .spec.addresses[0]][0]')
+    talosctl --talosconfig {{ talosconfig }} reset \
+        --system-labels-to-wipe=EPHEMERAL \
+        --system-labels-to-wipe=META \
+        --reboot \
+        --graceful=false \
+        -n "${ip}"

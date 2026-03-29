@@ -12,9 +12,9 @@
       additionalBranchPrefix: "pitower-",
     },
     {
-      description: "Separate PRs for pikeep cluster",
-      matchFileNames: ["pikeep/**"],
-      additionalBranchPrefix: "pikeep-",
+      description: "Separate PRs for pistack cluster",
+      matchFileNames: ["pistack/**"],
+      additionalBranchPrefix: "pistack-",
     },
   ],
 }

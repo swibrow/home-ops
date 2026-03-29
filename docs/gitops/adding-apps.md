@@ -234,7 +234,7 @@ For apps that need different configuration per cluster, create a subdirectory pe
 
 ```
 kubernetes/apps/pitower/networking/envoy-gateway/pitower/
-kubernetes/apps/pikeep/networking/envoy-gateway/pikeep/
+kubernetes/apps/pistack/networking/envoy-gateway/pistack/
 ```
 
 Each cluster's ApplicationSet only scans its own directory tree, so each cluster gets its own configuration.

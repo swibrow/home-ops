@@ -1,4 +1,4 @@
-# de94b242ed9adec9def2581ffbf1e2d1873e42b17032771770d241dee54d7c00
+# f73ac434130797d995211c3ea9717493a5a57c7237d255ed6de97c851dd7c7e3
 # curl -X POST --data-binary @rpi-poe.yaml https://factory.talos.dev/schematics
 overlay:
   image: siderolabs/sbc-raspberrypi
@@ -12,6 +12,8 @@ overlay:
       dtparam=poe_fan_temp2=70000
       dtparam=poe_fan_temp3=80000
 customization:
+  extraKernelArgs:
+    - initcall_blacklist=sensors_nct6683_init
   systemExtensions:
     officialExtensions:
       - siderolabs/util-linux-tools
