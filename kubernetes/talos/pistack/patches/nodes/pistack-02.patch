@@ -13,4 +13,4 @@ machine:
 apiVersion: v1alpha1
 kind: HostnameConfig
 auto: off
-hostname: worker-03
+hostname: pistack-02

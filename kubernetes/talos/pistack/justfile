@@ -25,9 +25,9 @@ config:
 # Patch machine configs for all nodes
 [working-directory: 'clusterconfig']
 patch:
-    talosctl machineconfig patch ./controlplane.yaml --patch @../patches/nodes/worker-01.patch --output worker-01.yaml
-    talosctl machineconfig patch ./controlplane.yaml --patch @../patches/nodes/worker-02.patch --output worker-02.yaml
-    talosctl machineconfig patch ./controlplane.yaml --patch @../patches/nodes/worker-03.patch --output worker-03.yaml
+    talosctl machineconfig patch ./controlplane.yaml --patch @../patches/nodes/pistack-01.patch --output pistack-01.yaml
+    talosctl machineconfig patch ./controlplane.yaml --patch @../patches/nodes/pistack-02.patch --output pistack-02.yaml
+    talosctl machineconfig patch ./controlplane.yaml --patch @../patches/nodes/pistack-03.patch --output pistack-03.yaml
 
 # Bootstrap the Talos cluster
 [working-directory: 'clusterconfig']
@@ -35,7 +35,7 @@ bootstrap node_ip:
     talosctl bootstrap --nodes {{ node_ip }} --endpoints {{ node_ip }} --talosconfig ./talosconfig
     talosctl kubeconfig --nodes {{ node_ip }} --endpoints {{ node_ip }} --talosconfig ./talosconfig
 
-# Upgrade a single node by name (e.g. just upgrade worker-01)
+# Upgrade a single node by name (e.g. just upgrade pistack-01)
 upgrade name:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -51,7 +51,7 @@ upgrade name:
 upgrade-all:
     #!/usr/bin/env bash
     set -euo pipefail
-    for name in worker-01 worker-02 worker-03; do
+    for name in pistack-01 pistack-02 pistack-03; do
         ip=$(talosctl --talosconfig {{ talosconfig }} get members -o json | jq -rs --arg h "$name" '[.[] | select(.spec.hostname == $h) | .spec.addresses[0]][0]')
         echo "Upgrading $name (${ip})"
         talosctl --talosconfig {{ talosconfig }} upgrade \
