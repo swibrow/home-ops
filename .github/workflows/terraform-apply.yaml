@@ -32,7 +32,7 @@ jobs:
           role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
           aws-region: eu-central-2
 
-      - uses: dflook/terraform-apply@v1
+      - uses: dflook/terraform-apply@ae2c5e880f4fa52c4b5e0c554ebb402a3c418c95 # v1
         with:
           path: terraform/${{ matrix.stack }}
           label: ${{ matrix.stack }}
