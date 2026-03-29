@@ -14,7 +14,7 @@ controllers:
           ENABLE_FEATURE_AUTH_OIDC: "true"
           OIDC_CLIENT_ID: ghostfolio
           OIDC_ISSUER: https://auth.pitower.link
-          OIDC_SCOPE: "openid profile email"
+          OIDC_SCOPE: '["openid","profile","email"]'
           DATABASE_URL:
             valueFrom:
               secretKeyRef:
