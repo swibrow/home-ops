@@ -141,4 +141,3 @@ persistence:
       authelia:
         valkey:
           - path: /data
-        readOnly: true
