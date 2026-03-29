@@ -133,10 +133,7 @@ persistence:
       - path: /config/configuration.yaml
         subPath: configuration.yaml
   valkey-data:
-    type: persistentVolumeClaim
-    accessMode: ReadWriteOnce
-    size: 1Gi
-    storageClass: ceph-block
+    type: emptyDir
     advancedMounts:
       authelia:
         valkey:
