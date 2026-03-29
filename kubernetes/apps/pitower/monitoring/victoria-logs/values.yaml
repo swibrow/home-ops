@@ -1,0 +1,23 @@
+server:
+  enabled: true
+  replicaCount: 1
+  retentionPeriod: 14d
+  extraArgs:
+    envflag.enable: "true"
+    envflag.prefix: VM_
+    loggerFormat: json
+  persistentVolume:
+    enabled: true
+    accessModes:
+      - ReadWriteOnce
+    storageClassName: openebs-hostpath
+    size: 20Gi
+  service:
+    servicePort: 9428
+    type: ClusterIP
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      memory: 512Mi

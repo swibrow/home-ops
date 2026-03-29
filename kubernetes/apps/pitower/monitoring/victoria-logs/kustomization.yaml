@@ -4,9 +4,9 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: monitoring
 helmCharts:
-  - name: loki
-    repo: https://grafana.github.io/helm-charts
-    version: 6.55.0
-    releaseName: loki
+  - name: victoria-logs-single
+    repo: https://victoriametrics.github.io/helm-charts
+    version: 0.11.30
+    releaseName: victoria-logs
     valuesFile: values.yaml
     namespace: monitoring

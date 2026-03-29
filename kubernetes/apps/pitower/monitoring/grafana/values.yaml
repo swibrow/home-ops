@@ -63,6 +63,7 @@ datasources:
     deleteDatasources:
       - { name: Prometheus, orgId: 1 }
       - { name: Loki, orgId: 1 }
+      - { name: VictoriaLogs, orgId: 1 }
       - { name: Alertmanager, orgId: 1 }
     datasources:
       - name: Prometheus
@@ -73,10 +74,10 @@ datasources:
         jsonData:
           prometheusType: Prometheus
         isDefault: true
-      - name: Loki
-        type: loki
+      - name: VictoriaLogs
+        type: victoriametrics-logs-datasource
         access: proxy
-        url: http://loki-headless.monitoring.svc.cluster.local:3100
+        url: http://victoria-logs-server.monitoring.svc.cluster.local:9428
       - name: Alertmanager
         type: alertmanager
         access: proxy
@@ -164,6 +165,7 @@ testFramework:
 
 plugins:
   - grafana-clock-panel
+  - victoriametrics-logs-datasource
 
 imageRenderer:
   enabled: true

@@ -53,9 +53,17 @@ config:
   ## https://docs.fluentbit.io/manual/pipeline/outputs
   outputs: |
     [OUTPUT]
-      Name loki
-      Match kubernetes.*
-      host loki-headless.monitoring.svc.cluster.local
-      port 3100
-      line_format json
-      labels job=fluent-bit, cluster=pitower, source=$source, namespace=$kubernetes_namespace_name
+      Name              http
+      Match             kubernetes.*
+      Host              victoria-logs-server.monitoring.svc.cluster.local
+      Port              9428
+      URI               /insert/elasticsearch/_bulk
+      Format            json_lines
+      Header            VL-Time-Field @timestamp
+      Header            VL-Stream-Fields kubernetes_namespace_name,kubernetes_pod_name,kubernetes_container_name
+      Header            VL-Msg-Field log,message,msg
+      Header            AccountID 0
+      Header            ProjectID 0
+      Compress          gzip
+      json_date_key     @timestamp
+      json_date_format  iso8601
