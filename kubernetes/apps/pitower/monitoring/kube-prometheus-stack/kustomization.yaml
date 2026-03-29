@@ -13,3 +13,11 @@ helmCharts:
     includeCRDs: true
     namespace: monitoring
     valuesFile: values.yaml
+patches:
+  - target:
+      kind: ConfigMap
+      labelSelector: grafana_dashboard=1,app.kubernetes.io/part-of=kube-prometheus-stack
+    patch: |
+      - op: add
+        path: /metadata/annotations/grafana_folder
+        value: Kubernetes
