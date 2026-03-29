@@ -30,9 +30,12 @@ authentication_backend:
 session:
   secret: "{{ .authelia_session_secret }}"
   same_site: lax
-  inactivity: 5m
-  expiration: 1h
-  remember_me: 1M
+  inactivity: 30d
+  expiration: 30d
+  remember_me: 30d
+  redis:
+    host: localhost
+    port: 6379
   cookies:
     - name: pitower_link_session
       domain: pitower.link
