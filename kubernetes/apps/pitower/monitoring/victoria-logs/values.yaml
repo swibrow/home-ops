@@ -21,3 +21,10 @@ server:
       memory: 256Mi
     limits:
       memory: 512Mi
+
+dashboards:
+  enabled: true
+  labels:
+    grafana_dashboard: "true"
+  annotations:
+    grafana_folder: VictoriaLogs
