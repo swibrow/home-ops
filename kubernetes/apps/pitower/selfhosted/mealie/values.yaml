@@ -15,7 +15,7 @@ controllers:
           OIDC_AUTO_REDIRECT: "true"
           OIDC_SIGNUP_ENABLED: "true"
           OIDC_ADMIN_GROUP: admins
-          OIDC_USER_GROUP: people
+          OIDC_USER_GROUP: apps
         envFrom:
           - secretRef:
               name: mealie-secret

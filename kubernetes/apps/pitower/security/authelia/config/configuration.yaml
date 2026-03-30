@@ -145,6 +145,7 @@ identity_providers:
         pkce_challenge_method: "S256"
         redirect_uris:
           - "https://recipes.pitower.link/login"
+          - "https://recipes.pitower.link/api/auth/oauth/callback"
         scopes:
           - "openid"
           - "profile"
