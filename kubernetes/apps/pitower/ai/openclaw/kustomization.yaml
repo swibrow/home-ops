@@ -5,6 +5,7 @@ kind: Kustomization
 namespace: ai
 resources:
   - externalsecret.yaml
+  - configmap.yaml
 components:
   - ../../../../components/volsync
 configMapGenerator:

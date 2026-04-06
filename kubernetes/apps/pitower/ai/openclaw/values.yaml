@@ -2,27 +2,6 @@ controllers:
   openclaw:
     annotations:
       reloader.stakater.com/auto: "true"
-    initContainers:
-      install-proxy:
-        image:
-          repository: node
-          tag: 24-slim
-        command: ["/bin/sh"]
-        args:
-          - "-c"
-          - |
-            export NPM_CONFIG_PREFIX=/opt/proxy
-            npm install -g claude-max-api-proxy@1.0.0 @anthropic-ai/claude-code@2.1.83
-        securityContext:
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: true
-          capabilities: { drop: ["ALL"] }
-        resources:
-          requests:
-            cpu: 200m
-            memory: 512Mi
-          limits:
-            memory: 1Gi
     containers:
       app:
         image:
@@ -32,10 +11,9 @@ controllers:
         args:
           - "-c"
           - |
-            exec node dist/index.js gateway --bind lan --allow-unconfigured
+            exec node dist/index.js gateway --bind lan
         env:
           TZ: Europe/Zurich
-          OPENAI_BASE_URL: http://localhost:3456/v1
         envFrom:
           - secretRef:
               name: openclaw-secret
@@ -78,59 +56,6 @@ controllers:
             memory: 1Gi
           limits:
             memory: 4Gi
-      claude-max-api:
-        image:
-          repository: node
-          tag: 24-slim
-        command: ["/bin/sh"]
-        args:
-          - "-c"
-          - |
-            export NPM_CONFIG_PREFIX=/opt/proxy
-            export PATH=/opt/proxy/bin:$PATH
-            exec node /opt/proxy/lib/node_modules/claude-max-api-proxy/dist/server/standalone.js
-        env:
-          HOME: /home/node
-          CLAUDE_CONFIG_DIR: /tmp/.claude
-        envFrom:
-          - secretRef:
-              name: openclaw-secret
-        securityContext:
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: true
-          capabilities: { drop: ["ALL"] }
-        probes:
-          startup:
-            enabled: true
-            custom: true
-            spec:
-              exec:
-                command: ["node", "-e", "require('http').get('http://127.0.0.1:3456/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"]
-              initialDelaySeconds: 10
-              periodSeconds: 5
-              failureThreshold: 30
-          readiness:
-            enabled: true
-            custom: true
-            spec:
-              exec:
-                command: ["node", "-e", "require('http').get('http://127.0.0.1:3456/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"]
-              periodSeconds: 10
-              failureThreshold: 3
-          liveness:
-            enabled: true
-            custom: true
-            spec:
-              exec:
-                command: ["node", "-e", "require('http').get('http://127.0.0.1:3456/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"]
-              periodSeconds: 30
-              failureThreshold: 5
-        resources:
-          requests:
-            cpu: 100m
-            memory: 256Mi
-          limits:
-            memory: 1Gi
 
 defaultPodOptions:
   securityContext:
@@ -164,21 +89,13 @@ persistence:
     existingClaim: openclaw-data
     globalMounts:
       - path: /home/node/.openclaw
-  proxy-install:
-    type: emptyDir
-    advancedMounts:
-      openclaw:
-        install-proxy:
-          - path: /opt/proxy
-        claude-max-api:
-          - path: /opt/proxy
-            readOnly: true
-  npm-cache:
-    type: emptyDir
-    advancedMounts:
-      openclaw:
-        install-proxy:
-          - path: /home/node/.npm
+  config:
+    type: configMap
+    name: openclaw-config
+    globalMounts:
+      - path: /home/node/.openclaw/openclaw.json
+        subPath: openclaw.json
+        readOnly: true
   tmp:
     type: emptyDir
     globalMounts:
