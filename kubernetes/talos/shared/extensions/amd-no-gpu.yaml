@@ -1,0 +1,10 @@
+# c990694c78b936797940db16b440aba63557f7e72faabc7e1d350ac3b44650fb
+# AMD nodes without GPU driver (prevents amdgpu crash resets)
+# curl -X POST --data-binary @amd-no-gpu.yaml https://factory.talos.dev/schematics
+customization:
+  extraKernelArgs:
+    - modprobe.blacklist=amdgpu
+  systemExtensions:
+    officialExtensions:
+      - siderolabs/util-linux-tools
+      - siderolabs/amd-ucode
