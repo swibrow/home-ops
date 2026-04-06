@@ -7,7 +7,6 @@ controllers:
         image:
           repository: ghcr.io/openclaw/openclaw
           tag: 2026.4.5
-        args: ["gateway", "--bind", "lan"]
         env:
           TZ: Europe/Zurich
         envFrom:
