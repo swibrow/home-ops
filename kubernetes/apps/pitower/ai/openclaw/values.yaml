@@ -7,11 +7,7 @@ controllers:
         image:
           repository: ghcr.io/openclaw/openclaw
           tag: 2026.4.5
-        command: ["/bin/sh"]
-        args:
-          - "-c"
-          - |
-            exec node dist/index.js gateway --bind lan
+        args: ["gateway", "--bind", "lan"]
         env:
           TZ: Europe/Zurich
         envFrom:
@@ -29,8 +25,8 @@ controllers:
               httpGet:
                 path: /healthz
                 port: &port 18789
-              initialDelaySeconds: 5
-              periodSeconds: 5
+              initialDelaySeconds: 15
+              periodSeconds: 10
               failureThreshold: 30
           readiness:
             enabled: true
