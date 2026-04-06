@@ -6,7 +6,7 @@ controllers:
       app:
         image:
           repository: couchdb
-          tag: "3.4"
+          tag: "3.5"
         env:
           TZ: Europe/Zurich
         envFrom:
