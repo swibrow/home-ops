@@ -9,6 +9,10 @@ csi:
       operator: Equal
       value: media-home
       effect: NoSchedule
+    - key: node-issue
+      operator: Equal
+      value: "true"
+      effect: NoExecute
 monitoring:
   enabled: false
 resources:

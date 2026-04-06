@@ -12,6 +12,14 @@ route:
   dashboard: {}
 
 cephClusterSpec:
+  placement:
+    all:
+      tolerations:
+        - key: node-issue
+          operator: Equal
+          value: "true"
+          effect: NoExecute
+
   network:
     provider: host
 
