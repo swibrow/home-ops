@@ -28,6 +28,8 @@ spec:
         home-ops/cluster: pitower
         home-ops/category: "{{index .path.segments 3}}"
         home-ops/namespace: "{{index .path.segments 3}}"
+      annotations:
+        argocd.argoproj.io/compare-options: ServerSideDiff=true,IncludeMutationWebhook=true
       finalizers:
         - resources-finalizer.argocd.argoproj.io
     spec:
