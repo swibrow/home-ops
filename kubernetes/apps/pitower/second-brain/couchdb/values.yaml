@@ -1,0 +1,88 @@
+controllers:
+  couchdb:
+    annotations:
+      reloader.stakater.com/auto: "true"
+    containers:
+      app:
+        image:
+          repository: couchdb
+          tag: "3.4"
+        env:
+          TZ: Europe/Zurich
+        envFrom:
+          - secretRef:
+              name: couchdb-secret
+        probes:
+          liveness: &probes
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                port: &port 5984
+                path: /
+          readiness: *probes
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128M
+          limits:
+            memory: 512M
+
+service:
+  app:
+    controller: couchdb
+    ports:
+      http:
+        port: *port
+
+route:
+  app:
+    enabled: true
+    hostnames:
+      - obsidian.pitower.link
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+
+persistence:
+  data:
+    existingClaim: couchdb-data
+    globalMounts:
+      - path: /opt/couchdb/data
+  config:
+    type: configMap
+    name: couchdb-ini
+    globalMounts:
+      - path: /opt/couchdb/etc/local.d/livesync.ini
+        subPath: livesync.ini
+        readOnly: true
+
+configMaps:
+  ini:
+    enabled: true
+    nameOverride: couchdb-ini
+    data:
+      livesync.ini: |
+        [couchdb]
+        single_node=true
+        max_document_size = 50000000
+
+        [chttpd]
+        require_valid_user = true
+        max_http_request_size = 4294967296
+        enable_cors = true
+
+        [chttpd_auth]
+        require_valid_user = true
+
+        [httpd]
+        WWW-Authenticate = Basic realm="couchdb"
+        bind_address = 0.0.0.0
+
+        [cors]
+        origins = app://obsidian.md,capacitor://localhost,http://localhost
+        credentials = true
+        headers = accept, authorization, content-type, origin, referer
+        methods = GET, PUT, POST, HEAD, DELETE
+        max_age = 3600
