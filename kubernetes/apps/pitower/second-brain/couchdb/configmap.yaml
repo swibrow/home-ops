@@ -17,10 +17,6 @@ data:
     [chttpd_auth]
     require_valid_user = true
 
-    [httpd]
-    WWW-Authenticate = Basic realm="couchdb"
-    bind_address = 0.0.0.0
-
     [cors]
     origins = app://obsidian.md,capacitor://localhost,http://localhost
     credentials = true
