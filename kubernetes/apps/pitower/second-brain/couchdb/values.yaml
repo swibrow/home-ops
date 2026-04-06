@@ -48,7 +48,7 @@ route:
     hostnames:
       - obsidian.pitower.link
     parentRefs:
-      - name: envoy-internal
+      - name: envoy-external
         namespace: networking
         sectionName: https
 
