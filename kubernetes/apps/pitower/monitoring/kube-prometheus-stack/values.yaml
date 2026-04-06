@@ -121,6 +121,14 @@ prometheus:
           resources:
             requests:
               storage: 50Gi
+prometheus-node-exporter:
+  tolerations:
+    - effect: NoSchedule
+      operator: Exists
+    - key: node-issue
+      operator: Equal
+      value: "true"
+      effect: NoExecute
 grafana:
   enabled: false
   forceDeployDashboards: true
