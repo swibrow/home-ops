@@ -61,7 +61,6 @@ persistence:
 configMaps:
   ini:
     enabled: true
-    nameOverride: couchdb-ini
     data:
       livesync.ini: |
         [couchdb]
