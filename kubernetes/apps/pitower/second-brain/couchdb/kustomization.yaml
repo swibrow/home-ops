@@ -4,6 +4,7 @@ kind: Kustomization
 namespace: second-brain
 resources:
   - externalsecret.yaml
+  - configmap.yaml
 components:
   - ../../../../components/volsync
 configMapGenerator:
