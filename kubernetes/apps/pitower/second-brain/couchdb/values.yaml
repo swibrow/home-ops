@@ -2,57 +2,45 @@ controllers:
   couchdb:
     annotations:
       reloader.stakater.com/auto: "true"
+    initContainers:
+      init-config:
+        image:
+          repository: public.ecr.aws/docker/library/busybox
+          tag: latest
+        command:
+          - "/bin/sh"
+          - "-c"
+          - "cp /tmp/config/*.ini /opt/couchdb/etc/default.d/; ls -lrt /opt/couchdb/etc/default.d;"
     containers:
       app:
         image:
-          repository: couchdb
-          tag: "3.4"
+          repository: public.ecr.aws/docker/library/couchdb
+          tag: 3.5.1
         env:
           TZ: Europe/Zurich
         envFrom:
           - secretRef:
               name: couchdb-secret
-        probes:
-          liveness:
-            enabled: true
-            custom: true
-            spec:
-              httpGet:
-                port: &port 5984
-                path: /_up
-              initialDelaySeconds: 30
-              periodSeconds: 10
-          readiness:
-            enabled: true
-            custom: true
-            spec:
-              httpGet:
-                port: *port
-                path: /_up
-              initialDelaySeconds: 10
-              periodSeconds: 5
-          startup:
-            enabled: true
-            custom: true
-            spec:
-              httpGet:
-                port: *port
-                path: /_up
-              failureThreshold: 30
-              periodSeconds: 5
         resources:
           requests:
-            cpu: 50m
-            memory: 128M
+            cpu: 10m
+            memory: 256M
           limits:
             memory: 512M
+
+defaultPodOptions:
+  securityContext:
+    runAsUser: 568
+    runAsGroup: 568
+    fsGroup: 568
+    fsGroupChangePolicy: OnRootMismatch
 
 service:
   app:
     controller: couchdb
     ports:
       http:
-        port: *port
+        port: &port 5984
 
 route:
   app:
@@ -64,15 +52,49 @@ route:
         namespace: networking
         sectionName: https
 
+configMaps:
+  config:
+    data:
+      config.ini: |-
+        [couchdb]
+        single_node = true
+        max_document_size = 50000000
+
+        [chttpd]
+        require_valid_user = true
+        bind_address = any
+        max_http_request_size = 4294967296
+
+        [chttpd_auth]
+        require_valid_user = true
+        authentication_redirect = /_utils/session.html
+
+        [httpd]
+        WWW-Authenticate = Basic realm="couchdb"
+        enable_cors = true
+
+        [cors]
+        origins = app://obsidian.md,capacitor://localhost,http://localhost
+        credentials = true
+        headers = accept, authorization, content-type, origin, referer
+        methods = GET, PUT, POST, HEAD, DELETE
+        max_age = 3600
+
 persistence:
-  data:
-    existingClaim: couchdb-data
-    globalMounts:
-      - path: /opt/couchdb/data
   config:
     type: configMap
-    name: couchdb-livesync
+    identifier: config
+    advancedMounts:
+      couchdb:
+        init-config:
+          - path: /tmp/config
+  data:
+    existingClaim: couchdb-data
+    advancedMounts:
+      couchdb:
+        app:
+          - path: /opt/couchdb/data
+  config-storage:
+    type: emptyDir
     globalMounts:
-      - path: /opt/couchdb/etc/local.d/livesync.ini
-        subPath: livesync.ini
-        readOnly: true
+      - path: /opt/couchdb/etc/default.d

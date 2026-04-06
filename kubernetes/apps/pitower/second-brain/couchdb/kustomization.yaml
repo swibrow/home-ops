@@ -4,7 +4,6 @@ kind: Kustomization
 namespace: second-brain
 resources:
   - externalsecret.yaml
-  - configmap.yaml
 components:
   - ../../../../components/volsync
 configMapGenerator:
@@ -12,7 +11,7 @@ configMapGenerator:
     options:
       disableNameSuffixHash: true
     literals:
-      - APP_NAME=couchdb
+      - APP_NAME=couchdb-backup
       - CLAIM_NAME=couchdb-data
       - SECRET_NAME=couchdb-volsync
       - STORAGE_SIZE=2Gi
