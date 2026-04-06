@@ -25,6 +25,7 @@ configs:
               - swibrow
   params:
     applicationsetcontroller.enable.progressive.syncs: true
+    controller.diff.server.side: "true"
     server.insecure: true
     reposerver.timeout.seconds: "300"
 
