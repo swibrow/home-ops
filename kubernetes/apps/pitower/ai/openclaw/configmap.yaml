@@ -15,7 +15,8 @@ data:
           "mode": "token"
         },
         "controlUi": {
-          "dangerouslyDisableDeviceAuth": true
+          "dangerouslyDisableDeviceAuth": true,
+          "allowedOrigins": ["https://openclaw.pitower.link"]
         },
         "tailscale": {
           "mode": "off"
