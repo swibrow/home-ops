@@ -6,7 +6,7 @@ import '../shared/talos.justfile'
 
 cp_image := "factory.talos.dev/installer/de94b242ed9adec9def2581ffbf1e2d1873e42b17032771770d241dee54d7c00:v1.12.6"
 cp_amd_image := "factory.talos.dev/installer/f19ad7b4a5d29151f3a59ef2d9c581cf89e77142e52f0abb5022e8f0b95ad0b9:v1.12.6"
-cp_amd_no_gpu_image := "factory.talos.dev/installer/c990694c78b936797940db16b440aba63557f7e72faabc7e1d350ac3b44650fb:v1.12.6"
+cp_amd_no_gpu_image := "factory.talos.dev/installer/0ba1c222ef07db13e3e40c3872b1f2b0822beae845a0c316150750cdec0166a6:v1.12.6"
 worker_intel_image := "factory.talos.dev/installer/97bf8e92fc6bba0f03928b859c08295d7615737b29db06a97be51dc63004e403:v1.12.6"
 
 talosconfig := source_directory() / "clusterconfig/talosconfig"

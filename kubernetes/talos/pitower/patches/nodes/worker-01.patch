@@ -1,7 +1,7 @@
 ---
 machine:
   install:
-    image: factory.talos.dev/installer/c990694c78b936797940db16b440aba63557f7e72faabc7e1d350ac3b44650fb:v1.12.6
+    image: factory.talos.dev/installer/0ba1c222ef07db13e3e40c3872b1f2b0822beae845a0c316150750cdec0166a6:v1.12.6
   network:
     interfaces:
       - deviceSelector:
