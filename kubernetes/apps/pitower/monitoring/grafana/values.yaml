@@ -65,6 +65,7 @@ datasources:
       - { name: Loki, orgId: 1 }
       - { name: VictoriaLogs, orgId: 1 }
       - { name: VictoriaMetrics, orgId: 1 }
+      - { name: HomeAssistant, orgId: 1 }
       - { name: Alertmanager, orgId: 1 }
     datasources:
       - name: Prometheus
@@ -82,6 +83,15 @@ datasources:
         url: http://victoria-metrics-server.monitoring.svc.cluster.local:8428
         jsonData:
           prometheusType: Prometheus
+      - name: HomeAssistant
+        type: influxdb
+        uid: homeassistant
+        access: proxy
+        url: http://victoria-metrics-server.monitoring.svc.cluster.local:8428
+        database: homeassistant
+        jsonData:
+          dbName: homeassistant
+          httpMode: GET
       - name: VictoriaLogs
         type: victoriametrics-logs-datasource
         access: proxy

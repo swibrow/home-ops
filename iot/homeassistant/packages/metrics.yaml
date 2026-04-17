@@ -1,0 +1,24 @@
+influxdb:
+  max_retries: 3
+  default_measurement: state
+  tags:
+    source: home-assistant
+  tags_attributes:
+    - friendly_name
+    - area_id
+  include:
+    domains:
+      - sensor
+      - binary_sensor
+      - device_tracker
+      - person
+      - light
+      - switch
+      - climate
+      - media_player
+      - cover
+      - fan
+      - lock
+      - counter
+      - input_boolean
+      - input_number
