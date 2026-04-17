@@ -123,6 +123,11 @@ dashboards:
       gnetId: 20842 # https://grafana.com/grafana/dashboards/20842
       revision: 3
       datasource: Prometheus
+    home-assistant-state-changes:
+      gnetId: 12705 # https://grafana.com/grafana/dashboards/12705?tab=revisions
+      revision: 3
+      datasource:
+        - { name: DS_HA_INFLUXDB, value: HomeAssistant }
     node-exporter-full:
       gnetId: 1860 # https://grafana.com/grafana/dashboards/1860?tab=revisions
       revision: 37
