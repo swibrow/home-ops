@@ -1,0 +1,14 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: monitoring
+resources:
+  - httproute.yaml
+helmCharts:
+  - name: victoria-metrics-single
+    repo: https://victoriametrics.github.io/helm-charts
+    version: 0.35.0
+    releaseName: victoria-metrics
+    namespace: monitoring
+    valuesFile: values.yaml

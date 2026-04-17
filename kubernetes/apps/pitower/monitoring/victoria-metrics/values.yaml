@@ -1,0 +1,30 @@
+server:
+  enabled: true
+  replicaCount: 1
+  retentionPeriod: 2y
+  extraArgs:
+    envflag.enable: "true"
+    envflag.prefix: VM_
+    loggerFormat: json
+    # Accept Prometheus remote_write + InfluxDB line protocol on the default port
+    search.maxUniqueTimeseries: "1000000"
+  persistentVolume:
+    enabled: true
+    accessModes:
+      - ReadWriteOnce
+    storageClassName: ceph-block
+    size: 50Gi
+  service:
+    servicePort: 8428
+    type: ClusterIP
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      memory: 2Gi
+  ingress:
+    enabled: false
+
+vmbackupmanager:
+  enabled: false

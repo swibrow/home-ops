@@ -98,6 +98,15 @@ prometheus:
   prometheusSpec:
     externalLabels:
       cluster: pitower
+    remoteWrite:
+      - url: http://victoria-metrics-victoria-metrics-single-server.monitoring.svc.cluster.local:8428/api/v1/write
+        writeRelabelConfigs:
+          - action: labeldrop
+            regex: prometheus_replica
+        queueConfig:
+          maxSamplesPerSend: 10000
+          capacity: 20000
+          maxShards: 30
     scrapeClasses:
       - name: default
         default: true
