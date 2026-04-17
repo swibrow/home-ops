@@ -1,0 +1,145 @@
+{
+  "uid": "ha-overview",
+  "title": "Home Assistant - Overview",
+  "tags": ["home-assistant"],
+  "timezone": "Europe/Zurich",
+  "schemaVersion": 38,
+  "editable": true,
+  "time": {"from": "now-24h", "to": "now"},
+  "refresh": "1m",
+  "templating": {"list": []},
+  "annotations": {"list": []},
+  "panels": [
+    {
+      "type": "row",
+      "id": 100,
+      "title": "Energy",
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0}
+    },
+    {
+      "type": "stat",
+      "id": 1,
+      "title": "Total power right now",
+      "datasource": {"type": "prometheus", "uid": "victoriametrics"},
+      "gridPos": {"h": 5, "w": 6, "x": 0, "y": 1},
+      "fieldConfig": {"defaults": {"unit": "watt", "decimals": 0, "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 500}, {"color": "red", "value": 2000}]}}},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "auto", "colorMode": "background"},
+      "targets": [{"expr": "sum(last_over_time(W_value{source=\"home-assistant\"}[10m]))", "refId": "A"}]
+    },
+    {
+      "type": "stat",
+      "id": 2,
+      "title": "Power sensors reporting",
+      "datasource": {"type": "prometheus", "uid": "victoriametrics"},
+      "gridPos": {"h": 5, "w": 6, "x": 6, "y": 1},
+      "fieldConfig": {"defaults": {"unit": "short"}},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "value"},
+      "targets": [{"expr": "count(last_over_time(W_value{source=\"home-assistant\"}[10m]))", "refId": "A"}]
+    },
+    {
+      "type": "timeseries",
+      "id": 3,
+      "title": "Power by sensor (top 10)",
+      "datasource": {"type": "prometheus", "uid": "victoriametrics"},
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 6},
+      "fieldConfig": {"defaults": {"unit": "watt", "custom": {"drawStyle": "line", "lineWidth": 1, "fillOpacity": 10}}},
+      "options": {"legend": {"displayMode": "table", "placement": "right", "calcs": ["lastNotNull", "max", "mean"]}},
+      "targets": [{"expr": "topk(10, avg by (friendly_name) (W_value{source=\"home-assistant\"}))", "refId": "A", "legendFormat": "{{friendly_name}}"}]
+    },
+    {
+      "type": "bargauge",
+      "id": 4,
+      "title": "Top consumers right now",
+      "datasource": {"type": "prometheus", "uid": "victoriametrics"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+      "fieldConfig": {"defaults": {"unit": "watt"}},
+      "options": {"orientation": "horizontal", "displayMode": "gradient"},
+      "targets": [{"expr": "topk(10, last_over_time(W_value{source=\"home-assistant\"}[10m]))", "refId": "A", "legendFormat": "{{friendly_name}}", "instant": true}]
+    },
+    {
+      "type": "timeseries",
+      "id": 5,
+      "title": "Cumulative energy (kWh)",
+      "datasource": {"type": "prometheus", "uid": "victoriametrics"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+      "fieldConfig": {"defaults": {"unit": "kwatth", "custom": {"drawStyle": "line", "lineWidth": 1, "fillOpacity": 10}}},
+      "options": {"legend": {"displayMode": "table", "placement": "right", "calcs": ["lastNotNull"]}},
+      "targets": [{"expr": "kWh_value{source=\"home-assistant\"}", "refId": "A", "legendFormat": "{{friendly_name}}"}]
+    },
+    {
+      "type": "row",
+      "id": 200,
+      "title": "Presence",
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 24}
+    },
+    {
+      "type": "stat",
+      "id": 10,
+      "title": "People home",
+      "datasource": {"type": "prometheus", "uid": "victoriametrics"},
+      "gridPos": {"h": 5, "w": 6, "x": 0, "y": 25},
+      "fieldConfig": {"defaults": {"unit": "short", "thresholds": {"mode": "absolute", "steps": [{"color": "gray", "value": null}, {"color": "green", "value": 1}]}}},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "background"},
+      "targets": [{"expr": "count(last_over_time(state_state{domain=\"person\"}[1h]) == 1)", "refId": "A"}]
+    },
+    {
+      "type": "state-timeline",
+      "id": 11,
+      "title": "Per-person presence",
+      "datasource": {"type": "prometheus", "uid": "victoriametrics"},
+      "gridPos": {"h": 8, "w": 18, "x": 6, "y": 25},
+      "fieldConfig": {"defaults": {"custom": {"fillOpacity": 70}, "mappings": [{"type": "value", "options": {"0": {"text": "away", "color": "gray"}, "1": {"text": "home", "color": "green"}}}]}},
+      "options": {"mergeValues": true, "showValue": "auto"},
+      "targets": [{"expr": "state_state{domain=\"person\"}", "refId": "A", "legendFormat": "{{friendly_name}}"}]
+    },
+    {
+      "type": "timeseries",
+      "id": 12,
+      "title": "Home % over time (rolling 24h)",
+      "datasource": {"type": "prometheus", "uid": "victoriametrics"},
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 33},
+      "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1, "custom": {"drawStyle": "line", "fillOpacity": 20}}},
+      "options": {"legend": {"displayMode": "table", "placement": "right", "calcs": ["mean"]}},
+      "targets": [{"expr": "avg_over_time(state_state{domain=\"person\"}[24h])", "refId": "A", "legendFormat": "{{friendly_name}}"}]
+    },
+    {
+      "type": "row",
+      "id": 300,
+      "title": "Activity",
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 41}
+    },
+    {
+      "type": "stat",
+      "id": 20,
+      "title": "Lights on",
+      "datasource": {"type": "prometheus", "uid": "victoriametrics"},
+      "gridPos": {"h": 5, "w": 6, "x": 0, "y": 42},
+      "fieldConfig": {"defaults": {"unit": "short", "thresholds": {"mode": "absolute", "steps": [{"color": "gray", "value": null}, {"color": "yellow", "value": 1}]}}},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "background"},
+      "targets": [{"expr": "count(last_over_time(state_state{domain=\"light\"}[10m]) == 1)", "refId": "A"}]
+    },
+    {
+      "type": "stat",
+      "id": 21,
+      "title": "Switches on",
+      "datasource": {"type": "prometheus", "uid": "victoriametrics"},
+      "gridPos": {"h": 5, "w": 6, "x": 6, "y": 42},
+      "fieldConfig": {"defaults": {"unit": "short", "thresholds": {"mode": "absolute", "steps": [{"color": "gray", "value": null}, {"color": "blue", "value": 1}]}}},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "background"},
+      "targets": [{"expr": "count(last_over_time(state_state{domain=\"switch\"}[10m]) == 1)", "refId": "A"}]
+    },
+    {
+      "type": "bargauge",
+      "id": 22,
+      "title": "Battery levels",
+      "datasource": {"type": "prometheus", "uid": "victoriametrics"},
+      "gridPos": {"h": 10, "w": 12, "x": 12, "y": 42},
+      "fieldConfig": {"defaults": {"unit": "percent", "min": 0, "max": 100, "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "yellow", "value": 20}, {"color": "green", "value": 50}]}}},
+      "options": {"orientation": "horizontal", "displayMode": "gradient"},
+      "targets": [{"expr": "%_value{source=\"home-assistant\", friendly_name=~\".*[Bb]attery.*\"}", "refId": "A", "legendFormat": "{{friendly_name}}", "instant": true}]
+    }
+  ]
+}

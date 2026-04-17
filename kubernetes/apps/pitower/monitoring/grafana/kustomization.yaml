@@ -6,6 +6,18 @@ namespace: monitoring
 resources:
   - externalsecret.yaml
 
+configMapGenerator:
+  - name: grafana-dashboards-home-assistant
+    files:
+      - dashboards/home-assistant-overview.json
+      - dashboards/home-assistant-sensors.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: HomeAssistant
+
 helmCharts:
   - name: grafana
     repo: https://grafana.github.io/helm-charts
