@@ -24,6 +24,7 @@ configs:
     controller.diff.server.side: "true"
     server.insecure: true
     reposerver.timeout.seconds: "300"
+    reposerver.parallelism.limit: "4"
 
   rbac:
     policy.default: role:admin
@@ -122,9 +123,6 @@ repoServer:
     requests:
       cpu: 200m
       memory: 512Mi
-    limits:
-      cpu: 500m
-      memory: 1024Mi
   metrics:
     enabled: true
   deploymentAnnotations:
