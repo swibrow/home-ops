@@ -17,5 +17,5 @@ spec:
             type: PathPrefix
             value: /
       backendRefs:
-        - name: victoria-metrics-victoria-metrics-single-server
+        - name: victoria-metrics-server
           port: 8428
