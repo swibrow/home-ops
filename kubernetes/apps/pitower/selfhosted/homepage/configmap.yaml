@@ -153,10 +153,19 @@ data:
             icon: mdi-robot
             href: https://zeroclaw.pitower.link
             description: AI assistant gateway
+        - OpenClaw:
+            icon: mdi-robot-outline
+            href: https://openclaw.pitower.link
+            description: AI agent
         - Browser Use:
             icon: mdi-web
             href: https://browser-use.pitower.link
             description: AI browser automation
+    - Second Brain:
+        - Obsidian:
+            icon: obsidian.svg
+            href: https://obsidian.pitower.link
+            description: Notes sync
     - Security:
         - Authelia:
             icon: authelia.svg
@@ -187,6 +196,10 @@ data:
             widget:
               type: prometheus
               url: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+        - Victoria Metrics:
+            icon: victoriametrics.svg
+            href: https://vm.pitower.link
+            description: Long-term TSDB
     - Networking:
         - OpenSpeedTest:
             icon: mdi-speedometer
@@ -220,11 +233,14 @@ data:
         columns: 4
       AI:
         style: row
+        columns: 3
+      Second Brain:
+        style: row
       Security:
         style: row
       Monitoring:
         style: row
-        columns: 3
+        columns: 4
       Networking:
         style: row
       Infrastructure:
