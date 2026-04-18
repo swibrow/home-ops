@@ -31,37 +31,35 @@ home-automation/
 
 ## Blueprints
 
-### aqara_h2_two_way_switch.yaml
-Multi-way switch setup for Aqara H2 devices. One master switch controls the relay, secondary switches control it wirelessly.
+The rocker blueprints (`aqara_h2_single_rocker`, `aqara_h2_double_rocker`) are the canonical way to wire Aqara H2 switches. Because they expose raw action slots for every button event, they cover standalone control, multi-way setups (secondary switches call service on the master relay), and wireless-button use cases (decoupled switch with service calls in the action slots).
 
-**Setup:**
-- Master switch: Default mode (control_relay)
-- Secondary switches: Set to decoupled mode in zigbee2mqtt
+### aqara_h2_single_rocker.yaml
+Map WS-K07E (single rocker) button presses to custom actions.
 
 **Inputs:**
-- Master Switch Entity - the relay switch
-- Secondary Device 1-3 - device picker (up to 3 secondary devices)
-- Secondary Actions 1-3 - actions per device (allows different buttons per switch)
-- MQTT Base Topic - default: zigbee2mqtt
+- Switch Device - the H2 WS-K07E device (MQTT)
+- Action slots: single_up, single_down, double_down, hold_down, release_down
 
-**Supports:**
-- WS-K07E (single rocker): single_up, single_down, double_down, hold_down
-- WS-K08E (double rocker): single_left/right, single_left/right_down, double/hold variants
-- Configurable number of secondary switches
+**Notes:**
+- Top button toggles relay in control_relay mode, sends events only in decoupled mode
+- Bottom button supports single/double/hold/release (enable "Multi click" in zigbee2mqtt for double/hold/release; adds ~1s delay)
 
-### aqara_h2_wireless_button.yaml
-Use an Aqara H2 switch as a wireless button to control any entity.
-
-**Setup:**
-- Switch: Set to decoupled mode in zigbee2mqtt
-- Enable "Flip indicator light" for LED sync
+### aqara_h2_double_rocker.yaml
+Map WS-K08E (double rocker) button presses to custom actions.
 
 **Inputs:**
-- Button Device - the H2 switch
-- Button Actions - which presses trigger control
-- Target Entity - entity to toggle (light, switch, etc.)
-- Sync LED - keep LED in sync with target state
-- MQTT Base Topic - default: zigbee2mqtt
+- Switch Device - the H2 WS-K08E device (MQTT)
+- Action slots for left and right sides: single, single_down, double_down, hold_down, release_down per side
+
+**Notes:** Same control_relay vs decoupled behavior as single rocker.
+
+### ikea_styrbar_light_selector.yaml
+Control multiple lights with an IKEA STYRBAR (E2001/E2002) remote using labels.
+
+- Left/Right press: cycle lights, selected flashes
+- Up/Down press: color temperature (Kelvin)
+- Up/Down hold: brightness
+- Left/Right hold: confirm selection with long flash
 
 ### motion_activated_light.yaml
 Run custom actions when motion is detected. Supports multiple motion sensors and any action for both motion detected and motion cleared events.
@@ -76,16 +74,3 @@ Run custom actions when motion is detected. Supports multiple motion sensors and
 - Triggers when any sensor detects motion
 - Waits until ALL sensors are clear before starting the countdown
 - Uses `mode: restart` so new motion resets the timer
-
-**Use case:** Flexible motion automations - turn on lights, activate scenes, control multiple devices, adjust brightness, etc.
-
-### aqara_h2_button_actions.yaml
-Map Aqara H2 button presses to custom actions. Supports both single and double rocker models.
-
-**Inputs:**
-- Switch Device - the H2 switch (device picker)
-- Action selectors for each button:
-  - WS-K07E: single_up, single_down, double_down, hold_down, release_down
-  - WS-K08E: single/double/hold/release for left_up, left_down, right_up, right_down
-
-**Use case:** Complex automations where each button does something different (dimming, scenes, etc.)

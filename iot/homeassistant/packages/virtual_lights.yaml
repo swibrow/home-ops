@@ -1,0 +1,62 @@
+template:
+  - light:
+      - name: "Kitchen Island"
+        unique_id: kitchen_island_virtual
+        state: "{{ is_state('switch.0x54ef4410013118d8_left', 'on') }}"
+        level: "{{ state_attr('light.kitchen_island_lights', 'brightness') | int(0) }}"
+        turn_on:
+          - action: switch.turn_on
+            target:
+              entity_id: switch.0x54ef4410013118d8_left
+          - if: "{{ brightness is defined }}"
+            then:
+              - wait_template: "{{ not is_state('light.kitchen_island_lights', 'unavailable') }}"
+                timeout: "00:00:05"
+                continue_on_timeout: true
+              - action: light.turn_on
+                target:
+                  entity_id:
+                    - light.0xa4c13800aa437a8a
+                    - light.kitchen_island_lights
+                data:
+                  brightness: "{{ brightness }}"
+        turn_off:
+          - action: switch.turn_off
+            target:
+              entity_id: switch.0x54ef4410013118d8_left
+
+      - name: "Corner Couch"
+        unique_id: corner_couch_virtual
+        state: "{{ is_state('switch.0x54ef441001109207_left', 'on') }}"
+        turn_on:
+          - action: switch.turn_on
+            target:
+              entity_id: switch.0x54ef441001109207_left
+        turn_off:
+          - action: switch.turn_off
+            target:
+              entity_id: switch.0x54ef441001109207_left
+
+      - name: "Corner Door"
+        unique_id: corner_door_virtual
+        state: "{{ is_state('switch.0x54ef441001109207_right', 'on') }}"
+        turn_on:
+          - action: switch.turn_on
+            target:
+              entity_id: switch.0x54ef441001109207_right
+        turn_off:
+          - action: switch.turn_off
+            target:
+              entity_id: switch.0x54ef441001109207_right
+
+      - name: "Dining Table"
+        unique_id: dining_table_virtual
+        state: "{{ is_state('switch.0x54ef4410013118d8_right', 'on') }}"
+        turn_on:
+          - action: switch.turn_on
+            target:
+              entity_id: switch.0x54ef4410013118d8_right
+        turn_off:
+          - action: switch.turn_off
+            target:
+              entity_id: switch.0x54ef4410013118d8_right

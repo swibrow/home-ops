@@ -1,102 +1,834 @@
 title: Home
 views:
-  - title: Basement
-    path: basement
-    icon: mdi:home-floor-b
-    cards:
-      - type: heading
-        heading: Lights
-        heading_style: title
-      - type: entities
-        entities: []
-        # Add your basement light entities here, e.g.:
-        # - light.basement_main
-        # - light.basement_storage
-        state_color: true
-        show_header_toggle: true
+  - title: Overview
+    path: overview
+    icon: mdi:home
+    type: sections
+    sections:
+      # Quick Actions
+      - type: grid
+        cards:
+          - type: heading
+            heading: Quick Actions
+            heading_style: title
+            icon: mdi:lightning-bolt
+          - type: custom:bubble-card
+            card_type: button
+            button_type: name
+            name: All Off
+            icon: mdi:lightbulb-off
+            tap_action:
+              action: perform-action
+              perform_action: light.turn_off
+              target:
+                entity_id: all
+          - type: custom:bubble-card
+            card_type: button
+            button_type: name
+            name: All On
+            icon: mdi:lightbulb-on
+            tap_action:
+              action: perform-action
+              perform_action: light.turn_on
+              target:
+                entity_id: all
+          - type: custom:bubble-card
+            card_type: button
+            button_type: name
+            name: Goodnight
+            icon: mdi:weather-night
+            tap_action:
+              action: perform-action
+              perform_action: light.turn_off
+              target:
+                entity_id: all
 
-      - type: heading
-        heading: Switches
-        heading_style: title
-      - type: entities
-        entities: []
-        # Add your basement switch entities here, e.g.:
-        # - switch.basement_fan
-        state_color: true
-        show_header_toggle: true
+      # Weather
+      - type: grid
+        cards:
+          - type: weather-forecast
+            entity: weather.forecast_home
+            forecast_type: daily
+            show_current: true
+            show_forecast: true
+
+      # Camera
+      - type: grid
+        cards:
+          - type: picture-entity
+            entity: camera.camera_g100_7c13_iot
+            camera_view: live
+            show_state: false
+            show_name: false
+
+      # Rooms
+      - type: grid
+        cards:
+          - type: heading
+            heading: Rooms
+            heading_style: title
+            icon: mdi:home-group
+          - type: custom:bubble-card
+            card_type: button
+            button_type: state
+            name: Kitchen
+            icon: mdi:silverware-fork-knife
+            entity: light.kitchen_island
+            tap_action:
+              action: navigate
+              navigation_path: "#kitchen"
+          - type: custom:bubble-card
+            card_type: button
+            button_type: state
+            name: Dining
+            icon: mdi:food-fork-drink
+            entity: light.dining_table
+            tap_action:
+              action: navigate
+              navigation_path: "#dining"
+          - type: custom:bubble-card
+            card_type: button
+            button_type: state
+            name: Living Room
+            icon: mdi:sofa
+            entity: light.corner_couch
+            tap_action:
+              action: navigate
+              navigation_path: "#living_room"
+          - type: custom:bubble-card
+            card_type: button
+            button_type: state
+            name: Entry
+            icon: mdi:door
+            entity: switch.0x54ef441001292786_left
+            tap_action:
+              action: navigate
+              navigation_path: "#entry"
+          - type: custom:bubble-card
+            card_type: button
+            button_type: state
+            name: Bedroom Master
+            icon: mdi:bed-king
+            entity: light.0x54ef4410011ca5fa
+            tap_action:
+              action: navigate
+              navigation_path: "#bedroom_master"
+          - type: custom:bubble-card
+            card_type: button
+            button_type: state
+            name: Bedroom Juno
+            icon: mdi:bed
+            entity: light.0x54ef4410011c8d28
+            tap_action:
+              action: navigate
+              navigation_path: "#bedroom_juno"
+          - type: custom:bubble-card
+            card_type: button
+            button_type: state
+            name: Hallway
+            icon: mdi:stairs
+            entity: switch.0x54ef441000eec232_up
+            tap_action:
+              action: navigate
+              navigation_path: "#hallway"
+          - type: custom:bubble-card
+            card_type: button
+            button_type: state
+            name: Bathroom
+            icon: mdi:shower
+            entity: switch.0xbc8d7efffe0178c2
+            tap_action:
+              action: navigate
+              navigation_path: "#bathroom"
+          - type: custom:bubble-card
+            card_type: button
+            button_type: state
+            name: Guest Room
+            icon: mdi:bed-outline
+            entity: switch.0x54ef4410012907b6_up
+            tap_action:
+              action: navigate
+              navigation_path: "#guest_room"
+          - type: custom:bubble-card
+            card_type: button
+            button_type: state
+            name: Attic Stairs
+            icon: mdi:stairs-up
+            entity: switch.0x54ef441001294417_left
+            tap_action:
+              action: navigate
+              navigation_path: "#attic_stairs"
+          - type: custom:bubble-card
+            card_type: button
+            button_type: state
+            name: Basement Office
+            icon: mdi:desk
+            entity: switch.shelly1pmminig4_7c2c67687db8
+            tap_action:
+              action: navigate
+              navigation_path: "#basement_office"
+          - type: custom:bubble-card
+            card_type: button
+            button_type: state
+            name: Basement Stairs
+            icon: mdi:stairs-down
+            entity: binary_sensor.0x00124b0024542f06_occupancy
+            tap_action:
+              action: navigate
+              navigation_path: "#basement_stairs"
+
+      # Room Stats
+      - type: grid
+        column_span: 2
+        cards:
+          - type: heading
+            heading: Room Stats
+            heading_style: title
+            icon: mdi:thermometer
+          - type: heading
+            heading: Ground Floor
+            heading_style: subtitle
+          - type: tile
+            entity: climate.ground_floor_heating_controller_1
+            name: Zone 1 Temp
+          - type: tile
+            entity: sensor.ground_floor_heating_controller_humidity_1
+            name: Zone 1 Hum
+          - type: tile
+            entity: climate.ground_floor_heating_controller_2
+            name: Zone 2 Temp
+          - type: tile
+            entity: sensor.ground_floor_heating_controller_humidity_2
+            name: Zone 2 Hum
+          - type: heading
+            heading: First Floor
+            heading_style: subtitle
+          - type: tile
+            entity: climate.0xb43522fffefbc575_1
+            name: Zone 1 Temp
+          - type: tile
+            entity: sensor.0xb43522fffefbc575_humidity_1
+            name: Zone 1 Hum
+          - type: tile
+            entity: climate.0xb43522fffefbc575_2
+            name: Zone 2 Temp
+          - type: tile
+            entity: sensor.0xb43522fffefbc575_humidity_2
+            name: Zone 2 Hum
+          - type: tile
+            entity: climate.0xb43522fffefbc575_3
+            name: Zone 3 Temp
+          - type: tile
+            entity: sensor.0xb43522fffefbc575_humidity_3
+            name: Zone 3 Hum
+          - type: heading
+            heading: Attic
+            heading_style: subtitle
+          - type: tile
+            entity: climate.0xb43522fffefbc559_1
+            name: Zone 1 Temp
+          - type: tile
+            entity: sensor.0xb43522fffefbc559_humidity_1
+            name: Zone 1 Hum
+          - type: tile
+            entity: climate.0xb43522fffefbc559_2
+            name: Zone 2 Temp
+          - type: tile
+            entity: sensor.0xb43522fffefbc559_humidity_2
+            name: Zone 2 Hum
+          - type: tile
+            entity: climate.0xb43522fffefbc559_3
+            name: Zone 3 Temp
+          - type: tile
+            entity: sensor.0xb43522fffefbc559_humidity_3
+            name: Zone 3 Hum
+          - type: heading
+            heading: Basement Office
+            heading_style: subtitle
+          - type: tile
+            entity: sensor.0x00124b0024cc7d16_temperature
+            name: Temp
+          - type: tile
+            entity: sensor.0x00124b0024cc7d16_humidity
+            name: Humidity
+          - type: tile
+            entity: binary_sensor.office_motion_sensor_occupancy
+            name: Motion
+
+      # Heating summary
+      - type: grid
+        column_span: 2
+        cards:
+          - type: heading
+            heading: Heating
+            heading_style: title
+            icon: mdi:radiator
+          - type: heading
+            heading: Ground
+            heading_style: subtitle
+          - type: custom:bubble-card
+            card_type: climate
+            entity: climate.ground_floor_heating_controller_1
+            name: Zone 1
+          - type: custom:bubble-card
+            card_type: climate
+            entity: climate.ground_floor_heating_controller_2
+            name: Zone 2
+          - type: heading
+            heading: First
+            heading_style: subtitle
+          - type: custom:bubble-card
+            card_type: climate
+            entity: climate.0xb43522fffefbc575_1
+            name: Zone 1
+          - type: custom:bubble-card
+            card_type: climate
+            entity: climate.0xb43522fffefbc575_2
+            name: Zone 2
+          - type: custom:bubble-card
+            card_type: climate
+            entity: climate.0xb43522fffefbc575_3
+            name: Zone 3
+          - type: heading
+            heading: Attic
+            heading_style: subtitle
+          - type: custom:bubble-card
+            card_type: climate
+            entity: climate.0xb43522fffefbc559_1
+            name: Zone 1
+          - type: custom:bubble-card
+            card_type: climate
+            entity: climate.0xb43522fffefbc559_2
+            name: Zone 2
+          - type: custom:bubble-card
+            card_type: climate
+            entity: climate.0xb43522fffefbc559_3
+            name: Zone 3
 
   - title: Ground
     path: ground
     icon: mdi:home-floor-g
-    cards:
-      - type: heading
-        heading: Lights
-        heading_style: title
-      - type: entities
-        entities: []
-        # Add your ground floor light entities here, e.g.:
-        # - light.living_room
-        # - light.kitchen
-        # - light.hallway
-        state_color: true
-        show_header_toggle: true
-
-      - type: heading
-        heading: Switches
-        heading_style: title
-      - type: entities
-        entities: []
-        # Add your ground floor switch entities here, e.g.:
-        # - switch.living_room_fan
-        state_color: true
-        show_header_toggle: true
+    type: sections
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Rooms
+            heading_style: title
+            icon: mdi:home-group
+          - type: custom:bubble-card
+            card_type: button
+            button_type: state
+            name: Kitchen
+            icon: mdi:silverware-fork-knife
+            entity: light.kitchen_island
+            tap_action:
+              action: navigate
+              navigation_path: "#kitchen"
+          - type: custom:bubble-card
+            card_type: button
+            button_type: state
+            name: Dining
+            icon: mdi:food-fork-drink
+            entity: light.dining_table
+            tap_action:
+              action: navigate
+              navigation_path: "#dining"
+          - type: custom:bubble-card
+            card_type: button
+            button_type: state
+            name: Living Room
+            icon: mdi:sofa
+            entity: light.corner_couch
+            tap_action:
+              action: navigate
+              navigation_path: "#living_room"
+          - type: custom:bubble-card
+            card_type: button
+            button_type: state
+            name: Entry
+            icon: mdi:door
+            entity: switch.0x54ef441001292786_left
+            tap_action:
+              action: navigate
+              navigation_path: "#entry"
 
   - title: First
     path: first
     icon: mdi:home-floor-1
-    cards:
-      - type: heading
-        heading: Lights
-        heading_style: title
-      - type: entities
-        entities: []
-        # Add your first floor light entities here, e.g.:
-        # - light.bedroom
-        # - light.bathroom
-        # - light.office
-        state_color: true
-        show_header_toggle: true
+    type: sections
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Rooms
+            heading_style: title
+            icon: mdi:home-group
+          - type: custom:bubble-card
+            card_type: button
+            button_type: state
+            name: Bedroom Master
+            icon: mdi:bed-king
+            entity: light.0x54ef4410011ca5fa
+            tap_action:
+              action: navigate
+              navigation_path: "#bedroom_master"
+          - type: custom:bubble-card
+            card_type: button
+            button_type: state
+            name: Bedroom Juno
+            icon: mdi:bed
+            entity: light.0x54ef4410011c8d28
+            tap_action:
+              action: navigate
+              navigation_path: "#bedroom_juno"
+          - type: custom:bubble-card
+            card_type: button
+            button_type: state
+            name: Hallway
+            icon: mdi:stairs
+            entity: switch.0x54ef441000eec232_up
+            tap_action:
+              action: navigate
+              navigation_path: "#hallway"
+          - type: custom:bubble-card
+            card_type: button
+            button_type: state
+            name: Bathroom
+            icon: mdi:shower
+            entity: switch.0xbc8d7efffe0178c2
+            tap_action:
+              action: navigate
+              navigation_path: "#bathroom"
 
-      - type: heading
-        heading: Switches
-        heading_style: title
-      - type: entities
-        entities: []
-        # Add your first floor switch entities here, e.g.:
-        # - switch.bedroom_fan
-        state_color: true
-        show_header_toggle: true
+  - title: Basement
+    path: basement
+    icon: mdi:home-floor-b
+    type: sections
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Rooms
+            heading_style: title
+            icon: mdi:home-group
+          - type: custom:bubble-card
+            card_type: button
+            button_type: state
+            name: Office
+            icon: mdi:desk
+            entity: switch.shelly1pmminig4_7c2c67687db8
+            tap_action:
+              action: navigate
+              navigation_path: "#basement_office"
+          - type: custom:bubble-card
+            card_type: button
+            button_type: state
+            name: Stairs
+            icon: mdi:stairs-down
+            entity: binary_sensor.0x00124b0024542f06_occupancy
+            tap_action:
+              action: navigate
+              navigation_path: "#basement_stairs"
 
   - title: Attic
     path: attic
     icon: mdi:home-roof
+    type: sections
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Rooms
+            heading_style: title
+            icon: mdi:home-group
+          - type: custom:bubble-card
+            card_type: button
+            button_type: state
+            name: Guest Room
+            icon: mdi:bed-outline
+            entity: switch.0x54ef4410012907b6_up
+            tap_action:
+              action: navigate
+              navigation_path: "#guest_room"
+          - type: custom:bubble-card
+            card_type: button
+            button_type: state
+            name: Stairs
+            icon: mdi:stairs-up
+            entity: switch.0x54ef441001294417_left
+            tap_action:
+              action: navigate
+              navigation_path: "#attic_stairs"
+  - title: Popups
+    path: popups
+    subview: true
     cards:
-      - type: heading
-        heading: Lights
-        heading_style: title
-      - type: entities
-        entities: []
-        # Add your attic light entities here, e.g.:
-        # - light.attic_main
-        state_color: true
-        show_header_toggle: true
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#kitchen"
+        name: Kitchen
+        icon: mdi:silverware-fork-knife
+        cards:
+          - type: custom:bubble-card
+            card_type: separator
+            name: Lights
+            icon: mdi:lightbulb-group
+          - type: custom:bubble-card
+            card_type: button
+            entity: light.kitchen_island
+            button_type: slider
+            name: Island
+            icon: mdi:lightbulb
+          - type: custom:bubble-card
+            card_type: button
+            entity: light.0xb43a31fffece1e75
+            button_type: slider
+            name: Shelf
+            icon: mdi:lightbulb
+          - type: custom:bubble-card
+            card_type: separator
+            name: Climate
+            icon: mdi:thermometer
+          - type: custom:bubble-card
+            card_type: climate
+            entity: climate.ground_floor_heating_controller_1
+            name: Zone 1
+          - type: custom:bubble-card
+            card_type: climate
+            entity: climate.ground_floor_heating_controller_2
+            name: Zone 2
+          - type: custom:bubble-card
+            card_type: separator
+            name: Sensors
+            icon: mdi:gauge
+          - type: tile
+            entity: sensor.ground_floor_heating_controller_humidity_1
+            name: Humidity
+          - type: tile
+            entity: sensor.0x54ef4410013118d8_device_temperature
+            name: Temperature
 
-      - type: heading
-        heading: Switches
-        heading_style: title
-      - type: entities
-        entities: []
-        # Add your attic switch entities here, e.g.:
-        # - switch.attic_fan
-        state_color: true
-        show_header_toggle: true
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#dining"
+        name: Dining
+        icon: mdi:food-fork-drink
+        cards:
+          - type: custom:bubble-card
+            card_type: button
+            entity: light.dining_table
+            button_type: switch
+            name: Table
+
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#living_room"
+        name: Living Room
+        icon: mdi:sofa
+        cards:
+          - type: custom:bubble-card
+            card_type: separator
+            name: Lights
+            icon: mdi:lightbulb-group
+          - type: custom:bubble-card
+            card_type: button
+            entity: light.corner_couch
+            button_type: switch
+            name: Corner Couch
+          - type: custom:bubble-card
+            card_type: button
+            entity: light.corner_door
+            button_type: switch
+            name: Corner Door
+
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#entry"
+        name: Entry
+        icon: mdi:door
+        cards:
+          - type: custom:bubble-card
+            card_type: separator
+            name: Lights
+            icon: mdi:lightbulb-group
+          - type: custom:bubble-card
+            card_type: button
+            entity: switch.0x54ef441001292786_left
+            button_type: switch
+            name: Entry Left
+            icon: mdi:lightbulb
+          - type: custom:bubble-card
+            card_type: button
+            entity: switch.0x54ef441001292786_right
+            button_type: switch
+            name: Entry Right
+            icon: mdi:lightbulb
+          - type: custom:bubble-card
+            card_type: separator
+            name: Sensors
+            icon: mdi:motion-sensor
+          - type: tile
+            entity: binary_sensor.0x54ef44100144f89f_occupancy
+            name: Motion
+          - type: tile
+            entity: sensor.0x54ef44100144f89f_illuminance
+            name: Illuminance
+          - type: tile
+            entity: sensor.0x54ef44100144f89f_device_temperature
+            name: Temperature
+
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#bedroom_master"
+        name: Bedroom Master
+        icon: mdi:bed-king
+        cards:
+          - type: custom:bubble-card
+            card_type: separator
+            name: Lights
+            icon: mdi:lightbulb-group
+          - type: custom:bubble-card
+            card_type: button
+            entity: light.0x54ef4410011ca5fa
+            button_type: slider
+            name: Ceiling
+            icon: mdi:ceiling-light
+          - type: custom:bubble-card
+            card_type: button
+            entity: light.0xa49e69fffe29ab6e
+            button_type: slider
+            name: Bedside Left
+            icon: mdi:lamp
+          - type: custom:bubble-card
+            card_type: button
+            entity: light.0x943469fffebbcc41
+            button_type: slider
+            name: Bedside Right
+            icon: mdi:lamp
+          - type: custom:bubble-card
+            card_type: separator
+            name: Climate
+            icon: mdi:thermometer
+          - type: custom:bubble-card
+            card_type: climate
+            entity: climate.0xb43522fffefbc575_1
+            name: Zone 1
+          - type: custom:bubble-card
+            card_type: separator
+            name: Sensors
+            icon: mdi:gauge
+          - type: tile
+            entity: sensor.0xb43522fffefbc575_humidity_1
+            name: Humidity
+          - type: tile
+            entity: sensor.0x54ef44100129438e_device_temperature
+            name: Temperature
+
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#bedroom_juno"
+        name: Bedroom Juno
+        icon: mdi:bed
+        cards:
+          - type: custom:bubble-card
+            card_type: separator
+            name: Lights
+            icon: mdi:lightbulb-group
+          - type: custom:bubble-card
+            card_type: button
+            entity: light.0x54ef4410011c8d28
+            button_type: slider
+            name: Dimmer
+            icon: mdi:ceiling-light
+          - type: custom:bubble-card
+            card_type: separator
+            name: Climate
+            icon: mdi:thermometer
+          - type: custom:bubble-card
+            card_type: climate
+            entity: climate.0xb43522fffefbc575_3
+            name: Zone 3
+          - type: custom:bubble-card
+            card_type: separator
+            name: Sensors
+            icon: mdi:gauge
+          - type: tile
+            entity: sensor.0xb43522fffefbc575_humidity_3
+            name: Humidity
+          - type: tile
+            entity: sensor.0x54ef4410011c8d28_device_temperature
+            name: Temperature
+
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#hallway"
+        name: Hallway
+        icon: mdi:stairs
+        cards:
+          - type: custom:bubble-card
+            card_type: separator
+            name: Lights
+            icon: mdi:lightbulb-group
+          - type: custom:bubble-card
+            card_type: button
+            entity: switch.0x54ef441000eec232_up
+            button_type: switch
+            name: Stairs Light
+            icon: mdi:stairs-up
+
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#bathroom"
+        name: Bathroom
+        icon: mdi:shower
+        cards:
+          - type: custom:bubble-card
+            card_type: separator
+            name: Heater
+            icon: mdi:radiator
+          - type: custom:bubble-card
+            card_type: button
+            entity: switch.0xbc8d7efffe0178c2
+            button_type: switch
+            name: Towel Heater
+            icon: mdi:radiator
+          - type: custom:bubble-card
+            card_type: separator
+            name: Power
+            icon: mdi:flash
+          - type: tile
+            entity: sensor.0xbc8d7efffe0178c2_power
+            name: Power
+          - type: tile
+            entity: sensor.0xbc8d7efffe0178c2_energy
+            name: Energy
+
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#guest_room"
+        name: Guest Room
+        icon: mdi:bed-outline
+        cards:
+          - type: custom:bubble-card
+            card_type: separator
+            name: Lights
+            icon: mdi:lightbulb-group
+          - type: custom:bubble-card
+            card_type: button
+            entity: switch.0x54ef4410012907b6_up
+            button_type: switch
+            name: Ceiling
+            icon: mdi:ceiling-light
+          - type: custom:bubble-card
+            card_type: separator
+            name: Climate
+            icon: mdi:thermometer
+          - type: custom:bubble-card
+            card_type: climate
+            entity: climate.0xb43522fffefbc559_1
+            name: Zone 1
+          - type: custom:bubble-card
+            card_type: climate
+            entity: climate.0xb43522fffefbc559_2
+            name: Zone 2
+          - type: custom:bubble-card
+            card_type: climate
+            entity: climate.0xb43522fffefbc559_3
+            name: Zone 3
+          - type: custom:bubble-card
+            card_type: separator
+            name: Sensors
+            icon: mdi:gauge
+          - type: tile
+            entity: sensor.0xb43522fffefbc559_humidity_1
+            name: Humidity
+
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#attic_stairs"
+        name: Attic Stairs
+        icon: mdi:stairs-up
+        cards:
+          - type: custom:bubble-card
+            card_type: separator
+            name: Lights
+            icon: mdi:lightbulb-group
+          - type: custom:bubble-card
+            card_type: button
+            entity: switch.0x54ef441001294417_left
+            button_type: switch
+            name: Left
+            icon: mdi:lightbulb
+          - type: custom:bubble-card
+            card_type: button
+            entity: switch.0x54ef441001294417_right
+            button_type: switch
+            name: Right
+            icon: mdi:lightbulb
+
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#basement_office"
+        name: Basement Office
+        icon: mdi:desk
+        cards:
+          - type: custom:bubble-card
+            card_type: separator
+            name: Lights
+            icon: mdi:lightbulb-group
+          - type: custom:bubble-card
+            card_type: button
+            entity: switch.shelly1pmminig4_7c2c67687db8
+            button_type: switch
+            name: Office Light
+            icon: mdi:lightbulb
+          - type: custom:bubble-card
+            card_type: separator
+            name: Devices
+            icon: mdi:printer-3d
+          - type: custom:bubble-card
+            card_type: button
+            entity: switch.0xbc8d7efffe014501
+            button_type: switch
+            name: 3D Printer
+            icon: mdi:printer-3d
+          - type: custom:bubble-card
+            card_type: separator
+            name: Sensors
+            icon: mdi:gauge
+          - type: tile
+            entity: sensor.0x00124b0024cc7d16_temperature
+            name: Temperature
+          - type: tile
+            entity: sensor.0x00124b0024cc7d16_humidity
+            name: Humidity
+          - type: tile
+            entity: binary_sensor.office_motion_sensor_occupancy
+            name: Motion 1
+          - type: tile
+            entity: binary_sensor.myggspray_wrlss_mtn_sensor_occupancy
+            name: Motion 2
+          - type: tile
+            entity: sensor.myggspray_wrlss_mtn_sensor_illuminance
+            name: Illuminance
+          - type: tile
+            entity: sensor.shelly1pmminig4_7c2c67687db8_power
+            name: Light Power
+          - type: tile
+            entity: sensor.0xbc8d7efffe014501_power
+            name: Printer Power
+
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#basement_stairs"
+        name: Basement Stairs
+        icon: mdi:stairs-down
+        cards:
+          - type: custom:bubble-card
+            card_type: separator
+            name: Sensors
+            icon: mdi:motion-sensor
+          - type: tile
+            entity: binary_sensor.0x00124b0024542f06_occupancy
+            name: Motion
