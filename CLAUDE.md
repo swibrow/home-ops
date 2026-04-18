@@ -50,3 +50,11 @@ kubernetes/apps/{cluster}/{category}/{app}/
 - Cluster: `pitower`, control plane at 192.168.0.201
 - Talos configs: `kubernetes/talos/pitower/`
 - Terraform: `terraform/` (AWS, Cloudflare, etc.)
+
+## Task Tracking
+
+All TODOs, planned work, and follow-ups for this repo are tracked on the GitHub project board: <https://github.com/users/swibrow/projects/4>.
+
+- Do not scatter TODOs in code comments, issues, or memory — create/update items on the board.
+- Use `gh project` CLI (owner `swibrow`, project number `4`) to list/add/update items.
+- Requires `project` scope: `gh auth refresh -s project` if missing.
