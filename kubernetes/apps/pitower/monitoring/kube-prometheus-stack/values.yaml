@@ -131,6 +131,9 @@ prometheus:
         metricRelabelings:
           - targetLabel: cluster
             replacement: pitower
+          - action: drop
+            sourceLabels: ["__name__"]
+            regex: go_.*
     ruleSelectorNilUsesHelmValues: false
     serviceMonitorSelectorNilUsesHelmValues: false
     podMonitorSelectorNilUsesHelmValues: false
