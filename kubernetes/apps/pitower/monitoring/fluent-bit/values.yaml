@@ -55,7 +55,7 @@ config:
     [OUTPUT]
       Name              http
       Match             kubernetes.*
-      Host              victoria-logs-victoria-logs-single-server.monitoring.svc.cluster.local
+      Host              victoria-logs.monitoring.svc.cluster.local
       Port              9428
       URI               /insert/jsonline?_stream_fields=kubernetes_namespace_name,kubernetes_pod_name,kubernetes_container_name&_time_field=@timestamp&_msg_field=log
       Format            json_lines

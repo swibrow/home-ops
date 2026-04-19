@@ -1,5 +1,8 @@
+fullnameOverride: victoria-logs
+
 server:
   enabled: true
+  fullnameOverride: victoria-logs
   replicaCount: 1
   retentionPeriod: 14d
   extraArgs:
@@ -10,7 +13,7 @@ server:
     enabled: true
     accessModes:
       - ReadWriteOnce
-    storageClassName: openebs-hostpath
+    storageClassName: ceph-block
     size: 20Gi
   service:
     servicePort: 9428
