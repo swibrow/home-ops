@@ -2,6 +2,10 @@ base-url: https://ntfy.pitower.link
 listen-http: ":80"
 behind-proxy: true
 
+# iOS background push: route APNs wake-ups through ntfy.sh.
+# Only a tiny poll-request is forwarded; message content stays local.
+upstream-base-url: https://ntfy.sh
+
 cache-file: /var/lib/ntfy/cache.db
 cache-duration: "12h"
 
