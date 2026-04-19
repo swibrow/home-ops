@@ -21,6 +21,8 @@ spec:
     moverSecurityContext:
       runAsUser: 0
       runAsGroup: 0
+      fsGroup: 2000
+      fsGroupChangePolicy: OnRootMismatch
       supplementalGroups:
         - 82
         - 568
