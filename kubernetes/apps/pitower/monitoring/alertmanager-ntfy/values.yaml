@@ -1,0 +1,61 @@
+controllers:
+  alertmanager-ntfy:
+    strategy: RollingUpdate
+    annotations:
+      reloader.stakater.com/auto: "true"
+
+    containers:
+      app:
+        image:
+          repository: codeberg.org/xenrox/alertmanager-ntfy
+          tag: 0.4.1
+        args:
+          - -config
+          - /etc/alertmanager-ntfy/config.yml
+        env:
+          TZ: Europe/Zurich
+          ALERTMANAGER_NTFY_NTFY_PASSWORD:
+            valueFrom:
+              secretKeyRef:
+                name: ntfy-secret
+                key: BRIDGE_PASSWORD
+        probes:
+          liveness:
+            enabled: true
+            custom: true
+            spec:
+              tcpSocket:
+                port: 8080
+              initialDelaySeconds: 10
+              periodSeconds: 30
+          readiness:
+            enabled: true
+            custom: true
+            spec:
+              tcpSocket:
+                port: 8080
+              initialDelaySeconds: 5
+              periodSeconds: 10
+        resources:
+          requests:
+            cpu: 5m
+            memory: 16Mi
+          limits:
+            memory: 64Mi
+
+service:
+  app:
+    controller: alertmanager-ntfy
+    ports:
+      http:
+        port: 8080
+
+persistence:
+  config:
+    enabled: true
+    type: configMap
+    name: alertmanager-ntfy-config
+    globalMounts:
+      - path: /etc/alertmanager-ntfy/config.yml
+        subPath: config.yml
+        readOnly: true

@@ -1,0 +1,93 @@
+controllers:
+  ntfy:
+    strategy: RollingUpdate
+    annotations:
+      reloader.stakater.com/auto: "true"
+
+    initContainers:
+      setup-auth:
+        image:
+          repository: binwiederhier/ntfy
+          tag: v2.11.0
+        command:
+          - /bin/sh
+          - -c
+          - |
+            set -eu
+            CONF=/etc/ntfy/server.yml
+            export NTFY_PASSWORD="$BRIDGE_PASSWORD"
+            ntfy --config "$CONF" user add --role=user bridge 2>/dev/null \
+              || ntfy --config "$CONF" user change-pass bridge
+            ntfy --config "$CONF" access bridge pitower-alerts write-only
+            ntfy --config "$CONF" access everyone pitower-alerts read-only
+        envFrom:
+          - secretRef:
+              name: ntfy-secret
+
+    containers:
+      app:
+        image:
+          repository: binwiederhier/ntfy
+          tag: v2.11.0
+        args:
+          - serve
+          - --config
+          - /etc/ntfy/server.yml
+        env:
+          TZ: Europe/Zurich
+        probes:
+          liveness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /v1/health
+                port: 80
+              initialDelaySeconds: 10
+              periodSeconds: 30
+          readiness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /v1/health
+                port: 80
+              initialDelaySeconds: 5
+              periodSeconds: 10
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            memory: 128Mi
+
+service:
+  app:
+    controller: ntfy
+    ports:
+      http:
+        port: 80
+
+route:
+  app:
+    enabled: true
+    hostnames:
+      - ntfy.pitower.link
+    parentRefs:
+      - name: envoy-external
+        namespace: networking
+        sectionName: https
+
+persistence:
+  config:
+    enabled: true
+    type: configMap
+    name: ntfy-config
+    globalMounts:
+      - path: /etc/ntfy/server.yml
+        subPath: server.yml
+        readOnly: true
+  data:
+    type: emptyDir
+    globalMounts:
+      - path: /var/lib/ntfy

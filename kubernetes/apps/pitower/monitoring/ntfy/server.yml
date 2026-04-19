@@ -1,0 +1,15 @@
+base-url: https://ntfy.pitower.link
+listen-http: ":80"
+behind-proxy: true
+
+cache-file: /var/lib/ntfy/cache.db
+cache-duration: "12h"
+
+auth-file: /var/lib/ntfy/user.db
+auth-default-access: deny-all
+
+attachment-cache-dir: /var/lib/ntfy/attachments
+attachment-total-size-limit: "1G"
+attachment-file-size-limit: "15M"
+
+log-level: info
