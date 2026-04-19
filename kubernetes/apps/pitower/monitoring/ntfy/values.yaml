@@ -14,12 +14,13 @@ controllers:
           - -c
           - |
             set -eu
-            CONF=/etc/ntfy/server.yml
+            export NTFY_AUTH_FILE=/var/lib/ntfy/user.db
+            export NTFY_AUTH_DEFAULT_ACCESS=deny-all
             export NTFY_PASSWORD="$BRIDGE_PASSWORD"
-            ntfy --config "$CONF" user add --role=user bridge 2>/dev/null \
-              || ntfy --config "$CONF" user change-pass bridge
-            ntfy --config "$CONF" access bridge pitower-alerts write-only
-            ntfy --config "$CONF" access everyone pitower-alerts read-only
+            ntfy user add --role=user bridge 2>/dev/null \
+              || ntfy user change-pass bridge
+            ntfy access bridge pitower-alerts write-only
+            ntfy access everyone pitower-alerts read-only
         envFrom:
           - secretRef:
               name: ntfy-secret
