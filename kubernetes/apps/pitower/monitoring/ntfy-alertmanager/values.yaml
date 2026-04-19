@@ -1,5 +1,5 @@
 controllers:
-  alertmanager-ntfy:
+  ntfy-alertmanager:
     strategy: RollingUpdate
     annotations:
       reloader.stakater.com/auto: "true"
@@ -7,18 +7,13 @@ controllers:
     containers:
       app:
         image:
-          repository: codeberg.org/xenrox/alertmanager-ntfy
-          tag: 0.4.1
+          repository: docker.io/xenrox/ntfy-alertmanager
+          tag: latest
         args:
           - -config
-          - /etc/alertmanager-ntfy/config.yml
+          - /etc/ntfy-alertmanager/config
         env:
           TZ: Europe/Zurich
-          ALERTMANAGER_NTFY_NTFY_PASSWORD:
-            valueFrom:
-              secretKeyRef:
-                name: ntfy-secret
-                key: BRIDGE_PASSWORD
         probes:
           liveness:
             enabled: true
@@ -45,7 +40,7 @@ controllers:
 
 service:
   app:
-    controller: alertmanager-ntfy
+    controller: ntfy-alertmanager
     ports:
       http:
         port: 8080
@@ -53,9 +48,9 @@ service:
 persistence:
   config:
     enabled: true
-    type: configMap
-    name: alertmanager-ntfy-config
+    type: secret
+    name: ntfy-alertmanager-secret
     globalMounts:
-      - path: /etc/alertmanager-ntfy/config.yml
-        subPath: config.yml
+      - path: /etc/ntfy-alertmanager/config
+        subPath: config
         readOnly: true

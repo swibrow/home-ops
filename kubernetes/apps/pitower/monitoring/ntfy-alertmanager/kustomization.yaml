@@ -3,16 +3,12 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: monitoring
-configMapGenerator:
-  - name: alertmanager-ntfy-config
-    options:
-      disableNameSuffixHash: true
-    files:
-      - config.yml
+resources:
+  - externalsecret.yaml
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm
     version: 4.6.2
-    releaseName: alertmanager-ntfy
+    releaseName: ntfy-alertmanager
     namespace: monitoring
     valuesFile: values.yaml

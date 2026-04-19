@@ -30,7 +30,7 @@ alertmanager:
       - name: "null"
       - name: ntfy
         webhook_configs:
-          - url: http://alertmanager-ntfy.monitoring.svc.cluster.local:8080/hook
+          - url: http://ntfy-alertmanager.monitoring.svc.cluster.local:8080/
             send_resolved: true
     inhibit_rules:
       - source_matchers:
