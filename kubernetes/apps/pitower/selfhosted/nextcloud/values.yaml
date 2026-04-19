@@ -6,6 +6,20 @@ cronjob:
     securityContext:
       runAsUser: 82
       runAsGroup: 82
+    affinity:
+      podAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                    - nextcloud
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values:
+                    - app
+            topologyKey: kubernetes.io/hostname
 
 image:
   flavor: fpm-alpine
