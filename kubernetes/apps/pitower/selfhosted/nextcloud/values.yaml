@@ -3,9 +3,9 @@ cronjob:
   type: cronjob
   cronjob:
     successfulJobsHistoryLimit: 1
-  securityContext:
-    runAsUser: 82
-    runAsGroup: 82
+    securityContext:
+      runAsUser: 82
+      runAsGroup: 82
 
 image:
   flavor: fpm-alpine
