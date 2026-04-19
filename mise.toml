@@ -1,6 +1,6 @@
 [tools]
 talosctl = "1.12.6"
-kubectl = "1.35.3"
+kubectl = "1.35.4"
 kustomize = "5.8.1"
 helm = "4.1.3"
 sops = "3.12.2"
