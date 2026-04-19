@@ -4,27 +4,6 @@ controllers:
     annotations:
       reloader.stakater.com/auto: "true"
 
-    initContainers:
-      setup-auth:
-        image:
-          repository: binwiederhier/ntfy
-          tag: v2.11.0
-        command:
-          - /bin/sh
-          - -c
-          - |
-            set -eu
-            export NTFY_AUTH_FILE=/var/lib/ntfy/user.db
-            export NTFY_AUTH_DEFAULT_ACCESS=deny-all
-            export NTFY_PASSWORD="$BRIDGE_PASSWORD"
-            ntfy user add --role=user bridge 2>/dev/null \
-              || ntfy user change-pass bridge
-            ntfy access bridge pitower-alerts write-only
-            ntfy access everyone pitower-alerts read-only
-        envFrom:
-          - secretRef:
-              name: ntfy-secret
-
     containers:
       app:
         image:
@@ -36,6 +15,30 @@ controllers:
           - /etc/ntfy/server.yml
         env:
           TZ: Europe/Zurich
+          NTFY_AUTH_FILE: /var/lib/ntfy/user.db
+          NTFY_AUTH_DEFAULT_ACCESS: deny-all
+          BRIDGE_PASSWORD:
+            valueFrom:
+              secretKeyRef:
+                name: ntfy-secret
+                key: BRIDGE_PASSWORD
+        lifecycle:
+          postStart:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -eu
+                  for _ in $(seq 1 30); do
+                    [ -f /var/lib/ntfy/user.db ] && break
+                    sleep 1
+                  done
+                  export NTFY_PASSWORD="$BRIDGE_PASSWORD"
+                  ntfy user add --role=user bridge 2>/dev/null \
+                    || ntfy user change-pass bridge
+                  ntfy access bridge pitower-alerts write-only
+                  ntfy access everyone pitower-alerts read-only
         probes:
           liveness:
             enabled: true
