@@ -2,6 +2,7 @@ fullnameOverride: external-dns-unifi
 logLevel: info
 domainFilters:
   - pitower.link
+  - wibrow.dev
 provider:
   name: webhook
   webhook:

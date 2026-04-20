@@ -13,3 +13,18 @@ spec:
   dnsNames:
     - "pitower.link"
     - "*.pitower.link"
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: "wibrow-dev-production"
+  namespace: networking
+spec:
+  secretName: "wibrow-dev-production-tls"
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+  commonName: "wibrow.dev"
+  dnsNames:
+    - "wibrow.dev"
+    - "*.wibrow.dev"

@@ -32,6 +32,9 @@ spec:
           - group: ''
             kind: Secret
             name: pitower-link-production-tls
+          - group: ''
+            kind: Secret
+            name: wibrow-dev-production-tls
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/gateway.networking.k8s.io/httproute_v1.json
 apiVersion: gateway.networking.k8s.io/v1
