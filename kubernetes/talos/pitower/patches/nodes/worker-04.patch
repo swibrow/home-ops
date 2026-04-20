@@ -4,11 +4,22 @@ machine:
     disk: /dev/mmcblk0
     image: factory.talos.dev/installer/97bf8e92fc6bba0f03928b859c08295d7615737b29db06a97be51dc63004e403:v1.12.6
   kubelet:
+    nodeIP:
+      validSubnets:
+        - 10.20.0.0/16
     extraConfig:
       registerWithTaints:
         - key: dedicated
           value: media-home
           effect: NoSchedule
+  network:
+    interfaces:
+      - deviceSelector:
+          physical: true
+          hardwareAddr: 10:02:b5:86:00:fb
+        vlans:
+          - vlanId: 20
+            dhcp: true
 ---
 apiVersion: v1alpha1
 kind: HostnameConfig

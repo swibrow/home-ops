@@ -1,14 +1,21 @@
 ---
 machine:
   install:
-    image: factory.talos.dev/installer/0ba1c222ef07db13e3e40c3872b1f2b0822beae845a0c316150750cdec0166a6:v1.12.6
+    image: factory.talos.dev/installer/f00bf71a43230985c46bb6f82469588437f2e770394bd1196a76c63523df6e59:v1.12.6
+  kubelet:
+    nodeIP:
+      validSubnets:
+        - 10.20.0.0/16
   network:
     interfaces:
       - deviceSelector:
           physical: true
-        dhcp: true
-        vip:
-          ip: 192.168.0.200
+          hardwareAddr: 1c:83:41:40:88:41
+        vlans:
+          - vlanId: 20
+            dhcp: true
+            vip:
+              ip: 10.20.10.0
   logging:
     destinations:
       - endpoint: tcp://data:9898

@@ -6,18 +6,18 @@ import '../shared/talos.justfile'
 
 cp_image := "factory.talos.dev/installer/de94b242ed9adec9def2581ffbf1e2d1873e42b17032771770d241dee54d7c00:v1.12.6"
 cp_amd_image := "factory.talos.dev/installer/f19ad7b4a5d29151f3a59ef2d9c581cf89e77142e52f0abb5022e8f0b95ad0b9:v1.12.6"
-cp_amd_no_gpu_image := "factory.talos.dev/installer/0ba1c222ef07db13e3e40c3872b1f2b0822beae845a0c316150750cdec0166a6:v1.12.6"
+cp_amd_mitigated_image := "factory.talos.dev/installer/f00bf71a43230985c46bb6f82469588437f2e770394bd1196a76c63523df6e59:v1.12.6"
 worker_intel_image := "factory.talos.dev/installer/97bf8e92fc6bba0f03928b859c08295d7615737b29db06a97be51dc63004e403:v1.12.6"
 
 talosconfig := source_directory() / "clusterconfig/talosconfig"
-nodes := "192.168.0.201 192.168.0.202 192.168.0.203 192.168.0.204"
+nodes := "10.20.10.1 10.20.10.2 10.20.10.3 10.20.10.4"
 
 # Generate talos config from secrets
 config:
     sops -d ./secrets.sops.yaml > ./secrets.yaml
     talosctl gen config \
         pitower \
-        https://192.168.0.200:6443 \
+        https://10.20.10.0:6443 \
         --with-secrets ./secrets.yaml \
         --with-examples=true \
         --config-patch-control-plane @patches/controlplane.patch \
@@ -38,27 +38,27 @@ patch:
 # Bootstrap the Talos cluster
 [working-directory: 'clusterconfig']
 bootstrap:
-    talosctl bootstrap --talosconfig ./talosconfig --nodes 192.168.0.201
-    talosctl kubeconfig --talosconfig ./talosconfig --nodes 192.168.0.200
+    talosctl bootstrap --talosconfig ./talosconfig --nodes 10.20.10.1
+    talosctl kubeconfig --talosconfig ./talosconfig --nodes 10.20.10.0
 
 # Apply configs to all control plane nodes
 [working-directory: 'clusterconfig']
 apply-controlplanes:
-    talosctl apply-config --talosconfig {{ talosconfig }} --endpoints 192.168.0.201 --nodes 192.168.0.201 --file ./worker-01.yaml
-    talosctl apply-config --talosconfig {{ talosconfig }} --endpoints 192.168.0.202 --nodes 192.168.0.202 --file ./worker-02.yaml
-    talosctl apply-config --talosconfig {{ talosconfig }} --endpoints 192.168.0.203 --nodes 192.168.0.203 --file ./worker-03.yaml
+    talosctl apply-config --talosconfig {{ talosconfig }} --endpoints 10.20.10.1 --nodes 10.20.10.1 --file ./worker-01.yaml
+    talosctl apply-config --talosconfig {{ talosconfig }} --endpoints 10.20.10.2 --nodes 10.20.10.2 --file ./worker-02.yaml
+    talosctl apply-config --talosconfig {{ talosconfig }} --endpoints 10.20.10.3 --nodes 10.20.10.3 --file ./worker-03.yaml
 
 # Apply configs to all worker nodes
 [working-directory: 'clusterconfig']
 apply-workers:
-    talosctl apply-config --talosconfig {{ talosconfig }} --nodes 192.168.0.204 --file ./worker-04.yaml
+    talosctl apply-config --talosconfig {{ talosconfig }} --nodes 10.20.10.4 --file ./worker-04.yaml
 
 # Reboot control plane nodes sequentially
 reboot-controlplanes:
     #!/usr/bin/env bash
     set -euo pipefail
     for i in 1 2 3; do
-        talosctl --talosconfig {{ talosconfig }} reboot --endpoints "192.168.0.20${i}" --nodes "192.168.0.20${i}" --wait
+        talosctl --talosconfig {{ talosconfig }} reboot --endpoints "10.20.10.${i}" --nodes "10.20.10.${i}" --wait
     done
 
 # Reboot worker nodes sequentially
@@ -66,7 +66,7 @@ reboot-workers:
     #!/usr/bin/env bash
     set -euo pipefail
     for i in 4; do
-        talosctl --talosconfig {{ talosconfig }} reboot --nodes "192.168.0.20${i}" --wait
+        talosctl --talosconfig {{ talosconfig }} reboot --nodes "10.20.10.${i}" --wait
     done
 
 # Reset a Talos node by last octet (e.g. just reset 04)
@@ -82,15 +82,15 @@ reset suffix:
 upgrade name:
     #!/usr/bin/env bash
     set -euo pipefail
-    ip=$(talosctl --talosconfig {{ talosconfig }} get members -o json | jq -rs --arg h "{{ name }}" '[.[] | select(.spec.hostname == $h) | .spec.addresses[0]][0]')
+    ip=$(talosctl --talosconfig {{ talosconfig }} --endpoints 10.20.10.0 --nodes 10.20.10.0 get members -o json | jq -rs --arg h "{{ name }}" '[.[] | select(.spec.hostname == $h) | .spec.addresses[0]][0]')
     case "{{ name }}" in
-        worker-01)                     image="{{ cp_amd_no_gpu_image }}" ;;
+        worker-01)                     image="{{ cp_amd_mitigated_image }}" ;;
         worker-02|worker-03)           image="{{ cp_amd_image }}" ;;
         worker-04|worker-05|worker-06) image="{{ worker_intel_image }}" ;;
         *)                             image="{{ cp_image }}" ;;
     esac
     echo "Upgrading {{ name }} (${ip}) with ${image}"
-    talosctl --talosconfig {{ talosconfig }} upgrade \
+    talosctl --talosconfig {{ talosconfig }} --endpoints "${ip}" upgrade \
         --image "${image}" \
         --nodes "${ip}" \
         --preserve \
@@ -103,7 +103,7 @@ upgrade-controlplanes:
     for i in 1 2 3; do
         talosctl --talosconfig {{ talosconfig }} upgrade \
             --image {{ cp_image }} \
-            --nodes "192.168.0.20${i}" \
+            --nodes "10.20.10.${i}" \
             --preserve \
             --wait
     done
@@ -115,7 +115,7 @@ upgrade-controlplanes-amd:
     for i in 3; do
         talosctl --talosconfig {{ talosconfig }} upgrade \
             --image {{ cp_amd_image }} \
-            --nodes "192.168.0.20${i}" \
+            --nodes "10.20.10.${i}" \
             --preserve \
             --wait
     done
@@ -127,7 +127,7 @@ upgrade-workers-intel:
     for i in 4; do
         talosctl --talosconfig {{ talosconfig }} upgrade \
             --image {{ worker_intel_image }} \
-            --nodes "192.168.0.20${i}" \
+            --nodes "10.20.10.${i}" \
             --preserve \
             --wait
     done
@@ -137,7 +137,7 @@ upgrade-workers-intel:
 image-id:
     #!/usr/bin/env bash
     set -euo pipefail
-    for f in amd.yaml intel.yaml rpi-poe.yaml; do
+    for f in amd.yaml amd-mitigations.yaml intel.yaml rpi-poe.yaml; do
         name="${f%.yaml}"
         id=$(curl -sX POST --data-binary "@${f}" https://factory.talos.dev/schematics | jq -r .id)
         echo "${name}: ${id}"

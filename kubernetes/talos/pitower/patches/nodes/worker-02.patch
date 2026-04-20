@@ -2,13 +2,20 @@
 machine:
   install:
     image: factory.talos.dev/installer/f19ad7b4a5d29151f3a59ef2d9c581cf89e77142e52f0abb5022e8f0b95ad0b9:v1.12.6
+  kubelet:
+    nodeIP:
+      validSubnets:
+        - 10.20.0.0/16
   network:
     interfaces:
       - deviceSelector:
           physical: true
-        dhcp: true
-        vip:
-          ip: 192.168.0.200
+          hardwareAddr: 1c:83:41:40:66:25
+        vlans:
+          - vlanId: 20
+            dhcp: true
+            vip:
+              ip: 10.20.10.0
 ---
 apiVersion: v1alpha1
 kind: HostnameConfig
