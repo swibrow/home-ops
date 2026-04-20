@@ -1,0 +1,86 @@
+controllers:
+  mattermost:
+    strategy: RollingUpdate
+    annotations:
+      reloader.stakater.com/auto: "true"
+
+    pod:
+      securityContext:
+        runAsUser: 2000
+        runAsGroup: 2000
+        fsGroup: 2000
+        fsGroupChangePolicy: OnRootMismatch
+
+    containers:
+      app:
+        image:
+          repository: mattermost/mattermost-team-edition
+          tag: 11.5.3
+        env:
+          TZ: Europe/Zurich
+          MM_SQLSETTINGS_DRIVERNAME: postgres
+          MM_SERVICESETTINGS_SITEURL: https://mattermost.pitower.link
+          MM_SERVICESETTINGS_LISTENADDRESS: ":8065"
+          MM_SERVICESETTINGS_FORWARD80TO443: "false"
+          MM_FILESETTINGS_DRIVERNAME: local
+          MM_FILESETTINGS_DIRECTORY: /mattermost/data/
+          MM_LOGSETTINGS_CONSOLELEVEL: INFO
+          MM_LOGSETTINGS_FILELOCATION: /mattermost/logs
+          MM_PLUGINSETTINGS_DIRECTORY: /mattermost/plugins/
+          MM_PLUGINSETTINGS_CLIENTDIRECTORY: /mattermost/client/plugins/
+          MM_SQLSETTINGS_DATASOURCE:
+            valueFrom:
+              secretKeyRef:
+                name: mattermost-db-secret
+                key: DB_URL
+        probes:
+          liveness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /api/v4/system/ping
+                port: 8065
+              initialDelaySeconds: 60
+              periodSeconds: 30
+              timeoutSeconds: 5
+              failureThreshold: 6
+          readiness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /api/v4/system/ping
+                port: 8065
+              initialDelaySeconds: 15
+              periodSeconds: 10
+              timeoutSeconds: 5
+        resources:
+          requests:
+            cpu: 50m
+            memory: 512Mi
+          limits:
+            memory: 2Gi
+
+service:
+  app:
+    controller: mattermost
+    ports:
+      http:
+        port: 8065
+
+route:
+  app:
+    enabled: true
+    hostnames:
+      - mattermost.pitower.link
+    parentRefs:
+      - name: envoy-external
+        namespace: networking
+        sectionName: https
+
+persistence:
+  data:
+    existingClaim: mattermost-data
+    globalMounts:
+      - path: /mattermost/data

@@ -1,0 +1,30 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: selfhosted
+components:
+  - ../../../../components/volsync
+  - ../../../../components/cnpg-db
+configMapGenerator:
+  - name: cnpg-db-config
+    literals:
+      - APP_NAME=mattermost
+      - SECRET_NAME=mattermost-db-secret
+      - CNPG_SECRET_KEY=mattermost-app
+  - name: volsync-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=mattermost
+      - CLAIM_NAME=mattermost-data
+      - SECRET_NAME=mattermost-volsync
+      - STORAGE_SIZE=10Gi
+      - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/selfhosted/mattermost
+helmCharts:
+  - name: app-template
+    repo: oci://ghcr.io/bjw-s-labs/helm
+    version: 4.6.2
+    releaseName: mattermost
+    namespace: selfhosted
+    valuesFile: values.yaml
