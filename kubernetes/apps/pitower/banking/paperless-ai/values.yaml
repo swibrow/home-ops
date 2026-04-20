@@ -16,16 +16,15 @@ controllers:
           AI_PROCESSED_TAG_NAME: ai-processed
           USE_PROMPT_TAGS: "no"
           USE_EXISTING_DATA: "no"
-          NODE_OPTIONS: "--max-old-space-size=768"
         envFrom:
           - secretRef:
               name: paperless-ai-secrets
         resources:
           requests:
             cpu: 10m
-            memory: 256Mi
+            memory: 512Mi
           limits:
-            memory: 1Gi
+            memory: 2Gi
 
 service:
   app:
