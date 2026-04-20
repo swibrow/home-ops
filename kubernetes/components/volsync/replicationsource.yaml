@@ -22,7 +22,7 @@ spec:
       runAsUser: 0
       runAsGroup: 0
       fsGroup: 2000
-      fsGroupChangePolicy: OnRootMismatch
+      fsGroupChangePolicy: Always
       supplementalGroups:
         - 82
         - 568
