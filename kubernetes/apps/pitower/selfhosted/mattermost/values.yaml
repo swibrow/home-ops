@@ -15,7 +15,7 @@ controllers:
       app:
         image:
           repository: mattermost/mattermost-team-edition
-          tag: 11.5.3
+          tag: 11.6.0
         env:
           TZ: Europe/Zurich
           MM_SQLSETTINGS_DRIVERNAME: postgres
