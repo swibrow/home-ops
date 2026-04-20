@@ -55,7 +55,7 @@ service:
     controller: go2rtc
     type: LoadBalancer
     annotations:
-      lbipam.cilium.io/ips: 192.168.0.236
+      lbipam.cilium.io/ips: 10.20.10.236
     ports:
       webrtc-udp:
         port: 8555
