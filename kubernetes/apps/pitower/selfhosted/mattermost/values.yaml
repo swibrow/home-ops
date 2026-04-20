@@ -1,6 +1,6 @@
 controllers:
   mattermost:
-    strategy: RollingUpdate
+    strategy: Recreate
     annotations:
       reloader.stakater.com/auto: "true"
 
