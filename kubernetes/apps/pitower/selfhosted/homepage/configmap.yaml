@@ -210,6 +210,14 @@ data:
             icon: ceph.svg
             href: https://rook.pitower.link
             description: Distributed storage
+        - JetKVM 01:
+            icon: mdi-monitor-eye
+            href: http://jetkvm-01/
+            description: Remote KVM
+        - JetKVM 02:
+            icon: mdi-monitor-eye
+            href: http://jetkvm-02/
+            description: Remote KVM
   settings.yaml: |
     title: Home
     favicon: https://raw.githubusercontent.com/gethomepage/homepage/main/public/homepage.png
@@ -245,6 +253,7 @@ data:
         style: row
       Infrastructure:
         style: row
+        columns: 3
   widgets.yaml: |
     - kubernetes:
         cluster:
