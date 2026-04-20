@@ -70,3 +70,7 @@ route:
 persistence:
   config:
     existingClaim: prowlarr-config
+  tmp:
+    type: emptyDir
+    globalMounts:
+      - path: /tmp
