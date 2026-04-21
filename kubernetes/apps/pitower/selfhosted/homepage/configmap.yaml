@@ -20,6 +20,57 @@ data:
   kubernetes.yaml: |
     mode: cluster
   services.yaml: |
+    - Cluster:
+        - CPU:
+            icon: mdi-cpu-64-bit
+            description: Cluster CPU usage
+            widget:
+              type: customapi
+              url: https://kromgo.wibrow.dev/cluster_cpu?format=json
+              refreshInterval: 60000
+              mappings:
+                - field: message
+                  label: Usage
+        - Memory:
+            icon: mdi-memory
+            description: Cluster memory usage
+            widget:
+              type: customapi
+              url: https://kromgo.wibrow.dev/cluster_memory?format=json
+              refreshInterval: 60000
+              mappings:
+                - field: message
+                  label: Usage
+        - Nodes:
+            icon: mdi-server
+            description: Kubernetes nodes
+            widget:
+              type: customapi
+              url: https://kromgo.wibrow.dev/cluster_nodes?format=json
+              refreshInterval: 300000
+              mappings:
+                - field: message
+                  label: Nodes
+        - Pods:
+            icon: mdi-cube-outline
+            description: Running pods
+            widget:
+              type: customapi
+              url: https://kromgo.wibrow.dev/cluster_pods_running?format=json
+              refreshInterval: 60000
+              mappings:
+                - field: message
+                  label: Running
+        - Ceph Health:
+            icon: ceph.svg
+            description: Rook/Ceph status
+            widget:
+              type: customapi
+              url: https://kromgo.wibrow.dev/ceph_health?format=json
+              refreshInterval: 60000
+              mappings:
+                - field: message
+                  label: Status
     - Media:
         - Jellyfin:
             icon: jellyfin.svg
@@ -227,6 +278,9 @@ data:
     statusStyle: dot
     hideVersion: true
     layout:
+      Cluster:
+        style: row
+        columns: 5
       Media:
         style: row
         columns: 4

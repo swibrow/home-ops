@@ -1,0 +1,91 @@
+controllers:
+  kromgo:
+    strategy: RollingUpdate
+    annotations:
+      reloader.stakater.com/auto: "true"
+
+    pod:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+
+    containers:
+      app:
+        image:
+          repository: ghcr.io/kashalls/kromgo
+          tag: v0.9.1
+        env:
+          TZ: Europe/Zurich
+          PROMETHEUS_URL: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+          LOG_LEVEL: info
+          LOG_FORMAT: json
+          SERVER_LOGGING: "false"
+          RATELIMIT_ENABLE: "true"
+          RATELIMIT_BY_REAL_IP: "true"
+          RATELIMIT_REQUEST_LIMIT: "60"
+          RATELIMIT_WINDOW_LENGTH: 1m
+        probes:
+          liveness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /healthz
+                port: 8888
+              initialDelaySeconds: 5
+              periodSeconds: 30
+          readiness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /healthz
+                port: 8888
+              initialDelaySeconds: 5
+              periodSeconds: 10
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
+        resources:
+          requests:
+            cpu: 5m
+            memory: 32Mi
+          limits:
+            memory: 64Mi
+
+service:
+  app:
+    controller: kromgo
+    ports:
+      http:
+        port: 8080
+      health:
+        port: 8888
+
+route:
+  app:
+    enabled: true
+    hostnames:
+      - kromgo.wibrow.dev
+    parentRefs:
+      - name: envoy-external
+        namespace: networking
+        sectionName: https
+    rules:
+      - backendRefs:
+          - identifier: app
+            port: 8080
+
+persistence:
+  config:
+    enabled: true
+    type: configMap
+    name: kromgo-config
+    globalMounts:
+      - path: /kromgo/config.yaml
+        subPath: config.yaml
+        readOnly: true
