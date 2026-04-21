@@ -34,7 +34,7 @@ nextcloud:
     secretName: nextcloud-secret
     usernameKey: nextcloud-username
     passwordKey: nextcloud-password
-  host: &host nextcloud.pitower.link
+  host: &host nextcloud.wibrow.dev
   mail:
     enabled: false
   configs:
@@ -61,6 +61,7 @@ httpRoute:
   enabled: true
   hostnames:
     - *host
+    - nextcloud.pitower.link
   parentRefs:
     - name: envoy-internal
       namespace: networking

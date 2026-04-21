@@ -30,7 +30,7 @@ controllers:
                 name: miniflux-secret
                 key: OAUTH2_CLIENT_SECRET
           OAUTH2_REDIRECT_URL: https://miniflux.wibrow.dev/oauth2/oidc/callback
-          OAUTH2_OIDC_DISCOVERY_ENDPOINT: https://auth.pitower.link/.well-known/openid-configuration
+          OAUTH2_OIDC_DISCOVERY_ENDPOINT: https://auth.wibrow.dev/.well-known/openid-configuration
           OAUTH2_USER_CREATION: "1"
           DATABASE_URL:
             valueFrom:

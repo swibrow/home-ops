@@ -37,10 +37,10 @@ session:
     host: localhost
     port: 6379
   cookies:
-    - name: pitower_link_session
-      domain: pitower.link
-      authelia_url: https://auth.pitower.link
-      default_redirection_url: https://pitower.link
+    - name: wibrow_dev_session
+      domain: wibrow.dev
+      authelia_url: https://auth.wibrow.dev
+      default_redirection_url: https://wibrow.dev
 
 storage:
   encryption_key: "{{ .authelia_storage_encryption_key }}"

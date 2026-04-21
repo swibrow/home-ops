@@ -14,7 +14,7 @@ grafana.ini:
     check_for_plugin_updates: false
     reporting_enabled: false
   auth:
-    signout_redirect_url: "https://auth.pitower.link/logout"
+    signout_redirect_url: "https://auth.wibrow.dev/logout"
     oauth_auto_login: true
     oauth_allow_insecure_email_lookup: true
   auth.generic_oauth:
@@ -24,9 +24,9 @@ grafana.ini:
     scopes: openid profile email groups
     client_id: grafana
     empty_scopes: false
-    auth_url: https://auth.pitower.link/api/oidc/authorization
-    token_url: https://auth.pitower.link/api/oidc/token
-    api_url: https://auth.pitower.link/api/oidc/userinfo
+    auth_url: https://auth.wibrow.dev/api/oidc/authorization
+    token_url: https://auth.wibrow.dev/api/oidc/token
+    api_url: https://auth.wibrow.dev/api/oidc/userinfo
     login_attribute_path: preferred_username
     groups_attribute_path: groups
     name_attribute_path: name

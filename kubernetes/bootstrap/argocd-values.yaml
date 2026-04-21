@@ -1,6 +1,6 @@
 # https://github.com/argoproj/argo-helm/blob/main/charts/argo-cd/values.yaml
 global:
-  domain: argocd.pitower.link
+  domain: argocd.wibrow.dev
   logging:
     format: json
 configs:
@@ -104,7 +104,7 @@ server:
   httproute:
     enabled: true
     hostnames:
-      - argocd.pitower.link
+      - argocd.wibrow.dev
     parentRefs:
       - name: envoy-external
         namespace: networking
@@ -148,7 +148,7 @@ applicationSet:
   ingress:
     enabled: false # TODO: when enabled the health checks are failing
     ingressClassName: external
-    hostname: appset.argocd.pitower.link
+    hostname: appset.argocd.wibrow.dev
 
 notifications:
   enabled: true
