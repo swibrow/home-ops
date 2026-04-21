@@ -7,7 +7,7 @@ controllers:
           tag: v3.16.0
         env:
           ALLOW_SIGNUP: "false"
-          BASE_URL: https://recipes.pitower.link
+          BASE_URL: https://recipes.wibrow.dev
           TZ: Europe/Zurich
           OIDC_AUTH_ENABLED: "true"
           OIDC_CONFIGURATION_URL: https://auth.pitower.link/.well-known/openid-configuration

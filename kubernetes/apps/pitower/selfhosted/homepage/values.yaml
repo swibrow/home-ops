@@ -10,7 +10,7 @@ controllers:
           tag: v1.12.3
         env:
           TZ: Europe/Zurich
-          HOMEPAGE_ALLOWED_HOSTS: home.pitower.link
+          HOMEPAGE_ALLOWED_HOSTS: home.pitower.link,home.wibrow.dev
         envFrom:
           - secretRef:
               name: homepage-secret

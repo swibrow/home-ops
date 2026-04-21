@@ -23,7 +23,7 @@ data:
     - Media:
         - Jellyfin:
             icon: jellyfin.svg
-            href: https://jellyfin.pitower.link
+            href: https://jellyfin.wibrow.dev
             description: Media server
             widget:
               type: jellyfin
@@ -32,7 +32,7 @@ data:
               enableNowPlaying: true
         - Sonarr:
             icon: sonarr.svg
-            href: https://sonarr.pitower.link
+            href: https://sonarr.wibrow.dev
             description: TV shows
             widget:
               type: sonarr
@@ -40,7 +40,7 @@ data:
               key: "{{HOMEPAGE_VAR_SONARR_TOKEN}}"
         - Radarr:
             icon: radarr.svg
-            href: https://radarr.pitower.link
+            href: https://radarr.wibrow.dev
             description: Movies
             widget:
               type: radarr
@@ -48,7 +48,7 @@ data:
               key: "{{HOMEPAGE_VAR_RADARR_TOKEN}}"
         - Prowlarr:
             icon: prowlarr.svg
-            href: https://prowlarr.pitower.link
+            href: https://prowlarr.wibrow.dev
             description: Indexer manager
             widget:
               type: prowlarr
@@ -56,18 +56,18 @@ data:
               key: "{{HOMEPAGE_VAR_PROWLARR_TOKEN}}"
         - Autobrr:
             icon: autobrr.svg
-            href: https://autobrr.pitower.link
+            href: https://autobrr.wibrow.dev
             description: Torrent automation
         - qBittorrent:
             icon: qbittorrent.svg
-            href: https://qbittorrent.pitower.link
+            href: https://qbittorrent.wibrow.dev
             description: Torrent client
             widget:
               type: qbittorrent
               url: http://qbittorrent.media.svc.cluster.local:8080
         - SABnzbd:
             icon: sabnzbd.svg
-            href: https://sabnzbd.pitower.link
+            href: https://sabnzbd.wibrow.dev
             description: Usenet client
             widget:
               type: sabnzbd
@@ -76,7 +76,7 @@ data:
     - Home Automation:
         - Home Assistant:
             icon: home-assistant.svg
-            href: https://ha.pitower.link
+            href: https://ha.wibrow.dev
             description: Home automation
             widget:
               type: homeassistant
@@ -84,105 +84,105 @@ data:
               key: "{{HOMEPAGE_VAR_HASS_TOKEN}}"
         - go2rtc:
             icon: mdi-video
-            href: https://go2rtc.pitower.link
+            href: https://go2rtc.wibrow.dev
             description: Video streaming proxy
     - Banking:
         - Firefly III:
             icon: firefly.svg
-            href: https://money.pitower.link
+            href: https://money.wibrow.dev
             description: Financial manager
         - Firefly Importer:
             icon: firefly.svg
-            href: https://money-import.pitower.link
+            href: https://money-import.wibrow.dev
             description: Transaction importer
         - Ghostfolio:
             icon: ghostfolio.svg
-            href: https://portfolio.pitower.link
+            href: https://portfolio.wibrow.dev
             description: Portfolio tracker
         - Paperless:
             icon: paperless-ngx.svg
-            href: https://paperless.pitower.link
+            href: https://paperless.wibrow.dev
             description: Document management
         - Paperless AI:
             icon: paperless-ngx.svg
-            href: https://paperless-ai.pitower.link
+            href: https://paperless-ai.wibrow.dev
             description: AI document processing
     - Selfhosted:
         - n8n:
             icon: n8n.svg
-            href: https://n8n.pitower.link
+            href: https://n8n.wibrow.dev
             description: Workflow automation
         - Miniflux:
             icon: miniflux.svg
-            href: https://miniflux.pitower.link
+            href: https://miniflux.wibrow.dev
             description: RSS reader
         - Glance:
             icon: glance.svg
-            href: https://glance.pitower.link
+            href: https://glance.wibrow.dev
             description: Dashboard
         - Excalidraw:
             icon: excalidraw.svg
-            href: https://draw.pitower.link
+            href: https://draw.wibrow.dev
             description: Whiteboard
         - Cryptgeon:
             icon: mdi-lock-outline
-            href: https://secrets.pitower.link
+            href: https://secrets.wibrow.dev
             description: Secret sharing
         - Sharkord:
             icon: mdi-music-note
-            href: https://sharkord.pitower.link
+            href: https://sharkord.wibrow.dev
             description: Music server
         - House Hunter:
             icon: mdi-home-search
-            href: https://house-hunter.pitower.link
+            href: https://house-hunter.wibrow.dev
             description: Property tracker
         - RRDA:
             icon: mdi-dns
-            href: https://rrda.pitower.link
+            href: https://rrda.wibrow.dev
             description: DNS lookup
         - Mealie:
             icon: mealie.svg
-            href: https://recipes.pitower.link
+            href: https://recipes.wibrow.dev
             description: Recipe management
         - Nextcloud:
             icon: nextcloud.svg
-            href: https://nextcloud.pitower.link
+            href: https://nextcloud.wibrow.dev
             description: Personal cloud
     - AI:
         - ZeroClaw:
             icon: mdi-robot
-            href: https://zeroclaw.pitower.link
+            href: https://zeroclaw.wibrow.dev
             description: AI assistant gateway
         - OpenClaw:
             icon: mdi-robot-outline
-            href: https://openclaw.pitower.link
+            href: https://openclaw.wibrow.dev
             description: AI agent
         - Browser Use:
             icon: mdi-web
-            href: https://browser-use.pitower.link
+            href: https://browser-use.wibrow.dev
             description: AI browser automation
     - Second Brain:
         - Obsidian:
             icon: obsidian.svg
-            href: https://obsidian.pitower.link
+            href: https://obsidian.wibrow.dev
             description: Notes sync
     - Security:
         - Authelia:
             icon: authelia.svg
-            href: https://auth.pitower.link
+            href: https://auth.wibrow.dev
             description: Authentication
         - LLDAP:
             icon: mdi-account-group
-            href: https://lldap.pitower.link
+            href: https://lldap.wibrow.dev
             description: LDAP directory
     - Monitoring:
         - Gatus:
             icon: gatus.svg
-            href: https://status.pitower.link
+            href: https://status.wibrow.dev
             description: Status monitoring
         - Grafana:
             icon: grafana.svg
-            href: https://grafana.pitower.link
+            href: https://grafana.wibrow.dev
             description: Dashboards
             widget:
               type: grafana
@@ -191,24 +191,24 @@ data:
               password: "{{HOMEPAGE_VAR_GRAFANA_PASS}}"
         - Prometheus:
             icon: prometheus.svg
-            href: https://prometheus.pitower.link
+            href: https://prometheus.wibrow.dev
             description: Metrics
             widget:
               type: prometheus
               url: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
         - Victoria Metrics:
             icon: victoriametrics.svg
-            href: https://vm.pitower.link
+            href: https://vm.wibrow.dev
             description: Long-term TSDB
     - Networking:
         - OpenSpeedTest:
             icon: mdi-speedometer
-            href: https://openspeedtest.pitower.link
+            href: https://openspeedtest.wibrow.dev
             description: Speed test
     - Infrastructure:
         - Rook Ceph:
             icon: ceph.svg
-            href: https://rook.pitower.link
+            href: https://rook.wibrow.dev
             description: Distributed storage
         - JetKVM 01:
             icon: mdi-monitor-eye

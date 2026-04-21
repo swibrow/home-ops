@@ -62,11 +62,13 @@ access_control:
   rules:
     - domain:
         - actual.pitower.link
+        - actual.wibrow.dev
       subject:
         - ["group:auth_users"]
       policy: one_factor
     - domain:
         - jellyfin.pitower.link
+        - jellyfin.wibrow.dev
       subject:
         - ["group:auth_users"]
       policy: one_factor
@@ -95,6 +97,7 @@ identity_providers:
         pkce_challenge_method: "S256"
         redirect_uris:
           - "https://jellyfin.pitower.link/sso/OID/redirect/authelia"
+          - "https://jellyfin.wibrow.dev/sso/OID/redirect/authelia"
         scopes:
           - "openid"
           - "profile"
@@ -112,6 +115,7 @@ identity_providers:
         pkce_challenge_method: "S256"
         redirect_uris:
           - "https://grafana.pitower.link/login/generic_oauth"
+          - "https://grafana.wibrow.dev/login/generic_oauth"
         scopes:
           - "openid"
           - "profile"
@@ -129,6 +133,7 @@ identity_providers:
         pkce_challenge_method: "S256"
         redirect_uris:
           - "https://miniflux.pitower.link/oauth2/oidc/callback"
+          - "https://miniflux.wibrow.dev/oauth2/oidc/callback"
         scopes:
           - "openid"
           - "profile"
@@ -146,6 +151,8 @@ identity_providers:
         redirect_uris:
           - "https://recipes.pitower.link/login"
           - "https://recipes.pitower.link/api/auth/oauth/callback"
+          - "https://recipes.wibrow.dev/login"
+          - "https://recipes.wibrow.dev/api/auth/oauth/callback"
         scopes:
           - "openid"
           - "profile"
@@ -164,6 +171,7 @@ identity_providers:
         pkce_challenge_method: "S256"
         redirect_uris:
           - "https://paperless.pitower.link/accounts/oidc/authelia/login/callback/"
+          - "https://paperless.wibrow.dev/accounts/oidc/authelia/login/callback/"
         scopes:
           - "openid"
           - "profile"
@@ -180,6 +188,7 @@ identity_providers:
         pkce_challenge_method: "S256"
         redirect_uris:
           - "https://portfolio.pitower.link/api/auth/oidc/callback"
+          - "https://portfolio.wibrow.dev/api/auth/oidc/callback"
         scopes:
           - "openid"
           - "profile"
@@ -196,6 +205,7 @@ identity_providers:
         pkce_challenge_method: "S256"
         redirect_uris:
           - "https://autobrr.pitower.link/api/auth/oidc/callback"
+          - "https://autobrr.wibrow.dev/api/auth/oidc/callback"
         scopes:
           - "openid"
           - "profile"

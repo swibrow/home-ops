@@ -11,6 +11,7 @@ spec:
       sectionName: https
   hostnames:
     - vm.pitower.link
+    - vm.wibrow.dev
   rules:
     - matches:
         - path:

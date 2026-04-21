@@ -15,7 +15,7 @@ controllers:
           repository: ghcr.io/miniflux/miniflux
           tag: 2.2.19-distroless
         env:
-          BASE_URL: https://miniflux.pitower.link
+          BASE_URL: https://miniflux.wibrow.dev
           CREATE_ADMIN: "1"
           DEBUG: "1"
           LOG_DATE_TIME: "1"
@@ -29,7 +29,7 @@ controllers:
               secretKeyRef:
                 name: miniflux-secret
                 key: OAUTH2_CLIENT_SECRET
-          OAUTH2_REDIRECT_URL: https://miniflux.pitower.link/oauth2/oidc/callback
+          OAUTH2_REDIRECT_URL: https://miniflux.wibrow.dev/oauth2/oidc/callback
           OAUTH2_OIDC_DISCOVERY_ENDPOINT: https://auth.pitower.link/.well-known/openid-configuration
           OAUTH2_USER_CREATION: "1"
           DATABASE_URL:

@@ -9,7 +9,7 @@ controllers:
           tag: 2.20.14
         env:
           # Application
-          PAPERLESS_URL: "https://paperless.pitower.link"
+          PAPERLESS_URL: "https://paperless.wibrow.dev"
           PAPERLESS_PORT: "8000"
           PAPERLESS_TIME_ZONE: Europe/Zurich
           PAPERLESS_WEBSERVER_WORKERS: "2"
