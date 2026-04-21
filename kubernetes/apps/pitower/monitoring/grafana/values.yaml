@@ -6,7 +6,7 @@ admin:
   existingSecret: grafana-admin-secret
 env:
   GF_EXPLORE_ENABLED: true
-  GF_SERVER_ROOT_URL: "https://grafana.pitower.link"
+  GF_SERVER_ROOT_URL: "https://grafana.wibrow.dev"
 envFromSecret: grafana-secrets
 grafana.ini:
   analytics:
