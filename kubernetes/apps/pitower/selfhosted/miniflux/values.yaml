@@ -71,6 +71,7 @@ route:
     enabled: true
     hostnames:
       - miniflux.pitower.link
+      - miniflux.wibrow.dev
     parentRefs:
       - name: envoy-external
         namespace: networking

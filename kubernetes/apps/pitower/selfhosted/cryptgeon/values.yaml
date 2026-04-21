@@ -58,6 +58,7 @@ route:
   app:
     hostnames:
       - secrets.pitower.link
+      - secrets.wibrow.dev
     parentRefs:
       - name: envoy-external
         namespace: networking

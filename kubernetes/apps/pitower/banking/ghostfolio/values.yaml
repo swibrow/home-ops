@@ -59,6 +59,7 @@ route:
   app:
     hostnames:
       - portfolio.pitower.link
+      - portfolio.wibrow.dev
     parentRefs:
       - name: envoy-internal
         namespace: networking

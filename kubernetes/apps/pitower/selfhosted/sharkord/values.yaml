@@ -150,6 +150,7 @@ route:
       external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     hostnames:
       - sharkord.pitower.link
+      - sharkord.wibrow.dev
     parentRefs:
       - name: envoy-direct
         namespace: networking

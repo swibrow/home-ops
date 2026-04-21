@@ -41,6 +41,7 @@ route:
     enabled: true
     hostnames:
       - rrda.pitower.link
+      - rrda.wibrow.dev
     parentRefs:
       - name: envoy-external
         namespace: networking

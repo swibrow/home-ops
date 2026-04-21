@@ -62,6 +62,7 @@ route:
   app:
     hostnames:
       - prowlarr.pitower.link
+      - prowlarr.wibrow.dev
     parentRefs:
       - name: envoy-internal
         namespace: networking

@@ -54,6 +54,7 @@ route:
     enabled: true
     hostnames:
       - house-hunter.pitower.link
+      - house-hunter.wibrow.dev
     parentRefs:
       - name: envoy-external
         namespace: networking

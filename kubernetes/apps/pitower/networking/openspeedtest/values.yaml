@@ -41,6 +41,7 @@ route:
       external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     hostnames:
       - openspeedtest.pitower.link
+      - openspeedtest.wibrow.dev
     parentRefs:
       - name: envoy-direct
         namespace: networking

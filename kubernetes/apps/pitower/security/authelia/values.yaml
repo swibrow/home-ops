@@ -90,6 +90,7 @@ route:
     enabled: true
     hostnames:
       - auth.pitower.link
+      - auth.wibrow.dev
     parentRefs:
       - name: envoy-external
         namespace: networking

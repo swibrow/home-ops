@@ -42,6 +42,7 @@ route:
     enabled: true
     hostnames:
       - home.pitower.link
+      - home.wibrow.dev
     parentRefs:
       - name: envoy-external
         namespace: networking

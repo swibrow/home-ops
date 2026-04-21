@@ -47,6 +47,7 @@ route:
     enabled: true
     hostnames:
       - obsidian.pitower.link
+      - obsidian.wibrow.dev
     parentRefs:
       - name: envoy-external
         namespace: networking

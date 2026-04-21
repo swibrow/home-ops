@@ -33,6 +33,7 @@ route:
     enabled: true
     hostnames:
       - draw.pitower.link
+      - draw.wibrow.dev
     parentRefs:
       - name: envoy-external
         namespace: networking

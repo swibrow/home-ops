@@ -85,6 +85,7 @@ route:
   app:
     hostnames:
       - autobrr.pitower.link
+      - autobrr.wibrow.dev
     parentRefs:
       - name: envoy-internal
         namespace: networking

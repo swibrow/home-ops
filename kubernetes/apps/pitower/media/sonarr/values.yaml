@@ -43,6 +43,7 @@ route:
   app:
     hostnames:
       - sonarr.pitower.link
+      - sonarr.wibrow.dev
     parentRefs:
       - name: envoy-internal
         namespace: networking

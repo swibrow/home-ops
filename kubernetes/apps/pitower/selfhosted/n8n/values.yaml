@@ -55,6 +55,7 @@ route:
     enabled: true
     hostnames:
       - n8n.pitower.link
+      - n8n.wibrow.dev
     parentRefs:
       - name: envoy-external
         namespace: networking
@@ -63,6 +64,7 @@ route:
     enabled: true
     hostnames:
       - n8n-webhook.pitower.link
+      - n8n-webhook.wibrow.dev
     parentRefs:
       - name: envoy-external
         namespace: networking

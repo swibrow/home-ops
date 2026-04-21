@@ -70,6 +70,7 @@ route:
   app:
     hostnames:
       - money.pitower.link
+      - money.wibrow.dev
     parentRefs:
       - name: envoy-internal
         namespace: networking

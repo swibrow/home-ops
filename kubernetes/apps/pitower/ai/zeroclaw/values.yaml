@@ -35,6 +35,7 @@ route:
   app:
     hostnames:
       - zeroclaw.pitower.link
+      - zeroclaw.wibrow.dev
     parentRefs:
       - name: envoy-internal
         namespace: networking

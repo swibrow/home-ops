@@ -74,6 +74,7 @@ route:
     enabled: true
     hostnames:
       - mattermost.pitower.link
+      - mattermost.wibrow.dev
     parentRefs:
       - name: envoy-external
         namespace: networking

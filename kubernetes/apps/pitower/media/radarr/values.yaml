@@ -57,6 +57,7 @@ route:
   app:
     hostnames:
       - radarr.pitower.link
+      - radarr.wibrow.dev
     parentRefs:
       - name: envoy-internal
         namespace: networking

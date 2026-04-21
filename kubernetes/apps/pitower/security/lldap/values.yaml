@@ -50,6 +50,7 @@ route:
   app:
     hostnames:
       - lldap.pitower.link
+      - lldap.wibrow.dev
     parentRefs:
       - name: envoy-internal
         namespace: networking
