@@ -6,7 +6,6 @@ metadata:
   namespace: rook-ceph
 spec:
   hostnames:
-    - rook.pitower.link
     - rook.wibrow.dev
   parentRefs:
     - name: envoy-internal

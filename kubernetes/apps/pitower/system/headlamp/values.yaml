@@ -1,0 +1,41 @@
+replicaCount: 1
+
+serviceAccount:
+  create: true
+
+clusterRoleBinding:
+  create: true
+  clusterRoleName: cluster-admin
+
+config:
+  pluginsDir: /headlamp/plugins
+  oidc:
+    secret:
+      create: false
+    externalSecret:
+      enabled: true
+      name: headlamp-oidc
+    usePKCE: true
+
+persistentVolumeClaim:
+  enabled: false
+
+service:
+  type: ClusterIP
+  port: 80
+
+httpRoute:
+  enabled: true
+  hostnames:
+    - headlamp.wibrow.dev
+  parentRefs:
+    - name: envoy-internal
+      namespace: networking
+      sectionName: https
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 64Mi
+  limits:
+    memory: 256Mi

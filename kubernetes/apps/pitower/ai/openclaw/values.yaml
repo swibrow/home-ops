@@ -73,7 +73,6 @@ route:
   app:
     enabled: true
     hostnames:
-      - openclaw.pitower.link
       - openclaw.wibrow.dev
     parentRefs:
       - name: envoy-internal

@@ -52,7 +52,6 @@ service:
 route:
   app:
     hostnames:
-      - qbittorrent.pitower.link
       - qbittorrent.wibrow.dev
     parentRefs:
       - name: envoy-internal

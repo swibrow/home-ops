@@ -36,7 +36,6 @@ service:
 route:
   app:
     hostnames:
-      - paperless-ai.pitower.link
       - paperless-ai.wibrow.dev
     parentRefs:
       - name: envoy-internal

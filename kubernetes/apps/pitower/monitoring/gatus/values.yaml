@@ -78,7 +78,6 @@ route:
   app:
     enabled: true
     hostnames:
-      - status.pitower.link
       - status.wibrow.dev
     parentRefs:
       - name: envoy-internal

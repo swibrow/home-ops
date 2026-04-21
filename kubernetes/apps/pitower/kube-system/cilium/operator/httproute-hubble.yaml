@@ -6,7 +6,6 @@ metadata:
   namespace: kube-system
 spec:
   hostnames:
-    - hubble.pitower.link
     - hubble.wibrow.dev
   parentRefs:
     - name: envoy-internal

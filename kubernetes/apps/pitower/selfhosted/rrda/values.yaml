@@ -40,7 +40,6 @@ route:
   app:
     enabled: true
     hostnames:
-      - rrda.pitower.link
       - rrda.wibrow.dev
     parentRefs:
       - name: envoy-external

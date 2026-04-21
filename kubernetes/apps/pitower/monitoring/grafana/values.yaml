@@ -157,7 +157,6 @@ route:
   main:
     enabled: true
     hostnames:
-      - grafana.pitower.link
       - grafana.wibrow.dev
     parentRefs:
       - name: envoy-external

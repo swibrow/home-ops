@@ -80,7 +80,7 @@ data:
             description: Home automation
             widget:
               type: homeassistant
-              url: https://ha.pitower.link
+              url: https://ha.wibrow.dev
               key: "{{HOMEPAGE_VAR_HASS_TOKEN}}"
         - go2rtc:
             icon: mdi-video

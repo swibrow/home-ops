@@ -15,7 +15,7 @@ controllers:
           TZ: Europe/Zurich
           TRUSTED_PROXIES: "**"
           FIREFLY_III_URL: "http://firefly.banking.svc.cluster.local:8080"
-          VANITY_URL: "https://money.pitower.link"
+          VANITY_URL: "https://money.wibrow.dev"
           CAN_AUTO_IMPORT: "true"
           CAN_POST_FILES: "true"
         envFrom:
@@ -30,7 +30,6 @@ service:
 route:
   app:
     hostnames:
-      - money-import.pitower.link
       - money-import.wibrow.dev
     parentRefs:
       - name: envoy-internal

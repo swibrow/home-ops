@@ -45,7 +45,6 @@ route:
   app:
     enabled: true
     hostnames:
-      - recipes.pitower.link
       - recipes.wibrow.dev
     parentRefs:
       - name: envoy-external

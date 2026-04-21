@@ -10,7 +10,7 @@ controllers:
           tag: v1.12.3
         env:
           TZ: Europe/Zurich
-          HOMEPAGE_ALLOWED_HOSTS: home.pitower.link,home.wibrow.dev
+          HOMEPAGE_ALLOWED_HOSTS: home.wibrow.dev,home.wibrow.dev
         envFrom:
           - secretRef:
               name: homepage-secret
@@ -24,7 +24,7 @@ controllers:
                 path: /api/healthcheck
                 httpHeaders:
                   - name: Host
-                    value: home.pitower.link
+                    value: home.wibrow.dev
               initialDelaySeconds: 0
           readiness: *probes
           startup: *probes
@@ -41,7 +41,6 @@ route:
   app:
     enabled: true
     hostnames:
-      - home.pitower.link
       - home.wibrow.dev
     parentRefs:
       - name: envoy-external

@@ -16,7 +16,7 @@ data:
         },
         "controlUi": {
           "dangerouslyDisableDeviceAuth": true,
-          "allowedOrigins": ["https://openclaw.pitower.link"]
+          "allowedOrigins": ["https://openclaw.wibrow.dev"]
         },
         "tailscale": {
           "mode": "off"

@@ -27,7 +27,6 @@ route:
   app:
     enabled: true
     hostnames:
-      - whoami.pitower.link
       - whoami.wibrow.dev
     parentRefs:
       - name: envoy-external

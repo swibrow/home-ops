@@ -65,7 +65,6 @@ route:
   app:
     enabled: true
     hostnames:
-      - go2rtc.pitower.link
       - go2rtc.wibrow.dev
     parentRefs:
       - name: envoy-internal

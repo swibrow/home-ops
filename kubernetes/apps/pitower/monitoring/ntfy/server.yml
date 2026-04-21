@@ -1,4 +1,4 @@
-base-url: https://ntfy.pitower.link
+base-url: https://ntfy.wibrow.dev
 listen-http: ":80"
 behind-proxy: true
 

@@ -89,7 +89,6 @@ route:
   app:
     enabled: true
     hostnames:
-      - auth.pitower.link
       - auth.wibrow.dev
     parentRefs:
       - name: envoy-external

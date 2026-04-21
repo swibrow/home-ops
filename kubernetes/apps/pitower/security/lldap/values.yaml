@@ -20,7 +20,7 @@ controllers:
         env:
           TZ: Europe/Zurich
           LLDAP_HTTP_PORT: &port 8080
-          LLDAP_HTTP_URL: https://lldap.pitower.link
+          LLDAP_HTTP_URL: https://lldap.wibrow.dev
           LLDAP_LDAP_PORT: &ldapPort 5389
           LLDAP_LDAP_BASE_DN: dc=pitower,dc=link
           LLDAP_KEY_FILE: ""
@@ -49,7 +49,6 @@ service:
 route:
   app:
     hostnames:
-      - lldap.pitower.link
       - lldap.wibrow.dev
     parentRefs:
       - name: envoy-internal

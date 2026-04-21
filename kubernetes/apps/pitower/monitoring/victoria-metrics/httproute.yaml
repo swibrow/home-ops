@@ -10,7 +10,6 @@ spec:
       namespace: networking
       sectionName: https
   hostnames:
-    - vm.pitower.link
     - vm.wibrow.dev
   rules:
     - matches:

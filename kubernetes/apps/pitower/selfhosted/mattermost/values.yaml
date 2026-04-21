@@ -1,6 +1,6 @@
 controllers:
   mattermost:
-    strategy: Recreate
+    strategy: RollingUpdate
     annotations:
       reloader.stakater.com/auto: "true"
 
@@ -73,7 +73,6 @@ route:
   app:
     enabled: true
     hostnames:
-      - mattermost.pitower.link
       - mattermost.wibrow.dev
     parentRefs:
       - name: envoy-external

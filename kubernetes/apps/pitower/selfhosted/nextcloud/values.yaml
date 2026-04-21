@@ -61,7 +61,6 @@ httpRoute:
   enabled: true
   hostnames:
     - *host
-    - nextcloud.pitower.link
   parentRefs:
     - name: envoy-internal
       namespace: networking

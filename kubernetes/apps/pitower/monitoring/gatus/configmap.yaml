@@ -17,28 +17,28 @@ data:
     endpoints:
       - name: ArgoCD
         group: Infrastructure
-        url: https://argocd.pitower.link
+        url: https://argocd.wibrow.dev
         interval: 5m
         conditions:
           - "[STATUS] == 200"
 
       - name: Grafana
         group: Monitoring
-        url: https://grafana.pitower.link
+        url: https://grafana.wibrow.dev
         interval: 5m
         conditions:
           - "[STATUS] == 200"
 
       - name: Miniflux
         group: Apps
-        url: https://miniflux.pitower.link
+        url: https://miniflux.wibrow.dev
         interval: 5m
         conditions:
           - "[STATUS] == 200"
 
       - name: Homepage
         group: Apps
-        url: https://home.pitower.link
+        url: https://home.wibrow.dev
         interval: 5m
         conditions:
           - "[STATUS] == 200"

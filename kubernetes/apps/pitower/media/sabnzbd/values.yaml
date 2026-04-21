@@ -24,7 +24,7 @@ controllers:
             sabnzbd.downloads.svc,
             sabnzbd.downloads.svc.cluster,
             sabnzbd.downloads.svc.cluster.local,
-            sabnzbd.pitower.link
+            sabnzbd.wibrow.dev
         probes:
           liveness:
             enabled: true
@@ -55,7 +55,6 @@ service:
 route:
   app:
     hostnames:
-      - sabnzbd.pitower.link
       - sabnzbd.wibrow.dev
     parentRefs:
       - name: envoy-internal

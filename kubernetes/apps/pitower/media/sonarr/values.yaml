@@ -18,7 +18,7 @@ controllers:
           SONARR__PORT: &port 8989
           SONARR__AUTHENTICATION_METHOD: External
           SONARR__AUTHENTICATION_REQUIRED: DisabledForLocalAddresses
-          SONARR__APPLICATION_URL: "https://sonarr.pitower.link"
+          SONARR__APPLICATION_URL: "https://sonarr.wibrow.dev"
           # SONARR__LOG_LEVEL: info
           # SONARR__API_KEY:
           #   valueFrom:
@@ -42,7 +42,6 @@ service:
 route:
   app:
     hostnames:
-      - sonarr.pitower.link
       - sonarr.wibrow.dev
     parentRefs:
       - name: envoy-internal

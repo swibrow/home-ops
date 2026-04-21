@@ -33,7 +33,6 @@ route:
   app:
     enabled: true
     hostnames:
-      - glance.pitower.link
       - glance.wibrow.dev
     parentRefs:
       - name: envoy-external

@@ -82,7 +82,6 @@ service:
 route:
   app:
     hostnames:
-      - paperless.pitower.link
       - paperless.wibrow.dev
     parentRefs:
       - name: envoy-internal

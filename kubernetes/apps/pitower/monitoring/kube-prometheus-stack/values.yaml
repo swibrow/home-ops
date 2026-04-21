@@ -7,7 +7,6 @@ alertmanager:
     main:
       enabled: true
       hostnames:
-        - alertmanager.pitower.link
         - alertmanager.wibrow.dev
       parentRefs:
         - name: envoy-internal
@@ -153,7 +152,6 @@ prometheus:
     main:
       enabled: true
       hostnames:
-        - prometheus.pitower.link
         - prometheus.wibrow.dev
       parentRefs:
         - name: envoy-internal

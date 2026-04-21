@@ -41,7 +41,6 @@ service:
 route:
   app:
     hostnames:
-      - browser-use.pitower.link
       - browser-use.wibrow.dev
     parentRefs:
       - name: envoy-internal
@@ -53,7 +52,6 @@ route:
             port: 7788
   vnc:
     hostnames:
-      - browser-vnc.pitower.link
       - browser-vnc.wibrow.dev
     parentRefs:
       - name: envoy-internal

@@ -6,7 +6,6 @@ metadata:
   namespace: home-automation
 spec:
   hostnames:
-    - ha.pitower.link
     - ha.wibrow.dev
   parentRefs:
     - name: envoy-external
