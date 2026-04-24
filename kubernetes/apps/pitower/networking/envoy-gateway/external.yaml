@@ -7,7 +7,7 @@ metadata:
   labels:
     external-dns.alpha.kubernetes.io/enabled: "true"
   annotations:
-    external-dns.alpha.kubernetes.io/target: &hostname external.pitower.link
+    external-dns.alpha.kubernetes.io/target: &hostname external.wibrow.dev
 spec:
   gatewayClassName: envoy
   infrastructure:

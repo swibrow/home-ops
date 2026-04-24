@@ -9,3 +9,6 @@ spec:
     - dnsName: "external.pitower.link"
       recordType: CNAME
       targets: ["7ee9277a-e2f3-45ae-a0ac-4e85d39fc334.cfargotunnel.com"]
+    - dnsName: "external.wibrow.dev"
+      recordType: CNAME
+      targets: ["7ee9277a-e2f3-45ae-a0ac-4e85d39fc334.cfargotunnel.com"]
