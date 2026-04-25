@@ -48,6 +48,9 @@ pluginsManager:
       - name: cert-manager
         source: https://artifacthub.io/packages/headlamp/headlamp_plugins/cert-manager
         version: latest
+      - name: ai-assistant
+        source: https://artifacthub.io/packages/headlamp/headlamp_plugins/ai-assistant
+        version: latest
     installOptions:
       parallel: true
       maxConcurrent: 1
