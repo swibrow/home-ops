@@ -8,9 +8,11 @@ cluster:
       - 10.20.10.0
       - 127.0.0.1
     extraArgs:
-        # oidc-issuer-url: https://oauth.abc.com/
-        # oidc-client-id:
-        # oidc-username-claim: email
-        # oidc-groups-claim: groups
+        oidc-issuer-url: https://auth.wibrow.dev
+        oidc-client-id: headlamp
+        oidc-username-claim: preferred_username
+        oidc-username-prefix: "oidc:"
+        oidc-groups-claim: groups
+        oidc-groups-prefix: "oidc:"
         service-account-issuer: https://raw.githubusercontent.com/swibrow/home-ops/main/pitower/kubernetes
         service-account-jwks-uri: https://k8s.pitower.internal:6443/openid/v1/jwks
