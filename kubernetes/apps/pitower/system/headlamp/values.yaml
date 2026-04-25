@@ -9,6 +9,7 @@ clusterRoleBinding:
 
 config:
   pluginsDir: /headlamp/plugins
+  watchPlugins: true
   oidc:
     secret:
       create: false
