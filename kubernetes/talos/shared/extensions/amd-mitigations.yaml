@@ -1,10 +1,12 @@
-# f00bf71a43230985c46bb6f82469588437f2e770394bd1196a76c63523df6e59
 # curl -X POST --data-binary @amd-mitigations.yaml https://factory.talos.dev/schematics
-# Ryzen 5700U fabric sync mitigations (worker-01)
+# Ryzen 5700U fabric sync mitigations + panic capture (worker-01)
 customization:
   extraKernelArgs:
     - processor.max_cstate=1
     - amd_pstate=disable
+    - printk.always_kmsg_dump=1
+    - nmi_watchdog=1
+    - hardlockup_panic=1
   systemExtensions:
     officialExtensions:
       - siderolabs/util-linux-tools

@@ -1,7 +1,7 @@
 ---
 machine:
   install:
-    image: factory.talos.dev/installer/f00bf71a43230985c46bb6f82469588437f2e770394bd1196a76c63523df6e59:v1.12.6
+    image: factory.talos.dev/installer/e76e1f1e28537eb22f26b245f4aaf52f2007ca46eb8782ffed879c87892582f6:v1.12.6
   kubelet:
     nodeIP:
       validSubnets:
