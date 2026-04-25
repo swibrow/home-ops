@@ -85,6 +85,13 @@ identity_providers:
       - key: |-
           {{- .encoded_authelia_oidc_issuer_key | nindent 10 }}
         algorithm: "RS256"
+    claims_policies:
+      kubernetes:
+        id_token:
+          - email
+          - email_verified
+          - groups
+          - preferred_username
     clients:
       - client_id: "{{ .authelia_jelly_id }}"
         client_name: "Jellyfin"
@@ -210,6 +217,7 @@ identity_providers:
         consent_mode: implicit
         require_pkce: true
         pkce_challenge_method: "S256"
+        claims_policy: kubernetes
         redirect_uris:
           - "https://headlamp.wibrow.dev/oidc-callback"
         scopes:
