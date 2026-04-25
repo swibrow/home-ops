@@ -22,7 +22,7 @@ controllers:
           LLDAP_HTTP_PORT: &port 8080
           LLDAP_HTTP_URL: https://lldap.wibrow.dev
           LLDAP_LDAP_PORT: &ldapPort 5389
-          LLDAP_LDAP_BASE_DN: dc=pitower,dc=link
+          LLDAP_LDAP_BASE_DN: dc=wibrow,dc=dev
           LLDAP_KEY_FILE: ""
           # LLDAP_FORCE_LDAP_USER_PASS_RESET: "true" # Uncomment to force password reset
           LLDAP_DATABASE_URL:
