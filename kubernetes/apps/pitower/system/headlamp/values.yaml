@@ -46,17 +46,17 @@ pluginsManager:
   configContent: |
     plugins:
       - name: cert-manager
-        source: https://artifacthub.io/packages/headlamp/headlamp-cert-manager/cert-manager
-        version: latest
+        source: https://artifacthub.io/packages/headlamp/headlamp-plugins/headlamp_cert-manager
+        version: 0.1.0
       - name: ai-assistant
-        source: https://artifacthub.io/packages/headlamp/headlamp-ai-assistant/ai-assistant
-        version: latest
+        source: https://artifacthub.io/packages/headlamp/headlamp-plugins/headlamp_ai_assistant
+        version: 0.2.0-alpha
       - name: envoy-gateway
         source: https://artifacthub.io/packages/headlamp/headlamp-envoy-gateway/envoy-gateway
-        version: latest
+        version: 0.3.0
       - name: rook
         source: https://artifacthub.io/packages/headlamp/headlamp-rook/headlamp-rook-plugin
-        version: latest
+        version: 1.0.2
     installOptions:
       parallel: true
       maxConcurrent: 1
