@@ -39,3 +39,15 @@ resources:
     memory: 64Mi
   limits:
     memory: 256Mi
+
+pluginsManager:
+  enabled: true
+  version: latest
+  configContent: |
+    plugins:
+      - name: cert-manager
+        source: https://artifacthub.io/packages/headlamp/headlamp_plugins/cert-manager
+        version: latest
+    installOptions:
+      parallel: true
+      maxConcurrent: 1
