@@ -10,7 +10,7 @@ cluster:
     extraArgs:
         oidc-issuer-url: https://auth.wibrow.dev
         oidc-client-id: headlamp
-        oidc-username-claim: preferred_username
+        oidc-username-claim: email
         oidc-username-prefix: "oidc:"
         oidc-groups-claim: groups
         oidc-groups-prefix: "oidc:"
