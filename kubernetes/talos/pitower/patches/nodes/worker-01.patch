@@ -1,11 +1,13 @@
 ---
 machine:
   install:
-    image: factory.talos.dev/installer/e76e1f1e28537eb22f26b245f4aaf52f2007ca46eb8782ffed879c87892582f6:v1.12.6
+    image: factory.talos.dev/installer/f04c5385947c2b476d602755abc281a9f89ffdd4bb0325206e9ec5b656a2aeb9:v1.12.6
   kubelet:
     nodeIP:
       validSubnets:
         - 10.20.0.0/16
+    extraArgs:
+      register-with-taints: "dedicated=storage:NoSchedule"
   network:
     interfaces:
       - deviceSelector:

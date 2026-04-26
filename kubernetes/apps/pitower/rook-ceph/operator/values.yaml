@@ -9,6 +9,10 @@ csi:
       operator: Equal
       value: media-home
       effect: NoSchedule
+    - key: dedicated
+      operator: Equal
+      value: storage
+      effect: NoSchedule
     - key: node-issue
       operator: Equal
       value: "true"

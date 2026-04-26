@@ -1,5 +1,7 @@
 # curl -X POST --data-binary @amd-mitigations.yaml https://factory.talos.dev/schematics
 # Ryzen 5700U fabric sync mitigations + panic capture (worker-01)
+# pstore is not built in the Talos kernel; netconsole streams kernel printk to NAS
+# (10.20.10.100:6666) up to the moment of the panic.
 customization:
   extraKernelArgs:
     - processor.max_cstate=1
@@ -7,6 +9,7 @@ customization:
     - printk.always_kmsg_dump=1
     - nmi_watchdog=1
     - hardlockup_panic=1
+    - netconsole=6666@10.20.10.1/enp4s0.20,6666@10.20.10.100/00:11:32:0c:91:0c
   systemExtensions:
     officialExtensions:
       - siderolabs/util-linux-tools

@@ -19,6 +19,10 @@ cephClusterSpec:
           operator: Equal
           value: "true"
           effect: NoExecute
+        - key: dedicated
+          operator: Equal
+          value: storage
+          effect: NoSchedule
 
   network:
     provider: host
