@@ -161,9 +161,9 @@ prometheus:
     externalLabels:
       cluster: pitower
     additionalAlertRelabelConfigs:
-      - sourceLabels: [alertname]
+      - source_labels: [alertname]
         regex: KubeNodeNotReady|KubeNodeUnreachable|KubeletDown
-        targetLabel: notify
+        target_label: notify
         replacement: ntfy
     additionalArgs:
       - name: storage.tsdb.head-chunks-write-queue-size
