@@ -18,8 +18,8 @@ authentication_backend:
     additional_groups_dn: ou=groups
     groups_filter: (member={dn})
     group_search_mode: filter
-    user: "${LLDAP_BIND_USER_DN}"
-    password: "${LLDAP_BIND_PASSWORD}"
+    user: "{{ .lldap_bind_user_dn }}"
+    password: "{{ .lldap_bind_password }}"
     attributes:
       username: uid
       display_name: displayName

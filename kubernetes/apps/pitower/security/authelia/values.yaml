@@ -31,10 +31,7 @@ controllers:
           AUTHELIA_TELEMETRY_METRICS_ENABLED: "true"
           AUTHELIA_THEME: dark
           X_AUTHELIA_CONFIG: /config/configuration.yaml
-          X_AUTHELIA_CONFIG_FILTERS: expand-env
         envFrom:
-          - secretRef:
-              name: authelia-secrets
           - secretRef:
               name: authelia-secret
         probes:
