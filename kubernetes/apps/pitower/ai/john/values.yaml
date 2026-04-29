@@ -2,6 +2,22 @@ controllers:
   john:
     annotations:
       reloader.stakater.com/auto: "true"
+    initContainers:
+      seed-config:
+        image:
+          repository: busybox
+          tag: 1.37.0
+        command:
+          - /bin/sh
+          - -c
+          - |
+            if [ ! -f /home/node/.openclaw/openclaw.json ]; then
+              cp /etc/openclaw/openclaw.json /home/node/.openclaw/openclaw.json
+            fi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities: { drop: ["ALL"] }
     containers:
       app:
         image:
@@ -88,8 +104,7 @@ persistence:
     type: configMap
     name: john-config
     globalMounts:
-      - path: /home/node/.openclaw/openclaw.json
-        subPath: openclaw.json
+      - path: /etc/openclaw
         readOnly: true
   tmp:
     type: emptyDir
