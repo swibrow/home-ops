@@ -3,6 +3,7 @@ global:
   domain: argocd.wibrow.dev
   logging:
     format: json
+  priorityClassName: system-cluster-critical
 configs:
   cm:
     exec.enabled: true
@@ -122,7 +123,7 @@ repoServer:
   resources:
     requests:
       cpu: 200m
-      memory: 512Mi
+      memory: 256Mi
   metrics:
     enabled: true
   deploymentAnnotations:
