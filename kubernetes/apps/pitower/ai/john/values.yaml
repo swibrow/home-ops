@@ -11,7 +11,7 @@ controllers:
           - /bin/sh
           - -c
           - |
-            if [ ! -f /home/node/.openclaw/openclaw.json ]; then
+            if [ ! -s /home/node/.openclaw/openclaw.json ]; then
               cp /etc/openclaw/openclaw.json /home/node/.openclaw/openclaw.json
             fi
         securityContext:
