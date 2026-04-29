@@ -30,16 +30,24 @@ data:
             "api": "anthropic-messages",
             "models": [
               {
-                "id": "claude-opus-4-20250514",
-                "name": "Claude Opus 4",
+                "id": "claude-haiku-4-5",
+                "name": "Claude Haiku 4.5",
                 "reasoning": true,
                 "input": ["text", "image"],
                 "contextWindow": 200000,
                 "maxTokens": 32000
               },
               {
-                "id": "claude-sonnet-4-20250514",
-                "name": "Claude Sonnet 4",
+                "id": "claude-sonnet-4-6",
+                "name": "Claude Sonnet 4.6",
+                "reasoning": true,
+                "input": ["text", "image"],
+                "contextWindow": 200000,
+                "maxTokens": 32000
+              },
+              {
+                "id": "claude-opus-4-7",
+                "name": "Claude Opus 4.7",
                 "reasoning": true,
                 "input": ["text", "image"],
                 "contextWindow": 200000,
@@ -53,8 +61,8 @@ data:
         "defaults": {
           "workspace": "/home/node/.openclaw/workspace",
           "model": {
-            "primary": "anthropic/claude-sonnet-4-20250514",
-            "fallbacks": ["anthropic/claude-opus-4-20250514"]
+            "primary": "anthropic/claude-haiku-4-5",
+            "fallbacks": ["anthropic/claude-sonnet-4-6", "anthropic/claude-opus-4-7"]
           },
           "userTimezone": "Europe/Zurich",
           "timeoutSeconds": 600,
