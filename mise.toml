@@ -1,5 +1,5 @@
 [tools]
-talosctl = "1.12.6"
+talosctl = "1.13.0"
 kubectl = "1.35.4"
 kustomize = "5.8.1"
 helm = "4.1.4"
