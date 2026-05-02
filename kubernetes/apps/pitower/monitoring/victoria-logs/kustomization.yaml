@@ -6,7 +6,7 @@ namespace: monitoring
 helmCharts:
   - name: victoria-logs-single
     repo: https://victoriametrics.github.io/helm-charts
-    version: 0.12.0
+    version: 0.12.3
     releaseName: victoria-logs
     valuesFile: values.yaml
     namespace: monitoring
