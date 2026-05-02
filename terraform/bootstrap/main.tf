@@ -43,7 +43,7 @@ locals {
 
 module "iam_github_oidc_provider" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-oidc-provider"
-  version = "6.4.0"
+  version = "6.6.0"
 
   tags = local.tags
 }
@@ -54,7 +54,7 @@ module "iam_github_oidc_provider" {
 
 module "iam_github_oidc_role" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role"
-  version = "6.4.0"
+  version = "6.6.0"
 
   name            = "${local.name}-oidc"
   use_name_prefix = false
