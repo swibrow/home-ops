@@ -6,7 +6,7 @@ controllers:
       app:
         image:
           repository: ghcr.io/paperless-ngx/paperless-ngx
-          tag: 2.20.14
+          tag: 2.20.15
         env:
           # Application
           PAPERLESS_URL: "https://paperless.wibrow.dev"
