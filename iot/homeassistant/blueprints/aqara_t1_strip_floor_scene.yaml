@@ -64,7 +64,7 @@ blueprint:
         basement_count:
           name: Segment Count
           description: How many segments the basement band covers. Set to 0 to hide this floor.
-          default: 12
+          default: 13
           selector:
             number:
               min: 0
@@ -84,7 +84,7 @@ blueprint:
       input:
         first_floor_start:
           name: Start Segment
-          default: 13
+          default: 14
           selector:
             number:
               min: 1
@@ -94,7 +94,7 @@ blueprint:
         first_floor_count:
           name: Segment Count
           description: Set to 0 to hide this floor.
-          default: 12
+          default: 13
           selector:
             number:
               min: 0
@@ -114,7 +114,7 @@ blueprint:
       input:
         attic_start:
           name: Start Segment
-          default: 25
+          default: 27
           selector:
             number:
               min: 1
@@ -124,7 +124,7 @@ blueprint:
         attic_count:
           name: Segment Count
           description: Set to 0 to hide this floor.
-          default: 10
+          default: 8
           selector:
             number:
               min: 0
