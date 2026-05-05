@@ -27,6 +27,14 @@ Control multiple lights with an IKEA STYRBAR (E2001/E2002) remote using labels.
 
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fswibrow%2Fhome-ops%2Fmain%2Fiot%2Fhomeassistant%2Fblueprints%2Fikea_styrbar_light_selector.yaml)
 
+## Aqara T1 LED Strip
+
+### Floor Scene
+
+Render each visible floor of the house (basement, first floor, attic) as a coloured band on an Aqara T1 LED Strip via Zigbee2MQTT. Configure the segment range and colour for each floor; everything outside those ranges uses the background colour. Create one script per scene from this blueprint (e.g. "Floors - Calm Night", "Floors - Movie", "Floors - Alert").
+
+[![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fswibrow%2Fhome-ops%2Fmain%2Fiot%2Fhomeassistant%2Fblueprints%2Faqara_t1_strip_floor_scene.yaml)
+
 ## Motion
 
 ### Motion-activated Light/Switch

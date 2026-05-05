@@ -1,0 +1,258 @@
+## Aqara T1 LED Strip - Floor Scene
+## Home Assistant script blueprint
+##
+## Install to blueprints/script/aqara/aqara_t1_strip_floor_scene.yaml
+##
+## Pattern adapted from absent42/Aqara-T1-LED-Strip segments blueprint:
+## https://github.com/absent42/Aqara-T1-LED-Strip
+
+blueprint:
+  name: Aqara T1 LED Strip - Floor Scene
+  description: >
+    Render each visible floor of the house (basement, first floor, attic) as a
+    coloured band on an Aqara T1 LED Strip via Zigbee2MQTT. Configure the
+    segment range and colour for each floor; everything outside those ranges
+    uses the background colour (set it to black for "off").
+
+    Each Aqara T1 strip has 5 segments per meter (20 cm per segment), so a 2 m
+    strip = 10 segments and a 10 m strip = 50.
+
+    Create one script per scene from this blueprint (e.g. "Floors - Calm Night",
+    "Floors - Movie", "Floors - Alert") and call them from automations,
+    dashboards, or voice.
+  source_url: https://github.com/swibrow/home-ops/blob/main/iot/homeassistant/blueprints/aqara_t1_strip_floor_scene.yaml
+  domain: script
+  input:
+    target_lights:
+      name: Target Lights
+      description: One or more Aqara T1 LED Strip lights or devices.
+      selector:
+        target:
+          entity:
+            - domain: light
+
+    z2m_base_topic:
+      name: Zigbee2MQTT Base Topic
+      description: Base MQTT topic for your Zigbee2MQTT instance.
+      default: "zigbee2mqtt"
+      selector:
+        text:
+
+    strip_length_entity:
+      name: Strip Length Entity
+      description: Number entity reporting the strip length in meters (exposed by Z2M).
+      selector:
+        entity:
+          domain: number
+          integration: mqtt
+
+    basement_section:
+      name: Basement
+      icon: mdi:home-floor-b
+      collapsed: false
+      input:
+        basement_start:
+          name: Start Segment
+          description: First segment of the basement band (1 = bottom of strip).
+          default: 1
+          selector:
+            number:
+              min: 1
+              max: 50
+              step: 1
+              mode: box
+        basement_count:
+          name: Segment Count
+          description: How many segments the basement band covers. Set to 0 to hide this floor.
+          default: 12
+          selector:
+            number:
+              min: 0
+              max: 50
+              step: 1
+              mode: box
+        basement_color:
+          name: Color
+          default: [255, 80, 0]
+          selector:
+            color_rgb:
+
+    first_floor_section:
+      name: First Floor
+      icon: mdi:home-floor-1
+      collapsed: false
+      input:
+        first_floor_start:
+          name: Start Segment
+          default: 13
+          selector:
+            number:
+              min: 1
+              max: 50
+              step: 1
+              mode: box
+        first_floor_count:
+          name: Segment Count
+          description: Set to 0 to hide this floor.
+          default: 12
+          selector:
+            number:
+              min: 0
+              max: 50
+              step: 1
+              mode: box
+        first_floor_color:
+          name: Color
+          default: [255, 200, 100]
+          selector:
+            color_rgb:
+
+    attic_section:
+      name: Attic
+      icon: mdi:home-floor-a
+      collapsed: false
+      input:
+        attic_start:
+          name: Start Segment
+          default: 25
+          selector:
+            number:
+              min: 1
+              max: 50
+              step: 1
+              mode: box
+        attic_count:
+          name: Segment Count
+          description: Set to 0 to hide this floor.
+          default: 10
+          selector:
+            number:
+              min: 0
+              max: 50
+              step: 1
+              mode: box
+        attic_color:
+          name: Color
+          default: [80, 180, 255]
+          selector:
+            color_rgb:
+
+    options_section:
+      name: Options
+      icon: mdi:tune
+      collapsed: true
+      input:
+        background_color:
+          name: Background Color
+          description: >
+            Colour for segments not covered by any floor (gaps, separators).
+            Use [0, 0, 0] (black) to leave them off — this gives the cleanest
+            visual demarcation between floors.
+          default: [0, 0, 0]
+          selector:
+            color_rgb:
+        global_brightness:
+          name: Global Brightness
+          description: Brightness for all segments (1-100%).
+          default: 100
+          selector:
+            number:
+              min: 1
+              max: 100
+              step: 1
+              mode: slider
+
+sequence:
+  - variables:
+      z2m_base_topic: !input z2m_base_topic
+      target_lights: !input target_lights
+      strip_length_entity: !input strip_length_entity
+      global_brightness: !input global_brightness
+      bg: !input background_color
+      b_start: !input basement_start
+      b_count: !input basement_count
+      b_color: !input basement_color
+      f_start: !input first_floor_start
+      f_count: !input first_floor_count
+      f_color: !input first_floor_color
+      a_start: !input attic_start
+      a_count: !input attic_count
+      a_color: !input attic_color
+
+  - variables:
+      strip_length_meters: "{{ states(strip_length_entity) | float(2.0) }}"
+      segment_count: "{{ (strip_length_meters * 5) | int }}"
+
+  - repeat:
+      for_each: >
+        {% set ns = namespace(lights=[]) %}
+        {% if target_lights.entity_id is defined %}
+          {% if target_lights.entity_id is string %}
+            {% set ns.lights = [target_lights.entity_id] %}
+          {% else %}
+            {% set ns.lights = target_lights.entity_id %}
+          {% endif %}
+        {% endif %}
+        {% if target_lights.device_id is defined %}
+          {% if target_lights.device_id is string %}
+            {% set device_entities = device_entities(target_lights.device_id) | select('match', '^light\\.') | list %}
+            {% set ns.lights = ns.lights + device_entities %}
+          {% else %}
+            {% for device_id in target_lights.device_id %}
+              {% set device_entities = device_entities(device_id) | select('match', '^light\\.') | list %}
+              {% set ns.lights = ns.lights + device_entities %}
+            {% endfor %}
+          {% endif %}
+        {% endif %}
+        {% if target_lights.area_id is defined %}
+          {% if target_lights.area_id is string %}
+            {% set area_entities = area_entities(target_lights.area_id) | select('match', '^light\\.') | list %}
+            {% set ns.lights = ns.lights + area_entities %}
+          {% else %}
+            {% for area_id in target_lights.area_id %}
+              {% set area_entities = area_entities(area_id) | select('match', '^light\\.') | list %}
+              {% set ns.lights = ns.lights + area_entities %}
+            {% endfor %}
+          {% endif %}
+        {% endif %}
+        {{ ns.lights | unique | list }}
+      sequence:
+        - variables:
+            entity_device_id: "{{ device_id(repeat.item) }}"
+            z2m_device_name: "{{ device_attr(entity_device_id, 'name') }}"
+
+        - alias: "Set segment brightness"
+          service: mqtt.publish
+          data:
+            topic: "{{ z2m_base_topic }}/{{ z2m_device_name }}/set"
+            payload: >
+              {"segment_brightness": {{ global_brightness }}}
+
+        - delay:
+            milliseconds: 100
+
+        - alias: "Set T1 Strip floor segment colors"
+          service: mqtt.publish
+          data:
+            topic: "{{ z2m_base_topic }}/{{ z2m_device_name }}/set"
+            payload: >
+              {
+                "segment_colors": [
+                  {%- for i in range(1, (segment_count | int) + 1) -%}
+                    {%- set ns = namespace(c=bg) -%}
+                    {%- if (b_count | int) > 0 and i >= (b_start | int) and i < (b_start | int) + (b_count | int) -%}
+                      {%- set ns.c = b_color -%}
+                    {%- endif -%}
+                    {%- if (f_count | int) > 0 and i >= (f_start | int) and i < (f_start | int) + (f_count | int) -%}
+                      {%- set ns.c = f_color -%}
+                    {%- endif -%}
+                    {%- if (a_count | int) > 0 and i >= (a_start | int) and i < (a_start | int) + (a_count | int) -%}
+                      {%- set ns.c = a_color -%}
+                    {%- endif -%}
+                    {"segment": {{ i }}, "color": {"r": {{ ns.c[0] }}, "g": {{ ns.c[1] }}, "b": {{ ns.c[2] }}}}
+                    {%- if not loop.last -%},{%- endif -%}
+                  {%- endfor -%}
+                ]
+              }
+
+mode: single
