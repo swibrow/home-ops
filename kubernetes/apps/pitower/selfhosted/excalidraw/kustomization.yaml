@@ -6,7 +6,7 @@ namespace: selfhosted
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm
-    version: 4.6.2
+    version: 5.0.0
     releaseName: excalidraw
     namespace: selfhosted
     valuesFile: values.yaml
