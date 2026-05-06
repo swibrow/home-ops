@@ -70,7 +70,7 @@ controllers:
       app:
         image:
           repository: clickhouse/clickhouse-server
-          tag: 24.12-alpine
+          tag: 26.4-alpine
         env:
           CLICKHOUSE_DB: plausible_events
           CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
