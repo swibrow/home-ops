@@ -1,0 +1,140 @@
+controllers:
+  plausible:
+    annotations:
+      reloader.stakater.com/auto: "true"
+    containers:
+      app:
+        image:
+          repository: ghcr.io/plausible/community-edition
+          tag: v3.0.1
+        command:
+          - sh
+          - -c
+          - "/entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"
+        env:
+          TZ: Europe/Zurich
+          BASE_URL: https://analytics.wibrow.dev
+          HTTP_PORT: &port 8000
+          LISTEN_IP: "0.0.0.0"
+          DISABLE_REGISTRATION: invite_only
+          CLICKHOUSE_DATABASE_URL: http://plausible-clickhouse:8123/plausible_events
+          DATABASE_URL:
+            valueFrom:
+              secretKeyRef:
+                name: plausible-db-secret
+                key: DB_URL
+        envFrom:
+          - secretRef:
+              name: plausible-secret
+        probes:
+          liveness: &probes
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /api/health
+                port: *port
+              initialDelaySeconds: 60
+              periodSeconds: 30
+              timeoutSeconds: 5
+              failureThreshold: 6
+          readiness: *probes
+        resources:
+          requests:
+            cpu: 50m
+            memory: 256Mi
+          limits:
+            memory: 1Gi
+
+  clickhouse:
+    type: statefulset
+    replicas: 1
+    annotations:
+      reloader.stakater.com/auto: "true"
+    pod:
+      securityContext:
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+        fsGroupChangePolicy: OnRootMismatch
+    statefulset:
+      serviceName: plausible-clickhouse
+      volumeClaimTemplates:
+        - name: data
+          accessMode: ReadWriteOnce
+          size: 10Gi
+          storageClass: openebs-hostpath
+          globalMounts:
+            - path: /var/lib/clickhouse
+    containers:
+      app:
+        image:
+          repository: clickhouse/clickhouse-server
+          tag: 24.12-alpine
+        env:
+          CLICKHOUSE_DB: plausible_events
+          CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+        probes:
+          liveness: &chprobes
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /ping
+                port: 8123
+              initialDelaySeconds: 30
+              periodSeconds: 30
+              timeoutSeconds: 5
+              failureThreshold: 6
+          readiness: *chprobes
+        resources:
+          requests:
+            cpu: 100m
+            memory: 512Mi
+          limits:
+            memory: 2Gi
+
+service:
+  app:
+    controller: plausible
+    ports:
+      http:
+        port: *port
+  clickhouse:
+    controller: clickhouse
+    ports:
+      http:
+        port: 8123
+      tcp:
+        port: 9000
+
+route:
+  app:
+    enabled: true
+    hostnames:
+      - analytics.wibrow.dev
+    parentRefs:
+      - name: envoy-external
+        namespace: networking
+        sectionName: https
+    rules:
+      - matches:
+          - path:
+              value: /
+        backendRefs:
+          - name: plausible-app
+            port: *port
+
+persistence:
+  clickhouse-config:
+    type: configMap
+    name: plausible-clickhouse-config
+    advancedMounts:
+      clickhouse:
+        app:
+          - path: /etc/clickhouse-server/config.d/logging.xml
+            subPath: clickhouse-config.xml
+            readOnly: true
+          - path: /etc/clickhouse-server/users.d/logging.xml
+            subPath: clickhouse-user-config.xml
+            readOnly: true
