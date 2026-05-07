@@ -9,9 +9,8 @@ controllers:
           tag: v2.5.0
         env:
           NODE_ENV: production
-          TZ: Europe/Zurich
           BASE_URL: https://insights.wibrow.dev
-          DISABLE_SIGNUP: "false"
+          DISABLE_SIGNUP: "true"
           DISABLE_TELEMETRY: "true"
           CLICKHOUSE_HOST: http://rybbit-clickhouse:8123
           CLICKHOUSE_DB: analytics
@@ -81,7 +80,6 @@ controllers:
           tag: v2.5.0
         env:
           NODE_ENV: production
-          TZ: Europe/Zurich
         probes:
           liveness: &clprobes
             enabled: true
