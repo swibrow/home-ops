@@ -1,0 +1,220 @@
+controllers:
+  backend:
+    annotations:
+      reloader.stakater.com/auto: "true"
+    containers:
+      app:
+        image:
+          repository: ghcr.io/rybbit-io/rybbit-backend
+          tag: v2.5.0
+        env:
+          NODE_ENV: production
+          TZ: Europe/Zurich
+          BASE_URL: https://insights.wibrow.dev
+          DISABLE_SIGNUP: "true"
+          DISABLE_TELEMETRY: "true"
+          CLICKHOUSE_HOST: http://rybbit-clickhouse:8123
+          CLICKHOUSE_DB: analytics
+          CLICKHOUSE_USER: default
+          CLICKHOUSE_PASSWORD:
+            valueFrom:
+              secretKeyRef:
+                name: rybbit-secret
+                key: CLICKHOUSE_PASSWORD
+          BETTER_AUTH_SECRET:
+            valueFrom:
+              secretKeyRef:
+                name: rybbit-secret
+                key: BETTER_AUTH_SECRET
+          POSTGRES_HOST:
+            valueFrom:
+              secretKeyRef:
+                name: rybbit-db-secret
+                key: DB_HOST
+          POSTGRES_PORT:
+            valueFrom:
+              secretKeyRef:
+                name: rybbit-db-secret
+                key: DB_PORT
+          POSTGRES_DB:
+            valueFrom:
+              secretKeyRef:
+                name: rybbit-db-secret
+                key: DB_NAME
+          POSTGRES_USER:
+            valueFrom:
+              secretKeyRef:
+                name: rybbit-db-secret
+                key: DB_USER
+          POSTGRES_PASSWORD:
+            valueFrom:
+              secretKeyRef:
+                name: rybbit-db-secret
+                key: DB_PASS
+        probes:
+          liveness: &beprobes
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /api/health
+                port: &beport 3001
+              initialDelaySeconds: 30
+              periodSeconds: 30
+              timeoutSeconds: 5
+              failureThreshold: 6
+          readiness: *beprobes
+        resources:
+          requests:
+            cpu: 50m
+            memory: 256Mi
+          limits:
+            memory: 1Gi
+
+  client:
+    annotations:
+      reloader.stakater.com/auto: "true"
+    containers:
+      app:
+        image:
+          repository: ghcr.io/rybbit-io/rybbit-client
+          tag: v2.5.0
+        env:
+          NODE_ENV: production
+          TZ: Europe/Zurich
+        probes:
+          liveness: &clprobes
+            enabled: true
+            custom: true
+            spec:
+              tcpSocket:
+                port: &clport 3002
+              initialDelaySeconds: 30
+              periodSeconds: 30
+              timeoutSeconds: 5
+              failureThreshold: 6
+          readiness: *clprobes
+        resources:
+          requests:
+            cpu: 25m
+            memory: 128Mi
+          limits:
+            memory: 512Mi
+
+  clickhouse:
+    type: statefulset
+    replicas: 1
+    annotations:
+      reloader.stakater.com/auto: "true"
+    pod:
+      securityContext:
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+        fsGroupChangePolicy: OnRootMismatch
+    statefulset:
+      serviceName: rybbit-clickhouse
+      volumeClaimTemplates:
+        - name: data
+          accessMode: ReadWriteOnce
+          size: 10Gi
+          storageClass: openebs-hostpath
+          globalMounts:
+            - path: /var/lib/clickhouse
+    containers:
+      app:
+        image:
+          repository: clickhouse/clickhouse-server
+          tag: 25.4.2
+        env:
+          CLICKHOUSE_DB: analytics
+          CLICKHOUSE_USER: default
+          CLICKHOUSE_PASSWORD:
+            valueFrom:
+              secretKeyRef:
+                name: rybbit-secret
+                key: CLICKHOUSE_PASSWORD
+          CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+        probes:
+          liveness: &chprobes
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /ping
+                port: 8123
+              initialDelaySeconds: 30
+              periodSeconds: 30
+              timeoutSeconds: 5
+              failureThreshold: 6
+          readiness: *chprobes
+        resources:
+          requests:
+            cpu: 100m
+            memory: 512Mi
+          limits:
+            memory: 2Gi
+
+service:
+  backend:
+    controller: backend
+    ports:
+      http:
+        port: *beport
+  client:
+    controller: client
+    ports:
+      http:
+        port: *clport
+  clickhouse:
+    controller: clickhouse
+    ports:
+      http:
+        port: 8123
+      tcp:
+        port: 9000
+
+route:
+  app:
+    enabled: true
+    hostnames:
+      - insights.wibrow.dev
+    parentRefs:
+      - name: envoy-external
+        namespace: networking
+        sectionName: https
+    rules:
+      - matches:
+          - path:
+              type: PathPrefix
+              value: /api
+        backendRefs:
+          - name: rybbit-backend
+            port: *beport
+      - matches:
+          - path:
+              type: PathPrefix
+              value: /
+        backendRefs:
+          - name: rybbit-client
+            port: *clport
+
+persistence:
+  clickhouse-config:
+    type: configMap
+    name: rybbit-clickhouse-config
+    advancedMounts:
+      clickhouse:
+        app:
+          - path: /etc/clickhouse-server/config.d/network.xml
+            subPath: network.xml
+            readOnly: true
+          - path: /etc/clickhouse-server/config.d/enable_json.xml
+            subPath: enable_json.xml
+            readOnly: true
+          - path: /etc/clickhouse-server/config.d/logging_rules.xml
+            subPath: logging_rules.xml
+            readOnly: true
+          - path: /etc/clickhouse-server/config.d/user_logging.xml
+            subPath: user_logging.xml
+            readOnly: true
