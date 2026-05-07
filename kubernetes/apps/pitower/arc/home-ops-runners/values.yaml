@@ -1,0 +1,21 @@
+githubConfigUrl: https://github.com/swibrow/home-ops
+githubConfigSecret: home-ops-runners-github-app
+runnerScaleSetName: home-ops
+
+minRunners: 0
+maxRunners: 2
+
+template:
+  spec:
+    serviceAccountName: home-ops-runners
+    automountServiceAccountToken: true
+    containers:
+      - name: runner
+        image: ghcr.io/actions/actions-runner:latest
+        command: ["/home/runner/run.sh"]
+        resources:
+          requests:
+            cpu: 100m
+            memory: 512Mi
+          limits:
+            memory: 2Gi
