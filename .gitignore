@@ -67,3 +67,5 @@ site/
 
 # Python virtual environment
 .venv/
+
+.secrets/
