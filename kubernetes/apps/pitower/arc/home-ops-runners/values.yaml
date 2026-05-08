@@ -13,6 +13,11 @@ template:
   spec:
     serviceAccountName: home-ops-runners
     automountServiceAccountToken: true
+    tolerations:
+      - key: dedicated
+        operator: Equal
+        value: storage
+        effect: NoSchedule
     containers:
       - name: runner
         image: ghcr.io/actions/actions-runner:2.334.0
