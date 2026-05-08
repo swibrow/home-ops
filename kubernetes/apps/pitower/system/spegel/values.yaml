@@ -1,0 +1,10 @@
+spegel:
+  containerdRegistryConfigPath: /etc/cri/conf.d/hosts
+
+serviceMonitor:
+  enabled: true
+
+grafanaDashboard:
+  enabled: true
+  labels:
+    grafana_dashboard: "1"
