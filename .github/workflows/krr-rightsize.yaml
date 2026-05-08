@@ -23,13 +23,23 @@ jobs:
         with:
           python-version: "3.14"
 
-      - name: Run krr against in-cluster Prometheus
+      - name: Install KRR binary from GitHub release
         env:
           # renovate: datasource=github-releases depName=robusta-dev/krr
           KRR_VERSION: v1.28.0
         run: |
-          uvx --python 3.12 --from "git+https://github.com/robusta-dev/krr.git@${KRR_VERSION}" \
-            krr simple -p "$PROMETHEUS_URL" -f json --fileoutput "$KRR_OUT" --quiet
+          set -euo pipefail
+          install -d "$HOME/.local/bin"
+          curl -fsSL "https://github.com/robusta-dev/krr/releases/download/${KRR_VERSION}/krr-ubuntu-latest-${KRR_VERSION}.zip" -o "$RUNNER_TEMP/krr.zip"
+          python3 -m zipfile -e "$RUNNER_TEMP/krr.zip" "$RUNNER_TEMP/krr-extract"
+          chmod +x "$RUNNER_TEMP/krr-extract/krr/krr"
+          ln -sf "$RUNNER_TEMP/krr-extract/krr/krr" "$HOME/.local/bin/krr"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/krr" --version
+
+      - name: Run krr against in-cluster Prometheus
+        run: |
+          krr simple -p "$PROMETHEUS_URL" -f json --fileoutput "$KRR_OUT" --quiet
 
       - name: Apply recommendations
         run: |
