@@ -87,6 +87,11 @@ jobs:
           Skipped charts that are not bjw-s app-template (argocd, rook-ceph, cnpg, victoria-metrics, etc.).
           EOF
           )
+          gh label create automation \
+            --description "Created or maintained by an automated workflow" \
+            --color "ededed" \
+            --force >/dev/null
+
           gh pr create \
             --title "chore(rightsize): apply krr recommendations" \
             --body "$BODY" \
