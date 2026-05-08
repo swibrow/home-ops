@@ -35,7 +35,6 @@ jobs:
           chmod +x "$RUNNER_TEMP/krr-extract/krr/krr"
           ln -sf "$RUNNER_TEMP/krr-extract/krr/krr" "$HOME/.local/bin/krr"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          "$HOME/.local/bin/krr" --version
 
       - name: Run krr against in-cluster Prometheus
         run: |
