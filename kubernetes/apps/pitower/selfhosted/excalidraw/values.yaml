@@ -21,6 +21,10 @@ controllers:
         #   memory: 512Mi
         env:
           PORT: &port 8080
+        resources:
+          requests:
+            cpu: 10m
+            memory: 100Mi
 service:
   app:
     controller: excalidraw

@@ -17,7 +17,7 @@ controllers:
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
-          capabilities: { drop: ["ALL"] }
+          capabilities: {drop: ["ALL"]}
     containers:
       app:
         image:
@@ -31,7 +31,7 @@ controllers:
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
-          capabilities: { drop: ["ALL"] }
+          capabilities: {drop: ["ALL"]}
         probes:
           startup:
             enabled: true
@@ -63,8 +63,8 @@ controllers:
               failureThreshold: 5
         resources:
           requests:
-            cpu: 200m
-            memory: 1Gi
+            cpu: 360m
+            memory: 2391Mi
           limits:
             memory: 4Gi
 
@@ -75,7 +75,7 @@ defaultPodOptions:
     runAsGroup: 1000
     fsGroup: 1000
     fsGroupChangePolicy: OnRootMismatch
-    seccompProfile: { type: RuntimeDefault }
+    seccompProfile: {type: RuntimeDefault}
 
 service:
   app:

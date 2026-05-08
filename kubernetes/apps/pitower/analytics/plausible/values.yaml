@@ -41,8 +41,8 @@ controllers:
           readiness: *probes
         resources:
           requests:
-            cpu: 50m
-            memory: 256Mi
+            cpu: 32m
+            memory: 565Mi
           limits:
             memory: 1Gi
 
@@ -89,7 +89,7 @@ controllers:
           readiness: *chprobes
         resources:
           requests:
-            cpu: 100m
+            cpu: 58m
             memory: 512Mi
           limits:
             memory: 2Gi
