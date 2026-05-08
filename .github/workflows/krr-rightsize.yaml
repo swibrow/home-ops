@@ -44,6 +44,19 @@ jobs:
         run: |
           uv run --with ruamel.yaml python scripts/krr_rightsize.py "$KRR_OUT"
 
+      - name: Install gh CLI
+        env:
+          # renovate: datasource=github-releases depName=cli/cli
+          GH_VERSION: v2.92.0
+        run: |
+          set -euo pipefail
+          install -d "$HOME/.local/bin"
+          v="${GH_VERSION#v}"
+          curl -fsSL "https://github.com/cli/cli/releases/download/${GH_VERSION}/gh_${v}_linux_amd64.tar.gz" \
+            | tar -xz -C "$RUNNER_TEMP"
+          install -m 0755 "$RUNNER_TEMP/gh_${v}_linux_amd64/bin/gh" "$HOME/.local/bin/gh"
+          gh --version
+
       - name: Open PR if there are changes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
