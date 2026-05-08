@@ -13,3 +13,4 @@ helmCharts:
     releaseName: arc
     namespace: arc
     valuesFile: values.yaml
+    includeCRDs: true
