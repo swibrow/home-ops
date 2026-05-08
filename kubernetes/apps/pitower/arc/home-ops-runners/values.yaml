@@ -2,6 +2,10 @@ githubConfigUrl: https://github.com/swibrow/home-ops
 githubConfigSecret: arc-github-app
 runnerScaleSetName: home-ops
 
+controllerServiceAccount:
+  name: arc-gha-rs-controller
+  namespace: arc
+
 minRunners: 0
 maxRunners: 2
 
