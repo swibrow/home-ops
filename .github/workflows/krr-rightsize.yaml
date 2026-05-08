@@ -23,14 +23,16 @@ jobs:
         with:
           python-version: "3.14"
 
-      - name: Install krr (isolated 3.12 venv) + ruamel.yaml for the rightsize script
-        run: |
-          uv tool install --python 3.12 robusta-krr
-          uv pip install --system ruamel.yaml
+      - name: Install ruamel.yaml for the rightsize script
+        run: uv pip install --system ruamel.yaml
 
       - name: Run krr against in-cluster Prometheus
+        env:
+          # renovate: datasource=github-releases depName=robusta-dev/krr
+          KRR_VERSION: v1.28.0
         run: |
-          krr simple -p "$PROMETHEUS_URL" -f json --fileoutput "$KRR_OUT" --quiet
+          uvx --python 3.12 --from "git+https://github.com/robusta-dev/krr.git@${KRR_VERSION}" \
+            krr simple -p "$PROMETHEUS_URL" -f json --fileoutput "$KRR_OUT" --quiet
 
       - name: Apply recommendations
         run: |
