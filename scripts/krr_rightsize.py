@@ -40,6 +40,7 @@ def load_yaml(path: Path):
     yaml = YAML()
     yaml.preserve_quotes = True
     yaml.width = 4096
+    yaml.indent(mapping=2, sequence=4, offset=2)
     return yaml, yaml.load(path.read_text())
 
 
