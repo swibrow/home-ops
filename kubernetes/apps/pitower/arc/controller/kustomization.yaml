@@ -14,3 +14,15 @@ helmCharts:
     namespace: arc
     valuesFile: values.yaml
     includeCRDs: true
+
+patches:
+  - target:
+      kind: Deployment
+      name: arc-gha-rs-controller
+    patch: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: arc-gha-rs-controller
+        annotations:
+          reloader.stakater.com/auto: "true"
