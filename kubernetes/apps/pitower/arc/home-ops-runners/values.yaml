@@ -1,5 +1,5 @@
 githubConfigUrl: https://github.com/swibrow/home-ops
-githubConfigSecret: home-ops-runners-github-app
+githubConfigSecret: arc-github-app
 runnerScaleSetName: home-ops
 
 minRunners: 0

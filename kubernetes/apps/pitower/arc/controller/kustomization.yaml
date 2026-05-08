@@ -5,6 +5,7 @@ kind: Kustomization
 namespace: arc
 resources:
   - namespace.yaml
+  - externalsecret.yaml
 helmCharts:
   - name: gha-runner-scale-set-controller
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
