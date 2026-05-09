@@ -15,6 +15,10 @@ spec:
       daily: 7
     copyMethod: Snapshot
     storageClassName: ceph-block
+    cacheStorageClassName: ceph-block
+    cacheCapacity: 5Gi
+    cacheAccessModes:
+      - ReadWriteOnce
     volumeSnapshotClassName: csi-ceph-blockpool
     accessModes:
       - ReadWriteOnce
