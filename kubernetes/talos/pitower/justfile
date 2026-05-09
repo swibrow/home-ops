@@ -10,7 +10,7 @@ cp_amd_mitigated_image := "factory.talos.dev/installer/f04c5385947c2b476d602755a
 worker_intel_image := "factory.talos.dev/installer/97bf8e92fc6bba0f03928b859c08295d7615737b29db06a97be51dc63004e403:v1.12.6"
 
 talosconfig := source_directory() / "clusterconfig/talosconfig"
-nodes := "10.20.10.1 10.20.10.2 10.20.10.3 10.20.10.4"
+nodes := "10.20.10.1 10.20.10.2 10.20.10.3 10.20.10.4 10.20.10.5"
 
 # Generate talos config from secrets
 config:
@@ -53,6 +53,7 @@ apply-controlplanes:
 [working-directory: 'clusterconfig']
 apply-workers:
     talosctl apply-config --talosconfig {{ talosconfig }} --nodes 10.20.10.4 --file ./worker-04.yaml
+    talosctl apply-config --talosconfig {{ talosconfig }} --nodes 10.20.10.5 --file ./worker-05.yaml
 
 # Reboot control plane nodes sequentially
 reboot-controlplanes:
@@ -66,7 +67,7 @@ reboot-controlplanes:
 reboot-workers:
     #!/usr/bin/env bash
     set -euo pipefail
-    for i in 4; do
+    for i in 4 5; do
         talosctl --talosconfig {{ talosconfig }} reboot --nodes "10.20.10.${i}" --wait
     done
 
@@ -125,7 +126,7 @@ upgrade-controlplanes-amd:
 upgrade-workers-intel:
     #!/usr/bin/env bash
     set -euo pipefail
-    for i in 4; do
+    for i in 4 5; do
         talosctl --talosconfig {{ talosconfig }} upgrade \
             --image {{ worker_intel_image }} \
             --nodes "10.20.10.${i}" \
