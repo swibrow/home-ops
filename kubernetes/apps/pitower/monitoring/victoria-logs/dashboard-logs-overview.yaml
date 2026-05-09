@@ -1,0 +1,127 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: victoria-logs-overview-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "true"
+  annotations:
+    grafana_folder: VictoriaLogs
+data:
+  victoria-logs-overview.json: |
+    {
+      "title": "VictoriaLogs - Overview",
+      "uid": "victorialogs-overview",
+      "schemaVersion": 39,
+      "version": 1,
+      "editable": true,
+      "tags": ["victorialogs", "logs"],
+      "timezone": "browser",
+      "time": {"from": "now-1h", "to": "now"},
+      "refresh": "30s",
+      "templating": {
+        "list": [
+          {
+            "name": "namespace",
+            "type": "textbox",
+            "label": "namespace (regex)",
+            "current": {"text": ".+", "value": ".+"},
+            "query": ".+"
+          },
+          {
+            "name": "pod",
+            "type": "textbox",
+            "label": "pod (regex)",
+            "current": {"text": ".+", "value": ".+"},
+            "query": ".+"
+          },
+          {
+            "name": "filter",
+            "type": "textbox",
+            "label": "extra LogsQL",
+            "current": {"text": "", "value": ""},
+            "query": ""
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1,
+          "title": "Log volume",
+          "type": "timeseries",
+          "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
+          "fieldConfig": {
+            "defaults": {
+              "custom": {"drawStyle": "bars", "fillOpacity": 80, "lineWidth": 0, "stacking": {"mode": "normal"}}
+            }
+          },
+          "options": {"legend": {"showLegend": true, "displayMode": "table", "placement": "right"}},
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+              "expr": "{kubernetes_namespace_name=~\"$namespace\",kubernetes_pod_name=~\"$pod\"} $filter | stats by (kubernetes_namespace_name) count() as logs",
+              "queryType": "statsRange",
+              "step": "$__interval"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "title": "Top noisy pods",
+          "type": "table",
+          "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+          "gridPos": {"h": 10, "w": 12, "x": 0, "y": 8},
+          "options": {"showHeader": true, "footer": {"show": false}},
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+              "expr": "{kubernetes_namespace_name=~\"$namespace\",kubernetes_pod_name=~\"$pod\"} $filter | stats by (kubernetes_namespace_name, kubernetes_pod_name) count() as logs",
+              "queryType": "stats"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "title": "Top error/warn sources",
+          "type": "table",
+          "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+          "gridPos": {"h": 10, "w": 12, "x": 12, "y": 8},
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+              "expr": "{kubernetes_namespace_name=~\"$namespace\",kubernetes_pod_name=~\"$pod\"} $filter log:~\"(?i)error|fatal|panic|warn\" | stats by (kubernetes_namespace_name, kubernetes_pod_name) count() as errors",
+              "queryType": "stats"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "title": "Logs",
+          "type": "logs",
+          "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+          "gridPos": {"h": 22, "w": 24, "x": 0, "y": 18},
+          "options": {
+            "showTime": true,
+            "wrapLogMessage": true,
+            "prettifyLogMessage": false,
+            "sortOrder": "Descending",
+            "dedupStrategy": "none",
+            "enableLogDetails": true
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+              "expr": "{kubernetes_namespace_name=~\"$namespace\",kubernetes_pod_name=~\"$pod\"} $filter",
+              "queryType": "range",
+              "maxLines": 1000
+            }
+          ]
+        }
+      ]
+    }

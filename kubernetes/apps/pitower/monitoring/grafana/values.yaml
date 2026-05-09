@@ -84,8 +84,9 @@ datasources:
           prometheusType: Prometheus
       - name: VictoriaLogs
         type: victoriametrics-logs-datasource
+        uid: victorialogs
         access: proxy
-        url: http://victoria-logs-victoria-logs-single-server.monitoring.svc.cluster.local:9428
+        url: http://victoria-logs.monitoring.svc.cluster.local:9428
       - name: Alertmanager
         type: alertmanager
         access: proxy

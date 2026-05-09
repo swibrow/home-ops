@@ -18,6 +18,8 @@ server:
   service:
     servicePort: 9428
     type: ClusterIP
+  serviceMonitor:
+    enabled: true
   resources:
     requests:
       cpu: 50m
