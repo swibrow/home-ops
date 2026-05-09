@@ -67,10 +67,10 @@ hubble:
       enabled: true
       className: internal
       hosts:
-        - "hubble.pitower.link"
+        - "hubble.wibrow.dev"
       tls:
         - hosts:
-            - "hubble.pitower.link"
+            - "hubble.wibrow.dev"
 ipam:
   mode: kubernetes
 ipv4NativeRoutingCIDR: 10.244.0.0/16

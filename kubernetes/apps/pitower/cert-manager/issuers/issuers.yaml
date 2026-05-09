@@ -16,7 +16,7 @@ spec:
               key: api-token
         selector:
           dnsZones:
-            - "pitower.link"
+            - "wibrow.dev"
             - "wibrow.dev"
 ---
 apiVersion: cert-manager.io/v1
@@ -37,5 +37,5 @@ spec:
               key: api-token
         selector:
           dnsZones:
-            - "pitower.link"
+            - "wibrow.dev"
             - "wibrow.dev"

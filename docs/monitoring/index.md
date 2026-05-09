@@ -81,7 +81,7 @@ metadata:
 |:--------|:----|:--------|
 | Prometheus | `https://prometheus.example.com` | envoy-internal |
 | Grafana | `https://grafana.example.com` | envoy-external |
-| Gatus | `https://status.pitower.link` | envoy-internal |
+| Gatus | `https://status.wibrow.dev` | envoy-internal |
 
 ## Key Design Decisions
 

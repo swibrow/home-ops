@@ -1,7 +1,7 @@
 variable "home_assistant_url" {
   description = "The externally reachable Home Assistant URL"
   type        = string
-  default     = "https://ha.pitower.link"
+  default     = "https://ha.wibrow.dev"
 }
 
 variable "alexa_skill_id" {

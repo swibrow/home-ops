@@ -26,7 +26,7 @@ controllers:
           TZ: Europe/Zurich
           MATTER_SERVER__INSTANCE_NAME: matter-server
           MATTER_SERVER__PORT: &port 5580
-          MATTER_SERVER__APPLICATION_URL: &host matter.pitower.link
+          MATTER_SERVER__APPLICATION_URL: &host matter.wibrow.dev
           MATTER_SERVER__LOG_LEVEL: info
         args:
           - --storage-path

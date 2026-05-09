@@ -58,19 +58,3 @@ route:
       - name: envoy-external
         namespace: networking
         sectionName: https
-
-# ingress:
-#   app:
-#     className: external
-#     annotations:
-#       external-dns.alpha.kubernetes.io/target: external.pitower.link
-#     hosts:
-#       - host: &host house-hunter.pitower.link
-#         paths:
-#           - path: /
-#             service:
-#               identifier: app
-#               port: http
-#     tls:
-#       - hosts:
-#           - *host

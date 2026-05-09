@@ -16,7 +16,7 @@ controllers:
           repository: ghcr.io/home-operations/plex
           tag: 1.41.8.9834
         env:
-          PLEX_ADVERTISE_URL: https://192.168.0.228:32400,https://plex.pitower.link:443
+          PLEX_ADVERTISE_URL: https://192.168.0.228:32400,https://plex.wibrow.dev:443
           PLEX_NO_AUTH_NETWORKS: 192.168.0.0/24
         probes:
           liveness: &probes
@@ -57,7 +57,7 @@ service:
     controller: plex
     type: LoadBalancer
     annotations:
-      external-dns.alpha.kubernetes.io/hostname: plex.pitower.link
+      external-dns.alpha.kubernetes.io/hostname: plex.wibrow.dev
       lbipam.cilium.io/ips: "192.168.0.228"
     ports:
       http:
@@ -67,9 +67,9 @@ ingress:
   app:
     className: external
     annotations:
-      external-dns.alpha.kubernetes.io/target: external.pitower.link
+      external-dns.alpha.kubernetes.io/target: external.wibrow.dev
     hosts:
-      - host: &host plex.pitower.link
+      - host: &host plex.wibrow.dev
         paths:
           - path: /
             service:

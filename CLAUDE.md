@@ -15,7 +15,7 @@ Kubernetes home lab GitOps repository.
 
 ## Domain
 
-`pitower.link` via Cloudflare
+`wibrow.dev` via Cloudflare
 
 ## App Structure
 

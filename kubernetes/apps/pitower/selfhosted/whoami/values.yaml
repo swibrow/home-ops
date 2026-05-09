@@ -32,17 +32,3 @@ route:
       - name: envoy-external
         namespace: networking
         sectionName: https
-
-# ingress:
-#   app:
-#     enabled: true
-#     className: external
-#     annotations:
-#       external-dns.alpha.kubernetes.io/target: external.pitower.link
-#     hosts:
-#       - host: whoami.pitower.link
-#         paths:
-#           - path: /
-#             service:
-#               identifier: app
-#               port: http

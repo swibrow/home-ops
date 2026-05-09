@@ -17,7 +17,7 @@ controllers:
         env:
           READARR__INSTANCE_NAME: Readarr
           READARR__PORT: &port 8787
-          READARR__APPLICATION_URL: "https://readarr.pitower.link"
+          READARR__APPLICATION_URL: "https://readarr.wibrow.dev"
           READARR__LOG_LEVEL: info
           READARR__API_KEY:
             valueFrom:
@@ -51,7 +51,7 @@ ingress:
   app:
     className: internal
     hosts:
-      - host: readarr.pitower.link
+      - host: readarr.wibrow.dev
         paths:
           - path: /
             service:

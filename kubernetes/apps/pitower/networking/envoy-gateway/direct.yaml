@@ -7,7 +7,7 @@ metadata:
   labels:
     external-dns.alpha.kubernetes.io/enabled: "true"
   annotations:
-    external-dns.alpha.kubernetes.io/target: &hostname ip.pitower.link
+    external-dns.alpha.kubernetes.io/target: &hostname ip.wibrow.dev
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
 spec:
   gatewayClassName: envoy
@@ -33,7 +33,7 @@ spec:
         certificateRefs:
           - group: ''
             kind: Secret
-            name: pitower-link-production-tls
+            name: wibrow-dev-production-tls
           - group: ''
             kind: Secret
             name: wibrow-dev-production-tls

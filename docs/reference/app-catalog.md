@@ -30,8 +30,7 @@ Complete catalog of all applications deployed in the cluster, organized by categ
 
 | Name | Chart/Image | Gateway | URL | Description |
 |:-----|:------------|:--------|:----|:------------|
-| browser-use | custom | internal | `browser-use.pitower.link` | Browser automation agent |
-| zeroclaw | custom | internal | `zeroclaw.pitower.link` | AI agent workload |
+| browser-use | custom | internal | `browser-use.wibrow.dev` | Browser automation agent |
 
 ---
 
@@ -104,7 +103,7 @@ Complete catalog of all applications deployed in the cluster, organized by categ
 | Name | Chart/Image | Gateway | URL | Description |
 |:-----|:------------|:--------|:----|:------------|
 | fluent-bit | fluent-bit (Helm) | -- | -- | Log collector and forwarder |
-| gatus | app-template | internal | `status.pitower.link` | Uptime monitoring and status page |
+| gatus | app-template | internal | `status.wibrow.dev` | Uptime monitoring and status page |
 | grafana | grafana (Helm) | external | `grafana.example.com` | Metrics visualization and dashboards |
 | kube-prometheus-stack | kube-prometheus-stack (Helm) | external | `prometheus.example.com` | Prometheus, Alertmanager, and node exporters |
 | loki | loki (Helm) | -- | -- | Log aggregation system |

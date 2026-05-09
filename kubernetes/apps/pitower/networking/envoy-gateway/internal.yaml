@@ -5,7 +5,7 @@ kind: Gateway
 metadata:
   name: envoy-internal
   annotations:
-    external-dns.alpha.kubernetes.io/target: &hostname internal.pitower.link
+    external-dns.alpha.kubernetes.io/target: &hostname internal.wibrow.dev
 spec:
   gatewayClassName: envoy
   infrastructure:
@@ -27,9 +27,6 @@ spec:
           from: All
       tls:
         certificateRefs:
-          - group: ''
-            kind: Secret
-            name: pitower-link-production-tls
           - group: ''
             kind: Secret
             name: wibrow-dev-production-tls

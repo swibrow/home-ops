@@ -18,7 +18,7 @@ sources:
   - gateway-httproute
 txtPrefix: k8s.
 txtOwnerId: default
-domainFilters: ["pitower.link", "wibrow.dev"]
+domainFilters: ["wibrow.dev"]
 serviceMonitor:
   enabled: true
 podAnnotations:

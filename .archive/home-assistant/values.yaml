@@ -67,7 +67,7 @@ service:
 route:
   app:
     hostnames:
-      - ha.pitower.link
+      - ha.wibrow.dev
     parentRefs:
       - name: envoy-external
         namespace: networking
@@ -78,7 +78,7 @@ route:
             port: 8123
   code:
     hostnames:
-      - ha-code.pitower.link
+      - ha-code.wibrow.dev
     parentRefs:
       - name: envoy-internal
         namespace: networking

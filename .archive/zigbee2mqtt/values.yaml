@@ -27,7 +27,7 @@ controllers:
           ZIGBEE2MQTT_CONFIG_DEVICE_OPTIONS_RETAIN: true
           ZIGBEE2MQTT_CONFIG_FRONTEND_ENABLED: true
           ZIGBEE2MQTT_CONFIG_FRONTEND_PORT: 8080
-          ZIGBEE2MQTT_CONFIG_FRONTEND_URL: "https://zigbee.pitower.link"
+          ZIGBEE2MQTT_CONFIG_FRONTEND_URL: "https://zigbee.wibrow.dev"
           ZIGBEE2MQTT_CONFIG_MQTT_INCLUDE_DEVICE_INFORMATION: true
           ZIGBEE2MQTT_CONFIG_MQTT_KEEPALIVE: 60
           ZIGBEE2MQTT_CONFIG_MQTT_REJECT_UNAUTHORIZED: false
@@ -76,7 +76,7 @@ service:
 route:
   app:
     hostnames:
-      - zigbee.pitower.link
+      - zigbee.wibrow.dev
     parentRefs:
       - name: envoy-internal
         namespace: networking

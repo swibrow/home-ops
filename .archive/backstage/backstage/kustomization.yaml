@@ -29,8 +29,8 @@ helmCharts:
         enabled: true
         className: external
         annotations:
-          external-dns.alpha.kubernetes.io/target: external.pitower.link
-        host: backstage.pitower.link
+          external-dns.alpha.kubernetes.io/target: external.wibrow.dev
+        host: backstage.wibrow.dev
         path: /
         tls:
           enabled: true

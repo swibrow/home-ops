@@ -76,7 +76,7 @@ service:
 route:
   app:
     hostnames:
-      - otbr.pitower.link
+      - otbr.wibrow.dev
     parentRefs:
       - name: envoy-internal
         namespace: networking

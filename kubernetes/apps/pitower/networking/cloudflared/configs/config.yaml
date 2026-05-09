@@ -3,20 +3,20 @@ originRequest:
   http2Origin: true
 
 ingress:
-  - hostname: "pitower.link"
-    service: https://envoy-external.networking.svc.cluster.local:443
-    originRequest:
-      originServerName: "external.pitower.link"
-  - hostname: "*.pitower.link"
-    service: https://envoy-external.networking.svc.cluster.local:443
-    originRequest:
-      originServerName: "external.pitower.link"
   - hostname: "wibrow.dev"
     service: https://envoy-external.networking.svc.cluster.local:443
     originRequest:
-      originServerName: "external.pitower.link"
+      originServerName: "external.wibrow.dev"
   - hostname: "*.wibrow.dev"
     service: https://envoy-external.networking.svc.cluster.local:443
     originRequest:
-      originServerName: "external.pitower.link"
+      originServerName: "external.wibrow.dev"
+  - hostname: "wibrow.dev"
+    service: https://envoy-external.networking.svc.cluster.local:443
+    originRequest:
+      originServerName: "external.wibrow.dev"
+  - hostname: "*.wibrow.dev"
+    service: https://envoy-external.networking.svc.cluster.local:443
+    originRequest:
+      originServerName: "external.wibrow.dev"
   - service: http_status:404
