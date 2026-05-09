@@ -1,0 +1,67 @@
+controllers:
+  actual:
+    annotations:
+      reloader.stakater.com/auto: "true"
+    pod:
+      securityContext:
+        fsGroup: 2000
+        fsGroupChangePolicy: OnRootMismatch
+        runAsGroup: 2000
+        runAsUser: 2000
+    containers:
+      app:
+        image:
+          repository: ghcr.io/actualbudget/actual-server
+          tag: 26.5.2
+        env:
+          TZ: Europe/Zurich
+          ACTUAL_PORT: &httpPort 5006
+        probes:
+          liveness:
+            enabled: true
+            spec:
+              periodSeconds: 30
+              timeoutSeconds: 5
+              failureThreshold: 5
+          readiness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /
+                port: *httpPort
+              periodSeconds: 10
+              timeoutSeconds: 5
+              failureThreshold: 5
+          startup:
+            enabled: true
+            spec:
+              failureThreshold: 30
+              periodSeconds: 10
+        resources:
+          requests:
+            cpu: 12m
+            memory: 128Mi
+          limits:
+            memory: 512Mi
+service:
+  app:
+    controller: actual
+    ports:
+      http:
+        port: *httpPort
+route:
+  app:
+    hostnames:
+      - actual.wibrow.dev
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+persistence:
+  data:
+    existingClaim: actual-data
+    advancedMounts:
+      actual:
+        app:
+          - path: /data
