@@ -47,7 +47,7 @@ jobs:
 
       - name: Generate report
         run: |
-          python scripts/rightsize_report.py > "$RUNNER_TEMP/report.md"
+          uv run python scripts/rightsize_report.py > "$RUNNER_TEMP/report.md"
           cat "$RUNNER_TEMP/report.md"
 
       - name: Upsert rolling issue
