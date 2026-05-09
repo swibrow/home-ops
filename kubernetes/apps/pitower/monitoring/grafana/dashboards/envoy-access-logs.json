@@ -1,0 +1,185 @@
+{
+  "title": "Envoy Gateway - Access Logs",
+  "uid": "envoy-access-logs",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "tags": ["envoy", "logs", "victorialogs"],
+  "timezone": "browser",
+  "time": {"from": "now-1h", "to": "now"},
+  "refresh": "30s",
+  "templating": {
+    "list": [
+      {
+        "name": "gateway",
+        "type": "custom",
+        "label": "gateway",
+        "current": {"text": "all", "value": ".*"},
+        "query": "all : .*,external : external,internal : internal,direct : direct",
+        "options": [
+          {"text": "all", "value": ".*", "selected": true},
+          {"text": "external", "value": "external", "selected": false},
+          {"text": "internal", "value": "internal", "selected": false},
+          {"text": "direct", "value": "direct", "selected": false}
+        ]
+      },
+      {
+        "name": "host",
+        "type": "textbox",
+        "label": "host (regex)",
+        "current": {"text": ".+", "value": ".+"},
+        "query": ".+"
+      },
+      {
+        "name": "filter",
+        "type": "textbox",
+        "label": "extra LogsQL",
+        "current": {"text": "", "value": ""},
+        "query": ""
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Requests/sec",
+      "type": "timeseries",
+      "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+      "gridPos": {"h": 7, "w": 8, "x": 0, "y": 0},
+      "fieldConfig": {"defaults": {"unit": "reqps"}},
+      "options": {"legend": {"showLegend": false}},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+          "expr": "{kubernetes_namespace_name=\"networking\",kubernetes_pod_name=~\"envoy-$gateway.*\",kubernetes_container_name=\"envoy\"} response_code:>0 host:~\"$host\" $filter | stats rate() as rps",
+          "queryType": "statsRange",
+          "step": "$__interval"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Status class",
+      "type": "timeseries",
+      "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+      "gridPos": {"h": 7, "w": 8, "x": 8, "y": 0},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {"drawStyle": "bars", "fillOpacity": 80, "lineWidth": 0, "stacking": {"mode": "normal"}}
+        },
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "2xx"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "green"}}]},
+          {"matcher": {"id": "byName", "options": "3xx"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "blue"}}]},
+          {"matcher": {"id": "byName", "options": "4xx"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "yellow"}}]},
+          {"matcher": {"id": "byName", "options": "5xx"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}]}
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+          "expr": "{kubernetes_namespace_name=\"networking\",kubernetes_pod_name=~\"envoy-$gateway.*\",kubernetes_container_name=\"envoy\"} response_code:>0 host:~\"$host\" $filter | stats rate() if (response_code:[200,299]) as 2xx, rate() if (response_code:[300,399]) as 3xx, rate() if (response_code:[400,499]) as 4xx, rate() if (response_code:[500,599]) as 5xx",
+          "queryType": "statsRange",
+          "step": "$__interval"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Latency (ms)",
+      "type": "timeseries",
+      "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+      "gridPos": {"h": 7, "w": 8, "x": 16, "y": 0},
+      "fieldConfig": {"defaults": {"unit": "ms"}},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+          "expr": "{kubernetes_namespace_name=\"networking\",kubernetes_pod_name=~\"envoy-$gateway.*\",kubernetes_container_name=\"envoy\"} response_code:>0 host:~\"$host\" $filter | stats quantile(0.5, duration_ms) as p50, quantile(0.95, duration_ms) as p95, quantile(0.99, duration_ms) as p99",
+          "queryType": "statsRange",
+          "step": "$__interval"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Top hosts",
+      "type": "table",
+      "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+      "gridPos": {"h": 10, "w": 8, "x": 0, "y": 7},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+          "expr": "{kubernetes_namespace_name=\"networking\",kubernetes_pod_name=~\"envoy-$gateway.*\",kubernetes_container_name=\"envoy\"} response_code:>0 host:~\"$host\" $filter | stats by (host) count() as requests",
+          "queryType": "stats"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Top paths",
+      "type": "table",
+      "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+      "gridPos": {"h": 10, "w": 8, "x": 8, "y": 7},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+          "expr": "{kubernetes_namespace_name=\"networking\",kubernetes_pod_name=~\"envoy-$gateway.*\",kubernetes_container_name=\"envoy\"} response_code:>0 host:~\"$host\" $filter | stats by (host, path) count() as requests, quantile(0.95, duration_ms) as p95_ms",
+          "queryType": "stats"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Response codes",
+      "type": "table",
+      "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+      "gridPos": {"h": 10, "w": 8, "x": 16, "y": 7},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+          "expr": "{kubernetes_namespace_name=\"networking\",kubernetes_pod_name=~\"envoy-$gateway.*\",kubernetes_container_name=\"envoy\"} response_code:>0 host:~\"$host\" $filter | stats by (response_code, response_flags) count() as requests",
+          "queryType": "stats"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Slowest requests (last 50)",
+      "type": "table",
+      "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+      "gridPos": {"h": 12, "w": 24, "x": 0, "y": 17},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+          "expr": "{kubernetes_namespace_name=\"networking\",kubernetes_pod_name=~\"envoy-$gateway.*\",kubernetes_container_name=\"envoy\"} response_code:>0 host:~\"$host\" duration_ms:>500 $filter | sort by (duration_ms desc) | limit 50 | fields _time, method, host, path, response_code, duration_ms, upstream_cluster, upstream_host, client_ip",
+          "queryType": "range",
+          "maxLines": 50
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "5xx tail",
+      "type": "logs",
+      "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+      "gridPos": {"h": 16, "w": 24, "x": 0, "y": 29},
+      "options": {"showTime": true, "wrapLogMessage": true, "sortOrder": "Descending", "dedupStrategy": "none", "enableLogDetails": true},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "victoriametrics-logs-datasource", "uid": "victorialogs"},
+          "expr": "{kubernetes_namespace_name=\"networking\",kubernetes_pod_name=~\"envoy-$gateway.*\",kubernetes_container_name=\"envoy\"} response_code:[500,599] host:~\"$host\" $filter",
+          "queryType": "range",
+          "maxLines": 500
+        }
+      ]
+    }
+  ]
+}
