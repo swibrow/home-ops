@@ -37,8 +37,8 @@ controllers:
               periodSeconds: 5
         resources:
           requests:
-            cpu: 100m
-            memory: 512Mi
+            cpu: 25m
+            memory: 128Mi
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true

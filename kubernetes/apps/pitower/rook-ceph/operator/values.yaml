@@ -4,6 +4,48 @@ crds:
   enabled: true
 csi:
   enableCephfsDriver: false
+  csiRBDProvisionerResource: |
+    - name: csi-provisioner
+      resource:
+        requests: { memory: 32Mi, cpu: 10m }
+        limits: { memory: 256Mi }
+    - name: csi-resizer
+      resource:
+        requests: { memory: 32Mi, cpu: 10m }
+        limits: { memory: 256Mi }
+    - name: csi-attacher
+      resource:
+        requests: { memory: 32Mi, cpu: 10m }
+        limits: { memory: 256Mi }
+    - name: csi-snapshotter
+      resource:
+        requests: { memory: 32Mi, cpu: 10m }
+        limits: { memory: 256Mi }
+    - name: csi-rbdplugin
+      resource:
+        requests: { memory: 64Mi, cpu: 10m }
+        limits: { memory: 1Gi }
+    - name: csi-omap-generator
+      resource:
+        requests: { memory: 64Mi, cpu: 25m }
+        limits: { memory: 1Gi }
+    - name: liveness-prometheus
+      resource:
+        requests: { memory: 32Mi, cpu: 10m }
+        limits: { memory: 256Mi }
+  csiRBDPluginResource: |
+    - name: driver-registrar
+      resource:
+        requests: { memory: 32Mi, cpu: 10m }
+        limits: { memory: 256Mi }
+    - name: csi-rbdplugin
+      resource:
+        requests: { memory: 64Mi, cpu: 25m }
+        limits: { memory: 1Gi }
+    - name: liveness-prometheus
+      resource:
+        requests: { memory: 32Mi, cpu: 10m }
+        limits: { memory: 256Mi }
   pluginTolerations:
     - key: dedicated
       operator: Equal

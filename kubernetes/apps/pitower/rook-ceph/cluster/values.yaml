@@ -47,7 +47,7 @@ cephClusterSpec:
         memory: "1Gi"
     osd:
       requests:
-        cpu: "442m"
+        cpu: "100m"
         memory: "1Gi"
       limits:
         memory: "6Gi"
@@ -65,7 +65,7 @@ cephClusterSpec:
         memory: "64Mi"
     logcollector:
       requests:
-        cpu: "100m"
+        cpu: "25m"
         memory: "100Mi"
       limits:
         memory: "1Gi"
