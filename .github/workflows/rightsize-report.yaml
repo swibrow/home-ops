@@ -1,0 +1,82 @@
+---
+name: rightsize-report
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 7 * * 2"  # Tue 07:00 UTC
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  report:
+    runs-on: home-ops
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install kubectl
+        env:
+          # renovate: datasource=github-releases depName=kubernetes/kubernetes
+          KUBECTL_VERSION: v1.35.2
+        run: |
+          set -euo pipefail
+          install -d "$HOME/.local/bin"
+          curl -fsSL "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" \
+            -o "$HOME/.local/bin/kubectl"
+          chmod +x "$HOME/.local/bin/kubectl"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install gh CLI
+        env:
+          # renovate: datasource=github-releases depName=cli/cli
+          GH_VERSION: v2.92.0
+        run: |
+          set -euo pipefail
+          install -d "$HOME/.local/bin"
+          v="${GH_VERSION#v}"
+          curl -fsSL "https://github.com/cli/cli/releases/download/${GH_VERSION}/gh_${v}_linux_amd64.tar.gz" \
+            | tar -xz -C "$RUNNER_TEMP"
+          install -m 0755 "$RUNNER_TEMP/gh_${v}_linux_amd64/bin/gh" "$HOME/.local/bin/gh"
+          gh --version
+
+      - name: Generate report
+        run: |
+          python scripts/rightsize_report.py > "$RUNNER_TEMP/report.md"
+          cat "$RUNNER_TEMP/report.md"
+
+      - name: Upsert rolling issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          gh label create rightsize-report \
+            --description "Weekly cluster right-sizing report" \
+            --color "1d76db" \
+            --force >/dev/null
+
+          TITLE="Cluster right-sizing report"
+          BODY="$(cat "$RUNNER_TEMP/report.md")"
+
+          NUM=$(gh issue list \
+            --label rightsize-report \
+            --state open \
+            --limit 1 \
+            --json number \
+            --jq '.[0].number // empty')
+
+          if [ -n "$NUM" ]; then
+            gh issue edit "$NUM" --body "$BODY"
+            echo "updated issue #$NUM"
+          else
+            gh issue create \
+              --title "$TITLE" \
+              --body "$BODY" \
+              --label rightsize-report
+          fi
