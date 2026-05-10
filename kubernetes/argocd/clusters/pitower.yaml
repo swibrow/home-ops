@@ -13,8 +13,6 @@ spec:
         revision: main
         directories:
           - path: kubernetes/apps/pitower/*/*
-  syncPolicy:
-    preserveResourcesOnDeletion: true
   template:
     metadata:
       name: "pitower-{{index .path.segments 3}}-{{index .path.segments 4}}"
