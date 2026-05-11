@@ -34,6 +34,10 @@ controllers:
               failureThreshold: 30
               periodSeconds: 5
 
+        resources:
+          requests:
+            cpu: 10m
+            memory: 424Mi
 service:
   app:
     controller: mealie

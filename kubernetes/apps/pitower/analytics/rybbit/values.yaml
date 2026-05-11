@@ -65,7 +65,7 @@ controllers:
           readiness: *beprobes
         resources:
           requests:
-            cpu: 50m
+            cpu: 66m
             memory: 256Mi
           limits:
             memory: 1Gi
