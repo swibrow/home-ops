@@ -77,7 +77,7 @@ controllers:
       app:
         image:
           repository: ghcr.io/rybbit-io/rybbit-client
-          tag: v2.5.0
+          tag: v2.6.0
         env:
           NODE_ENV: production
         probes:
