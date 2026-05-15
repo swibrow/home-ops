@@ -19,7 +19,7 @@ configMapGenerator:
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm
-    version: 5.0.0
+    version: 5.0.1
     releaseName: couchdb
     namespace: second-brain
     valuesFile: values.yaml
