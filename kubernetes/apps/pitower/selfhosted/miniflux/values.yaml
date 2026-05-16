@@ -13,7 +13,7 @@ controllers:
       app:
         image:
           repository: ghcr.io/miniflux/miniflux
-          tag: 2.2.19-distroless
+          tag: 2.3.0-distroless
         env:
           BASE_URL: https://miniflux.wibrow.dev
           CREATE_ADMIN: "1"
