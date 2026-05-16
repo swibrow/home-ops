@@ -10,7 +10,7 @@ cp_amd_mitigated_image := "factory.talos.dev/installer/f04c5385947c2b476d602755a
 worker_intel_image := "factory.talos.dev/installer/97bf8e92fc6bba0f03928b859c08295d7615737b29db06a97be51dc63004e403:v1.12.6"
 
 talosconfig := source_directory() / "clusterconfig/talosconfig"
-nodes := "10.20.10.1 10.20.10.2 10.20.10.3 10.20.10.4 10.20.10.5"
+nodes := "10.20.10.1 10.20.10.2 10.20.10.3 10.20.10.4 10.20.10.5 10.20.10.6"
 
 # Generate talos config from secrets
 config:
@@ -29,12 +29,12 @@ config:
 # Patch machine configs for all nodes
 [working-directory: 'clusterconfig']
 patch:
-    talosctl machineconfig patch ./controlplane.yaml --patch @../patches/nodes/worker-01.patch --output worker-01.yaml
     talosctl machineconfig patch ./controlplane.yaml --patch @../patches/nodes/worker-02.patch --output worker-02.yaml
     talosctl machineconfig patch ./controlplane.yaml --patch @../patches/nodes/worker-03.patch --output worker-03.yaml
+    talosctl machineconfig patch ./controlplane.yaml --patch @../patches/nodes/worker-06.patch --output worker-06.yaml
+    talosctl machineconfig patch ./worker.yaml --patch @../patches/nodes/worker-01.patch --output worker-01.yaml
     talosctl machineconfig patch ./worker.yaml --patch @../patches/nodes/worker-04.patch --output worker-04.yaml
     talosctl machineconfig patch ./worker.yaml --patch @../patches/nodes/worker-05.patch --output worker-05.yaml
-    talosctl machineconfig patch ./worker.yaml --patch @../patches/nodes/worker-06.patch --output worker-06.yaml
 
 # Bootstrap the Talos cluster
 [working-directory: 'clusterconfig']
@@ -45,13 +45,14 @@ bootstrap:
 # Apply configs to all control plane nodes
 [working-directory: 'clusterconfig']
 apply-controlplanes:
-    talosctl apply-config --talosconfig {{ talosconfig }} --endpoints 10.20.10.1 --nodes 10.20.10.1 --file ./worker-01.yaml
     talosctl apply-config --talosconfig {{ talosconfig }} --endpoints 10.20.10.2 --nodes 10.20.10.2 --file ./worker-02.yaml
     talosctl apply-config --talosconfig {{ talosconfig }} --endpoints 10.20.10.3 --nodes 10.20.10.3 --file ./worker-03.yaml
+    talosctl apply-config --talosconfig {{ talosconfig }} --endpoints 10.20.10.6 --nodes 10.20.10.6 --file ./worker-06.yaml
 
 # Apply configs to all worker nodes
 [working-directory: 'clusterconfig']
 apply-workers:
+    talosctl apply-config --talosconfig {{ talosconfig }} --nodes 10.20.10.1 --file ./worker-01.yaml
     talosctl apply-config --talosconfig {{ talosconfig }} --nodes 10.20.10.4 --file ./worker-04.yaml
     talosctl apply-config --talosconfig {{ talosconfig }} --nodes 10.20.10.5 --file ./worker-05.yaml
 
@@ -59,7 +60,7 @@ apply-workers:
 reboot-controlplanes:
     #!/usr/bin/env bash
     set -euo pipefail
-    for i in 1 2 3; do
+    for i in 2 3 6; do
         talosctl --talosconfig {{ talosconfig }} reboot --endpoints "10.20.10.${i}" --nodes "10.20.10.${i}" --wait
     done
 
@@ -67,7 +68,7 @@ reboot-controlplanes:
 reboot-workers:
     #!/usr/bin/env bash
     set -euo pipefail
-    for i in 4 5; do
+    for i in 1 4 5; do
         talosctl --talosconfig {{ talosconfig }} reboot --nodes "10.20.10.${i}" --wait
     done
 
@@ -126,7 +127,7 @@ upgrade-controlplanes-amd:
 upgrade-workers-intel:
     #!/usr/bin/env bash
     set -euo pipefail
-    for i in 4 5; do
+    for i in 4 5 6; do
         talosctl --talosconfig {{ talosconfig }} upgrade \
             --image {{ worker_intel_image }} \
             --nodes "10.20.10.${i}" \

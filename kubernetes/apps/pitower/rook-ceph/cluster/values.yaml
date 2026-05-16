@@ -23,6 +23,24 @@ cephClusterSpec:
           operator: Equal
           value: storage
           effect: NoSchedule
+    mon:
+      tolerations:
+        - key: node-issue
+          operator: Equal
+          value: "true"
+          effect: NoExecute
+        - key: dedicated
+          operator: Equal
+          value: storage
+          effect: NoSchedule
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: kubernetes.io/hostname
+                  operator: NotIn
+                  values:
+                    - worker-01
 
   network:
     provider: host

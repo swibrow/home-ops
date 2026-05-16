@@ -16,8 +16,6 @@ machine:
         vlans:
           - vlanId: 20
             dhcp: true
-            vip:
-              ip: 10.20.10.0
   logging:
     destinations:
       - endpoint: tcp://data:9898
