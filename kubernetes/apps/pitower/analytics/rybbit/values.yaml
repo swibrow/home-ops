@@ -6,7 +6,7 @@ controllers:
       app:
         image:
           repository: ghcr.io/rybbit-io/rybbit-backend
-          tag: v2.6.0
+          tag: v2.6.1
         env:
           NODE_ENV: production
           BASE_URL: https://insights.wibrow.dev
