@@ -12,6 +12,12 @@ controllers:
           operator: Equal
           value: media-home
           effect: NoSchedule
+      securityContext:
+        runAsUser: 2000
+        runAsGroup: 2000
+        fsGroup: 2000
+        fsGroupChangePolicy: "OnRootMismatch"
+        supplementalGroups: [44, 109]  # video, render — for /dev/dri GPU access
     containers:
       app:
         image:
