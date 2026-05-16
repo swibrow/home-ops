@@ -39,6 +39,8 @@ controllers:
                     || ntfy user change-pass bridge
                   ntfy access bridge pitower-alerts write-only
                   ntfy access everyone pitower-alerts read-only
+                  ntfy access bridge movies write-only
+                  ntfy access everyone movies read-only
         probes:
           liveness:
             enabled: true
