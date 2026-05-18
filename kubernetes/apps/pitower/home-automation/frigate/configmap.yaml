@@ -1,0 +1,105 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frigate-config
+  namespace: home-automation
+data:
+  config.yml: |
+    mqtt:
+      enabled: true
+      host: homeassistant.iot
+      port: 1883
+      topic_prefix: frigate
+      client_id: frigate
+      user: "{FRIGATE_MQTT_USER}"
+      password: "{FRIGATE_MQTT_PASSWORD}"
+
+    detectors:
+      ov:
+        type: openvino
+        device: GPU
+
+    model:
+      width: 300
+      height: 300
+      input_tensor: nhwc
+      input_pixel_format: bgr
+      path: /openvino-model/ssdlite_mobilenet_v2.xml
+      labelmap_path: /openvino-model/coco_91cl_bkgr.txt
+
+    ffmpeg:
+      hwaccel_args: preset-vaapi
+
+    go2rtc:
+      streams:
+        basement:
+          - rtsp://{FRIGATE_BASEMENT_USER}:{FRIGATE_BASEMENT_PASSWORD}@Camera-G100-7C13.iot:8554/ch1
+        basement_sub:
+          - rtsp://{FRIGATE_BASEMENT_USER}:{FRIGATE_BASEMENT_PASSWORD}@Camera-G100-7C13.iot:8554/ch2
+        bedroom_juno:
+          - rtsp://{FRIGATE_BEDROOM_JUNO_USER}:{FRIGATE_BEDROOM_JUNO_PASSWORD}@Camera-G100-815D.iot:8554/ch1
+        bedroom_juno_sub:
+          - rtsp://{FRIGATE_BEDROOM_JUNO_USER}:{FRIGATE_BEDROOM_JUNO_PASSWORD}@Camera-G100-815D.iot:8554/ch2
+
+    cameras:
+      basement:
+        enabled: true
+        ffmpeg:
+          inputs:
+            - path: rtsp://127.0.0.1:8554/basement
+              input_args: preset-rtsp-restream
+              roles:
+                - record
+            - path: rtsp://127.0.0.1:8554/basement_sub
+              input_args: preset-rtsp-restream
+              roles:
+                - detect
+        detect:
+          width: 640
+          height: 360
+          fps: 5
+        objects:
+          track:
+            - person
+
+      bedroom_juno:
+        enabled: true
+        ffmpeg:
+          inputs:
+            - path: rtsp://127.0.0.1:8554/bedroom_juno
+              input_args: preset-rtsp-restream
+              roles:
+                - record
+            - path: rtsp://127.0.0.1:8554/bedroom_juno_sub
+              input_args: preset-rtsp-restream
+              roles:
+                - detect
+        detect:
+          width: 640
+          height: 360
+          fps: 5
+        objects:
+          track:
+            - person
+
+    record:
+      enabled: true
+      retain:
+        days: 7
+        mode: motion
+      alerts:
+        retain:
+          days: 30
+          mode: motion
+      detections:
+        retain:
+          days: 14
+          mode: motion
+
+    snapshots:
+      enabled: true
+      retain:
+        default: 14
+
+    version: 0.17-0
