@@ -133,10 +133,13 @@ data:
               type: homeassistant
               url: https://ha.wibrow.dev
               key: "{{HOMEPAGE_VAR_HASS_TOKEN}}"
-        - go2rtc:
-            icon: mdi-video
-            href: https://go2rtc.wibrow.dev
-            description: Video streaming proxy
+        - Frigate:
+            icon: frigate.svg
+            href: https://frigate.wibrow.dev
+            description: NVR with object detection
+            widget:
+              type: frigate
+              url: http://frigate.home-automation.svc.cluster.local:5000
     - Banking:
         - Firefly III:
             icon: firefly.svg
@@ -146,6 +149,10 @@ data:
             icon: firefly.svg
             href: https://money-import.wibrow.dev
             description: Transaction importer
+        - Actual:
+            icon: actual.svg
+            href: https://actual.wibrow.dev
+            description: Budgeting
         - Ghostfolio:
             icon: ghostfolio.svg
             href: https://portfolio.wibrow.dev
@@ -179,10 +186,10 @@ data:
             icon: mdi-lock-outline
             href: https://secrets.wibrow.dev
             description: Secret sharing
-        - Sharkord:
-            icon: mdi-music-note
-            href: https://sharkord.wibrow.dev
-            description: Music server
+        - Mattermost:
+            icon: mattermost.svg
+            href: https://mattermost.wibrow.dev
+            description: Team chat
         - House Hunter:
             icon: mdi-home-search
             href: https://house-hunter.wibrow.dev
@@ -195,23 +202,24 @@ data:
             icon: mealie.svg
             href: https://recipes.wibrow.dev
             description: Recipe management
-        - Nextcloud:
-            icon: nextcloud.svg
-            href: https://nextcloud.wibrow.dev
-            description: Personal cloud
     - AI:
-        - ZeroClaw:
+        - Jane:
+            icon: mdi-robot-happy
+            href: https://jane.wibrow.dev
+            description: AI assistant
+        - John:
             icon: mdi-robot
-            href: https://zeroclaw.wibrow.dev
-            description: AI assistant gateway
-        - OpenClaw:
-            icon: mdi-robot-outline
-            href: https://openclaw.wibrow.dev
-            description: AI agent
+            href: https://john.wibrow.dev
+            description: AI assistant
         - Browser Use:
             icon: mdi-web
             href: https://browser-use.wibrow.dev
             description: AI browser automation
+    - Analytics:
+        - Rybbit:
+            icon: mdi-chart-line
+            href: https://insights.wibrow.dev
+            description: Web analytics
     - Second Brain:
         - Obsidian:
             icon: obsidian.svg
@@ -251,6 +259,10 @@ data:
             icon: victoriametrics.svg
             href: https://vm.wibrow.dev
             description: Long-term TSDB
+        - Ntfy:
+            icon: ntfy.svg
+            href: https://ntfy.wibrow.dev
+            description: Push notifications
     - Networking:
         - OpenSpeedTest:
             icon: mdi-speedometer
@@ -289,13 +301,15 @@ data:
         columns: 2
       Banking:
         style: row
-        columns: 3
+        columns: 4
       Selfhosted:
         style: row
         columns: 4
       AI:
         style: row
         columns: 3
+      Analytics:
+        style: row
       Second Brain:
         style: row
       Security:
