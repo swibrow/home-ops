@@ -108,7 +108,7 @@ data:
         detect:
           enabled: true
           width: 640
-          height: 360
+          height: 480
           fps: 5
         objects:
           track:
