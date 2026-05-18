@@ -41,6 +41,10 @@ data:
           - rtsp://{FRIGATE_BEDROOM_JUNO_USER}:{FRIGATE_BEDROOM_JUNO_PASSWORD}@Camera-G100-815D.iot:8554/ch1
         bedroom_juno_sub:
           - rtsp://{FRIGATE_BEDROOM_JUNO_USER}:{FRIGATE_BEDROOM_JUNO_PASSWORD}@Camera-G100-815D.iot:8554/ch2
+        doorbell:
+          - rtsp://{FRIGATE_DOORBELL_USER}:{FRIGATE_DOORBELL_PASSWORD}@Doorbell.iot:8554/ch1
+        doorbell_sub:
+          - rtsp://{FRIGATE_DOORBELL_USER}:{FRIGATE_DOORBELL_PASSWORD}@Doorbell.iot:8554/ch2
 
     cameras:
       basement:
@@ -72,6 +76,26 @@ data:
               roles:
                 - record
             - path: rtsp://127.0.0.1:8554/bedroom_juno_sub
+              input_args: preset-rtsp-restream
+              roles:
+                - detect
+        detect:
+          width: 640
+          height: 360
+          fps: 5
+        objects:
+          track:
+            - person
+
+      doorbell:
+        enabled: true
+        ffmpeg:
+          inputs:
+            - path: rtsp://127.0.0.1:8554/doorbell
+              input_args: preset-rtsp-restream
+              roles:
+                - record
+            - path: rtsp://127.0.0.1:8554/doorbell_sub
               input_args: preset-rtsp-restream
               roles:
                 - detect
