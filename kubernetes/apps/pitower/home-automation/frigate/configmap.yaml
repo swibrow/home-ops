@@ -113,6 +113,13 @@ data:
         objects:
           track:
             - person
+        zones:
+          walkway:
+            coordinates: 0.375,0.255,0.542,0.256,0.544,0.537,0.545,0.731,0.628,0.747,0.739,0.626,0.997,0.678,0.992,0.997,0.67,0.996,0.396,0.996,0.367,0.989,0.322,0.244
+        review:
+          alerts:
+            required_zones:
+              - walkway
 
       backyard:
         enabled: true
