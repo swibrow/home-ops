@@ -28,6 +28,10 @@ controllers:
               initialDelaySeconds: 0
           readiness: *probes
           startup: *probes
+        resources:
+          requests:
+            cpu: 10m
+            memory: 181Mi
     serviceAccount:
       identifier: homepage
 service:
