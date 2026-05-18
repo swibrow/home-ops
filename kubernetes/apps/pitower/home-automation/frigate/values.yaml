@@ -1,6 +1,6 @@
 controllers:
   frigate:
-    strategy: RollingUpdate
+    strategy: Recreate
     annotations:
       reloader.stakater.com/auto: "true"
     pod:

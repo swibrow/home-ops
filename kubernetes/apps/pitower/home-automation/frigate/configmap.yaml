@@ -45,6 +45,10 @@ data:
           - rtsp://{FRIGATE_DOORBELL_USER}:{FRIGATE_DOORBELL_PASSWORD}@Doorbell.iot:8554/ch1
         doorbell_sub:
           - rtsp://{FRIGATE_DOORBELL_USER}:{FRIGATE_DOORBELL_PASSWORD}@Doorbell.iot:8554/ch2
+        backyard:
+          - rtsp://{FRIGATE_BACKYARD_USER}:{FRIGATE_BACKYARD_PASSWORD}@Camera-G100-26DC.iot:8554/ch1
+        backyard_sub:
+          - rtsp://{FRIGATE_BACKYARD_USER}:{FRIGATE_BACKYARD_PASSWORD}@Camera-G100-26DC.iot:8554/ch2
 
     cameras:
       basement:
@@ -60,6 +64,7 @@ data:
               roles:
                 - detect
         detect:
+          enabled: true
           width: 640
           height: 360
           fps: 5
@@ -80,6 +85,7 @@ data:
               roles:
                 - detect
         detect:
+          enabled: true
           width: 640
           height: 360
           fps: 5
@@ -100,6 +106,28 @@ data:
               roles:
                 - detect
         detect:
+          enabled: true
+          width: 640
+          height: 360
+          fps: 5
+        objects:
+          track:
+            - person
+
+      backyard:
+        enabled: true
+        ffmpeg:
+          inputs:
+            - path: rtsp://127.0.0.1:8554/backyard
+              input_args: preset-rtsp-restream
+              roles:
+                - record
+            - path: rtsp://127.0.0.1:8554/backyard_sub
+              input_args: preset-rtsp-restream
+              roles:
+                - detect
+        detect:
+          enabled: true
           width: 640
           height: 360
           fps: 5
