@@ -1,0 +1,68 @@
+script:
+  floor_strip_evening:
+    alias: Floor Strip - Evening (Full)
+    use_blueprint:
+      path: swibrow/aqara_t1_strip_floor_scene.yaml
+      input:
+        target_lights:
+          entity_id: light.0x54ef4410010f08d5
+        strip_length_entity: number.0x54ef4410010f08d5_length
+        basement_count: 13
+        basement_color: [255, 197, 143]
+        first_floor_start: 14
+        first_floor_count: 13
+        first_floor_color: [255, 197, 143]
+        attic_start: 27
+        attic_count: 7
+        attic_color: [255, 197, 143]
+        global_brightness: 100
+
+  floor_strip_night:
+    alias: Floor Strip - Night (Middle 1%)
+    use_blueprint:
+      path: swibrow/aqara_t1_strip_floor_scene.yaml
+      input:
+        target_lights:
+          entity_id: light.0x54ef4410010f08d5
+        strip_length_entity: number.0x54ef4410010f08d5_length
+        basement_count: 0
+        first_floor_start: 14
+        first_floor_count: 13
+        first_floor_color: [255, 197, 143]
+        attic_start: 27
+        attic_count: 0
+        global_brightness: 1
+
+automation:
+  - alias: Floor Strip - Evening On (17:00)
+    triggers:
+      - trigger: time
+        at: "17:00:00"
+    actions:
+      - action: light.turn_on
+        target:
+          entity_id: light.0x54ef4410010f08d5
+        data:
+          brightness: 255
+      - action: script.floor_strip_evening
+
+  - alias: Floor Strip - Night Mode (21:00)
+    triggers:
+      - trigger: time
+        at: "21:00:00"
+    actions:
+      - action: light.turn_on
+        target:
+          entity_id: light.0x54ef4410010f08d5
+        data:
+          brightness: 3
+      - action: script.floor_strip_night
+
+  - alias: Floor Strip - Off (08:00)
+    triggers:
+      - trigger: time
+        at: "08:00:00"
+    actions:
+      - action: light.turn_off
+        target:
+          entity_id: light.0x54ef4410010f08d5
