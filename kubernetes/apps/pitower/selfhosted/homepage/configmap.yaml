@@ -161,10 +161,6 @@ data:
             icon: paperless-ngx.svg
             href: https://paperless.wibrow.dev
             description: Document management
-        - Paperless AI:
-            icon: paperless-ngx.svg
-            href: https://paperless-ai.wibrow.dev
-            description: AI document processing
     - Selfhosted:
         - n8n:
             icon: n8n.svg
