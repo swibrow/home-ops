@@ -47,7 +47,7 @@ jobs:
       - name: Install gh CLI
         env:
           # renovate: datasource=github-releases depName=cli/cli
-          GH_VERSION: v2.92.0
+          GH_VERSION: v2.93.0
         run: |
           set -euo pipefail
           install -d "$HOME/.local/bin"
