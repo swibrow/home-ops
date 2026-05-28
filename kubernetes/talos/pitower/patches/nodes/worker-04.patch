@@ -4,7 +4,7 @@ machine:
     feature.node.kubernetes.io/intel-gpu: "true"
   install:
     disk: /dev/mmcblk0
-    image: factory.talos.dev/installer/97bf8e92fc6bba0f03928b859c08295d7615737b29db06a97be51dc63004e403:v1.12.6
+    image: factory.talos.dev/installer/97bf8e92fc6bba0f03928b859c08295d7615737b29db06a97be51dc63004e403:v1.13.3
   kubelet:
     nodeIP:
       validSubnets:

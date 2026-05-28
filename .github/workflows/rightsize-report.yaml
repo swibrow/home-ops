@@ -23,7 +23,7 @@ jobs:
       - name: Install kubectl
         env:
           # renovate: datasource=github-releases depName=kubernetes/kubernetes
-          KUBECTL_VERSION: v1.35.2
+          KUBECTL_VERSION: v1.36.1
         run: |
           set -euo pipefail
           install -d "$HOME/.local/bin"

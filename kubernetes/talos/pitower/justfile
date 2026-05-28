@@ -4,9 +4,9 @@ export SOPS_AGE_KEY_FILE := source_directory() / "../../../age.key"
 
 import '../shared/talos.justfile'
 
-cp_image := "factory.talos.dev/installer/de94b242ed9adec9def2581ffbf1e2d1873e42b17032771770d241dee54d7c00:v1.12.6"
-cp_amd_image := "factory.talos.dev/installer/86e7fd87fc2c25ce2adb947bbf084f78d473e206487a2eb7df5fc157539bc999:v1.12.6"
-worker_intel_image := "factory.talos.dev/installer/97bf8e92fc6bba0f03928b859c08295d7615737b29db06a97be51dc63004e403:v1.12.6"
+cp_image := "factory.talos.dev/installer/de94b242ed9adec9def2581ffbf1e2d1873e42b17032771770d241dee54d7c00:v1.13.3"
+cp_amd_image := "factory.talos.dev/installer/86e7fd87fc2c25ce2adb947bbf084f78d473e206487a2eb7df5fc157539bc999:v1.13.3"
+worker_intel_image := "factory.talos.dev/installer/97bf8e92fc6bba0f03928b859c08295d7615737b29db06a97be51dc63004e403:v1.13.3"
 
 talosconfig := source_directory() / "clusterconfig/talosconfig"
 nodes := "10.20.10.1 10.20.10.2 10.20.10.3 10.20.10.4 10.20.10.5 10.20.10.6"
@@ -19,7 +19,7 @@ config:
         https://10.20.10.0:6443 \
         --with-secrets ./secrets.yaml \
         --with-examples=true \
-        --kubernetes-version 1.35.2 \
+        --kubernetes-version 1.36.1 \
         --config-patch-control-plane @patches/controlplane.patch \
         --config-patch @../shared/patches/general.patch \
         --output ./clusterconfig \
