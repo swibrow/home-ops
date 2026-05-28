@@ -6,7 +6,7 @@ namespace: system
 helmCharts:
   - name: gpu-operator-charts
     repo: https://rocm.github.io/gpu-operator
-    version: v1.4.1
+    version: v1.5.0
     releaseName: rocm
     valuesFile: values.yaml
     namespace: system
