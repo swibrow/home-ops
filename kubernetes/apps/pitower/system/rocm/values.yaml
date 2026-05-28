@@ -1,0 +1,9 @@
+# NFD is already deployed standalone in the system namespace
+node-feature-discovery:
+  enabled: false
+upgradePolicy:
+  upgradeStrategy: OnDelete
+serviceMonitor:
+  enabled: true
+  attachMetadata:
+    node: true
