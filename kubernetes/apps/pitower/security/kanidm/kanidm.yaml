@@ -1,0 +1,44 @@
+---
+apiVersion: kaniop.rs/v1beta1
+kind: Kanidm
+metadata:
+  name: kanidm
+  namespace: security
+spec:
+  domain: idm.wibrow.dev
+  # renovate: datasource=docker depName=kanidm/server
+  image: kanidm/server:1.10.3
+  disableUpgradeChecks: true
+  tlsSecretName: kanidm-tls
+  oauth2ClientNamespaceSelector:
+    matchLabels: {}
+  groupNamespaceSelector:
+    matchLabels: {}
+  personNamespaceSelector:
+    matchLabels: {}
+  serviceAccountNamespaceSelector:
+    matchLabels: {}
+  env:
+    - name: KANIDM_TRUST_X_FORWARD_FOR
+      value: "true"
+  replicaGroups:
+    - name: default
+      replicas: 1
+      primaryNode: true
+      statefulSetAnnotations:
+        reloader.stakater.com/auto: "true"
+      resources:
+        requests:
+          cpu: 50m
+          memory: 128Mi
+        limits:
+          memory: 256Mi
+  storage:
+    volumeClaimTemplate:
+      spec:
+        storageClassName: ceph-block
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi

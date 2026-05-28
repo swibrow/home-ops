@@ -1,0 +1,14 @@
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: BackendTLSPolicy
+metadata:
+  name: kanidm
+  namespace: security
+spec:
+  targetRefs:
+    - group: ""
+      kind: Service
+      name: kanidm
+  validation:
+    wellKnownCACertificates: System
+    hostname: idm.wibrow.dev
