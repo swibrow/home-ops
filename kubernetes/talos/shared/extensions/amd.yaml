@@ -1,4 +1,4 @@
-# f19ad7b4a5d29151f3a59ef2d9c581cf89e77142e52f0abb5022e8f0b95ad0b9
+# 86e7fd87fc2c25ce2adb947bbf084f78d473e206487a2eb7df5fc157539bc999
 # curl -X POST --data-binary @amd.yaml https://factory.talos.dev/schematics
 customization:
   systemExtensions:
@@ -6,3 +6,4 @@ customization:
       - siderolabs/util-linux-tools
       - siderolabs/amd-ucode
       - siderolabs/amdgpu-firmware
+      - siderolabs/amdgpu

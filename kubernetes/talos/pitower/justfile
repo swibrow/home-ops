@@ -5,8 +5,7 @@ export SOPS_AGE_KEY_FILE := source_directory() / "../../../age.key"
 import '../shared/talos.justfile'
 
 cp_image := "factory.talos.dev/installer/de94b242ed9adec9def2581ffbf1e2d1873e42b17032771770d241dee54d7c00:v1.12.6"
-cp_amd_image := "factory.talos.dev/installer/f19ad7b4a5d29151f3a59ef2d9c581cf89e77142e52f0abb5022e8f0b95ad0b9:v1.12.6"
-cp_amd_mitigated_image := "factory.talos.dev/installer/f04c5385947c2b476d602755abc281a9f89ffdd4bb0325206e9ec5b656a2aeb9:v1.12.6"
+cp_amd_image := "factory.talos.dev/installer/86e7fd87fc2c25ce2adb947bbf084f78d473e206487a2eb7df5fc157539bc999:v1.12.6"
 worker_intel_image := "factory.talos.dev/installer/97bf8e92fc6bba0f03928b859c08295d7615737b29db06a97be51dc63004e403:v1.12.6"
 
 talosconfig := source_directory() / "clusterconfig/talosconfig"
@@ -87,8 +86,7 @@ upgrade name:
     set -euo pipefail
     ip=$(talosctl --talosconfig {{ talosconfig }} --endpoints 10.20.10.0 --nodes 10.20.10.0 get members -o json | jq -rs --arg h "{{ name }}" '[.[] | select(.spec.hostname == $h) | .spec.addresses[0]][0]')
     case "{{ name }}" in
-        worker-01)                     image="{{ cp_amd_mitigated_image }}" ;;
-        worker-02|worker-03)           image="{{ cp_amd_image }}" ;;
+        worker-01|worker-02|worker-03) image="{{ cp_amd_image }}" ;;
         worker-04|worker-05|worker-06) image="{{ worker_intel_image }}" ;;
         *)                             image="{{ cp_image }}" ;;
     esac
@@ -140,7 +138,7 @@ upgrade-workers-intel:
 image-id:
     #!/usr/bin/env bash
     set -euo pipefail
-    for f in amd.yaml amd-mitigations.yaml intel.yaml rpi-poe.yaml; do
+    for f in amd.yaml intel.yaml rpi-poe.yaml; do
         name="${f%.yaml}"
         id=$(curl -sX POST --data-binary "@${f}" https://factory.talos.dev/schematics | jq -r .id)
         echo "${name}: ${id}"

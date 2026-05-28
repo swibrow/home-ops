@@ -1,7 +1,9 @@
 ---
 machine:
+  nodeLabels:
+    feature.node.kubernetes.io/amd-gpu: "true"
   install:
-    image: factory.talos.dev/installer/f04c5385947c2b476d602755abc281a9f89ffdd4bb0325206e9ec5b656a2aeb9:v1.12.6
+    image: factory.talos.dev/installer/86e7fd87fc2c25ce2adb947bbf084f78d473e206487a2eb7df5fc157539bc999:v1.12.6
   kubelet:
     nodeIP:
       validSubnets:
