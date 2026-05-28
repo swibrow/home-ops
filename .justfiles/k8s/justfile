@@ -9,3 +9,50 @@ delete-succeeded-pods cluster:
 # Delete pods with Pending phase
 delete-pending-pods cluster:
     kubectl --context {{ cluster }} delete pods --field-selector status.phase=Pending -A --ignore-not-found=true
+
+# Rollout restart deployments/daemonsets whose pods have container restarts (clears restart counts)
+clear-restarts cluster=`kubectl config current-context`:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    kubectl --context {{ cluster }} get pods -A -o json \
+      | jq -r '
+        .items[]
+        | select(([.status.containerStatuses[]?.restartCount] | add // 0) > 0)
+        | .metadata.namespace as $ns
+        | (.metadata.ownerReferences[]? | select(.controller == true))
+        | select(.kind == "ReplicaSet" or .kind == "DaemonSet")
+        | if .kind == "ReplicaSet"
+          then "\($ns) deployment \(.name | sub("-[^-]+$"; ""))"
+          else "\($ns) daemonset \(.name)"
+          end
+      ' \
+      | sort -u \
+      | while read -r ns kind name; do
+          [ -z "$name" ] && continue
+          echo "Restarting $kind/$name in $ns"
+          kubectl --context {{ cluster }} -n "$ns" rollout restart "$kind/$name"
+        done
+
+# Like clear-restarts, but restarts one at a time and waits for each rollout to finish
+clear-restarts-sequential cluster=`kubectl config current-context`:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    kubectl --context {{ cluster }} get pods -A -o json \
+      | jq -r '
+        .items[]
+        | select(([.status.containerStatuses[]?.restartCount] | add // 0) > 0)
+        | .metadata.namespace as $ns
+        | (.metadata.ownerReferences[]? | select(.controller == true))
+        | select(.kind == "ReplicaSet" or .kind == "DaemonSet")
+        | if .kind == "ReplicaSet"
+          then "\($ns) deployment \(.name | sub("-[^-]+$"; ""))"
+          else "\($ns) daemonset \(.name)"
+          end
+      ' \
+      | sort -u \
+      | while read -r ns kind name; do
+          [ -z "$name" ] && continue
+          echo "Restarting $kind/$name in $ns"
+          kubectl --context {{ cluster }} -n "$ns" rollout restart "$kind/$name"
+          kubectl --context {{ cluster }} -n "$ns" rollout status "$kind/$name" --timeout=300s
+        done
