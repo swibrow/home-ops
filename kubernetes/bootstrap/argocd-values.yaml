@@ -136,7 +136,8 @@ applicationSet:
       cpu: 100m
       memory: 128Mi
     limits:
-      cpu: 500m
+      # No CPU limit: appset reconcile loops are bursty and CFS throttling
+      # (CPUThrottlingHigh) fires even with spare node CPU. Memory limit retained.
       memory: 512Mi
   metrics:
     enabled: true
