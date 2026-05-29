@@ -21,23 +21,3 @@ patches:
       - op: add
         path: /metadata/annotations/grafana_folder
         value: Kubernetes
-  # Auto-discover control-plane static pods (no hardcoded IPs): add a selector to
-  # the chart's headless CM/scheduler Services so K8s populates their Endpoints.
-  - target:
-      kind: Service
-      name: kube-prometheus-stack-kube-controller-manager
-      namespace: kube-system
-    patch: |
-      - op: add
-        path: /spec/selector
-        value:
-          k8s-app: kube-controller-manager
-  - target:
-      kind: Service
-      name: kube-prometheus-stack-kube-scheduler
-      namespace: kube-system
-    patch: |
-      - op: add
-        path: /spec/selector
-        value:
-          k8s-app: kube-scheduler

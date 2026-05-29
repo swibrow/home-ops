@@ -101,9 +101,17 @@ kubeApiServer:
         regex: (apiserver_response_sizes_bucket|apiserver_watch_events_sizes_bucket)
 kubeControllerManager:
   enabled: true
-  # Endpoints auto-discovered: a kustomize patch adds a selector to the chart's
-  # headless Service so K8s populates Endpoints from the Talos static pods
-  # (hostNetwork, k8s-app=kube-controller-manager). No hardcoded CP IPs.
+  # No `endpoints:` -> the chart adds a `component: kube-controller-manager`
+  # selector to its headless Service, so K8s discovers the Talos control-plane
+  # static pods dynamically (no hardcoded CP IPs).
+  service:
+    # Pin single-stack: a selectorless headless Service defaults to
+    # RequireDualStack, which breaks apply on this IPv4-only cluster once a
+    # selector is present. ipDualStack is the only knob that emits ipFamilies.
+    ipDualStack:
+      enabled: true
+      ipFamilies: ["IPv4"]
+      ipFamilyPolicy: SingleStack
   serviceMonitor:
     metricRelabelings:
       # Remove duplicate labels provided by k3s
@@ -121,7 +129,13 @@ kubeEtcd:
     - 10.20.10.6
 kubeScheduler:
   enabled: true
-  # Endpoints auto-discovered via Service selector patch (k8s-app=kube-scheduler).
+  # No `endpoints:` -> chart adds a `component: kube-scheduler` selector for
+  # dynamic discovery of the Talos control-plane static pods.
+  service:
+    ipDualStack:
+      enabled: true
+      ipFamilies: ["IPv4"]
+      ipFamilyPolicy: SingleStack
   serviceMonitor:
     metricRelabelings:
       # Remove duplicate labels provided by k3s
