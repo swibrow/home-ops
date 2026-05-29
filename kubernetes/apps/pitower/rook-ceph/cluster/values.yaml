@@ -2,7 +2,7 @@ toolbox:
   enabled: true
 
 monitoring:
-  enabled: false
+  enabled: true
   createPrometheusRules: true
 
 ingress:

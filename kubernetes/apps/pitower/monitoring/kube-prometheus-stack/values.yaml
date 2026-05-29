@@ -12,12 +12,9 @@ alertmanager:
         - name: envoy-internal
           namespace: networking
           sectionName: https
-  alertmanagerSpec:
-    secrets:
-      - mattermost-webhook
   config:
     route:
-      receiver: mattermost
+      receiver: "null"
       group_by: ["alertname", "namespace", "severity"]
       group_wait: 30s
       group_interval: 5m
@@ -38,11 +35,6 @@ alertmanager:
       - name: ntfy
         webhook_configs:
           - url: http://ntfy-alertmanager.monitoring.svc.cluster.local:8080/
-            send_resolved: true
-      - name: mattermost
-        slack_configs:
-          - api_url_file: /etc/alertmanager/secrets/mattermost-webhook/url
-            channel: home-ops-alerts
             send_resolved: true
     inhibit_rules:
       - source_matchers:
@@ -109,10 +101,9 @@ kubeApiServer:
         regex: (apiserver_response_sizes_bucket|apiserver_watch_events_sizes_bucket)
 kubeControllerManager:
   enabled: true
-  endpoints:
-    - 192.168.0.201
-    - 192.168.0.202
-    - 192.168.0.203
+  # Endpoints auto-discovered: a kustomize patch adds a selector to the chart's
+  # headless Service so K8s populates Endpoints from the Talos static pods
+  # (hostNetwork, k8s-app=kube-controller-manager). No hardcoded CP IPs.
   serviceMonitor:
     metricRelabelings:
       # Remove duplicate labels provided by k3s
@@ -125,15 +116,12 @@ kubeControllerManager:
 kubeEtcd:
   enabled: true
   endpoints:
-    - 192.168.0.201
-    - 192.168.0.202
-    - 192.168.0.203
+    - 10.20.10.2
+    - 10.20.10.3
+    - 10.20.10.6
 kubeScheduler:
   enabled: true
-  endpoints:
-    - 192.168.0.201
-    - 192.168.0.202
-    - 192.168.0.203
+  # Endpoints auto-discovered via Service selector patch (k8s-app=kube-scheduler).
   serviceMonitor:
     metricRelabelings:
       # Remove duplicate labels provided by k3s
