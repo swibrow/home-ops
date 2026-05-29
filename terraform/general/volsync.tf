@@ -11,12 +11,28 @@ resource "aws_s3_bucket_versioning" "volsync" {
   bucket = aws_s3_bucket.volsync.id
 
   versioning_configuration {
-    status = "Enabled"
+    status = "Suspended"
   }
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "volsync" {
   bucket = aws_s3_bucket.volsync.id
+
+  # Move objects into Intelligent-Tiering immediately. AWS then auto-tiers
+  # untouched data to cheaper instant-access tiers (Infrequent after 30d,
+  # Archive Instant Access after 90d) with no retrieval fees and no
+  # early-deletion penalty, so restic's weekly prune stays cheap and safe.
+  rule {
+    id     = "intelligent-tiering"
+    status = "Enabled"
+
+    filter {}
+
+    transition {
+      days          = 0
+      storage_class = "INTELLIGENT_TIERING"
+    }
+  }
 
   rule {
     id     = "expire-old-versions"
