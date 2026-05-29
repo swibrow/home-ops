@@ -12,6 +12,9 @@ alertmanager:
         - name: envoy-internal
           namespace: networking
           sectionName: https
+  alertmanagerSpec:
+    # Public URL so Alertmanager's own links (silences, etc.) use the external host.
+    externalUrl: https://alertmanager.wibrow.dev
   config:
     route:
       receiver: "null"
@@ -160,6 +163,9 @@ prometheus:
           namespace: networking
           sectionName: https
   prometheusSpec:
+    # Public URL so alert generatorURL (Alertmanager "Source" links) points at
+    # the external host instead of the internal service address.
+    externalUrl: https://prometheus.wibrow.dev
     externalLabels:
       cluster: pitower
     additionalAlertRelabelConfigs:
