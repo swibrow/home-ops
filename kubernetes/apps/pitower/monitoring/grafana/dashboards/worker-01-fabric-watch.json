@@ -8,7 +8,45 @@
   "time": { "from": "now-6h", "to": "now" },
   "timezone": "Europe/Zurich",
   "annotations": { "list": [] },
-  "templating": { "list": [] },
+  "templating": {
+    "list": [
+      {
+        "name": "node",
+        "type": "query",
+        "label": "Node",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "definition": "label_values(node_uname_info, nodename)",
+        "query": {
+          "qryType": 1,
+          "query": "label_values(node_uname_info, nodename)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "current": { "text": "worker-01", "value": "worker-01", "selected": true },
+        "includeAll": false,
+        "multi": false
+      },
+      {
+        "name": "instance",
+        "type": "query",
+        "label": "Instance",
+        "hide": 2,
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "definition": "label_values(node_uname_info{nodename=\"$node\"}, instance)",
+        "query": {
+          "qryType": 1,
+          "query": "label_values(node_uname_info{nodename=\"$node\"}, instance)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 2,
+        "sort": 0,
+        "current": {},
+        "includeAll": false,
+        "multi": false
+      }
+    ]
+  },
   "panels": [
     {
       "type": "stat",
@@ -19,7 +57,7 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "time() - node_boot_time_seconds{instance=\"10.20.10.1:9100\"}",
+          "expr": "time() - node_boot_time_seconds{instance=\"$instance\"}",
           "instant": true
         }
       ],
@@ -53,7 +91,7 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "changes(node_boot_time_seconds{instance=\"10.20.10.1:9100\"}[$__range])",
+          "expr": "changes(node_boot_time_seconds{instance=\"$instance\"}[$__range])",
           "instant": true
         }
       ],
@@ -87,7 +125,7 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "increase(node_vmstat_oom_kill{instance=\"10.20.10.1:9100\"}[$__range])",
+          "expr": "increase(node_vmstat_oom_kill{instance=\"$instance\"}[$__range])",
           "instant": true
         }
       ],
@@ -121,7 +159,7 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "min(up{instance=\"10.20.10.1:9100\"})",
+          "expr": "min(up{instance=\"$instance\"})",
           "instant": true
         }
       ],
@@ -163,7 +201,7 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "time() - node_boot_time_seconds{instance=\"10.20.10.1:9100\"}",
+          "expr": "time() - node_boot_time_seconds{instance=\"$instance\"}",
           "legendFormat": "uptime"
         }
       ],
@@ -188,7 +226,7 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "min(up{instance=\"10.20.10.1:9100\"})",
+          "expr": "min(up{instance=\"$instance\"})",
           "legendFormat": "node"
         }
       ],
@@ -230,7 +268,7 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "100 * (1 - avg by(instance)(rate(node_cpu_seconds_total{instance=\"10.20.10.1:9100\",mode=\"idle\"}[$__rate_interval])))",
+          "expr": "100 * (1 - avg by(instance)(rate(node_cpu_seconds_total{instance=\"$instance\",mode=\"idle\"}[$__rate_interval])))",
           "legendFormat": "busy %"
         }
       ],
@@ -257,7 +295,7 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "node_cpu_scaling_frequency_hertz{instance=\"10.20.10.1:9100\"}",
+          "expr": "node_cpu_scaling_frequency_hertz{instance=\"$instance\"}",
           "legendFormat": "cpu {{cpu}}"
         }
       ],
@@ -282,19 +320,19 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "node_load1{instance=\"10.20.10.1:9100\"}",
+          "expr": "node_load1{instance=\"$instance\"}",
           "legendFormat": "load1"
         },
         {
           "refId": "B",
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "node_load5{instance=\"10.20.10.1:9100\"}",
+          "expr": "node_load5{instance=\"$instance\"}",
           "legendFormat": "load5"
         },
         {
           "refId": "C",
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "node_load15{instance=\"10.20.10.1:9100\"}",
+          "expr": "node_load15{instance=\"$instance\"}",
           "legendFormat": "load15"
         }
       ],
@@ -319,7 +357,7 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "node_hwmon_temp_celsius{instance=\"10.20.10.1:9100\"}",
+          "expr": "node_hwmon_temp_celsius{instance=\"$instance\"}",
           "legendFormat": "{{chip}} {{sensor}}"
         }
       ],
@@ -344,13 +382,13 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "node_memory_MemTotal_bytes{instance=\"10.20.10.1:9100\"}",
+          "expr": "node_memory_MemTotal_bytes{instance=\"$instance\"}",
           "legendFormat": "total"
         },
         {
           "refId": "B",
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "node_memory_MemAvailable_bytes{instance=\"10.20.10.1:9100\"}",
+          "expr": "node_memory_MemAvailable_bytes{instance=\"$instance\"}",
           "legendFormat": "available"
         }
       ],
