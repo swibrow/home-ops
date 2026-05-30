@@ -6,7 +6,7 @@ controllers:
       app:
         image:
           repository: ghostfolio/ghostfolio
-          tag: 3.5.0
+          tag: 3.6.0
         env:
           NODE_ENV: production
           REDIS_HOST: localhost
