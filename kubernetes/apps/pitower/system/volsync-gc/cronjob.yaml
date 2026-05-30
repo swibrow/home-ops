@@ -54,9 +54,10 @@ spec:
                   value: eu-central-2
                 - name: GRACE_DAYS
                   value: "7"
-                # Start in dry-run; review a run's logs, then set to "false" to arm deletes.
+                # Armed: deletes orphaned repos (not an active ReplicationSource,
+                # newest object > GRACE_DAYS idle). Set to "true" to dry-run.
                 - name: DRY_RUN
-                  value: "true"
+                  value: "false"
                 - name: KUBECTL
                   value: /shared/kubectl
                 - name: HOME
