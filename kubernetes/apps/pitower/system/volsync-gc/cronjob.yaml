@@ -1,0 +1,94 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: volsync-gc
+spec:
+  schedule: "0 4 * * 0" # Sundays 04:00
+  timeZone: Europe/Zurich
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      ttlSecondsAfterFinished: 86400
+      template:
+        spec:
+          serviceAccountName: volsync-gc
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            fsGroup: 65534
+            seccompProfile:
+              type: RuntimeDefault
+          initContainers:
+            # kubectl ships as a single static binary; fetch it into a shared
+            # emptyDir so the aws-cli container can list ReplicationSources.
+            - name: fetch-kubectl
+              image: curlimages/curl:8.11.1
+              command: ["sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  curl -fsSL -o /shared/kubectl https://dl.k8s.io/release/v1.32.0/bin/linux/amd64/kubectl
+                  chmod +x /shared/kubectl
+              volumeMounts:
+                - name: shared
+                  mountPath: /shared
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+          containers:
+            - name: gc
+              image: amazon/aws-cli:2.17.0
+              command: ["/bin/bash", "/scripts/gc.sh"]
+              env:
+                - name: BUCKET
+                  value: pitower-volsync-backups
+                - name: AWS_REGION
+                  value: eu-central-2
+                - name: GRACE_DAYS
+                  value: "7"
+                # Start in dry-run; review a run's logs, then set to "false" to arm deletes.
+                - name: DRY_RUN
+                  value: "true"
+                - name: KUBECTL
+                  value: /shared/kubectl
+                - name: HOME
+                  value: /tmp
+              # AWS_ROLE_ARN + AWS_WEB_IDENTITY_TOKEN_FILE and the projected
+              # token volume are injected by the aws-identity-webhook because
+              # the volsync-gc ServiceAccount carries the eks.amazonaws.com/role-arn
+              # annotation (see rbac.yaml). No static keys.
+              volumeMounts:
+                - name: shared
+                  mountPath: /shared
+                - name: scripts
+                  mountPath: /scripts
+                - name: tmp
+                  mountPath: /tmp
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 64Mi
+                limits:
+                  memory: 256Mi
+          volumes:
+            - name: shared
+              emptyDir: {}
+            - name: tmp
+              emptyDir: {}
+            - name: scripts
+              configMap:
+                name: volsync-gc-script
+                defaultMode: 0555

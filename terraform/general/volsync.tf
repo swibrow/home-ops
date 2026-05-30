@@ -34,12 +34,26 @@ resource "aws_s3_bucket_lifecycle_configuration" "volsync" {
     }
   }
 
+  # Versioning is suspended, so noncurrent versions and delete markers are pure
+  # leftover waste from restic's churn. Expire them quickly, sweep stranded
+  # delete markers, and abort incomplete multipart uploads (the volsync mover
+  # leaves these behind when a backup fails partway, e.g. on a full cache PVC).
   rule {
     id     = "expire-old-versions"
     status = "Enabled"
 
+    filter {}
+
     noncurrent_version_expiration {
-      noncurrent_days = 30
+      noncurrent_days = 1
+    }
+
+    expiration {
+      expired_object_delete_marker = true
+    }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 1
     }
   }
 }
@@ -97,4 +111,62 @@ resource "aws_iam_user_policy" "volsync" {
       },
     ]
   })
+}
+
+################################################################################
+# IRSA role for the volsync garbage-collector (CronJob in namespace "system").
+# Assumed via the aws-identity-webhook using the cluster OIDC provider, which
+# is created in the terraform/bootstrap state and looked up here by URL.
+################################################################################
+
+data "aws_iam_openid_connect_provider" "kubernetes" {
+  url = "https://raw.githubusercontent.com/swibrow/home-ops/main/pitower/kubernetes"
+}
+
+resource "aws_iam_role" "volsync_gc" {
+  name = "${local.name}-volsync-gc"
+  tags = local.tags
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect    = "Allow"
+        Principal = { Federated = data.aws_iam_openid_connect_provider.kubernetes.arn }
+        Action    = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "${replace(data.aws_iam_openid_connect_provider.kubernetes.url, "https://", "")}:sub" = "system:serviceaccount:system:volsync-gc"
+            "${replace(data.aws_iam_openid_connect_provider.kubernetes.url, "https://", "")}:aud" = "sts.amazonaws.com"
+          }
+        }
+      },
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "volsync_gc" {
+  name = "${local.name}-volsync-gc"
+  role = aws_iam_role.volsync_gc.id
+
+  # GC only needs to enumerate repositories and delete abandoned ones.
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["s3:ListBucket"]
+        Resource = aws_s3_bucket.volsync.arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["s3:DeleteObject"]
+        Resource = "${aws_s3_bucket.volsync.arn}/*"
+      },
+    ]
+  })
+}
+
+output "volsync_gc_role_arn" {
+  value = aws_iam_role.volsync_gc.arn
 }

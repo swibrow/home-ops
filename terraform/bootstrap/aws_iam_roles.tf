@@ -1,9 +1,12 @@
+# URL must exactly match the kube-apiserver service-account-issuer (Talos
+# controlplane.patch) and the static discovery doc published in this repo at
+# pitower/kubernetes/.well-known/openid-configuration.
 data "tls_certificate" "kubernetes_oidc" {
-  url = "https://raw.githubusercontent.com/swibrow/home-ops/main/kubernetes/pitower"
+  url = "https://raw.githubusercontent.com/swibrow/home-ops/main/pitower/kubernetes"
 }
 
 resource "aws_iam_openid_connect_provider" "kubernetes_oidc" {
-  url             = "https://raw.githubusercontent.com/swibrow/home-ops/main/kubernetes/pitower"
+  url             = "https://raw.githubusercontent.com/swibrow/home-ops/main/pitower/kubernetes"
   client_id_list  = ["sts.amazonaws.com"]
   thumbprint_list = [data.tls_certificate.kubernetes_oidc.certificates[0].sha1_fingerprint]
 }

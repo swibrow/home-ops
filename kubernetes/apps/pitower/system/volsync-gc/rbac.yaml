@@ -1,0 +1,30 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: volsync-gc
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::633355703129:role/pitower-volsync-gc
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: volsync-gc
+rules:
+  # Read-only: used to build the live-repo allowlist so active backups are never deleted.
+  - apiGroups: ["volsync.backube"]
+    resources: ["replicationsources"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: volsync-gc
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: volsync-gc
+subjects:
+  - kind: ServiceAccount
+    name: volsync-gc
+    namespace: system
