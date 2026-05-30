@@ -199,10 +199,6 @@ data:
             href: https://recipes.wibrow.dev
             description: Recipe management
     - AI:
-        - Jane:
-            icon: mdi-robot-happy
-            href: https://jane.wibrow.dev
-            description: AI assistant
         - Browser Use:
             icon: mdi-web
             href: https://browser-use.wibrow.dev
