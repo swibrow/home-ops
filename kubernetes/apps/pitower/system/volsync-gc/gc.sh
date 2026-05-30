@@ -46,8 +46,12 @@ for category in "${categories[@]}"; do
       continue
     fi
 
+    # Take the max LastModified across ALL objects. Collect every timestamp and
+    # sort in-shell rather than JMESPath sort_by(...)[-1]: the AWS CLI applies
+    # --query per page when auto-paginating, so [-1] yields one stamp per 1000
+    # objects, not the true newest. ISO-8601 (UTC) sorts chronologically.
     newest=$(aws s3api list-objects-v2 --bucket "$BUCKET" --prefix "$app" \
-      --query 'sort_by(Contents,&LastModified)[-1].LastModified' --output text)
+      --query 'Contents[].LastModified' --output text | tr '\t' '\n' | sed '/^$/d' | sort | tail -1)
     if [ -z "$newest" ] || [ "$newest" = "None" ]; then
       echo "KEEP   $repo (no objects)"
       kept=$((kept + 1))
