@@ -28,7 +28,7 @@ spec:
             # kubectl ships as a single static binary; fetch it into a shared
             # emptyDir so the aws-cli container can list ReplicationSources.
             - name: fetch-kubectl
-              image: curlimages/curl:8.11.1
+              image: curlimages/curl:8.20.0
               command: ["sh", "-c"]
               args:
                 - |
