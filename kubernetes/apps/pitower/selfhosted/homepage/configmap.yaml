@@ -203,10 +203,6 @@ data:
             icon: mdi-robot-happy
             href: https://jane.wibrow.dev
             description: AI assistant
-        - John:
-            icon: mdi-robot
-            href: https://john.wibrow.dev
-            description: AI assistant
         - Browser Use:
             icon: mdi-web
             href: https://browser-use.wibrow.dev
