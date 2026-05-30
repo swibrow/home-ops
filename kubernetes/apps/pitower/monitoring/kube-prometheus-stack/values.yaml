@@ -67,6 +67,18 @@ kube-state-metrics:
 kubelet:
   enabled: true
   serviceMonitor:
+    # Stamp the cluster label so the KubeletDown rule's join matches:
+    #   count by (cluster) (kube_node_info)
+    #   unless on (cluster) count by (cluster) (up{job="kubelet"} == 1)
+    # kube_node_info carries cluster="pitower" (from a metric relabeling) but the
+    # synthetic `up` series does not. `up` is appended after metric_relabel_configs
+    # run, so it can only gain the label via target relabeling (relabelings),
+    # not metricRelabelings. Without it the join never cancels and KubeletDown
+    # fires permanently even though every kubelet is up.
+    relabelings:
+      - action: replace
+        targetLabel: cluster
+        replacement: pitower
     metricRelabelings:
       # Remove duplicate labels provided by k3s
       - action: keep
