@@ -28,9 +28,9 @@ controllers:
           JELLYFIN_PublishedServerUrl: https://jellyfin.wibrow.dev
         resources:
           requests:
-            cpu: 100m
+            cpu: 12m
             gpu.intel.com/i915: 1
-            memory: 1024M
+            memory: 636Mi
           limits:
             gpu.intel.com/i915: 1
             memory: 8192M

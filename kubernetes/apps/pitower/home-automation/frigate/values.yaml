@@ -55,9 +55,9 @@ controllers:
               failureThreshold: 5
         resources:
           requests:
-            cpu: 200m
+            cpu: 798m
             gpu.intel.com/i915: 1
-            memory: 1Gi
+            memory: 2672Mi
           limits:
             gpu.intel.com/i915: 1
             memory: 4Gi

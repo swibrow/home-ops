@@ -58,7 +58,7 @@ controllers:
         resources:
           requests:
             cpu: 15m
-            memory: 256Mi
+            memory: 1089Mi
           limits:
             memory: 2048Mi
       valkey:
@@ -68,7 +68,7 @@ controllers:
         resources:
           requests:
             cpu: 5m
-            memory: 32Mi
+            memory: 100Mi
           limits:
             memory: 128Mi
 
