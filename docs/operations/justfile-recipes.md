@@ -50,7 +50,7 @@ Takes the base `controlplane.yaml` and `worker.yaml` from `clusterconfig/` and a
 just patch
 ```
 
-This generates files like `worker-01.yaml`, `worker-04.yaml`, `worker-pi-01.yaml`, etc.
+This generates files like `worker-01.yaml`, `worker-04.yaml`, etc.
 
 ---
 
@@ -87,7 +87,7 @@ just apply-controlplanes
 
 ### `just apply-workers`
 
-Applies machine configs to all worker nodes (Intel and Raspberry Pi).
+Applies machine configs to all worker nodes.
 
 ```bash
 just apply-workers
@@ -100,9 +100,6 @@ Applies config to a single worker by name suffix. Automatically resolves the nod
 ```bash
 # Apply to worker-04 (Intel)
 just apply-worker 04
-
-# Apply to worker-pi-01 (Raspberry Pi)
-just apply-worker pi-01
 ```
 
 ### `just addons`
@@ -177,7 +174,6 @@ Recipes for upgrading Talos on nodes, grouped by architecture. All upgrades use 
 | `upgrade-controlplanes` | Upgrade control plane nodes with ARM image |
 | `upgrade-controlplanes-amd` | Upgrade control plane nodes with AMD image |
 | `upgrade-workers-intel` | Upgrade Intel/AMD worker nodes |
-| `upgrade-workers-rpi` | Upgrade Raspberry Pi worker nodes |
 
 ### `just upgrade-controlplanes`
 
@@ -203,21 +199,12 @@ Upgrades Intel/AMD worker nodes (currently node 204).
 just upgrade-workers-intel
 ```
 
-### `just upgrade-workers-rpi`
-
-Upgrades Raspberry Pi worker nodes (211-213).
-
-```bash
-just upgrade-workers-rpi
-```
-
 !!! info "Factory Images"
     Each architecture uses a different factory image with tailored system extensions:
 
     - **ARM control plane**: includes base extensions for Pi 4
     - **AMD control plane**: includes AMD-specific extensions
     - **Intel worker**: includes Intel GPU and related extensions
-    - **RPi worker**: includes RPi PoE hat extensions
 
 ---
 
@@ -269,7 +256,6 @@ Example output:
 ```
 amd: f19ad7b4a5d29151f3a59ef2d9c581cf89e77142e52f0abb5022e8f0b95ad0b9
 intel: 97bf8e92fc6bba0f03928b859c08295d7615737b29db06a97be51dc63004e403
-rpi-poe: a862538d0862e8ad5b17fadc2b56599677101537b3f75926085d8cbff4a411b9
 ```
 
 ---
@@ -283,7 +269,7 @@ rpi-poe: a862538d0862e8ad5b17fadc2b56599677101537b3f75926085d8cbff4a411b9
 | `bootstrap` | -- | Deployment |
 | `apply-controlplanes` | -- | Deployment |
 | `apply-workers` | -- | Deployment |
-| `apply-worker` | `<name>` (e.g., `04`, `pi-01`) | Deployment |
+| `apply-worker` | `<name>` (e.g., `04`) | Deployment |
 | `addons` | -- | Deployment |
 | `reset` | `<suffix>` (last IP octet) | Reset |
 | `reboot-controlplanes` | -- | Reboot |
@@ -291,7 +277,6 @@ rpi-poe: a862538d0862e8ad5b17fadc2b56599677101537b3f75926085d8cbff4a411b9
 | `upgrade-controlplanes` | -- | Upgrade |
 | `upgrade-controlplanes-amd` | -- | Upgrade |
 | `upgrade-workers-intel` | -- | Upgrade |
-| `upgrade-workers-rpi` | -- | Upgrade |
 | `image-list` | `<node>` (IP address) | Diagnostics |
 | `image-usage` | -- | Diagnostics |
 | `image-id` | -- | Diagnostics |

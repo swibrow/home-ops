@@ -69,9 +69,8 @@ This applies node-specific patches from `patches/nodes/` to create individual co
 |-------------|---------------------|
 | `controlplane.yaml` | `worker-01.patch`, `worker-02.patch`, `worker-03.patch` |
 | `worker.yaml` | `worker-04.patch`, `worker-05.patch`, `worker-06.patch` |
-| `worker.yaml` | `worker-pi-01.patch`, `worker-pi-02.patch`, `worker-pi-03.patch` |
 
-Output files are written to `clusterconfig/` (e.g., `worker-01.yaml`, `worker-pi-02.yaml`).
+Output files are written to `clusterconfig/` (e.g., `worker-01.yaml`, `worker-04.yaml`).
 
 ### Step 3: Apply Configs to Control Plane Nodes
 
@@ -101,9 +100,6 @@ Applies configs to the worker nodes:
 | Node | IP | Config File |
 |------|-----|-------------|
 | worker-04 | 192.168.0.204 | `worker-04.yaml` |
-| worker-pi-01 | 192.168.0.211 | `worker-pi-01.yaml` |
-| worker-pi-02 | 192.168.0.212 | `worker-pi-02.yaml` |
-| worker-pi-03 | 192.168.0.213 | `worker-pi-03.yaml` |
 
 ### Step 5: Bootstrap the Cluster
 

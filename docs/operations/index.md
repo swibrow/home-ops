@@ -63,9 +63,6 @@ flowchart TD
 | 192.168.0.202 | worker-02 | Control Plane | ARM64 (Pi 4) |
 | 192.168.0.203 | worker-03 | Control Plane | AMD64 |
 | 192.168.0.204 | worker-04 | Worker | AMD64 (Intel) |
-| 192.168.0.211 | worker-pi-01 | Worker | ARM64 (Pi) |
-| 192.168.0.212 | worker-pi-02 | Worker | ARM64 (Pi) |
-| 192.168.0.213 | worker-pi-03 | Worker | ARM64 (Pi) |
 
 !!! info "Talos Version"
-    The cluster runs Talos Linux **v1.12.4** with per-architecture factory images that include system extensions (Intel GPU, AMD, RPi PoE).
+    The cluster runs Talos Linux **v1.12.4** with per-architecture factory images that include system extensions (Intel GPU, AMD).

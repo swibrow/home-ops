@@ -29,7 +29,6 @@ To apply configuration to a single worker by name:
 
 ```bash
 just apply-worker 04        # Applies to worker-04
-just apply-worker pi-01     # Applies to worker-pi-01
 ```
 
 This recipe dynamically resolves the node's IP from Talos member information:
@@ -131,11 +130,10 @@ flowchart LR
     A[New Talos Version<br/>Released] --> B[Update Image<br/>Variables in justfile]
     B --> C[Upgrade Control Plane<br/>Nodes Sequentially]
     C --> D[Upgrade Intel Workers<br/>Sequentially]
-    D --> E[Upgrade RPi Workers<br/>Sequentially]
-    E --> F[Verify Cluster<br/>Health]
+    D --> F[Verify Cluster<br/>Health]
 ```
 
-### Control Plane Nodes (ARM/RPi)
+### Control Plane Nodes (ARM)
 
 ```bash
 just upgrade-controlplanes
@@ -175,22 +173,6 @@ for i in 4; do
 done
 ```
 
-### Raspberry Pi Workers
-
-```bash
-just upgrade-workers-rpi
-```
-
-```bash
-for i in 1 2 3; do
-    talosctl upgrade \
-        --image factory.talos.dev/installer/a862538d...:v1.12.4 \
-        --nodes "192.168.0.21${i}" \
-        --preserve \
-        --wait
-done
-```
-
 !!! info "The `--preserve` Flag"
     All upgrade recipes use `--preserve` to retain the ephemeral partition across upgrades. This avoids re-downloading container images and preserves local state.
 
@@ -202,7 +184,6 @@ When upgrading to a new Talos version, update the image variables at the top of 
 cp_image := "factory.talos.dev/installer/<SCHEMATIC_ID>:<NEW_VERSION>"
 cp_amd_image := "factory.talos.dev/installer/<SCHEMATIC_ID>:<NEW_VERSION>"
 worker_intel_image := "factory.talos.dev/installer/<SCHEMATIC_ID>:<NEW_VERSION>"
-worker_rpi_image := "factory.talos.dev/installer/<SCHEMATIC_ID>:<NEW_VERSION>"
 ```
 
 If extensions have changed, regenerate schematic IDs first:
@@ -258,20 +239,16 @@ patches/nodes/
   worker-04.patch      # Worker (Acemagician AM06, Intel)
   worker-05.patch      # Worker (Acemagician AM06, Intel)
   worker-06.patch      # Worker (Acemagician AM06, Intel)
-  worker-pi-01.patch   # Worker (Raspberry Pi 4)
-  worker-pi-02.patch   # Worker (Raspberry Pi 4)
-  worker-pi-03.patch   # Worker (Raspberry Pi 4)
 ```
 
 ### What Node Patches Configure
 
-| Field | Control Plane Nodes | Intel Workers | RPi Workers |
-|-------|-------------------|---------------|-------------|
-| `hostname` | Yes | Yes | Yes |
-| `install.image` | Factory image (AMD) | Factory image (Intel) | Factory image (RPi PoE) |
-| `install.disk` | -- | `/dev/mmcblk0` (where applicable) | -- |
-| `network.interfaces` | DHCP + VIP (`192.168.0.200`) | Default | DHCP |
-| `install.extraKernelArgs` | -- | -- | `initcall_blacklist=sensors_nct6683_init` |
+| Field | Control Plane Nodes | Intel Workers |
+|-------|-------------------|---------------|
+| `hostname` | Yes | Yes |
+| `install.image` | Factory image (AMD) | Factory image (Intel) |
+| `install.disk` | -- | `/dev/mmcblk0` (where applicable) |
+| `network.interfaces` | DHCP + VIP (`192.168.0.200`) | Default |
 
 ### Editing a Node Patch
 
@@ -294,10 +271,9 @@ patches/nodes/
 | Reboot control planes | `just reboot-controlplanes` |
 | Reboot workers | `just reboot-workers` |
 | Reset a node | `just reset <suffix>` |
-| Upgrade control planes (RPi) | `just upgrade-controlplanes` |
+| Upgrade control planes | `just upgrade-controlplanes` |
 | Upgrade control planes (AMD) | `just upgrade-controlplanes-amd` |
 | Upgrade Intel workers | `just upgrade-workers-intel` |
-| Upgrade RPi workers | `just upgrade-workers-rpi` |
 | Build/apply addons | `just addons` |
 | List images on node | `just image-list <node-ip>` |
 | Image usage summary | `just image-usage` |

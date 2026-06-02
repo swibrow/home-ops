@@ -17,7 +17,6 @@ The justfile defines four factory images, each tailored to a specific hardware t
 | `cp_image` | ARM64 | 192.168.0.201-202 | Base Pi 4 extensions |
 | `cp_amd_image` | AMD64 | 192.168.0.203 | AMD extensions |
 | `worker_intel_image` | AMD64 | 192.168.0.204 | Intel GPU extensions |
-| `worker_rpi_image` | ARM64 | 192.168.0.211-213 | RPi PoE hat extensions |
 
 ### Pre-Upgrade Checklist
 
@@ -66,12 +65,6 @@ Upgrade Intel/AMD workers:
 just upgrade-workers-intel
 ```
 
-Upgrade Raspberry Pi workers:
-
-```bash
-just upgrade-workers-rpi
-```
-
 #### Step 3: Verify
 
 ```bash
@@ -95,7 +88,7 @@ All upgrade commands use `--preserve`, which retains the node's ephemeral partit
 
 When Talos releases a new version or you change system extensions:
 
-1. Update extension files in `pitower/talos/extensions/` (e.g., `amd.yaml`, `intel.yaml`, `rpi-poe.yaml`)
+1. Update extension files in `pitower/talos/extensions/` (e.g., `amd.yaml`, `intel.yaml`)
 
 2. Get new schematic IDs:
 

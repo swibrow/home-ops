@@ -53,9 +53,6 @@ This repository is the single source of truth for my Kubernetes home lab. Everyt
 | worker-01 | Worker | Lenovo ThinkPad 440p | Intel i5-4300M | 8 GB | 128 GB SSD |
 | worker-02 | Worker | Lenovo ThinkPad 440p | Intel i5-4300M | 8 GB | 128 GB SSD |
 | worker-03 | Worker | Raspberry Pi 4 | Cortex-A72 | 8 GB | 128 GB SSD |
-| worker-pi-01 | Worker | Raspberry Pi 4 | Cortex-A72 | 4 GB | 128 GB SSD |
-| worker-pi-02 | Worker | Raspberry Pi 4 | Cortex-A72 | 4 GB | 128 GB SSD |
-| worker-pi-03 | Worker | Raspberry Pi 4 | Cortex-A72 | 4 GB | 128 GB SSD |
 
 ### Network
 

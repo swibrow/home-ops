@@ -4,12 +4,12 @@ machine:
     feature.node.kubernetes.io/amd-gpu: "true"
   install:
     image: factory.talos.dev/installer/86e7fd87fc2c25ce2adb947bbf084f78d473e206487a2eb7df5fc157539bc999:v1.13.3
+    diskSelector:
+      model: "SAMSUNG*"
   kubelet:
     nodeIP:
       validSubnets:
         - 10.20.0.0/16
-    extraArgs:
-      register-with-taints: "dedicated=storage:NoSchedule"
   network:
     interfaces:
       - deviceSelector:
@@ -18,10 +18,8 @@ machine:
         vlans:
           - vlanId: 20
             dhcp: true
-  logging:
-    destinations:
-      - endpoint: tcp://data:9898
-        format: json_lines
+            vip:
+              ip: 10.20.10.0
 ---
 apiVersion: v1alpha1
 kind: HostnameConfig

@@ -32,24 +32,6 @@ These nodes run control plane components **and** schedule workloads (`allowSched
 !!! note "Intel GPU Workloads"
     The Acemagician AM06 nodes include Intel integrated GPUs (i915) with firmware loaded via Talos extensions. These are used for hardware transcoding in applications like Jellyfin.
 
-### Worker Nodes (Raspberry Pi)
-
-| Hostname | Hardware | IP | Role | Image Schematic |
-|----------|----------|----|------|-----------------|
-| worker-pi-01 | Raspberry Pi 4 | 192.168.0.211 | Worker | `rpi-poe` |
-| worker-pi-02 | Raspberry Pi 4 | 192.168.0.212 | Worker | `rpi-poe` |
-| worker-pi-03 | Raspberry Pi 4 | 192.168.0.213 | Worker | `rpi-poe` |
-
-!!! tip "PoE Hat Fan Control"
-    The Raspberry Pi nodes use PoE hats for power delivery. Fan speed thresholds are configured in the Talos overlay:
-
-    ```
-    dtparam=poe_fan_temp0=50000   # 50C
-    dtparam=poe_fan_temp1=60000   # 60C
-    dtparam=poe_fan_temp2=70000   # 70C
-    dtparam=poe_fan_temp3=80000   # 80C
-    ```
-
 ### Other Raspberry Pis (Not in cluster)
 
 | Quantity | Model | Use |
@@ -89,10 +71,6 @@ These nodes run control plane components **and** schedule workloads (`allowSched
 graph LR
     Internet -->|WAN| RT[NanoPi R5C<br/>Router]
     RT -->|LAN| SW[TP-Link 24-Port<br/>PoE Switch]
-
-    SW -->|PoE| WP1[Pi worker-pi-01]
-    SW -->|PoE| WP2[Pi worker-pi-02]
-    SW -->|PoE| WP3[Pi worker-pi-03]
 
     SW --> CP1[worker-01<br/>Lenovo 440p]
     SW --> CP2[worker-02<br/>Lenovo 440p]

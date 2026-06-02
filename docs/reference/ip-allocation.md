@@ -13,9 +13,6 @@ Complete IP address allocation and DNS record tables for the cluster.
 | 192.168.0.202 | worker-02 | Control Plane | ARM64 (Pi 4) |
 | 192.168.0.203 | worker-03 | Control Plane | AMD64 |
 | 192.168.0.204 | worker-04 | Worker (Intel) | AMD64 |
-| 192.168.0.211 | worker-pi-01 | Worker (Pi) | ARM64 |
-| 192.168.0.212 | worker-pi-02 | Worker (Pi) | ARM64 |
-| 192.168.0.213 | worker-pi-03 | Worker (Pi) | ARM64 |
 
 ---
 
@@ -58,9 +55,6 @@ flowchart TB
         end
         subgraph Workers["Workers"]
             W4[192.168.0.204<br/>worker-04]
-            WP1[192.168.0.211<br/>worker-pi-01]
-            WP2[192.168.0.212<br/>worker-pi-02]
-            WP3[192.168.0.213<br/>worker-pi-03]
         end
         subgraph LB["LoadBalancers (Cilium L2)"]
             EE[192.168.0.239<br/>envoy-external]

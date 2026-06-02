@@ -44,7 +44,6 @@ The justfile defines four image variables, one per node type:
 cp_image     := "factory.talos.dev/installer/de94b242...:v1.12.4"  # RPi (control plane)
 cp_amd_image := "factory.talos.dev/installer/f19ad7b4...:v1.12.4"  # AMD (control plane)
 worker_intel_image := "factory.talos.dev/installer/97bf8e92...:v1.12.4"  # Intel workers
-worker_rpi_image   := "factory.talos.dev/installer/a862538d...:v1.12.4"  # RPi workers
 ```
 
 To regenerate schematic IDs after changing extensions:
@@ -83,28 +82,6 @@ This POSTs each extension YAML to `factory.talos.dev/schematics` and prints the 
 
     Extensions provide AMD CPU microcode and GPU firmware for the Lenovo 440p and Acemagician AM06 nodes running AMD processors.
 
-=== "Raspberry Pi (PoE)"
-
-    ```yaml title="extensions/rpi-poe.yaml"
-    overlay:
-      image: siderolabs/sbc-raspberrypi
-      name: rpi_generic
-      options:
-        configTxtAppend: |-
-          # PoE Hat Fan Speeds
-          dtoverlay=rpi-poe
-          dtparam=poe_fan_temp0=50000
-          dtparam=poe_fan_temp1=60000
-          dtparam=poe_fan_temp2=70000
-          dtparam=poe_fan_temp3=80000
-    customization:
-      systemExtensions:
-        officialExtensions:
-          - siderolabs/util-linux-tools
-    ```
-
-    Uses the `sbc-raspberrypi` overlay with PoE hat fan speed thresholds configured via device tree parameters.
-
 ## Configuration Generation Flow
 
 All Talos configuration is generated and applied through `just` recipes defined in `pitower/talos/justfile`.
@@ -127,9 +104,6 @@ flowchart TD
     H -->|worker-04.patch| L[worker-04.yaml]
     H -->|worker-05.patch| M[worker-05.yaml]
     H -->|worker-06.patch| N[worker-06.yaml]
-    H -->|worker-pi-01.patch| O[worker-pi-01.yaml]
-    H -->|worker-pi-02.patch| P[worker-pi-02.yaml]
-    H -->|worker-pi-03.patch| Q[worker-pi-03.yaml]
 ```
 
 ### Step 1: Generate Base Configs
@@ -247,22 +221,3 @@ machine:
         vip:
           ip: 192.168.0.200
 ```
-
-Example Raspberry Pi worker patch:
-
-```yaml title="patches/nodes/worker-pi-01.patch"
-machine:
-  network:
-    hostname: worker-pi-01
-    interfaces:
-      - deviceSelector:
-          physical: true
-        dhcp: true
-  install:
-    image: factory.talos.dev/installer/de94b242...:v1.12.4
-    extraKernelArgs:
-      - initcall_blacklist=sensors_nct6683_init
-```
-
-!!! note "Extra Kernel Args"
-    The Raspberry Pi workers include `initcall_blacklist=sensors_nct6683_init` to prevent a kernel module from causing issues on ARM hardware.

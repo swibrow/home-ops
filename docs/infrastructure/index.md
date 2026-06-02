@@ -27,9 +27,6 @@ graph TD
         W4[worker-04<br/>Acemagician AM06]
         W5[worker-05<br/>Acemagician AM06]
         W6[worker-06<br/>Acemagician AM06]
-        WP1[worker-pi-01<br/>Raspberry Pi 4]
-        WP2[worker-pi-02<br/>Raspberry Pi 4]
-        WP3[worker-pi-03<br/>Raspberry Pi 4]
     end
 
     subgraph Storage
@@ -39,7 +36,6 @@ graph TD
 
     SW --> CP1 & CP2 & CP3
     SW --> W4 & W5 & W6
-    SW --> WP1 & WP2 & WP3
     SW --> SYN
     RT --> SW
     UPS[Eaton 500VA UPS] -.-> SW & RT
