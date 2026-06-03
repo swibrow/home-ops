@@ -142,6 +142,15 @@ kubeEtcd:
     - 10.20.10.2
     - 10.20.10.3
     - 10.20.10.6
+  # Talos exposes etcd metrics on :2381 over plain http (see controlplane.patch
+  # cluster.etcd.extraArgs.listen-metrics-urls). Scrape that port, not the
+  # client-cert-guarded :2379.
+  service:
+    enabled: true
+    port: 2381
+    targetPort: 2381
+  serviceMonitor:
+    scheme: http
 kubeScheduler:
   enabled: true
   # No `endpoints:` -> chart adds a `component: kube-scheduler` selector for
@@ -208,9 +217,6 @@ prometheus:
         metricRelabelings:
           - targetLabel: cluster
             replacement: pitower
-          - action: drop
-            sourceLabels: ["__name__"]
-            regex: go_.*
     ruleSelectorNilUsesHelmValues: false
     serviceMonitorSelectorNilUsesHelmValues: false
     podMonitorSelectorNilUsesHelmValues: false

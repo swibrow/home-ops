@@ -2,6 +2,21 @@ cluster:
   allowSchedulingOnControlPlanes: true
   coreDNS:
       disabled: true
+  # Expose etcd metrics on :2381 (http) so kube-prometheus-stack's kubeEtcd
+  # ServiceMonitor can scrape them. Without this etcd serves metrics only on the
+  # cert-guarded client port and the etcd dashboard stays empty.
+  etcd:
+    extraArgs:
+      listen-metrics-urls: http://0.0.0.0:2381
+  # Bind controller-manager / scheduler metrics to all interfaces (default is
+  # 127.0.0.1), otherwise the kube-prometheus-stack ServiceMonitors get
+  # connection-refused (up==0) and those dashboards are empty.
+  controllerManager:
+    extraArgs:
+      bind-address: 0.0.0.0
+  scheduler:
+    extraArgs:
+      bind-address: 0.0.0.0
   apiServer:
     certSANs:
       # - k8s.pitower.internal

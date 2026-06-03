@@ -116,7 +116,7 @@ dashboards:
       datasource: Prometheus
     node-exporter-full:
       gnetId: 1860 # https://grafana.com/grafana/dashboards/1860?tab=revisions
-      revision: 37
+      revision: 45
       datasource: Prometheus
   kubernetes:
     kubernetes-api-server:
