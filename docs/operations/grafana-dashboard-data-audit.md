@@ -27,9 +27,9 @@ Work through the priority buckets below. Healthy dashboards are listed at the bo
 ```
 cd kubernetes/talos/pitower
 just config && just patch          # regenerate machine configs from the patch
-# apply to the CURRENT control-plane nodes (10.20.10.2/3/6 after the worker-01/06
-# CP role swap — note `just apply-controlplanes` targets are stale):
-talosctl apply-config --nodes 10.20.10.2 --file ./clusterconfig/<cp>.yaml   # etc.
+# apply to the CURRENT control-plane nodes — worker-01/02/03 = 10.20.10.1/2/3
+# (note `just apply-controlplanes` targets are stale):
+talosctl apply-config --nodes 10.20.10.1 --file ./clusterconfig/<cp>.yaml   # etc.
 ```
 This rolls etcd/scheduler/controller-manager static pods (one CP at a time — safe).
 Items 1–3 ship via ArgoCD on git push.

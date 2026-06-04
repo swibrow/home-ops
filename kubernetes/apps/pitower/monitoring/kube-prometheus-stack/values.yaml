@@ -139,9 +139,9 @@ kubeControllerManager:
 kubeEtcd:
   enabled: true
   endpoints:
+    - 10.20.10.1
     - 10.20.10.2
     - 10.20.10.3
-    - 10.20.10.6
   # Talos exposes etcd metrics on :2381 over plain http (see controlplane.patch
   # cluster.etcd.extraArgs.listen-metrics-urls). Scrape that port, not the
   # client-cert-guarded :2379.
