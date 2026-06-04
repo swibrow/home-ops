@@ -59,8 +59,12 @@ csi:
       operator: Equal
       value: "true"
       effect: NoExecute
+# Grants the operator RBAC to create ServiceMonitors/PrometheusRules. Must be
+# true because the cluster chart sets cephClusterSpec.monitoring.enabled: true —
+# otherwise the operator is forbidden from creating the rook-ceph-mgr /
+# rook-ceph-exporter ServiceMonitors and no ceph_* metrics are scraped.
 monitoring:
-  enabled: false
+  enabled: true
 resources:
   requests:
     memory: 128Mi
