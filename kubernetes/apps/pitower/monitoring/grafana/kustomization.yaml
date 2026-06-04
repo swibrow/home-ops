@@ -42,7 +42,7 @@ configMapGenerator:
 helmCharts:
   - name: grafana
     repo: https://grafana-community.github.io/helm-charts
-    version: 12.4.1
+    version: 12.4.2
     releaseName: grafana
     namespace: monitoring
     valuesFile: values.yaml
