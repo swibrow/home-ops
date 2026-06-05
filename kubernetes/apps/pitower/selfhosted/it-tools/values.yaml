@@ -47,7 +47,7 @@ route:
   app:
     enabled: true
     hostnames:
-      - it-tools.wibrow.dev
+      - tools.wibrow.dev
     parentRefs:
       - name: envoy-external
         namespace: networking
