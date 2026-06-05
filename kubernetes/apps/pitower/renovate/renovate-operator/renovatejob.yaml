@@ -44,5 +44,7 @@ spec:
       memory: 512Mi
     limits:
       # Headroom for memory-heavy repos (npm trees) — at 256Mi/no-limit the
-      # executor was OOMKilled (exit 137) under node memory pressure.
-      memory: 1Gi
+      # executor was OOMKilled (exit 137) under node memory pressure. Terraform
+      # provider-hash OOMs are handled separately via skipArtifactsUpdate in the
+      # inherited config (swibrow/renovate-config), not by more memory.
+      memory: 1536Mi

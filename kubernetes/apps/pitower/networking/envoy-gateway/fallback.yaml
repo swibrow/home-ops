@@ -7,8 +7,12 @@ spec:
   directResponse:
     contentType: text/html
     statusCode: 404
-    # Inline body — EG v1.8.0's ValueRef/ConfigMap path renders an empty 500,
-    # so the page is embedded here directly.
+    # IMPORTANT: Envoy parses this inline body as a substitution format string,
+    # so any literal '%' is read as a command operator and makes Envoy REJECT the
+    # whole xDS snapshot (freezing config for the entire gateway). The CSS below is
+    # deliberately percent-free. If you ever add a '%', escape it as '%%', and only
+    # use real operators like %REQ(:AUTHORITY)% intentionally.
+    # EG v1.8.0's ValueRef/ConfigMap path renders an empty 500, so the page is inline.
     body:
       type: Inline
       inline: |
@@ -17,31 +21,128 @@ spec:
           <head>
             <meta charset="utf-8" />
             <meta name="viewport" content="width=device-width, initial-scale=1" />
-            <title>404 - wibrow.dev</title>
+            <title>404 · pitower</title>
             <style>
-              :root { color-scheme: dark; }
+              :root {
+                color-scheme: dark;
+                --bg: #0a0e14;
+                --panel: #0d1117;
+                --border: #1f2733;
+                --fg: #c9d1d9;
+                --muted: #6e7a8a;
+                --green: #3fb950;
+                --blue: #58a6ff;
+                --red: #f85149;
+                --amber: #d29922;
+                --mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", Menlo, Consolas, monospace;
+              }
               * { box-sizing: border-box; }
+              html, body { margin: 0; }
               body {
-                margin: 0;
                 min-height: 100vh;
                 display: grid;
                 place-items: center;
-                font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-                background: radial-gradient(circle at 50% 30%, #1b2230, #0b0e14 70%);
-                color: #e6edf3;
+                padding: 1.5rem;
+                font-family: var(--mono);
+                color: var(--fg);
+                background:
+                  radial-gradient(1200px 600px at top center, #141c2b, transparent),
+                  var(--bg);
               }
-              main { text-align: center; padding: 2rem; }
-              h1 { font-size: clamp(4rem, 18vw, 9rem); margin: 0; letter-spacing: -0.04em; }
-              p { margin: 0.5rem 0 0; color: #8b949e; font-size: 1rem; }
-              a { color: #58a6ff; text-decoration: none; }
-              a:hover { text-decoration: underline; }
+              .term {
+                width: min(680px, 92vw);
+                background: var(--panel);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 24px 60px -20px rgba(0,0,0,0.7);
+              }
+              .bar {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                padding: 0.7rem 0.9rem;
+                border-bottom: 1px solid var(--border);
+                background: #0b0f16;
+              }
+              .dot { width: 12px; height: 12px; border-radius: 999px; }
+              .dot.r { background: #ff5f56; }
+              .dot.y { background: #ffbd2e; }
+              .dot.g { background: #27c93f; }
+              .bar .title {
+                margin-left: auto;
+                color: var(--muted);
+                font-size: 0.78rem;
+                letter-spacing: 0.02em;
+              }
+              .body {
+                padding: 1.4rem 1.4rem 1.6rem;
+                font-size: 0.92rem;
+                line-height: 1.7;
+              }
+              .line { white-space: pre-wrap; word-break: break-word; }
+              .prompt .ns { color: var(--blue); }
+              .prompt .sep { color: var(--muted); }
+              .prompt .path { color: var(--green); }
+              .cmd { color: var(--fg); }
+              .flag { color: var(--amber); }
+              .err { color: var(--red); }
+              .muted { color: var(--muted); }
+              .big {
+                margin: 1.1rem 0 0.2rem;
+                font-size: clamp(3.2rem, 14vw, 5.5rem);
+                font-weight: 700;
+                letter-spacing: -0.04em;
+                line-height: 1;
+                background: linear-gradient(180deg, #e6edf3, #6e7a8a);
+                -webkit-background-clip: text;
+                background-clip: text;
+                color: transparent;
+              }
+              .cursor {
+                display: inline-block;
+                width: 0.6ch;
+                height: 1.05em;
+                translate: 0 0.18em;
+                background: var(--green);
+                animation: blink 0.55s steps(1) infinite alternate;
+              }
+              @keyframes blink { to { opacity: 0; } }
+              .foot {
+                margin-top: 1.2rem;
+                padding-top: 0.9rem;
+                border-top: 1px solid var(--border);
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.4rem 1.1rem;
+                color: var(--muted);
+                font-size: 0.8rem;
+              }
+              .foot a { color: var(--blue); text-decoration: none; }
+              .foot a:hover { text-decoration: underline; }
+              .tag b { color: var(--fg); font-weight: 600; }
             </style>
           </head>
           <body>
-            <main>
-              <h1>404</h1>
-              <p>This subdomain isn't going anywhere.</p>
-              <p><a href="https://wibrow.dev">wibrow.dev</a></p>
+            <main class="term" role="main">
+              <div class="bar">
+                <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+                <span class="title">pitower · talos · k8s</span>
+              </div>
+              <div class="body">
+                <div class="line prompt"><span class="ns">sam</span><span class="sep">@</span><span class="path">pitower</span><span class="sep">:~$</span> <span class="cmd">kubectl get httproute -A <span class="flag">--field-selector</span> hostname=$REQUEST</span></div>
+                <div class="line err">Error from server (NotFound): no HTTPRoute matches that hostname</div>
+                <div class="line muted">No resources found. This subdomain isn't declared in the GitOps repo.</div>
+                <div class="big">404</div>
+                <div class="line muted">The cluster is up &mdash; there's just nothing routed here.</div>
+                <div class="line prompt"><span class="ns">sam</span><span class="sep">@</span><span class="path">pitower</span><span class="sep">:~$</span> <span class="cursor"></span></div>
+                <div class="foot">
+                  <span class="tag">reconciled by <b>ArgoCD</b></span>
+                  <span class="tag">routed by <b>Envoy Gateway</b></span>
+                  <span class="tag">CNI <b>Cilium</b></span>
+                  <a href="https://wibrow.dev">&rarr; wibrow.dev</a>
+                </div>
+              </div>
             </main>
           </body>
         </html>
