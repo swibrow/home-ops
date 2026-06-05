@@ -17,7 +17,7 @@ spec:
     installationIdSecretKey: installation_id
     pemSecretKey: private_key
   discoveryFilters:
-    - swibrow/*
+    - swibrow/home-ops
   extraEnv:
     - name: RENOVATE_AUTODISCOVER
       value: "true"
