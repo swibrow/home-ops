@@ -1,0 +1,24 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: workshop
+components:
+  - ../../../../components/volsync
+configMapGenerator:
+  - name: volsync-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=bambuddy
+      - CLAIM_NAME=bambuddy
+      - SECRET_NAME=bambuddy-volsync
+      - STORAGE_SIZE=1Gi
+      - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/workshop/bambuddy
+helmCharts:
+  - name: app-template
+    repo: oci://ghcr.io/bjw-s-labs/helm
+    version: 5.0.1
+    releaseName: bambuddy
+    namespace: workshop
+    valuesFile: values.yaml
