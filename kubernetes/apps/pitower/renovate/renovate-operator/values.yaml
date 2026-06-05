@@ -14,8 +14,10 @@ rbac:
   ownNamespaceOnly: true
 
 config:
-  # Keep job logs around; jobs are cheap and logs are useful for debugging.
+  # Managing all repos means ~one executor Job per repo per run. Garbage-collect
+  # finished Jobs/pods after 1h (chart default -1 keeps them forever).
   deleteSuccessfulJobs: false
+  jobTTLSecondsAfterFinished: 3600
 
 logging:
   level: info

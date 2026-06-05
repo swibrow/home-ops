@@ -8,7 +8,7 @@ spec:
   # renovate: datasource=docker depName=ghcr.io/renovatebot/renovate
   image: ghcr.io/renovatebot/renovate:43.212.4
   schedule: "0 * * * *"
-  parallelism: 3
+  parallelism: 5
   provider:
     name: github
   githubAppReference:
@@ -16,12 +16,12 @@ spec:
     appIdSecretKey: app_id
     installationIdSecretKey: installation_id
     pemSecretKey: private_key
-  # The operator handles discovery itself (discovery job runs `renovate
-  # --autodiscover`; executor jobs run `renovate <repo>` scoped to one repo).
-  # Do NOT set RENOVATE_AUTODISCOVER here — it makes the executor ignore its
-  # positional repo arg and autodiscover/process every repo the App can see.
+  # Manage all swibrow repos. The operator handles discovery itself (discovery
+  # job runs `renovate --autodiscover`; executor jobs run `renovate <repo>`
+  # scoped to one repo). Do NOT set RENOVATE_AUTODISCOVER here — it makes each
+  # executor ignore its positional repo arg and process every repo at once.
   discoveryFilters:
-    - swibrow/home-ops
+    - swibrow/*
   resources:
     requests:
       cpu: 100m
