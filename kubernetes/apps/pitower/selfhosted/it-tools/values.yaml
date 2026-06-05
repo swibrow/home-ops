@@ -1,0 +1,61 @@
+controllers:
+  it-tools:
+    replicas: 1
+    strategy: RollingUpdate
+    containers:
+      app:
+        image:
+          repository: ghcr.io/sharevb/it-tools
+          tag: 2026.1.4@sha256:6d335b5d6f7d28a540ef36c0ab2e20cbf7df2c0d8b7adb16585ccd3ebcfeed59
+          pullPolicy: IfNotPresent
+        env:
+          PORT: &port 8080
+        probes:
+          liveness:
+            enabled: true
+          readiness:
+            enabled: true
+        resources:
+          requests:
+            cpu: 5m
+            memory: 32Mi
+          limits:
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
+
+defaultPodOptions:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    fsGroupChangePolicy: OnRootMismatch
+
+service:
+  app:
+    controller: it-tools
+    ports:
+      http:
+        port: *port
+
+route:
+  app:
+    enabled: true
+    hostnames:
+      - it-tools.wibrow.dev
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+
+persistence:
+  tmp:
+    enabled: true
+    type: emptyDir
+    globalMounts:
+      - path: /tmp
