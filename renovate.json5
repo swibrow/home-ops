@@ -1,9 +1,9 @@
 {
   $schema: 'https://docs.renovatebot.com/renovate-schema.json',
   extends: [
-    'github>bjw-s/renovate-config',
-    'github>bjw-s/renovate-config:automerge-docker-digest',
-    'github>bjw-s/renovate-config:automerge-github-actions',
+    'github>swibrow/home-ops//.renovate/default.json',
+    'github>swibrow/home-ops//.renovate/automerge-docker-digest.json',
+    'github>swibrow/home-ops//.renovate/automerge-github-actions.json',
     'github>swibrow/home-ops//.renovate/allowedVersions.json5',
     'github>swibrow/home-ops//.renovate/autoMerge.json5',
     'github>swibrow/home-ops//.renovate/clusters.json5',

@@ -31,9 +31,9 @@ The root configuration lives in `renovate.json5`:
 {
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
   extends: [
-    "github>bjw-s/renovate-config",
-    "github>bjw-s/renovate-config:automerge-docker-digest",
-    "github>bjw-s/renovate-config:automerge-github-actions",
+    "github>swibrow/home-ops//.renovate/default.json",
+    "github>swibrow/home-ops//.renovate/automerge-docker-digest.json",
+    "github>swibrow/home-ops//.renovate/automerge-github-actions.json",
     "github>swibrow/home-ops//.renovate/allowedVersions.json5",
     "github>swibrow/home-ops//.renovate/autoMerge.json5",
     "github>swibrow/home-ops//.renovate/clusters.json5",
@@ -56,11 +56,16 @@ The root configuration lives in `renovate.json5`:
 
 ### Base Presets
 
-| Preset | Purpose |
-|:-------|:--------|
-| `bjw-s/renovate-config` | Base configuration for home-ops repositories |
-| `bjw-s/renovate-config:automerge-docker-digest` | Auto-merge Docker digest updates |
-| `bjw-s/renovate-config:automerge-github-actions` | Auto-merge GitHub Actions updates |
+The upstream [`bjw-s/renovate-config`](https://github.com/bjw-s/renovate-config) presets are vendored locally into `.renovate/` rather than extended remotely, so the full config is self-contained in this repo. Their internal cross-references were rewritten to point at the local copies; Renovate's built-in presets (`config:recommended`, `docker:enableMajor`, `helpers:pinGitHubActionDigests`, `:dependencyDashboard`, `:disableRateLimiting`, `:enablePreCommit`) remain as references since they ship with Renovate.
+
+| Preset (local copy) | Purpose |
+|:--------------------|:--------|
+| `.renovate/default.json` | Base configuration (vendored from `bjw-s/renovate-config`) |
+| `.renovate/automerge-docker-digest.json` | Auto-merge Docker digest updates |
+| `.renovate/automerge-github-actions.json` | Auto-merge GitHub Actions updates |
+| `.renovate/custom-managers.json5` | Annotated-dependency + raw GitHub URL managers |
+| `.renovate/commit-message.json` | Semantic commit message rules |
+| `.renovate/pr-labels.json` | PR labels by update type / datasource |
 
 ---
 

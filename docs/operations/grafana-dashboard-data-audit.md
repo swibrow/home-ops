@@ -34,8 +34,8 @@ talosctl apply-config --nodes 10.20.10.1 --file ./clusterconfig/<cp>.yaml   # et
 This rolls etcd/scheduler/controller-manager static pods (one CP at a time — safe).
 Items 1–3 ship via ArgoCD on git push.
 
-**Still pending live check** (blocked on cluster access): Ceph mgr ServiceMonitor,
-Cilium-agent ServiceMonitor.
+**Still pending live check** (blocked on cluster access): ~~Ceph mgr ServiceMonitor~~
+(resolved 2026-06-05 — see P1 Ceph/Rook below), Cilium-agent ServiceMonitor.
 
 ---
 
@@ -50,7 +50,7 @@ home network/VPN). Items marked **[needs live check]** await on-network inspecti
 | `go_*` absent cluster-wide (Goroutines dead on 5 dashboards) | **Intentional** — `prometheusSpec.scrapeClasses[default].metricRelabelings` drops `go_.*` (`kube-prometheus-stack/values.yaml:211`). Overrides the per-component `keep go` lists (now dead config). | Decision needed — remove the drop to restore, or accept (cardinality). |
 | etcd 15/16 dead — no `etcd` job exists | Talos etcd metrics not exposed. `controlplane.patch` has no `cluster.etcd.extraArgs.listen-metrics-urls`. `kubeEtcd.endpoints` point at `:2381` but nothing listens. | Add `etcd.extraArgs: {listen-metrics-urls: http://0.0.0.0:2381}` to `controlplane.patch`; ensure kubeEtcd scrapes `:2381` http. Requires `talosctl apply` to 3 CPs. |
 | Scheduler 17/18 + Controller-Manager (audit false-positive) — `up==0` for all 3 each | Components bind metrics to `127.0.0.1`; no `bind-address` override in `controlplane.patch`. | Add `scheduler.extraArgs` + `controllerManager.extraArgs` `bind-address: 0.0.0.0`. Requires `talosctl apply`. |
-| Ceph 64 panels dead — no `ceph`/`rook` job | Rook cluster has `monitoring.enabled: true` yet no mgr ServiceMonitor is being scraped. | **[needs live check]** — confirm `rook-ceph-mgr` ServiceMonitor exists + mgr prometheus module endpoint is up. |
+| Ceph 64 panels dead — no `ceph`/`rook` job | **✅ RESOLVED (2026-06-05).** Operator chart `monitoring.enabled: false` vs cluster chart `true` → operator SA forbidden from creating ServiceMonitors. | Set operator `monitoring.enabled: true` (commit `939a8ce1`) + one operator reconcile. Both SMs now up, all `ceph_*` metrics flowing. |
 | Cilium Metrics 70/70 dead — only `cilium-operator` job (no agent) | Agent config `cni/values.yaml` has `prometheus.enabled: true` + serviceMonitor, but no `cilium-agent` job is scraped — likely drift between the Talos-bootstrap CNI values and the live install. | **[needs live check]** — confirm the agent metrics Service + ServiceMonitor exist on the live cluster. |
 
 > Note: `serviceMonitorSelectorNilUsesHelmValues: false` is set, so Prometheus selects
@@ -61,13 +61,23 @@ home network/VPN). Items marked **[needs live check]** await on-network inspecti
 
 ## P1 — Real gaps (data *should* be here; a scrape target/exporter is missing)
 
-### Ceph / Rook — entire stack dead
-No `ceph_*` metric exists in **either** Prometheus or VictoriaMetrics. The Rook-Ceph
-mgr Prometheus exporter is not being scraped at all.
-- **Ceph - Cluster** (`r6lloPJmz`): 47/59 panels dead (every ceph_* panel; only node_* + ALERTS render)
-- **Ceph - OSD (Single)** (`Fj5fAfzik123`): 12/12 dead
-- **Ceph - Pools** (`-gtf0Bzik`): 5/5 dead
-- **Fix lead:** confirm `rook-ceph-mgr` ServiceMonitor exists and the mgr `prometheusEndpoint`/metrics exporter is enabled; check the scrape target is UP.
+### Ceph / Rook — ✅ RESOLVED (2026-06-05)
+~~No `ceph_*` metric exists in **either** Prometheus or VictoriaMetrics. The Rook-Ceph
+mgr Prometheus exporter is not being scraped at all.~~
+- ~~**Ceph - Cluster** (`r6lloPJmz`): 47/59 panels dead (every ceph_* panel; only node_* + ALERTS render)~~
+- ~~**Ceph - OSD (Single)** (`Fj5fAfzik123`): 12/12 dead~~
+- ~~**Ceph - Pools** (`-gtf0Bzik`): 5/5 dead~~
+- **Root cause:** the rook-ceph **operator** chart had `monitoring.enabled: false` while the
+  **cluster** chart had `monitoring.enabled: true`. So the operator's `rook-ceph-global`
+  ClusterRole lacked `monitoring.coreos.com` rules and the operator SA (`rook-ceph-system`)
+  was *forbidden* from creating the `rook-ceph-mgr` / `rook-ceph-exporter` ServiceMonitors
+  (constant `nodedaemon: ... service monitor could not be enabled ... forbidden` errors).
+  The mgr `:9283/metrics` endpoint was serving data the whole time — nothing was scraping it.
+- **Fix:** set `monitoring.enabled: true` in `rook-ceph/operator/values.yaml` (commit `939a8ce1`),
+  which grants the SM/PrometheusRule RBAC. The exporter SM self-healed on the next nodedaemon
+  loop; the `rook-ceph-mgr` SM was created after one operator reconcile (`rollout restart`).
+- **Verified:** both SMs present, `rook-ceph-exporter` 5/5 + `rook-ceph-mgr` 1/1 targets up,
+  `ceph_health_status=0` (HEALTH_OK), 3 OSDs / 3 mon quorum / 2 pools / ~1.54 TB capacity all reporting.
 
 ### etcd — `c2f4e12cdf69feb95caa41a5a1b423d9`
 15/16 panels dead. No `etcd_*` or `grpc_server_*` metrics scraped (only the Memory panel via `process_resident_memory_bytes` renders).
