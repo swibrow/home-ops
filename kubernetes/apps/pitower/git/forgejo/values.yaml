@@ -33,7 +33,7 @@ service:
     port: 22
     externalTrafficPolicy: Local
     annotations:
-      lbipam.cilium.io/ips: 10.20.10.230
+      lbipam.cilium.io/ips: "10.20.10.230"
 
 gitea:
   admin:
@@ -108,3 +108,7 @@ gitea:
     enabled: true
     serviceMonitor:
       enabled: true
+
+# Disable the Helm test-connection Pod (not wanted under GitOps)
+test:
+  enabled: false
