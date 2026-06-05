@@ -22,6 +22,9 @@ spec:
   # executor ignore its positional repo arg and process every repo at once.
   discoveryFilters:
     - swibrow/*
+  # Exclude forks at discovery time so no executor Job is scheduled for them
+  # (Renovate also skips forks at runtime, but this avoids the wasted jobs).
+  skipForks: true
   # Inherit central config from swibrow/renovate-config/org-inherited-config.json
   # for every repo (no per-repo renovate.json needed). Unlike RENOVATE_AUTODISCOVER,
   # this is a safe global option — it only layers config, not repo selection.
