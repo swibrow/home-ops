@@ -16,13 +16,12 @@ spec:
     appIdSecretKey: app_id
     installationIdSecretKey: installation_id
     pemSecretKey: private_key
+  # The operator handles discovery itself (discovery job runs `renovate
+  # --autodiscover`; executor jobs run `renovate <repo>` scoped to one repo).
+  # Do NOT set RENOVATE_AUTODISCOVER here — it makes the executor ignore its
+  # positional repo arg and autodiscover/process every repo the App can see.
   discoveryFilters:
     - swibrow/home-ops
-  extraEnv:
-    - name: RENOVATE_AUTODISCOVER
-      value: "true"
-    - name: LOG_LEVEL
-      value: info
   resources:
     requests:
       cpu: 100m
