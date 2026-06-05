@@ -28,6 +28,13 @@ spec:
   extraEnv:
     - name: RENOVATE_INHERIT_CONFIG
       value: "true"
+    # Manage every repo directly from the inherited config — no onboarding PR
+    # and no requirement for a per-repo renovate.json. (Set as env, not in the
+    # inherited config file, so they're honored as global self-hosted options.)
+    - name: RENOVATE_ONBOARDING
+      value: "false"
+    - name: RENOVATE_REQUIRE_CONFIG
+      value: "optional"
   resources:
     requests:
       cpu: 100m

@@ -1,0 +1,110 @@
+---
+image:
+  rootless: true
+  registry: code.forgejo.org
+  repository: forgejo/forgejo
+  tag: 15.0.2-rootless
+
+# Use the volsync-managed PVC (created by the volsync component as "forgejo")
+persistence:
+  enabled: true
+  create: false
+  claimName: forgejo
+
+# Routing is handled by our own HTTPRoute (httproute.yaml); disable chart-managed ingress/routes.
+ingress:
+  enabled: false
+httpRoute:
+  enabled: false
+route:
+  enabled: false
+tcpRoute:
+  enabled: false
+
+deployment:
+  annotations:
+    reloader.stakater.com/auto: "true"
+
+service:
+  http:
+    port: 3000
+  ssh:
+    type: LoadBalancer
+    port: 22
+    externalTrafficPolicy: Local
+    annotations:
+      lbipam.cilium.io/ips: 10.20.10.230
+
+gitea:
+  admin:
+    existingSecret: forgejo-admin-secret
+    email: git@wibrow.dev
+
+  # Database password is injected as an env var so it never lands in git.
+  # The rest of the connection settings are non-secret and set in config.database below.
+  additionalConfigFromEnvs:
+    - name: FORGEJO__database__PASSWD
+      valueFrom:
+        secretKeyRef:
+          name: forgejo-db-secret
+          key: DB_PASS
+
+  oauth:
+    - name: kanidm
+      provider: openidConnect
+      existingSecret: forgejo-oidc-secret
+      autoDiscoverUrl: https://idm.wibrow.dev/oauth2/openid/forgejo/.well-known/openid-configuration
+      scopes: profile email groups
+      groupClaimName: groups
+      adminGroup: forgejo_admins
+
+  config:
+    database:
+      DB_TYPE: postgres
+      HOST: forgejo-rw.cloudnative-pg.svc.cluster.local:5432
+      NAME: forgejo
+      USER: forgejo
+    cache:
+      ENABLED: true
+      ADAPTER: redis
+      HOST: redis://forgejo-dragonfly.git.svc.cluster.local:6379?pool_size=100&idle_timeout=180s
+    queue:
+      TYPE: redis
+      CONN_STR: redis://forgejo-dragonfly.git.svc.cluster.local:6379?pool_size=100&idle_timeout=180s
+    session:
+      PROVIDER: redis
+      PROVIDER_CONFIG: redis://forgejo-dragonfly.git.svc.cluster.local:6379?pool_size=100&idle_timeout=180s
+      SESSION_LIFE_TIME: "1209600"
+    server:
+      ROOT_URL: https://git.wibrow.dev
+      SSH_DOMAIN: git.wibrow.dev
+      SSH_PORT: 22
+      SSH_LISTEN_PORT: 2222
+      START_SSH_SERVER: true
+    security:
+      REVERSE_PROXY_TRUSTED_PROXIES: 10.0.0.0/8
+    service:
+      DISABLE_REGISTRATION: true
+      SHOW_REGISTRATION_BUTTON: false
+    indexer:
+      ISSUE_INDEXER_TYPE: bleve
+      REPO_INDEXER_ENABLED: true
+    repository:
+      DEFAULT_REPO_UNITS: repo.code,repo.releases,repo.issues,repo.pulls,repo.actions
+      DISABLED_REPO_UNITS: repo.ext_wiki,repo.ext_issues
+    repository.pull-request:
+      DEFAULT_MERGE_STYLE: squash
+    cron.archive_cleanup:
+      ENABLED: true
+      RUN_AT_START: true
+      SCHEDULE: "@every 1h"
+      OLDER_THAN: 2h
+    mailer:
+      ENABLED: false
+    webhook:
+      ALLOWED_HOST_LIST: "*"
+
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true

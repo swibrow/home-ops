@@ -1,0 +1,32 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: git
+resources:
+  - externalsecret.yaml
+  - httproute.yaml
+  - dragonfly.yaml
+components:
+  - ../../../../components/cnpg-db
+  - ../../../../components/volsync
+configMapGenerator:
+  - name: cnpg-db-config
+    literals:
+      - APP_NAME=forgejo
+      - SECRET_NAME=forgejo-db-secret
+      - CNPG_SECRET_KEY=forgejo-app
+  - name: volsync-config
+    literals:
+      - APP_NAME=forgejo
+      - CLAIM_NAME=forgejo
+      - SECRET_NAME=forgejo-volsync
+      - STORAGE_SIZE=10Gi
+      - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/git/forgejo
+helmCharts:
+  - name: forgejo
+    repo: oci://code.forgejo.org/forgejo-helm
+    version: 17.1.0
+    releaseName: forgejo
+    namespace: git
+    valuesFile: values.yaml
