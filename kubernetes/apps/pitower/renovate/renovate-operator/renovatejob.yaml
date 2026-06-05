@@ -11,7 +11,11 @@ spec:
   parallelism: 3
   provider:
     name: github
-  secretRef: renovate-secret
+  githubAppReference:
+    secretName: renovate-secret
+    appIdSecretKey: app_id
+    installationIdSecretKey: installation_id
+    pemSecretKey: private_key
   discoveryFilters:
     - swibrow/*
   extraEnv:
