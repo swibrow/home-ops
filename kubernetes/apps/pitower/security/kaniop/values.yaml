@@ -1,6 +1,0 @@
-deploymentAnnotations:
-  reloader.stakater.com/auto: "true"
-metrics:
-  enabled: true
-  serviceMonitor:
-    enabled: true

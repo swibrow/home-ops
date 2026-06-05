@@ -11,7 +11,7 @@
     ":disableRateLimiting",
     ":enablePreCommit"
   ],
-  "timezone": "Europe/Amsterdam",
+  "timezone": "Europe/Zurich",
   "dependencyDashboardTitle": "Renovate Dashboard",
   "suppressNotifications": [
     "prEditedNotification",
