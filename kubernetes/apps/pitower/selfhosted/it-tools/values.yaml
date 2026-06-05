@@ -49,7 +49,7 @@ route:
     hostnames:
       - it-tools.wibrow.dev
     parentRefs:
-      - name: envoy-internal
+      - name: envoy-external
         namespace: networking
         sectionName: https
 
