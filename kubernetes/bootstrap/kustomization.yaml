@@ -9,7 +9,7 @@ resources:
 
 helmCharts:
   - name: argo-cd
-    version: 9.5.18
+    version: 9.5.19
     repo: https://argoproj.github.io/argo-helm
     releaseName: argocd
     namespace: argocd
