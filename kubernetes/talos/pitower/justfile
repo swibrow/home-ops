@@ -71,14 +71,18 @@ reboot-workers:
         talosctl --talosconfig {{ talosconfig }} reboot --nodes "10.20.10.${i}" --wait
     done
 
-# Reset a Talos node by last octet (e.g. just reset 04)
-reset suffix:
-    talosctl --talosconfig {{ talosconfig }} reset \
+# Reset a Talos node by name (e.g. just reset worker-03)
+reset name:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ip=$(talosctl --talosconfig {{ talosconfig }} --endpoints 10.20.10.0 --nodes 10.20.10.0 get members -o json | jq -rs --arg h "{{ name }}" '[.[] | select(.spec.hostname == $h) | .spec.addresses[0]][0]')
+    echo "Resetting {{ name }} (${ip})"
+    talosctl --talosconfig {{ talosconfig }} --endpoints "${ip}" reset \
         --system-labels-to-wipe=EPHEMERAL \
         --system-labels-to-wipe=META \
         --reboot \
         --graceful=false \
-        -n 192.168.0.2{{ suffix }}
+        --nodes "${ip}"
 
 # Upgrade a single node by name (e.g. just upgrade worker-01)
 upgrade name:
@@ -97,23 +101,11 @@ upgrade name:
         --preserve \
         --wait
 
-# Upgrade control plane nodes (ARM)
+# Upgrade control plane nodes (worker-01/02/03 = 10.20.10.1/2/3, AMD)
 upgrade-controlplanes:
     #!/usr/bin/env bash
     set -euo pipefail
     for i in 1 2 3; do
-        talosctl --talosconfig {{ talosconfig }} upgrade \
-            --image {{ cp_image }} \
-            --nodes "10.20.10.${i}" \
-            --preserve \
-            --wait
-    done
-
-# Upgrade control plane nodes (AMD)
-upgrade-controlplanes-amd:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    for i in 3; do
         talosctl --talosconfig {{ talosconfig }} upgrade \
             --image {{ cp_amd_image }} \
             --nodes "10.20.10.${i}" \

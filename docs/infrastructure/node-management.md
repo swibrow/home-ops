@@ -94,11 +94,11 @@ done
 To wipe and reset a node (for reprovisioning or troubleshooting):
 
 ```bash
-just reset 04       # Resets 192.168.0.204
-just reset 11       # Resets 192.168.0.211
+just pitower::reset worker-03   # Resets worker-03 (10.20.10.3)
+just pitower::reset worker-05   # Resets worker-05 (10.20.10.5)
 ```
 
-This runs:
+The recipe resolves the node's IP from its hostname via `talosctl get members`, then runs:
 
 ```bash
 talosctl reset \
@@ -106,7 +106,7 @@ talosctl reset \
     --system-labels-to-wipe=META \
     --reboot \
     --graceful=false \
-    -n 192.168.0.2<suffix>
+    --nodes <resolved-ip>
 ```
 
 | Flag | Purpose |

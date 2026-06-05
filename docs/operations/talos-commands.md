@@ -5,8 +5,8 @@ Common `talosctl` commands for managing and debugging the Talos Linux cluster. T
 !!! tip "Default Endpoint"
     Most commands default to the endpoint configured in `~/.talos/config`. Set the default node/endpoint with:
     ```bash
-    talosctl config endpoint 192.168.0.201
-    talosctl config node 192.168.0.201
+    talosctl config endpoint 10.20.10.1
+    talosctl config node 10.20.10.1
     ```
 
 ---
@@ -24,7 +24,7 @@ talosctl health
 Target a specific node:
 
 ```bash
-talosctl health --nodes 192.168.0.201
+talosctl health --nodes 10.20.10.1
 ```
 
 ### Node Dashboard
@@ -36,7 +36,7 @@ talosctl dashboard
 ```
 
 ```bash
-talosctl dashboard --nodes 192.168.0.204
+talosctl dashboard --nodes 10.20.10.4
 ```
 
 ### Member List
@@ -62,7 +62,7 @@ talosctl get members -o json | jq '.spec'
 Show the status of all Talos services on a node.
 
 ```bash
-talosctl services --nodes 192.168.0.201
+talosctl services --nodes 10.20.10.1
 ```
 
 ### Service Logs
@@ -71,13 +71,13 @@ View logs for a specific Talos service (e.g., `etcd`, `kubelet`, `apid`, `contai
 
 ```bash
 # etcd logs
-talosctl logs etcd --nodes 192.168.0.201
+talosctl logs etcd --nodes 10.20.10.1
 
 # kubelet logs
-talosctl logs kubelet --nodes 192.168.0.201
+talosctl logs kubelet --nodes 10.20.10.1
 
 # Follow logs in real time
-talosctl logs etcd --nodes 192.168.0.201 -f
+talosctl logs etcd --nodes 10.20.10.1 -f
 ```
 
 ### Service Status
@@ -85,7 +85,7 @@ talosctl logs etcd --nodes 192.168.0.201 -f
 Get detailed status for a specific service.
 
 ```bash
-talosctl service etcd --nodes 192.168.0.201
+talosctl service etcd --nodes 10.20.10.1
 ```
 
 ---
@@ -97,7 +97,7 @@ talosctl service etcd --nodes 192.168.0.201
 List etcd cluster members and their status.
 
 ```bash
-talosctl etcd members --nodes 192.168.0.201
+talosctl etcd members --nodes 10.20.10.1
 ```
 
 ### Etcd Status
@@ -105,7 +105,7 @@ talosctl etcd members --nodes 192.168.0.201
 Check etcd health and leadership.
 
 ```bash
-talosctl etcd status --nodes 192.168.0.201
+talosctl etcd status --nodes 10.20.10.1
 ```
 
 ### Remove a Member
@@ -113,7 +113,7 @@ talosctl etcd status --nodes 192.168.0.201
 Remove a failed etcd member (use with caution).
 
 ```bash
-talosctl etcd remove-member <member-id> --nodes 192.168.0.201
+talosctl etcd remove-member <member-id> --nodes 10.20.10.1
 ```
 
 ### Etcd Snapshot
@@ -121,7 +121,7 @@ talosctl etcd remove-member <member-id> --nodes 192.168.0.201
 Take a snapshot of the etcd database.
 
 ```bash
-talosctl etcd snapshot etcd-backup.snapshot --nodes 192.168.0.201
+talosctl etcd snapshot etcd-backup.snapshot --nodes 10.20.10.1
 ```
 
 !!! warning "etcd Quorum"
@@ -136,17 +136,17 @@ talosctl etcd snapshot etcd-backup.snapshot --nodes 192.168.0.201
 Generate or refresh the kubeconfig file for kubectl access.
 
 ```bash
-talosctl kubeconfig --nodes 192.168.0.200
+talosctl kubeconfig --nodes 10.20.10.0
 ```
 
 Write to a specific path:
 
 ```bash
-talosctl kubeconfig ~/.kube/config --nodes 192.168.0.200
+talosctl kubeconfig ~/.kube/config --nodes 10.20.10.0
 ```
 
 !!! note "VIP Address"
-    Use the VIP address (192.168.0.200) for kubeconfig generation to ensure HA access to the API server.
+    Use the VIP address (10.20.10.0) for kubeconfig generation to ensure HA access to the API server.
 
 ---
 
@@ -157,7 +157,7 @@ talosctl kubeconfig ~/.kube/config --nodes 192.168.0.200
 Inspect the current machine configuration running on a node.
 
 ```bash
-talosctl get machineconfig --nodes 192.168.0.201 -o yaml
+talosctl get machineconfig --nodes 10.20.10.1 -o yaml
 ```
 
 ### Compare Configs
@@ -165,7 +165,7 @@ talosctl get machineconfig --nodes 192.168.0.201 -o yaml
 Diff the running config against a file.
 
 ```bash
-talosctl apply-config --nodes 192.168.0.201 --file ./clusterconfig/worker-01.yaml --dry-run
+talosctl apply-config --nodes 10.20.10.1 --file ./clusterconfig/worker-01.yaml --dry-run
 ```
 
 ### Version Information
@@ -173,7 +173,7 @@ talosctl apply-config --nodes 192.168.0.201 --file ./clusterconfig/worker-01.yam
 Check the Talos version on a node.
 
 ```bash
-talosctl version --nodes 192.168.0.201
+talosctl version --nodes 10.20.10.1
 ```
 
 ---
@@ -185,13 +185,13 @@ talosctl version --nodes 192.168.0.201
 View kernel messages from a node.
 
 ```bash
-talosctl dmesg --nodes 192.168.0.204
+talosctl dmesg --nodes 10.20.10.4
 ```
 
 Follow kernel messages:
 
 ```bash
-talosctl dmesg --nodes 192.168.0.204 -f
+talosctl dmesg --nodes 10.20.10.4 -f
 ```
 
 ### Process List
@@ -199,7 +199,7 @@ talosctl dmesg --nodes 192.168.0.204 -f
 List running processes on a node.
 
 ```bash
-talosctl processes --nodes 192.168.0.201
+talosctl processes --nodes 10.20.10.1
 ```
 
 ### Disk Usage
@@ -207,7 +207,7 @@ talosctl processes --nodes 192.168.0.201
 Check disk usage on a node.
 
 ```bash
-talosctl usage /var --nodes 192.168.0.201
+talosctl usage /var --nodes 10.20.10.1
 ```
 
 ### Container Images
@@ -215,7 +215,7 @@ talosctl usage /var --nodes 192.168.0.201
 List all container images on a node.
 
 ```bash
-talosctl image list --nodes 192.168.0.201
+talosctl image list --nodes 10.20.10.1
 ```
 
 ### Network Interfaces
@@ -223,7 +223,7 @@ talosctl image list --nodes 192.168.0.201
 Show network interfaces and addresses.
 
 ```bash
-talosctl get addresses --nodes 192.168.0.201
+talosctl get addresses --nodes 10.20.10.1
 ```
 
 ### Routes
@@ -231,7 +231,7 @@ talosctl get addresses --nodes 192.168.0.201
 Show routing table.
 
 ```bash
-talosctl get routes --nodes 192.168.0.201
+talosctl get routes --nodes 10.20.10.1
 ```
 
 ---
@@ -243,7 +243,7 @@ talosctl get routes --nodes 192.168.0.201
 Reboot a node (with wait for it to come back).
 
 ```bash
-talosctl reboot --nodes 192.168.0.204 --wait
+talosctl reboot --nodes 10.20.10.4 --wait
 ```
 
 ### Shutdown
@@ -251,7 +251,7 @@ talosctl reboot --nodes 192.168.0.204 --wait
 Shut down a node.
 
 ```bash
-talosctl shutdown --nodes 192.168.0.204
+talosctl shutdown --nodes 10.20.10.4
 ```
 
 ### Reset
@@ -264,7 +264,7 @@ talosctl reset \
     --system-labels-to-wipe=META \
     --reboot \
     --graceful=false \
-    --nodes 192.168.0.204
+    --nodes 10.20.10.4
 ```
 
 ### Upgrade
@@ -274,7 +274,7 @@ Upgrade Talos on a node to a new version.
 ```bash
 talosctl upgrade \
     --image factory.talos.dev/installer/<schematic-id>:v1.12.4 \
-    --nodes 192.168.0.201 \
+    --nodes 10.20.10.1 \
     --preserve \
     --wait
 ```
@@ -286,25 +286,25 @@ talosctl upgrade \
 ### Check Pod CIDR and Service CIDR
 
 ```bash
-talosctl get clusterconfig --nodes 192.168.0.201 -o yaml | grep -A5 clusterNetwork
+talosctl get clusterconfig --nodes 10.20.10.1 -o yaml | grep -A5 clusterNetwork
 ```
 
 ### Check Certificate Validity
 
 ```bash
-talosctl get certificate --nodes 192.168.0.201
+talosctl get certificate --nodes 10.20.10.1
 ```
 
 ### Read Machine Config Patches
 
 ```bash
-talosctl get machineconfig --nodes 192.168.0.201 -o yaml
+talosctl get machineconfig --nodes 10.20.10.1 -o yaml
 ```
 
 ### Check Time Sync
 
 ```bash
-talosctl get timestatus --nodes 192.168.0.201
+talosctl get timestatus --nodes 10.20.10.1
 ```
 
 ---
