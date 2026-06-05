@@ -1,0 +1,64 @@
+controllers:
+  kanidm:
+    type: statefulset
+    replicas: 1
+    annotations:
+      reloader.stakater.com/auto: "true"
+    pod:
+      securityContext:
+        runAsUser: 2000
+        runAsGroup: 2000
+        runAsNonRoot: true
+        fsGroup: 2000
+        fsGroupChangePolicy: OnRootMismatch
+    containers:
+      app:
+        image:
+          repository: docker.io/kanidm/server
+          tag: 1.10.3
+        env:
+          KANIDM_DOMAIN: idm.wibrow.dev
+          KANIDM_ORIGIN: https://idm.wibrow.dev
+          KANIDM_BINDADDRESS: 0.0.0.0:8443
+          KANIDM_DB_PATH: /data/kanidm.db
+          KANIDM_TLS_CHAIN: /certs/tls.crt
+          KANIDM_TLS_KEY: /certs/tls.key
+          KANIDM_ADMIN_BIND_PATH: /var/run/kanidmd.sock
+          KANIDM_TRUST_X_FORWARD_FOR: "true"
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            memory: 256Mi
+
+service:
+  app:
+    controller: kanidm
+    ports:
+      https:
+        port: 8443
+
+persistence:
+  data:
+    existingClaim: kanidm-data
+    globalMounts:
+      - path: /data
+        subPath: data
+  certs:
+    type: secret
+    name: kanidm-tls
+    defaultMode: 0440
+    globalMounts:
+      - path: /certs
+  tmpfs:
+    type: emptyDir
+    globalMounts:
+      - path: /var/run
+        subPath: var-run

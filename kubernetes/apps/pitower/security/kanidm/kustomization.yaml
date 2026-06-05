@@ -5,6 +5,27 @@ kind: Kustomization
 namespace: security
 resources:
   - certificate.yaml
-  - kanidm.yaml
   - httproute.yaml
   - backendtlspolicy.yaml
+components:
+  - ../../../../components/volsync
+
+helmCharts:
+  - name: app-template
+    repo: oci://ghcr.io/bjw-s-labs/helm
+    version: 5.0.1
+    releaseName: kanidm
+    namespace: security
+    valuesFile: values.yaml
+
+configMapGenerator:
+  - name: volsync-config
+    literals:
+      - APP_NAME=kanidm
+      - CLAIM_NAME=kanidm-data
+      - SECRET_NAME=kanidm-volsync
+      - STORAGE_SIZE=1Gi
+      - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/security/kanidm
+
+generatorOptions:
+  disableNameSuffixHash: true
