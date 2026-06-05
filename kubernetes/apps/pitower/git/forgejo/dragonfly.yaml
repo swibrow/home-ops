@@ -6,10 +6,11 @@ metadata:
   namespace: git
 spec:
   replicas: 1
-  # Dragonfly reserves ~256Mi per io thread; without this it spawns one thread
-  # per core (16) and demands 4Gi. Pin threads low for a small cache workload.
+  # Dragonfly reserves ~256Mi per io thread and refuses to start unless the memory
+  # limit exceeds threads*256Mi. 1 thread (needs 256Mi) under a 512Mi limit leaves
+  # comfortable headroom — plenty for a small Forgejo cache/queue/session workload.
   args:
-    - "--proactor_threads=2"
+    - "--proactor_threads=1"
   resources:
     requests:
       cpu: 50m
