@@ -6,9 +6,13 @@ metadata:
   namespace: git
 spec:
   replicas: 1
+  # Dragonfly reserves ~256Mi per io thread; without this it spawns one thread
+  # per core (16) and demands 4Gi. Pin threads low for a small cache workload.
+  args:
+    - "--proactor_threads=2"
   resources:
     requests:
       cpu: 50m
-      memory: 128Mi
-    limits:
       memory: 256Mi
+    limits:
+      memory: 512Mi
