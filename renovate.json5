@@ -29,4 +29,17 @@
       '/^kubernetes/.+\\.ya?ml$/',
     ],
   },
+  customManagers: [
+    {
+      // Keep the renovate image pinned in RenovateJob CRs up to date — the
+      // built-in kubernetes manager does not parse the renovate-operator CRD.
+      customType: 'regex',
+      managerFilePatterns: [
+        '/^kubernetes/.+\\.ya?ml$/',
+      ],
+      matchStrings: [
+        '# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+image:\\s+\\S+:(?<currentValue>\\S+)',
+      ],
+    },
+  ],
 }

@@ -1,0 +1,44 @@
+---
+fullnameOverride: renovate-operator
+
+# Render the RenovateJob CRD as a normal template resource (not a Helm hook),
+# so kustomize helm inflation + ArgoCD can manage it. SkipDryRunOnMissingResource
+# in the ApplicationSet lets the RenovateJob CR apply alongside the CRD.
+crd:
+  install: true
+  mode: template
+
+# Everything the operator manages (RenovateJobs, Jobs, secret) lives in this
+# namespace, so scope RBAC to the release namespace instead of cluster-wide.
+rbac:
+  ownNamespaceOnly: true
+
+config:
+  # Keep job logs around; jobs are cheap and logs are useful for debugging.
+  deleteSuccessfulJobs: false
+
+logging:
+  level: info
+  format: json
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 128Mi
+  limits:
+    memory: 256Mi
+
+# Internal-only web UI for inspecting renovate runs.
+route:
+  enabled: true
+  hostnames:
+    - renovate.wibrow.dev
+  parentRefs:
+    - name: envoy-internal
+      namespace: networking
+      sectionName: https
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true

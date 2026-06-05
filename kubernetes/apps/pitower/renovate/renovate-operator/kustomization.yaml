@@ -1,0 +1,15 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: renovate
+resources:
+  - externalsecret.yaml
+  - renovatejob.yaml
+helmCharts:
+  - name: renovate-operator
+    repo: oci://ghcr.io/mogenius/helm-charts
+    version: 4.10.1
+    releaseName: renovate-operator
+    namespace: renovate
+    valuesFile: values.yaml
