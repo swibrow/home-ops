@@ -20,6 +20,7 @@ controllers:
           KANIDM_DOMAIN: idm.wibrow.dev
           KANIDM_ORIGIN: https://idm.wibrow.dev
           KANIDM_BINDADDRESS: 0.0.0.0:8443
+          KANIDM_LDAPBINDADDRESS: 0.0.0.0:3636
           KANIDM_DB_PATH: /data/kanidm.db
           KANIDM_TLS_CHAIN: /certs/tls.crt
           KANIDM_TLS_KEY: /certs/tls.key
@@ -44,6 +45,8 @@ service:
     ports:
       https:
         port: 8443
+      ldaps:
+        port: 3636
 
 persistence:
   data:
