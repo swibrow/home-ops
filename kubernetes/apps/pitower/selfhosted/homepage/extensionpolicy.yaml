@@ -25,7 +25,7 @@ spec:
           if html:find("insights.wibrow.dev/api/script.js", 1, true) then
             return
           end
-          local tag = '<script src="https://insights.wibrow.dev/api/script.js" data-site-id="36" defer></script>'
+          local tag = '<script src="https://insights.wibrow.dev/api/script.js" data-site-id="c643754b9477" defer></script>'
           local injected = string.gsub(html, "</head>", tag .. "</head>", 1)
           body:setBytes(injected)
         end
