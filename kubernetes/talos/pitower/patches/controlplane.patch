@@ -23,7 +23,7 @@ cluster:
       - 10.20.10.0
       - 127.0.0.1
     extraArgs:
-        oidc-issuer-url: https://auth.wibrow.dev
+        oidc-issuer-url: https://idm.wibrow.dev/oauth2/openid/headlamp
         oidc-client-id: headlamp
         oidc-username-claim: email
         oidc-username-prefix: "oidc:"
