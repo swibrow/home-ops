@@ -102,6 +102,15 @@ kubelet:
 kubeApiServer:
   enabled: true
   serviceMonitor:
+    # Stamp cluster as a target label so the synthetic `up{job="apiserver"}` series
+    # carries it (metricRelabelings run before `up` is appended, so they can't).
+    # The dotdc "Kubernetes / API server" dashboard's hidden `cluster` variable is
+    # label_values(up{job="apiserver"}, cluster); without this it resolves empty and
+    # every cluster="$cluster" panel shows no data. Same workaround as kubelet above.
+    relabelings:
+      - action: replace
+        targetLabel: cluster
+        replacement: pitower
     metricRelabelings:
       # Remove duplicate labels provided by k3s
       - action: keep
