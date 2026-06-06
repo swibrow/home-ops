@@ -19,8 +19,11 @@ spec:
       value: http://grafana.monitoring.svc.cluster.local
   secrets:
     - name: toolhive-secret
-      key: GRAFANA_SERVICE_ACCOUNT_TOKEN
-      targetEnvName: GRAFANA_SERVICE_ACCOUNT_TOKEN
+      key: GRAFANA_USERNAME
+      targetEnvName: GRAFANA_USERNAME
+    - name: toolhive-secret
+      key: GRAFANA_PASSWORD
+      targetEnvName: GRAFANA_PASSWORD
   resources:
     requests:
       cpu: 25m
