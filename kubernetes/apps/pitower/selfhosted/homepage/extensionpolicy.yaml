@@ -1,0 +1,31 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/gateway.envoyproxy.io/envoyextensionpolicy_v1alpha1.json
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyExtensionPolicy
+metadata:
+  name: homepage-rybbit
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: homepage
+  lua:
+    - type: Inline
+      inline: |
+        function envoy_on_response(handle)
+          local ct = handle:headers():get("content-type")
+          if not (ct and ct:find("text/html")) then
+            return
+          end
+          local body = handle:body()
+          if not body then
+            return
+          end
+          local html = body:getBytes(0, body:length())
+          if html:find("insights.wibrow.dev/api/script.js", 1, true) then
+            return
+          end
+          local tag = '<script src="https://insights.wibrow.dev/api/script.js" data-site-id="36" defer></script>'
+          local injected = string.gsub(html, "</head>", tag .. "</head>", 1)
+          body:setBytes(injected)
+        end
