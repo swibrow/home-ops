@@ -99,15 +99,17 @@ spec:
               }
               .graphs.show { opacity: 1; }
               .graphs figure { margin: 0; }
-              .graphs figcaption { color: var(--muted); font-size: 0.72rem; margin-bottom: 0.25rem; }
-              .graphs img {
-                display: block;
+              .graphs figcaption { color: var(--muted); font-size: 0.72rem; margin-bottom: 0.3rem; }
+              .graphs figcaption span { color: var(--fg); }
+              .spark {
                 width: min(360px, 84vw);
-                height: auto;
+                height: 56px;
                 border: 1px solid var(--border);
                 border-radius: 8px;
                 background: #0b0f16;
+                overflow: hidden;
               }
+              .spark svg { display: block; width: min(360px, 84vw); height: 56px; }
               .logo { flex: 0 0 auto; }
               .spec { display: grid; grid-template-columns: auto 1fr; gap: 0.05rem 1rem; align-items: baseline; min-width: 16rem; }
               .spec .k { color: var(--amber); }
@@ -178,12 +180,12 @@ spec:
                 </div>
                 <div class="graphs">
                   <figure>
-                    <figcaption>cpu &middot; 3h</figcaption>
-                    <img src="/graphs/cpu" alt="cpu over 3h" loading="lazy" onerror="this.closest('figure').style.display='none'" />
+                    <figcaption>cpu <span data-badge="cpu">&mdash;</span> &middot; 3h</figcaption>
+                    <div class="spark" data-graph="cpu" data-color="#58a6ff"></div>
                   </figure>
                   <figure>
-                    <figcaption>memory &middot; 3h</figcaption>
-                    <img src="/graphs/memory" alt="memory over 3h" loading="lazy" onerror="this.closest('figure').style.display='none'" />
+                    <figcaption>memory <span data-badge="memory">&mdash;</span> &middot; 3h</figcaption>
+                    <div class="spark" data-graph="memory" data-color="#3fb950"></div>
                   </figure>
                 </div>
                 <div class="foot">
@@ -242,6 +244,41 @@ spec:
                       document.querySelectorAll('[data-badge="' + id + '"]').forEach(function (el) {
                         el.textContent = d.value;
                       });
+                    })
+                    .catch(function () {});
+                });
+              })();
+              // Custom sparklines drawn from kromgo time-series JSON (auto-scaled,
+              // no axis chrome) so they fit the card. SVG built with no literal '%'.
+              (function () {
+                document.querySelectorAll(".spark").forEach(function (box) {
+                  var id = box.getAttribute("data-graph");
+                  var color = box.getAttribute("data-color") || "#58a6ff";
+                  fetch("/graphs/" + id + "?format=json", { cache: "no-store" })
+                    .then(function (r) { return r.ok ? r.json() : null; })
+                    .then(function (d) {
+                      var s = d && d.series && d.series[0];
+                      var pts = s && s.data ? s.data.map(function (p) { return p.v; }) : [];
+                      if (pts.length < 2) { var f = box.closest("figure"); if (f) f.style.display = "none"; return; }
+                      var w = 340, h = 56, pad = 3;
+                      var min = Math.min.apply(null, pts);
+                      var max = Math.max.apply(null, pts);
+                      var range = (max - min) || 1;
+                      var n = pts.length;
+                      var xy = pts.map(function (v, i) {
+                        var x = pad + (w - 2 * pad) * (i / (n - 1));
+                        var y = pad + (h - 2 * pad) * (1 - (v - min) / range);
+                        return x.toFixed(1) + " " + y.toFixed(1);
+                      });
+                      var line = "M " + xy.join(" L ");
+                      var area = line + " L " + (w - pad).toFixed(1) + " " + h + " L " + pad.toFixed(1) + " " + h + " Z";
+                      var last = xy[xy.length - 1].split(" ");
+                      box.innerHTML =
+                        '<svg viewBox="0 0 ' + w + " " + h + '" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">' +
+                        '<path d="' + area + '" fill="' + color + '" fill-opacity="0.12" />' +
+                        '<path d="' + line + '" fill="none" stroke="' + color + '" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" />' +
+                        '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="2.5" fill="' + color + '" vector-effect="non-scaling-stroke" />' +
+                        "</svg>";
                     })
                     .catch(function () {});
                 });
