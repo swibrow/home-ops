@@ -102,14 +102,14 @@ spec:
               .graphs figcaption { color: var(--muted); font-size: 0.72rem; margin-bottom: 0.3rem; }
               .graphs figcaption span { color: var(--fg); }
               .spark {
-                width: min(360px, 84vw);
+                width: min(330px, 44vw);
                 height: 56px;
                 border: 1px solid var(--border);
                 border-radius: 8px;
                 background: #0b0f16;
                 overflow: hidden;
               }
-              .spark svg { display: block; width: min(360px, 84vw); height: 56px; }
+              .spark svg { display: block; width: min(330px, 44vw); height: 56px; }
               .logo { flex: 0 0 auto; }
               .spec { display: grid; grid-template-columns: auto 1fr; gap: 0.05rem 1rem; align-items: baseline; min-width: 16rem; }
               .spec .k { color: var(--amber); }
