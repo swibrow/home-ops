@@ -40,6 +40,19 @@ kubernetes/apps/{cluster}/{category}/{app}/
 - **Timezone**: `Europe/Zurich`
 - **Reloader** annotation `reloader.stakater.com/auto: "true"` on controllers that consume secrets
 
+## Analytics
+
+[Rybbit](https://insights.wibrow.dev) (self-hosted) at `kubernetes/apps/pitower/analytics/rybbit/`. Backend + client + ClickHouse; tracking script is served at `https://insights.wibrow.dev/api/script.js`.
+
+To track a site, embed the snippet in the page `<head>` (get `data-site-id` from the Rybbit dashboard):
+
+```html
+<script src="https://insights.wibrow.dev/api/script.js" data-site-id="<id>" defer></script>
+```
+
+- **Per-app**: add the snippet to the app's own templates/config where it controls its HTML.
+- **Gateway-wide injection** (preferred for apps whose HTML can't be edited): attach an `EnvoyExtensionPolicy` (Lua, EG v1.8.0) to the target `HTTPRoute` (or a Gateway) under `networking`. The Lua filter checks the response `content-type` for `text/html`, reads the body, and inserts the `<script>` tag before `</head>` via `body:setBytes()`. Scope it per-route so non-HTML/asset responses are left untouched. See `kubernetes/apps/pitower/networking/envoy-gateway/fallback.yaml` for the existing EG policy pattern.
+
 ## Bootstrap
 
 - ArgoCD + ApplicationSets at `kubernetes/bootstrap/`
