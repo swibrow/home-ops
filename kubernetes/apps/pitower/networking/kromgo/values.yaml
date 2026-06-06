@@ -29,6 +29,10 @@ config:
       # argocd_app_info gets scraped into Prometheus.
       query: count(argocd_app_info)
       valueExpr: string(int(result))
+    - id: appssynced
+      title: synced
+      query: count(argocd_app_info{sync_status="Synced"})
+      valueExpr: string(int(result))
     - id: cpu
       title: cpu
       query: round(cluster:node_cpu:ratio_rate5m * 100, 0.1)
@@ -41,6 +45,30 @@ config:
       title: uptime
       query: floor((time() - min(node_boot_time_seconds)) / 86400)
       valueExpr: string(int(result)) + "d"
+
+  graphs:
+    - id: cpu
+      title: cpu
+      query: cluster:node_cpu:ratio_rate5m * 100
+      theme: dark
+      fill: true
+      yMin: 0
+      yMax: 100
+      maxDuration: 3h
+      width: 340
+      height: 90
+      valueExpr: string(int(result)) + "%"
+    - id: memory
+      title: memory
+      query: (1 - sum(node_memory_MemAvailable_bytes) / sum(node_memory_MemTotal_bytes)) * 100
+      theme: dark
+      fill: true
+      yMin: 0
+      yMax: 100
+      maxDuration: 3h
+      width: 340
+      height: 90
+      valueExpr: string(int(result)) + "%"
 
 resources:
   requests:

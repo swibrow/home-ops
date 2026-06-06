@@ -89,6 +89,25 @@ spec:
                 transition: opacity 0.5s ease, translate 0.5s ease;
               }
               .card.show { opacity: 1; translate: 0 0; }
+              .graphs {
+                margin-top: 1rem;
+                display: flex;
+                gap: 1rem;
+                flex-wrap: wrap;
+                opacity: 0;
+                transition: opacity 0.5s ease;
+              }
+              .graphs.show { opacity: 1; }
+              .graphs figure { margin: 0; }
+              .graphs figcaption { color: var(--muted); font-size: 0.72rem; margin-bottom: 0.25rem; }
+              .graphs img {
+                display: block;
+                width: min(340px, 80vw);
+                height: auto;
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                background: #0b0f16;
+              }
               .logo { flex: 0 0 auto; }
               .spec { display: grid; grid-template-columns: auto 1fr; gap: 0.05rem 1rem; align-items: baseline; min-width: 16rem; }
               .spec .k { color: var(--amber); }
@@ -106,7 +125,7 @@ spec:
               .foot a { color: var(--blue); text-decoration: none; }
               .foot a:hover { text-decoration: underline; }
               @media (prefers-reduced-motion: reduce) {
-                .boot .l, .runline, .card { opacity: 1; translate: 0 0; transition: none; }
+                .boot .l, .runline, .card, .graphs { opacity: 1; translate: 0 0; transition: none; }
               }
             </style>
             <script src="https://insights.wibrow.dev/api/script.js" data-site-id="fb9cfcf44b9d" defer></script>
@@ -120,15 +139,15 @@ spec:
               <div class="body">
                 <div class="boot">
                   <div class="l"><span class="ts">[ 0.000000 ]</span> Talos Linux booting · node pitower</div>
-                  <div class="l"><span class="ts">[ 0.143200 ]</span> cpu: AMD Ryzen · 6 nodes online</div>
+                  <div class="l"><span class="ts">[ 0.143200 ]</span> cpu: AMD Ryzen · <span data-badge="nodes">6</span> nodes online</div>
                   <div class="l"><span class="ts">[ 0.318900 ]</span> cilium: eBPF datapath up · kube-proxy replaced</div>
                   <div class="l"><span class="ts">[ 0.527400 ]</span> etcd: quorum established · 3 members</div>
                   <div class="l"><span class="ts">[ 0.741100 ]</span> kubelet: all nodes Ready · k8s v1.36.1</div>
-                  <div class="l"><span class="ts">[ 1.024800 ]</span> argocd: reconciled · 80/81 applications Synced</div>
+                  <div class="l"><span class="ts">[ 1.024800 ]</span> argocd: reconciled · <span data-badge="appssynced">80</span>/<span data-badge="apps">81</span> applications Synced</div>
                   <div class="l"><span class="ts">[ 1.339500 ]</span> envoy-gateway: external · internal · direct listening</div>
                   <div class="l"><span class="ts">[ 1.662000 ]</span> external-dns: records synced to cloudflare</div>
                   <div class="l"><span class="ts">[ 1.984300 ]</span> cloudflared: tunnel connected</div>
-                  <div class="l"><span class="ok">  &check; cluster healthy · 198 pods across 28 namespaces</span></div>
+                  <div class="l"><span class="ok">  &check; cluster healthy · <span data-badge="pods">198</span> pods across <span data-badge="namespaces">28</span> namespaces</span></div>
                 </div>
                 <div class="runline prompt">
                   <span class="ns">sam</span><span class="sep">@</span><span class="path">pitower</span><span class="sep">:~$</span> neofetch
@@ -144,18 +163,28 @@ spec:
                   <div class="spec">
                     <div class="who">sam@pitower</div>
                     <div class="rule">─────────────────────────────</div>
-                    <div class="k">uptime</div><div class="v"><span id="stat-uptime">5d</span></div>
+                    <div class="k">uptime</div><div class="v"><span data-badge="uptime">5d</span></div>
                     <div class="k">os</div><div class="v">Talos Linux (immutable)</div>
-                    <div class="k">nodes</div><div class="v"><span id="stat-nodes">6</span></div>
+                    <div class="k">nodes</div><div class="v"><span data-badge="nodes">6</span></div>
                     <div class="k">k8s</div><div class="v">v1.36.1</div>
-                    <div class="k">pods</div><div class="v"><span id="stat-pods">205</span> running</div>
-                    <div class="k">cpu</div><div class="v"><span id="stat-cpu">&mdash;</span></div>
-                    <div class="k">memory</div><div class="v"><span id="stat-memory">&mdash;</span></div>
-                    <div class="k">gitops</div><div class="v">ArgoCD &middot; <span id="stat-apps">81</span> apps</div>
+                    <div class="k">pods</div><div class="v"><span data-badge="pods">205</span> running</div>
+                    <div class="k">cpu</div><div class="v"><span data-badge="cpu">&mdash;</span></div>
+                    <div class="k">memory</div><div class="v"><span data-badge="memory">&mdash;</span></div>
+                    <div class="k">gitops</div><div class="v">ArgoCD &middot; <span data-badge="apps">81</span> apps</div>
                     <div class="k">cni</div><div class="v">Cilium · eBPF / DSR</div>
                     <div class="k">storage</div><div class="v">Rook-Ceph · CNPG</div>
                     <div class="k">region</div><div class="v">Zürich, CH</div>
                   </div>
+                </div>
+                <div class="graphs">
+                  <figure>
+                    <figcaption>cpu &middot; 3h</figcaption>
+                    <img src="/graphs/cpu" alt="cpu over 3h" loading="lazy" onerror="this.closest('figure').style.display='none'" />
+                  </figure>
+                  <figure>
+                    <figcaption>memory &middot; 3h</figcaption>
+                    <img src="/graphs/memory" alt="memory over 3h" loading="lazy" onerror="this.closest('figure').style.display='none'" />
+                  </figure>
                 </div>
                 <div class="foot">
                   <span>&rarr;</span>
@@ -172,13 +201,14 @@ spec:
               </div>
             </main>
             <noscript>
-              <style>.boot .l, .runline, .card { opacity: 1; translate: 0 0; }</style>
+              <style>.boot .l, .runline, .card, .graphs { opacity: 1; translate: 0 0; }</style>
             </noscript>
             <script>
               (function () {
                 var lines = document.querySelectorAll(".boot .l");
                 var run = document.querySelector(".runline");
                 var card = document.querySelector(".card");
+                var graphs = document.querySelector(".graphs");
                 var i = 0;
                 function step() {
                   if (i < lines.length) {
@@ -188,7 +218,10 @@ spec:
                   } else {
                     setTimeout(function () {
                       run.classList.add("show");
-                      setTimeout(function () { card.classList.add("show"); }, 480);
+                      setTimeout(function () {
+                        card.classList.add("show");
+                        if (graphs) graphs.classList.add("show");
+                      }, 480);
                     }, 260);
                   }
                 }
@@ -197,14 +230,18 @@ spec:
               // Live stats from kromgo, served same-origin at /badges (no CORS).
               // Each badge updates its span; on failure the baked-in value stays.
               (function () {
-                var ids = ["nodes", "pods", "cpu", "memory", "uptime", "apps"];
-                ids.forEach(function (id) {
+                var seen = {};
+                document.querySelectorAll("[data-badge]").forEach(function (el) {
+                  seen[el.getAttribute("data-badge")] = true;
+                });
+                Object.keys(seen).forEach(function (id) {
                   fetch("/badges/" + id + "?format=json", { cache: "no-store" })
                     .then(function (r) { return r.ok ? r.json() : null; })
                     .then(function (d) {
                       if (!d || d.value == null) return;
-                      var el = document.getElementById("stat-" + id);
-                      if (el) el.textContent = d.value;
+                      document.querySelectorAll('[data-badge="' + id + '"]').forEach(function (el) {
+                        el.textContent = d.value;
+                      });
                     })
                     .catch(function () {});
                 });
@@ -236,6 +273,9 @@ spec:
         - path:
             type: PathPrefix
             value: /badges
+        - path:
+            type: PathPrefix
+            value: /graphs
       backendRefs:
         - name: kromgo
           port: 8080
