@@ -41,6 +41,7 @@ configMapGenerator:
   - name: grafana-dashboards-networking
     files:
       - dashboards/external-dns.json
+      - dashboards/cilium-operator.json
     options:
       disableNameSuffixHash: true
       labels:
