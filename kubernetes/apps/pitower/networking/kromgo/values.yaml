@@ -49,25 +49,28 @@ config:
   graphs:
     - id: cpu
       title: cpu
-      query: cluster:node_cpu:ratio_rate5m * 100
+      # sum() drops the series label so no legend clutters the small chart.
+      query: sum(cluster:node_cpu:ratio_rate5m) * 100
       theme: dark
       fill: true
+      legend: false
       yMin: 0
       yMax: 100
       maxDuration: 3h
-      width: 340
-      height: 90
+      width: 360
+      height: 110
       valueExpr: string(int(result)) + "%"
     - id: memory
       title: memory
       query: (1 - sum(node_memory_MemAvailable_bytes) / sum(node_memory_MemTotal_bytes)) * 100
       theme: dark
       fill: true
+      legend: false
       yMin: 0
       yMax: 100
       maxDuration: 3h
-      width: 340
-      height: 90
+      width: 360
+      height: 110
       valueExpr: string(int(result)) + "%"
 
 resources:
