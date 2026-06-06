@@ -15,6 +15,15 @@ spec:
   embeddingServerRef:
     name: mcp-tools-embedding
   incomingAuth:
-    type: anonymous
+    type: oidc
+    oidcConfigRef:
+      name: toolhive-mcp-oidc
+      audience: toolhive-mcp
+      resourceUrl: https://mcp.wibrow.dev
+      scopes:
+        - openid
+        - profile
+        - email
+        - groups
   outgoingAuth:
     source: discovered

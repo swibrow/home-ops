@@ -1,0 +1,14 @@
+---
+# yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpoidcconfig_v1beta1.json
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPOIDCConfig
+metadata:
+  name: toolhive-mcp-oidc
+spec:
+  type: inline
+  inline:
+    # kanidm OAuth2 public client "toolhive-mcp" (PKCE). Created via the kanidm
+    # CLI (no operator / declarative client support in this kanidm install).
+    issuer: https://idm.wibrow.dev/oauth2/openid/toolhive-mcp
+    clientId: toolhive-mcp
+    jwksUrl: https://idm.wibrow.dev/oauth2/openid/toolhive-mcp/public_key.jwk
