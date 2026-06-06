@@ -249,7 +249,7 @@ spec:
                 });
               })();
               // Custom sparklines drawn from kromgo time-series JSON (auto-scaled,
-              // no axis chrome) so they fit the card. SVG built with no literal '%'.
+              // no axis chrome) so they fit the card. SVG built without percent chars.
               (function () {
                 document.querySelectorAll(".spark").forEach(function (box) {
                   var id = box.getAttribute("data-graph");
