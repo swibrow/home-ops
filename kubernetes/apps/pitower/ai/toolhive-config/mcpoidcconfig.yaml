@@ -9,6 +9,8 @@ spec:
   inline:
     # kanidm OAuth2 public client "toolhive-mcp" (PKCE). Created via the kanidm
     # CLI (no operator / declarative client support in this kanidm install).
+    # issuer only — toolhive discovers jwks_uri via OIDC discovery. Setting an
+    # explicit jwksUrl as well makes the vMCP register the same JWKS URL twice
+    # ("httprc.Client: resource already exists") and every token is rejected.
     issuer: https://idm.wibrow.dev/oauth2/openid/toolhive-mcp
     clientId: toolhive-mcp
-    jwksUrl: https://idm.wibrow.dev/oauth2/openid/toolhive-mcp/public_key.jwk
