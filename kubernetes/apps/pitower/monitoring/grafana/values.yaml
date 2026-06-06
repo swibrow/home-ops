@@ -14,19 +14,18 @@ grafana.ini:
     check_for_plugin_updates: false
     reporting_enabled: false
   auth:
-    signout_redirect_url: "https://auth.wibrow.dev/logout"
     oauth_auto_login: true
     oauth_allow_insecure_email_lookup: true
   auth.generic_oauth:
     enabled: true
-    name: Authelia
+    name: Kanidm
     icon: signin
     scopes: openid profile email groups
     client_id: grafana
     empty_scopes: false
-    auth_url: https://auth.wibrow.dev/api/oidc/authorization
-    token_url: https://auth.wibrow.dev/api/oidc/token
-    api_url: https://auth.wibrow.dev/api/oidc/userinfo
+    auth_url: https://idm.wibrow.dev/ui/oauth2
+    token_url: https://idm.wibrow.dev/oauth2/token
+    api_url: https://idm.wibrow.dev/oauth2/openid/grafana/userinfo
     login_attribute_path: preferred_username
     groups_attribute_path: groups
     name_attribute_path: name
@@ -34,7 +33,7 @@ grafana.ini:
   auth.generic_oauth.group_mapping:
     org_id: 1
     role_attribute_path: |
-      contains(groups[*], 'admins') && 'Admin' || contains(groups[*], 'people') && 'Viewer'
+      contains(groups[*], 'admins@idm.wibrow.dev') && 'Admin' || contains(groups[*], 'people@idm.wibrow.dev') && 'Viewer'
   news:
     news_feed_enabled: false
 dashboardProviders:
