@@ -109,7 +109,10 @@ localRedirectPolicy: true
 prometheus:
   enabled: true
   serviceMonitor:
-    enabled: false
+    # Agent serves ~1580 cilium_* metrics on :9962, but with this false no
+    # cilium-agent ServiceMonitor was created (only cilium-operator), so the
+    # agent was never scraped and all Cilium agent dashboards were blank.
+    enabled: true
     trustCRDsExist: true
 
 ### Check these values

@@ -12,30 +12,38 @@ Work through the priority buckets below. Healthy dashboards are listed at the bo
 
 ---
 
-## Changes made (2026-06-03, uncommitted)
+## Changes made — ✅ ALL APPLIED & VERIFIED (2026-06-03 → 2026-06-06)
 
-1. `grafana/values.yaml` — node-exporter-full dashboard rev 37 → 45.
+1. `grafana/values.yaml` — node-exporter-full dashboard rev 37 → 45. ✅
 2. `kube-prometheus-stack/values.yaml` — removed the `go_.*` drop from the default
    scrapeClass (restores Goroutines panels on API server / Controller-Manager /
-   Kubelet / Scheduler / VictoriaLogs).
-3. `kube-prometheus-stack/values.yaml` — `kubeEtcd` now scrapes `:2381` over `http`.
+   Kubelet / Scheduler / VictoriaLogs). ✅ `go_goroutines` back (76 series).
+3. `kube-prometheus-stack/values.yaml` — **etcd scraped via
+   `prometheusSpec.additionalScrapeConfigs`** (static job `kube-etcd` →
+   `10.20.10.1/2/3:2381` http, `cluster=pitower` label). NOT `kubeEtcd.endpoints`:
+   Talos etcd needs a selector-less manual Endpoints object, and ArgoCD's
+   `resource.exclusions` drops `Endpoints`/`EndpointSlice` so it never applies
+   (renders, "Synced", but absent). `kubeEtcd.enabled: true` kept for the dashboard;
+   `service.enabled: false`. ✅ all 3 targets up, `etcd_server_has_leader`=3.
 4. `controlplane.patch` — added `etcd.extraArgs.listen-metrics-urls`,
    `controllerManager.extraArgs.bind-address: 0.0.0.0`,
-   `scheduler.extraArgs.bind-address: 0.0.0.0`.
+   `scheduler.extraArgs.bind-address: 0.0.0.0`. ✅ scheduler+CM `up=3`.
 
-**To apply the Talos change** (item 4) — requires home-network/VPN + talosctl:
+**Applying the Talos change** (item 4) — CPs are worker-01/02/03 = `10.20.10.1/2/3`:
 ```
 cd kubernetes/talos/pitower
 just config && just patch          # regenerate machine configs from the patch
-# apply to the CURRENT control-plane nodes — worker-01/02/03 = 10.20.10.1/2/3
-# (note `just apply-controlplanes` targets are stale):
-talosctl apply-config --nodes 10.20.10.1 --file ./clusterconfig/<cp>.yaml   # etc.
+just apply-controlplanes           # applies worker-0{1,2,3}.yaml to .1/.2/.3
 ```
-This rolls etcd/scheduler/controller-manager static pods (one CP at a time — safe).
-Items 1–3 ship via ArgoCD on git push.
+`apply-config` rolls the **scheduler/CM static pods** (kubelet picks up the manifest
+change) but does NOT cycle the Talos-managed **etcd** service. etcd `extraArgs`
+(listen-metrics-urls) only take effect on a **node reboot** — `service etcd restart`
+is unsupported by the Talos API. So after apply, roll the CPs one at a time:
+`talosctl reboot -n 10.20.10.{2,3,1} --wait` (followers first, leader last; quorum
+stays 2/3). Items 1–3 ship via ArgoCD on git push.
 
-**Still pending live check** (blocked on cluster access): ~~Ceph mgr ServiceMonitor~~
-(resolved 2026-06-05 — see P1 Ceph/Rook below), Cilium-agent ServiceMonitor.
+**Still pending live check**: ~~Ceph mgr ServiceMonitor~~ (resolved 2026-06-05 — see
+P1 Ceph/Rook), Cilium-agent ServiceMonitor (in progress 2026-06-06).
 
 ---
 
@@ -47,11 +55,11 @@ home network/VPN). Items marked **[needs live check]** await on-network inspecti
 
 | Symptom | Root cause | Determinable fix |
 |---|---|---|
-| `go_*` absent cluster-wide (Goroutines dead on 5 dashboards) | **Intentional** — `prometheusSpec.scrapeClasses[default].metricRelabelings` drops `go_.*` (`kube-prometheus-stack/values.yaml:211`). Overrides the per-component `keep go` lists (now dead config). | Decision needed — remove the drop to restore, or accept (cardinality). |
-| etcd 15/16 dead — no `etcd` job exists | Talos etcd metrics not exposed. `controlplane.patch` has no `cluster.etcd.extraArgs.listen-metrics-urls`. `kubeEtcd.endpoints` point at `:2381` but nothing listens. | Add `etcd.extraArgs: {listen-metrics-urls: http://0.0.0.0:2381}` to `controlplane.patch`; ensure kubeEtcd scrapes `:2381` http. Requires `talosctl apply` to 3 CPs. |
-| Scheduler 17/18 + Controller-Manager (audit false-positive) — `up==0` for all 3 each | Components bind metrics to `127.0.0.1`; no `bind-address` override in `controlplane.patch`. | Add `scheduler.extraArgs` + `controllerManager.extraArgs` `bind-address: 0.0.0.0`. Requires `talosctl apply`. |
+| `go_*` absent cluster-wide (Goroutines dead on 5 dashboards) | **✅ RESOLVED (2026-06-05).** Intentional `scrapeClasses[default].metricRelabelings` drop of `go_.*`. | Removed the drop; `go_goroutines` back (76 series). |
+| etcd 15/16 dead — no `etcd` job exists | **✅ RESOLVED (2026-06-06).** Talos etcd metrics weren't exposed AND the chart's `kubeEtcd.endpoints` Endpoints object is dropped by ArgoCD `resource.exclusions`. | `controlplane.patch` `etcd.extraArgs.listen-metrics-urls: http://0.0.0.0:2381` + **node reboot** per CP (etcd service can't be restarted via API) + scrape via `additionalScrapeConfigs` static job. All 3 `kube-etcd` targets up. |
+| Scheduler 17/18 + Controller-Manager (audit false-positive) — `up==0` for all 3 each | **✅ RESOLVED (2026-06-06).** Components bind metrics to `127.0.0.1`. | `scheduler`/`controllerManager` `extraArgs.bind-address: 0.0.0.0` in `controlplane.patch` + `apply-config` (static pods roll, no reboot needed). Both `up=3`. |
 | Ceph 64 panels dead — no `ceph`/`rook` job | **✅ RESOLVED (2026-06-05).** Operator chart `monitoring.enabled: false` vs cluster chart `true` → operator SA forbidden from creating ServiceMonitors. | Set operator `monitoring.enabled: true` (commit `939a8ce1`) + one operator reconcile. Both SMs now up, all `ceph_*` metrics flowing. |
-| Cilium Metrics 70/70 dead — only `cilium-operator` job (no agent) | Agent config `cni/values.yaml` has `prometheus.enabled: true` + serviceMonitor, but no `cilium-agent` job is scraped — likely drift between the Talos-bootstrap CNI values and the live install. | **[needs live check]** — confirm the agent metrics Service + ServiceMonitor exist on the live cluster. |
+| Cilium Metrics 70/70 dead — only `cilium-operator` job (no agent) | **✅ RESOLVED (2026-06-06).** Live agent values (`apps/pitower/kube-system/cilium/operator/values.yaml`) had `prometheus.enabled: true` but `prometheus.serviceMonitor.enabled: false` — agent served 1580 `cilium_*` on `:9962` but no `cilium-agent` SM existed. | Set `prometheus.serviceMonitor.enabled: true` — chart adds the `metrics`/9962 port to the cilium-agent Service and creates the SM. |
 
 > Note: `serviceMonitorSelectorNilUsesHelmValues: false` is set, so Prometheus selects
 > *all* ServiceMonitors cluster-wide — if the Ceph/Cilium-agent SMs existed, they'd be
@@ -79,17 +87,34 @@ mgr Prometheus exporter is not being scraped at all.~~
 - **Verified:** both SMs present, `rook-ceph-exporter` 5/5 + `rook-ceph-mgr` 1/1 targets up,
   `ceph_health_status=0` (HEALTH_OK), 3 OSDs / 3 mon quorum / 2 pools / ~1.54 TB capacity all reporting.
 
-### etcd — `c2f4e12cdf69feb95caa41a5a1b423d9`
-15/16 panels dead. No `etcd_*` or `grpc_server_*` metrics scraped (only the Memory panel via `process_resident_memory_bytes` renders).
-- **Fix lead:** Talos etcd metrics need to be exposed (`cluster.etcd.extraArgs: listen-metrics-urls`) and a scrape config/ServiceMonitor pointing at the CP etcd `:2381`.
+### etcd — `c2f4e12cdf69feb95caa41a5a1b423d9` — ✅ RESOLVED (2026-06-06)
+~~15/16 panels dead. No `etcd_*` or `grpc_server_*` metrics scraped.~~
+- **Root cause (two-part):** (1) Talos etcd served metrics only on the cert-guarded client
+  port — no `:2381` listener; (2) the chart's `kubeEtcd.endpoints` needs a selector-less
+  manual Endpoints object, which ArgoCD's `resource.exclusions` (Endpoints/EndpointSlice)
+  silently drops.
+- **Fix:** `controlplane.patch` `etcd.extraArgs.listen-metrics-urls: http://0.0.0.0:2381`;
+  scrape via `prometheusSpec.additionalScrapeConfigs` (static `kube-etcd` job →
+  `10.20.10.1/2/3:2381`, `cluster=pitower`) instead of `kubeEtcd.endpoints`. etcd `extraArgs`
+  need a **node reboot** to take effect (`service etcd restart` unsupported); rolled CPs one
+  at a time.
+- **Verified:** all 3 `kube-etcd` targets `up=1`, `etcd_server_has_leader`=3, gRPC/mvcc/disk metrics flowing.
 
-### Kubernetes / Scheduler — `2e6b6a3b4bddf1427b3a55aa1311c656`
-17/18 panels dead. `up{job=kube-scheduler}` returns 3 series but **all value 0** — the scheduler scrape target is down. Zero `scheduler_*`/`process_*`/`rest_client_*` series exist under that job.
-- **Fix lead:** kube-scheduler on Talos binds metrics to `127.0.0.1:10259`; the kube-prometheus-stack ServiceMonitor can't reach it. Compare with Controller-Manager (which *is* scraped — only its Goroutines panel is dead). Likely needs the scheduler bind-address patched or the SM endpoint corrected.
+### Kubernetes / Scheduler — `2e6b6a3b4bddf1427b3a55aa1311c656` — ✅ RESOLVED (2026-06-06)
+~~17/18 panels dead. `up{job=kube-scheduler}` returns 3 series but all value 0.~~
+- **Root cause:** kube-scheduler + controller-manager bound metrics to `127.0.0.1`.
+- **Fix:** `scheduler`/`controllerManager` `extraArgs.bind-address: 0.0.0.0` in `controlplane.patch`
+  + `apply-config` (static pods roll on manifest change — no reboot needed, unlike etcd).
+- **Verified:** scheduler + controller-manager both `up=3`.
 
-### Cilium Metrics — `vtuWtdumz`
-70/70 panels dead. **cilium-agent** metrics are not scraped — only `cilium_operator_*` exist. The agent dashboard is completely blind.
-- **Fix lead:** enable agent Prometheus metrics (`prometheus.enabled: true` on the Cilium agent) + ServiceMonitor. (Operator metrics already flow — see Cilium Operator below.)
+### Cilium Metrics — `vtuWtdumz` — ✅ RESOLVED (2026-06-06)
+~~70/70 panels dead. cilium-agent metrics are not scraped — only `cilium_operator_*` exist.~~
+- **Root cause:** live agent values had `prometheus.enabled: true` (agent served 1580 `cilium_*`
+  on `:9962`) but `prometheus.serviceMonitor.enabled: false` — so no `cilium-agent` ServiceMonitor
+  was ever created (only `cilium-operator`).
+- **Fix:** `prometheus.serviceMonitor.enabled: true` in
+  `apps/pitower/kube-system/cilium/operator/values.yaml` — the chart adds the `metrics`/9962 port
+  to the cilium-agent Service and creates the `cilium-agent` SM.
 
 ### Home Assistant - Overview — `ha-overview`
 5/11 panels dead: all power/energy panels. `W_value` and `kWh_value` absent in VictoriaMetrics.
