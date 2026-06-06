@@ -1,0 +1,85 @@
+---
+# Stateful, singleton Claude Code workspace managed by the agent-sandbox controller.
+# Pause with `replicas: 0` (PVC retained); resume with `replicas: 1`.
+apiVersion: agents.x-k8s.io/v1alpha1
+kind: Sandbox
+metadata:
+  name: claude-code
+spec:
+  replicas: 1
+  # We define our own ClusterIP Service below for clean Gateway API routing,
+  # so the controller's auto headless Service is disabled.
+  service: false
+  shutdownPolicy: Retain
+  volumeClaimTemplates:
+    - metadata:
+        name: home
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: ceph-block
+        resources:
+          requests:
+            storage: 20Gi
+  podTemplate:
+    metadata:
+      labels:
+        app.kubernetes.io/name: claude-code
+      annotations:
+        reloader.stakater.com/auto: "true"
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: code-server
+          image: ghcr.io/swibrow/claude-code:2.1.167
+          # Auth is enforced upstream by the Envoy Gateway SecurityPolicy (OIDC via
+          # kanidm), so code-server itself runs without a password. Authenticate
+          # Claude with `claude login` in the terminal — the token persists on the PVC.
+          args: ["--auth", "none"]
+          env:
+            - name: TZ
+              value: Europe/Zurich
+          ports:
+            - name: http
+              containerPort: 8080
+          resources:
+            requests:
+              cpu: 250m
+              memory: 1Gi
+            limits:
+              cpu: "4"
+              memory: 4Gi
+          volumeMounts:
+            - name: home
+              mountPath: /home/coder
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: claude-code
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: claude-code
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: claude-code
+spec:
+  hostnames:
+    - claude.wibrow.dev
+  parentRefs:
+    - name: envoy-internal
+      namespace: networking
+      sectionName: https
+  rules:
+    - backendRefs:
+        - name: claude-code
+          port: 8080
