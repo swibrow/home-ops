@@ -7,7 +7,6 @@ resources:
   - rbac.yaml
   - configmap.yaml
   - externalsecret.yaml
-  - extensionpolicy.yaml
 
 helmCharts:
   - name: app-template

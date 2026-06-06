@@ -65,5 +65,7 @@ persistence:
         path: /app/config/settings.yaml
       - subPath: widgets.yaml
         path: /app/config/widgets.yaml
+      - subPath: custom.js
+        path: /app/config/custom.js
 serviceAccount:
   homepage: {}

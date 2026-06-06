@@ -336,3 +336,13 @@ data:
           dateStyle: long
           timeStyle: short
           hourCycle: h23
+  custom.js: |
+    // Rybbit analytics loader (site: home.wibrow.dev). Homepage injects this
+    // via <Script src="/api/config/custom.js"/>, so no Envoy/proxy tricks needed.
+    (function () {
+      var s = document.createElement("script");
+      s.src = "https://insights.wibrow.dev/api/script.js";
+      s.defer = true;
+      s.setAttribute("data-site-id", "c643754b9477");
+      document.head.appendChild(s);
+    })();
