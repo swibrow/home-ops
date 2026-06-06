@@ -13,7 +13,7 @@ controllers:
           REDIS_PORT: "6379"
           ENABLE_FEATURE_AUTH_OIDC: "true"
           OIDC_CLIENT_ID: ghostfolio
-          OIDC_ISSUER: https://auth.wibrow.dev
+          OIDC_ISSUER: https://idm.wibrow.dev/oauth2/openid/ghostfolio
           OIDC_SCOPE: '["openid","profile","email"]'
           DATABASE_URL:
             valueFrom:

@@ -10,12 +10,12 @@ controllers:
           BASE_URL: https://recipes.wibrow.dev
           TZ: Europe/Zurich
           OIDC_AUTH_ENABLED: "true"
-          OIDC_CONFIGURATION_URL: https://auth.wibrow.dev/.well-known/openid-configuration
+          OIDC_CONFIGURATION_URL: https://idm.wibrow.dev/oauth2/openid/mealie/.well-known/openid-configuration
           OIDC_CLIENT_ID: mealie
           OIDC_AUTO_REDIRECT: "true"
           OIDC_SIGNUP_ENABLED: "true"
-          OIDC_ADMIN_GROUP: admins
-          OIDC_USER_GROUP: apps
+          OIDC_ADMIN_GROUP: admins@idm.wibrow.dev
+          OIDC_USER_GROUP: apps@idm.wibrow.dev
         envFrom:
           - secretRef:
               name: mealie-secret
