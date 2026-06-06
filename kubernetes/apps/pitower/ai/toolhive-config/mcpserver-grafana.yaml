@@ -1,0 +1,29 @@
+---
+# yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpserver_v1beta1.json
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServer
+metadata:
+  name: grafana
+spec:
+  image: docker.io/grafana/mcp-grafana:0.14.0
+  transport: sse
+  proxyPort: 8080
+  mcpPort: 8000
+  args:
+    - -t
+    - sse
+  groupRef:
+    name: mcp-tools
+  env:
+    - name: GRAFANA_URL
+      value: http://grafana.monitoring.svc.cluster.local
+  secrets:
+    - name: toolhive-secret
+      key: GRAFANA_SERVICE_ACCOUNT_TOKEN
+      targetEnvName: GRAFANA_SERVICE_ACCOUNT_TOKEN
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      memory: 256Mi

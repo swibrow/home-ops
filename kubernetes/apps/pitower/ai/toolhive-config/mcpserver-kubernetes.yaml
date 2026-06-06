@@ -1,0 +1,44 @@
+---
+# yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpserver_v1beta1.json
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServer
+metadata:
+  name: kubernetes
+spec:
+  image: ghcr.io/stackloklabs/mkp/server:0.4.0
+  transport: streamable-http
+  proxyPort: 8080
+  mcpPort: 8080
+  args:
+    # Read-only; flip to true (and rebind RBAC below) for write access.
+    - --read-write=false
+  serviceAccount: toolhive-kubernetes
+  groupRef:
+    name: mcp-tools
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 128Mi
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: toolhive-kubernetes
+  namespace: ai
+---
+# Read-only cluster access for the Kubernetes MCP server. To allow
+# apply_resource, bind a writable role (e.g. edit) and set --read-write=true.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: toolhive-kubernetes-view
+subjects:
+  - kind: ServiceAccount
+    name: toolhive-kubernetes
+    namespace: ai
+roleRef:
+  kind: ClusterRole
+  name: view
+  apiGroup: rbac.authorization.k8s.io

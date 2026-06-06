@@ -1,0 +1,25 @@
+---
+# yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpserver_v1beta1.json
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServer
+metadata:
+  name: home-assistant
+spec:
+  image: docker.io/voska/hass-mcp:0.1.1
+  transport: stdio
+  proxyPort: 8080
+  groupRef:
+    name: mcp-tools
+  env:
+    - name: HA_URL
+      value: http://homeassistant.iot:8123
+  secrets:
+    - name: toolhive-secret
+      key: HA_TOKEN
+      targetEnvName: HA_TOKEN
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      memory: 256Mi

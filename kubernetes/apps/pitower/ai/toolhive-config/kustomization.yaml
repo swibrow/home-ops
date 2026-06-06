@@ -8,3 +8,7 @@ resources:
   - embeddingserver.yaml
   - virtualmcpserver.yaml
   - httproute.yaml
+  - externalsecret.yaml
+  - mcpserver-home-assistant.yaml
+  - mcpserver-grafana.yaml
+  - mcpserver-kubernetes.yaml
