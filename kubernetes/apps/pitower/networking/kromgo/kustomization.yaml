@@ -1,0 +1,14 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: networking
+resources:
+  - servicemonitor-argocd.yaml
+helmCharts:
+  - name: kromgo
+    repo: oci://ghcr.io/home-operations/charts
+    version: 0.14.3
+    releaseName: kromgo
+    namespace: networking
+    valuesFile: values.yaml

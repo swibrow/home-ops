@@ -1,0 +1,22 @@
+---
+# Scrapes the ArgoCD application-controller metrics so argocd_app_info lands in
+# Prometheus, which feeds the kromgo "apps" badge on the apex page. Prometheus
+# selects ServiceMonitors cluster-wide (empty selector), so this works from the
+# networking namespace via namespaceSelector.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: argocd-metrics
+spec:
+  namespaceSelector:
+    matchNames:
+      - argocd
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-metrics
+      app.kubernetes.io/component: application-controller
+  endpoints:
+    - port: http-metrics
+      path: /metrics
+      interval: 60s
+      scrapeTimeout: 30s

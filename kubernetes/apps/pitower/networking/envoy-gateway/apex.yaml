@@ -109,6 +109,7 @@ spec:
                 .boot .l, .runline, .card { opacity: 1; translate: 0 0; transition: none; }
               }
             </style>
+            <script src="https://insights.wibrow.dev/api/script.js" data-site-id="fb9cfcf44b9d" defer></script>
           </head>
           <body>
             <main class="term" role="main">
@@ -143,13 +144,15 @@ spec:
                   <div class="spec">
                     <div class="who">sam@pitower</div>
                     <div class="rule">─────────────────────────────</div>
-                    <div class="k">uptime</div><div class="v">362 days</div>
+                    <div class="k">uptime</div><div class="v"><span id="stat-uptime">5d</span></div>
                     <div class="k">os</div><div class="v">Talos Linux (immutable)</div>
-                    <div class="k">cluster</div><div class="v">pitower · 6 nodes</div>
+                    <div class="k">nodes</div><div class="v"><span id="stat-nodes">6</span></div>
                     <div class="k">k8s</div><div class="v">v1.36.1</div>
+                    <div class="k">pods</div><div class="v"><span id="stat-pods">205</span> running</div>
+                    <div class="k">cpu</div><div class="v"><span id="stat-cpu">&mdash;</span></div>
+                    <div class="k">memory</div><div class="v"><span id="stat-memory">&mdash;</span></div>
+                    <div class="k">gitops</div><div class="v">ArgoCD &middot; <span id="stat-apps">81</span> apps</div>
                     <div class="k">cni</div><div class="v">Cilium · eBPF / DSR</div>
-                    <div class="k">gitops</div><div class="v">ArgoCD · 81 apps</div>
-                    <div class="k">ingress</div><div class="v">Envoy Gateway</div>
                     <div class="k">storage</div><div class="v">Rook-Ceph · CNPG</div>
                     <div class="k">region</div><div class="v">Zürich, CH</div>
                   </div>
@@ -191,6 +194,21 @@ spec:
                 }
                 setTimeout(step, 280);
               })();
+              // Live stats from kromgo, served same-origin at /badges (no CORS).
+              // Each badge updates its span; on failure the baked-in value stays.
+              (function () {
+                var ids = ["nodes", "pods", "cpu", "memory", "uptime", "apps"];
+                ids.forEach(function (id) {
+                  fetch("/badges/" + id + "?format=json", { cache: "no-store" })
+                    .then(function (r) { return r.ok ? r.json() : null; })
+                    .then(function (d) {
+                      if (!d || d.value == null) return;
+                      var el = document.getElementById("stat-" + id);
+                      if (el) el.textContent = d.value;
+                    })
+                    .catch(function () {});
+                });
+              })();
             </script>
           </body>
         </html>
@@ -212,6 +230,15 @@ spec:
   hostnames:
     - "wibrow.dev"
   rules:
+    # Same-origin live stats: /badges/* -> kromgo (avoids CORS). More specific
+    # path prefix wins over "/", so the landing page itself is unaffected.
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /badges
+      backendRefs:
+        - name: kromgo
+          port: 8080
     - filters:
         - type: ResponseHeaderModifier
           responseHeaderModifier:
