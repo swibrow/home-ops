@@ -18,10 +18,10 @@ spec:
     - name: GRAFANA_URL
       value: http://grafana.monitoring.svc.cluster.local
   secrets:
-    - name: toolhive-secret
+    - name: toolhive-grafana-user
       key: GRAFANA_USERNAME
       targetEnvName: GRAFANA_USERNAME
-    - name: toolhive-secret
+    - name: toolhive-grafana-pass
       key: GRAFANA_PASSWORD
       targetEnvName: GRAFANA_PASSWORD
   resources:
