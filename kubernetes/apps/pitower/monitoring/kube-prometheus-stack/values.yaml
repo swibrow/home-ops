@@ -102,15 +102,6 @@ kubelet:
 kubeApiServer:
   enabled: true
   serviceMonitor:
-    # Stamp cluster as a target label so the synthetic `up{job="apiserver"}` series
-    # carries it (metricRelabelings run before `up` is appended, so they can't).
-    # The dotdc "Kubernetes / API server" dashboard's hidden `cluster` variable is
-    # label_values(up{job="apiserver"}, cluster); without this it resolves empty and
-    # every cluster="$cluster" panel shows no data. Same workaround as kubelet above.
-    relabelings:
-      - action: replace
-        targetLabel: cluster
-        replacement: pitower
     metricRelabelings:
       # Remove duplicate labels provided by k3s
       - action: keep
@@ -235,6 +226,21 @@ prometheus:
     scrapeClasses:
       - name: default
         default: true
+        # Stamp cluster=pitower as a TARGET label (relabelings), so the synthetic
+        # `up` series carries it too — metricRelabelings run after `up` is appended
+        # and can't label it. Many dashboards (dotdc k8s-*) drive a hidden `cluster`
+        # variable off label_values(up{job="..."}, cluster); without cluster on `up`
+        # it resolves empty and every cluster="$cluster" panel shows no data.
+        #
+        # Conditional (regex: ^$): only set pitower when cluster is still empty, so
+        # scrapes that set their own cluster keep it (rook-ceph-exporter/mgr →
+        # cluster=rook-ceph) regardless of relabel ordering. Supersedes the per-SM
+        # kubelet workaround above.
+        relabelings:
+          - sourceLabels: [cluster]
+            regex: ^$
+            targetLabel: cluster
+            replacement: pitower
         metricRelabelings:
           - targetLabel: cluster
             replacement: pitower
