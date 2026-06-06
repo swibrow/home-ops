@@ -137,20 +137,16 @@ kubeControllerManager:
         sourceLabels: ["__name__"]
         regex: (workqueue_queue_duration_seconds|workqueue_work_duration_seconds)_bucket
 kubeEtcd:
+  # enabled keeps the etcd Grafana dashboard shipping. Scraping is NOT done via
+  # the chart's kubeEtcd.endpoints: Talos etcd needs a manual (selector-less)
+  # Endpoints object, and ArgoCD's resource.exclusions drops Endpoints/
+  # EndpointSlice, so that object never applies. Instead we scrape etcd's
+  # :2381 listener (controlplane.patch cluster.etcd.extraArgs.listen-metrics-urls)
+  # via prometheusSpec.additionalScrapeConfigs (job: kube-etcd) below. service is
+  # disabled to avoid a dangling selector-less Service with no targets.
   enabled: true
-  endpoints:
-    - 10.20.10.1
-    - 10.20.10.2
-    - 10.20.10.3
-  # Talos exposes etcd metrics on :2381 over plain http (see controlplane.patch
-  # cluster.etcd.extraArgs.listen-metrics-urls). Scrape that port, not the
-  # client-cert-guarded :2379.
   service:
-    enabled: true
-    port: 2381
-    targetPort: 2381
-  serviceMonitor:
-    scheme: http
+    enabled: false
 kubeScheduler:
   enabled: true
   # No `endpoints:` -> chart adds a `component: kube-scheduler` selector for
@@ -189,6 +185,22 @@ prometheus:
     externalUrl: https://prometheus.wibrow.dev
     externalLabels:
       cluster: pitower
+    # Talos etcd metrics (:2381, plain http). Static targets instead of a
+    # ServiceMonitor because Talos etcd is a host service with no pod/Endpoints
+    # ArgoCD will apply (Endpoints/EndpointSlice are in argocd-cm
+    # resource.exclusions). additionalScrapeConfigs bypass the default scrapeClass
+    # relabeling, so cluster=pitower is set here explicitly (the etcd dashboard
+    # filters on cluster="$cluster").
+    additionalScrapeConfigs:
+      - job_name: kube-etcd
+        scheme: http
+        static_configs:
+          - targets:
+              - 10.20.10.1:2381
+              - 10.20.10.2:2381
+              - 10.20.10.3:2381
+            labels:
+              cluster: pitower
     additionalAlertRelabelConfigs:
       - source_labels: [alertname]
         regex: KubeNodeNotReady|KubeNodeUnreachable|KubeletDown
