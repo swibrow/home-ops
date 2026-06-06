@@ -50,8 +50,8 @@ To track a site, embed the snippet in the page `<head>` (get `data-site-id` from
 <script src="https://insights.wibrow.dev/api/script.js" data-site-id="<id>" defer></script>
 ```
 
-- **Per-app**: add the snippet to the app's own templates/config where it controls its HTML.
-- **Gateway-wide injection** (preferred for apps whose HTML can't be edited): attach an `EnvoyExtensionPolicy` (Lua, EG v1.8.0) to the target `HTTPRoute` (or a Gateway) under `networking`. The Lua filter checks the response `content-type` for `text/html`, reads the body, and inserts the `<script>` tag before `</head>` via `body:setBytes()`. Scope it per-route so non-HTML/asset responses are left untouched. See `kubernetes/apps/pitower/networking/envoy-gateway/fallback.yaml` for the existing EG policy pattern.
+- **Per-app (preferred)**: use the app's own injection hook. Homepage exposes `custom.js` (`<Script src="/api/config/custom.js"/>`) — drop a loader in the configmap and mount it at `/app/config/custom.js` (see `apps/pitower/selfhosted/homepage/`). Same-origin, client-side, no proxy tricks.
+- **Gateway-wide injection** (only when the app has no hook): attach an `EnvoyExtensionPolicy` (Lua, EG v1.8.0) to the target `HTTPRoute` under `networking`. The Lua `envoy_on_response` checks `content-type` for `text/html` and inserts the `<script>` before `</head>` via `body:setBytes()`. **Caveat: compression breaks it** — browsers send `Accept-Encoding: br/gzip`, so the Lua sees compressed bytes and the `</head>` match silently fails (curl without `--compressed` misleadingly works). You'd have to strip `Accept-Encoding` on the request path, losing compression. Prefer the app-native hook.
 
 ## Bootstrap
 
