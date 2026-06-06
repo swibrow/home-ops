@@ -122,15 +122,16 @@ mgr Prometheus exporter is not being scraped at all.~~
 - **Fix lead:** either no power/energy sensors are exporting to the HA Prometheus integration, or the metric suffix differs. Presence/light/switch/battery panels are healthy.
 
 ### Authelia Community Dashboard — `ddixu7wrrpuyod`
-4/11 panels dead: `authelia_authn` and `authelia_authn_second_factor` absent (First/Second Factor, Authn requests panels). All `authelia_request*`/OIDC metrics present.
-- **Fix lead:** likely a metric rename in the current Authelia version — update the dashboard queries.
+4/11 panels dead: `authelia_authn`, `authelia_authn_second_factor`, `authelia_authz` absent (First/Second Factor, Authn/Authz requests panels). All `authelia_request*`/OIDC metrics present.
+- **Resolution (2026-06-06): WONTFIX — Authelia is being decommissioned** (IdP consolidation onto Kanidm). Not a clean rename: our Authelia build only exports `authelia_request*` + an `authelia_authn_duration` histogram (event-only, currently no data), with no counter equivalent for the dead panels. Dashboard will be removed with Authelia; no query work warranted.
 
 ### External DNS — `eea5u_I7z`
 6/17 panels dead: per-record-type `external_dns_registry_a/aaaa_records`, `external_dns_source_a/aaaa_records`, `external_dns_controller_verified_a/aaaa_records` absent. Core endpoint/sync metrics present.
 - **Fix lead:** this external-dns version doesn't emit the per-record-type gauges; dashboard predates the metric split.
 
 ### External Secrets Operator — `n4IdKaJVk`
-1/24 dead: `externalsecret_sync_calls_error` absent (ExternalSecret sync call errors panel). Likely renamed to `externalsecret_sync_calls_total` in current ESO.
+~~1/24 dead: `externalsecret_sync_calls_error` absent (ExternalSecret sync call errors panel). Likely renamed to `externalsecret_sync_calls_total` in current ESO.~~
+- **Resolution (2026-06-06): RESOLVED — no action.** Re-verified against Prometheus: `externalsecret_sync_calls_error` **is** present and emitting (alongside `_total`), and all 24 panels return data. Dashboard is sourced from the ESO repo's `main` branch (`grafana/values.yaml`), so it self-heals to upstream — the original audit reading was stale.
 
 ### Grafana Overview — `6be0s85Mk`
 1/7 dead: `grafana_alerting_result_total` absent (Firing Alerts panel).
@@ -148,7 +149,7 @@ These were imported for hardware/cloud we don't run; the dead panels are inheren
 
 ## P3 — Cosmetic / legacy-metric drift / disabled-by-design (low priority)
 
-- **CoreDNS** (`vkQ0UHxik`): 1 dead (DO-bit) + 11 partial — legacy `*_count_total` metric names; panels render via `or` fallbacks to new-style metrics. Mostly cosmetic.
+- **CoreDNS** (`vkQ0UHxik`): **WONTFIX (verified 2026-06-06).** All rate/size/duration/rcode/qtype panels already render — each query carries an `or` fallback to the modern metric (`coredns_dns_requests_total{type}`, `coredns_dns_responses_total{rcode}`, `*_seconds_bucket`), all of which emit. The only truly-dead series is the **DO-bit** panel (`coredns_dns_request_do_count_total`/`coredns_dns_do_requests_total`) — our CoreDNS build exports no DO-bit metric, so there is no query fix (would require enabling it in CoreDNS config). Dashboard is owned by the `kube-prometheus-stack` chart (vendored template), so editing it would be clobbered on the next chart bump. No change made.
 - **Node Exporter Full** (`rYdddlPWk`): 7 dead + 4 partial — `processes`, `systemd`, `tcpstat`, `interrupts` collectors disabled (typical Talos node-exporter). Expected.
 - **K8s / Compute Resources** — `kube_resourcequota` (no ResourceQuotas defined) + `container_memory_swap` (Talos cgroup v2, no swap) absent:
   - Namespace (Pods) `85a562078cdf77779eaa1add43ccec1e`: 3 partial
