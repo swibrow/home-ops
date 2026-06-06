@@ -103,10 +103,10 @@ dashboards:
       revision: 6
       datasource:
         - { name: DS_PROMETHEUS, value: Prometheus }
-    external-dns:
-      gnetId: 15038 # https://grafana.com/grafana/dashboards/15038?tab=revisions
-      revision: 3
-      datasource: Prometheus
+    # external-dns: vendored + patched at dashboards/external-dns.json
+    # (gnetId 15038 rev3 predates the per-record-type metric split; queries now
+    #  use record_type label on external_dns_*_records). Shipped via kustomization
+    #  configMapGenerator, not here, so the query patch survives.
     external-secrets:
       url: https://raw.githubusercontent.com/external-secrets/external-secrets/main/docs/snippets/dashboard.json
       datasource: Prometheus

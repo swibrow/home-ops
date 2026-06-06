@@ -117,17 +117,19 @@ mgr Prometheus exporter is not being scraped at all.~~
   `apps/pitower/kube-system/cilium/operator/values.yaml` — the chart adds the `metrics`/9962 port
   to the cilium-agent Service and creates the `cilium-agent` SM.
 
-### Home Assistant - Overview — `ha-overview`
-5/11 panels dead: all power/energy panels. `W_value` and `kWh_value` absent in VictoriaMetrics.
-- **Fix lead:** either no power/energy sensors are exporting to the HA Prometheus integration, or the metric suffix differs. Presence/light/switch/battery panels are healthy.
+### Home Assistant - Overview — `ha-overview` — ✅ mostly RESOLVED (2026-06-06)
+~~5/11 panels dead: all power/energy panels. `W_value` and `kWh_value` absent in VictoriaMetrics.~~
+- **Re-verified:** `W_value`, `kWh_value`, `state_state` all present and emitting now — the power/energy and domain panels render. Original audit reading was stale.
+- **Remaining:** 1 panel ("Battery levels", `%_value{friendly_name=~".*battery.*"}`) is empty — **no `%`-unit sensors reach VictoriaMetrics at all** (no humidity/battery percent series export). This is an HA Prometheus-integration export gap, not a dashboard query bug; left as-is (no sensible substitute metric for a battery panel).
 
 ### Authelia Community Dashboard — `ddixu7wrrpuyod`
 4/11 panels dead: `authelia_authn`, `authelia_authn_second_factor`, `authelia_authz` absent (First/Second Factor, Authn/Authz requests panels). All `authelia_request*`/OIDC metrics present.
 - **Resolution (2026-06-06): WONTFIX — Authelia is being decommissioned** (IdP consolidation onto Kanidm). Not a clean rename: our Authelia build only exports `authelia_request*` + an `authelia_authn_duration` histogram (event-only, currently no data), with no counter equivalent for the dead panels. Dashboard will be removed with Authelia; no query work warranted.
 
-### External DNS — `eea5u_I7z`
-6/17 panels dead: per-record-type `external_dns_registry_a/aaaa_records`, `external_dns_source_a/aaaa_records`, `external_dns_controller_verified_a/aaaa_records` absent. Core endpoint/sync metrics present.
-- **Fix lead:** this external-dns version doesn't emit the per-record-type gauges; dashboard predates the metric split.
+### External DNS — `eea5u_I7z` — ✅ RESOLVED (2026-06-06)
+~~6/17 panels dead: per-record-type `external_dns_registry_a/aaaa_records`, `external_dns_source_a/aaaa_records`, `external_dns_controller_verified_a/aaaa_records` absent.~~
+- **Root cause:** current external-dns collapsed the per-record-type metric names into a single `external_dns_*_records` series carrying a `record_type` label (`a`/`aaaa`/`cname`/`txt`). gnetId 15038 rev3 predates that split.
+- **Fix:** vendored the dashboard to `grafana/dashboards/external-dns.json` (configMapGenerator `grafana-dashboards-networking`, folder Networking) and rewrote the 6 panels to `external_dns_<scope>_records{record_type="a"|"aaaa", …}`. Removed the gnetId import from `grafana/values.yaml`. (`record_type="aaaa"` reads 0 until an IPv6 record exists — expected.)
 
 ### External Secrets Operator — `n4IdKaJVk`
 ~~1/24 dead: `externalsecret_sync_calls_error` absent (ExternalSecret sync call errors panel). Likely renamed to `externalsecret_sync_calls_total` in current ESO.~~
@@ -135,6 +137,7 @@ mgr Prometheus exporter is not being scraped at all.~~
 
 ### Grafana Overview — `6be0s85Mk`
 1/7 dead: `grafana_alerting_result_total` absent (Firing Alerts panel).
+- **Status (2026-06-06): known fix, WONTFIX via chart.** Modern replacement is `grafana_alerting_alerts{state="alerting"}` (verified present). But this dashboard ships from the **kube-prometheus-stack** chart (`templates/grafana/dashboards-1.14/grafana-overview.yaml`, vendored), so a query edit there is clobbered on the next chart bump — same situation as CoreDNS. Not worth a chart-dashboard override for one stat panel; revisit only if kube-prometheus-stack fixes it upstream or the panel becomes load-bearing.
 
 ---
 
@@ -156,14 +159,14 @@ These were imported for hardware/cloud we don't run; the dead panels are inheren
   - Namespace (Workloads) `a87fb0d919ec0ea5f6543124e16c42a5`: 4 dead (quota scalar panels)
   - Node (Pods) `200ac8fdbfbb74b39aff88118e4d1c2c`: 1 partial (swap)
   - Pod `6581e46e4e5c7ba40a07646395ef7b23`: 1 dead (swap query)
-- **K8s / Views / Global** (`k8s_views_global`): 1 dead (`container_cpu_cfs_throttled_seconds_total`) + 1 partial (some kube-state-metrics resource types missing).
-- **K8s / Views / Namespaces** (`k8s_views_ns`): 1 dead (CFS throttle) + 1 partial (ingress/statefulset/daemonset/hpa/networkpolicy kube-state metrics).
-- **K8s / Views / Pods** (`k8s_views_pods`): 2 dead — `container_oom_events_total`, `kube_pod_container_status_waiting_reason` absent.
+- **K8s / Views / Global** (`k8s_views_global`): 1 dead (`container_cpu_cfs_throttled_seconds_total`) + 1 partial. **CFS-throttle panel is unfixable here (2026-06-06):** Talos cadvisor on cgroup v2 exports only `container_cpu_cfs_throttled_periods_total` (+ `_periods_total`), never the `_seconds_total` counter the panel needs. dotdc dashboards are pulled from `master` (self-updating) — vendoring all three just to swap one panel to a periods ratio isn't worth losing upstream updates. WONTFIX unless dotdc adds a periods fallback.
+- **K8s / Views / Namespaces** (`k8s_views_ns`): 1 dead (same CFS-throttle Talos limitation as Global) + 1 partial (ingress/statefulset/daemonset/hpa/networkpolicy kube-state metrics).
+- **K8s / Views / Pods** (`k8s_views_pods`): **NOT dead (2026-06-06).** Re-verified: `container_oom_events_total` (660) and `kube_pod_container_status_waiting_reason` (2) both present and emitting — the audit caught them at a moment with zero OOMs / no waiting containers (empty ≠ broken). No action.
 - **K8s / API server** (`09ec8aa...`): 3 dead — `cluster_quantile:apiserver_request_sli_duration_seconds:histogram_quantile` recording rule + `go_goroutines`.
 - **K8s / Kubelet** (`3138fa...`): 6 dead — config-error, runtime-op-duration buckets, `storage_operation_duration_seconds_count`, PLEG duration, `go_goroutines`.
 - **K8s / Controller Manager** (`72e0e05...`): 1 dead — `go_goroutines`.
 - **VictoriaLogs - single-node** (`OqPIZTX4z`): 11 dead — `go_*` runtime metrics + `vl_storage_per_query_*_bucket` histograms not scraped; 1 partial (`go_gc_cpu_seconds_total`).
-- **Home Assistant - Sensors** (`ha-sensors`): 2 dead (`lx_value`, `V_value` — no such sensors) + Humidity panel empty via `friendly_name` label filter mismatch.
+- **Home Assistant - Sensors** (`ha-sensors`): ✅ **RESOLVED (2026-06-06).** Only `°C_value` (temp) of the original panels had data; `%_value`/`lx_value`/`V_value` (humidity/lux/voltage) aren't collected at all, but `W_value`/`kWh_value`/`A_value` (power/energy/current) are. Repurposed the three dead panels in the local `grafana/dashboards/home-assistant-sensors.json` → Power (W)/Energy (kWh)/Current (A) so the board reflects the sensors that actually exist; temperature + all-sensors table unchanged.
 - **Envoy Clusters** (`8WkEOMnANKE6PW5hhpVv`): 1 dead — `envoy_cluster_outlier_detection_ejections_active`.
 - **Envoy Gateway Global** (`bdn8lriao7myoa`): 4 dead — `watchable_panics_recovered_total`, `wasm_cache_lookup_total`, `wasm_remote_fetch_total` (wasm/watchable features unused).
 - **CloudNativePG** (`cloudnative-pg`): 1 partial — Zone panel needs `kube_node_labels` (kube-state-metrics node-labels metric not scraped).

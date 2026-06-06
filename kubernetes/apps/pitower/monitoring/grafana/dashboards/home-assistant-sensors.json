@@ -36,32 +36,32 @@
     {
       "type": "timeseries",
       "id": 2,
-      "title": "Humidity sensors",
+      "title": "Power (W)",
       "datasource": {"type": "prometheus", "uid": "victoriametrics"},
       "gridPos": {"h": 10, "w": 12, "x": 12, "y": 0},
-      "fieldConfig": {"defaults": {"unit": "percent", "min": 0, "max": 100, "custom": {"drawStyle": "line", "lineWidth": 1, "fillOpacity": 10}}},
-      "options": {"legend": {"displayMode": "table", "placement": "right", "calcs": ["lastNotNull"]}},
-      "targets": [{"expr": "%_value{source=\"home-assistant\", friendly_name=~\".*[Hh]umidity.*\"}", "refId": "A", "legendFormat": "{{friendly_name}}"}]
+      "fieldConfig": {"defaults": {"unit": "watt", "custom": {"drawStyle": "line", "lineWidth": 1, "fillOpacity": 10}}},
+      "options": {"legend": {"displayMode": "table", "placement": "right", "calcs": ["lastNotNull", "max"]}},
+      "targets": [{"expr": "W_value{source=\"home-assistant\"}", "refId": "A", "legendFormat": "{{friendly_name}}"}]
     },
     {
       "type": "timeseries",
       "id": 3,
-      "title": "Illuminance (lux)",
+      "title": "Energy (kWh)",
       "datasource": {"type": "prometheus", "uid": "victoriametrics"},
       "gridPos": {"h": 10, "w": 12, "x": 0, "y": 10},
-      "fieldConfig": {"defaults": {"unit": "lux", "custom": {"drawStyle": "line", "lineWidth": 1, "fillOpacity": 10}}},
+      "fieldConfig": {"defaults": {"unit": "kwatth", "custom": {"drawStyle": "line", "lineWidth": 1, "fillOpacity": 10}}},
       "options": {"legend": {"displayMode": "table", "placement": "right", "calcs": ["lastNotNull"]}},
-      "targets": [{"expr": "lx_value{source=\"home-assistant\"}", "refId": "A", "legendFormat": "{{friendly_name}}"}]
+      "targets": [{"expr": "kWh_value{source=\"home-assistant\"}", "refId": "A", "legendFormat": "{{friendly_name}}"}]
     },
     {
       "type": "timeseries",
       "id": 4,
-      "title": "Voltage",
+      "title": "Current (A)",
       "datasource": {"type": "prometheus", "uid": "victoriametrics"},
       "gridPos": {"h": 10, "w": 12, "x": 12, "y": 10},
-      "fieldConfig": {"defaults": {"unit": "volt", "custom": {"drawStyle": "line", "lineWidth": 1, "fillOpacity": 10}}},
+      "fieldConfig": {"defaults": {"unit": "amp", "custom": {"drawStyle": "line", "lineWidth": 1, "fillOpacity": 10}}},
       "options": {"legend": {"displayMode": "table", "placement": "right", "calcs": ["lastNotNull"]}},
-      "targets": [{"expr": "V_value{source=\"home-assistant\"}", "refId": "A", "legendFormat": "{{friendly_name}}"}]
+      "targets": [{"expr": "A_value{source=\"home-assistant\"}", "refId": "A", "legendFormat": "{{friendly_name}}"}]
     },
     {
       "type": "table",
