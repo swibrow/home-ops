@@ -42,8 +42,9 @@ is unsupported by the Talos API. So after apply, roll the CPs one at a time:
 `talosctl reboot -n 10.20.10.{2,3,1} --wait` (followers first, leader last; quorum
 stays 2/3). Items 1–3 ship via ArgoCD on git push.
 
-**Still pending live check**: ~~Ceph mgr ServiceMonitor~~ (resolved 2026-06-05 — see
-P1 Ceph/Rook), Cilium-agent ServiceMonitor (in progress 2026-06-06).
+**Still pending live check**: ~~Ceph mgr ServiceMonitor~~ (resolved 2026-06-05),
+~~Cilium-agent ServiceMonitor~~ (resolved 2026-06-06 — `serviceMonitor.enabled: true`;
+6/6 agent targets up, 212 `cilium_*` families flowing). **All P1 items resolved.**
 
 ---
 
