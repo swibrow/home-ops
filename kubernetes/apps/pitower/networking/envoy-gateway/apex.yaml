@@ -1,0 +1,229 @@
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: HTTPRouteFilter
+metadata:
+  name: apex
+spec:
+  directResponse:
+    contentType: text/html
+    statusCode: 200
+    # IMPORTANT: Envoy parses this inline body as a substitution format string,
+    # so any literal '%' (CSS percentages, JS modulo) makes Envoy REJECT the whole
+    # xDS snapshot. The CSS/JS below is deliberately percent-free. EG v1.8.0's
+    # ValueRef/ConfigMap path renders an empty 500, so the page is inline.
+    body:
+      type: Inline
+      inline: |
+        <!doctype html>
+        <html lang="en">
+          <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>wibrow.dev · pitower</title>
+            <style>
+              :root {
+                color-scheme: dark;
+                --bg: #0a0e14;
+                --panel: #0d1117;
+                --border: #1f2733;
+                --fg: #c9d1d9;
+                --muted: #6e7a8a;
+                --green: #3fb950;
+                --blue: #58a6ff;
+                --amber: #d29922;
+                --mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", Menlo, Consolas, monospace;
+              }
+              * { box-sizing: border-box; }
+              html, body { margin: 0; }
+              body {
+                min-height: 100vh;
+                display: grid;
+                place-items: center;
+                padding: 1.5rem;
+                font-family: var(--mono);
+                font-variant-ligatures: none;
+                color: var(--fg);
+                background:
+                  radial-gradient(1100px 520px at top center, #131b2a, transparent),
+                  var(--bg);
+              }
+              .term {
+                width: min(760px, 94vw);
+                background: var(--panel);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 24px 60px -20px rgba(0,0,0,0.7);
+              }
+              .bar {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                padding: 0.7rem 0.9rem;
+                border-bottom: 1px solid var(--border);
+                background: #0b0f16;
+              }
+              .dot { width: 12px; height: 12px; border-radius: 999px; }
+              .dot.r { background: #ff5f56; }
+              .dot.y { background: #ffbd2e; }
+              .dot.g { background: #27c93f; }
+              .bar .title { margin-left: auto; color: var(--muted); font-size: 0.78rem; }
+              .body { padding: 1.3rem 1.4rem 1.5rem; font-size: 0.88rem; line-height: 1.65; }
+              .boot .l { opacity: 0; transition: opacity 0.18s ease; white-space: pre-wrap; word-break: break-word; }
+              .boot .l.show { opacity: 1; }
+              .ts { color: var(--muted); }
+              .ok { color: var(--green); }
+              .runline { margin-top: 0.6rem; opacity: 0; transition: opacity 0.2s ease; }
+              .runline.show { opacity: 1; }
+              .prompt .ns { color: var(--blue); }
+              .prompt .sep { color: var(--muted); }
+              .prompt .path { color: var(--green); }
+              .card {
+                margin-top: 1rem;
+                display: flex;
+                gap: 1.4rem;
+                align-items: center;
+                flex-wrap: wrap;
+                opacity: 0;
+                translate: 0 8px;
+                transition: opacity 0.5s ease, translate 0.5s ease;
+              }
+              .card.show { opacity: 1; translate: 0 0; }
+              .logo { flex: 0 0 auto; }
+              .spec { display: grid; grid-template-columns: auto 1fr; gap: 0.05rem 1rem; align-items: baseline; min-width: 16rem; }
+              .spec .k { color: var(--amber); }
+              .spec .v { color: var(--fg); }
+              .spec .who { grid-column: 1 / -1; color: var(--blue); font-weight: 600; }
+              .spec .rule { grid-column: 1 / -1; color: var(--border); letter-spacing: 0.1em; }
+              .foot {
+                margin-top: 1.2rem;
+                padding-top: 0.9rem;
+                border-top: 1px solid var(--border);
+                color: var(--muted);
+                font-size: 0.8rem;
+                line-height: 2;
+              }
+              .foot a { color: var(--blue); text-decoration: none; }
+              .foot a:hover { text-decoration: underline; }
+              @media (prefers-reduced-motion: reduce) {
+                .boot .l, .runline, .card { opacity: 1; translate: 0 0; transition: none; }
+              }
+            </style>
+          </head>
+          <body>
+            <main class="term" role="main">
+              <div class="bar">
+                <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+                <span class="title">pitower · talos · k8s</span>
+              </div>
+              <div class="body">
+                <div class="boot">
+                  <div class="l"><span class="ts">[ 0.000000 ]</span> Talos Linux booting · node pitower</div>
+                  <div class="l"><span class="ts">[ 0.143200 ]</span> cpu: AMD Ryzen · 6 nodes online</div>
+                  <div class="l"><span class="ts">[ 0.318900 ]</span> cilium: eBPF datapath up · kube-proxy replaced</div>
+                  <div class="l"><span class="ts">[ 0.527400 ]</span> etcd: quorum established · 3 members</div>
+                  <div class="l"><span class="ts">[ 0.741100 ]</span> kubelet: all nodes Ready · k8s v1.36.1</div>
+                  <div class="l"><span class="ts">[ 1.024800 ]</span> argocd: reconciled · 80/81 applications Synced</div>
+                  <div class="l"><span class="ts">[ 1.339500 ]</span> envoy-gateway: external · internal · direct listening</div>
+                  <div class="l"><span class="ts">[ 1.662000 ]</span> external-dns: records synced to cloudflare</div>
+                  <div class="l"><span class="ts">[ 1.984300 ]</span> cloudflared: tunnel connected</div>
+                  <div class="l"><span class="ok">  &check; cluster healthy · 198 pods across 28 namespaces</span></div>
+                </div>
+                <div class="runline prompt">
+                  <span class="ns">sam</span><span class="sep">@</span><span class="path">pitower</span><span class="sep">:~$</span> neofetch
+                </div>
+                <div class="card">
+                  <div class="logo">
+                    <svg width="96" height="96" viewBox="0 0 100 100" fill="none" stroke-width="3" stroke-linejoin="round">
+                      <path d="M50 7 L87 28 L87 72 L50 93 L13 72 L13 28 Z" stroke="#58a6ff" />
+                      <path d="M50 31 L69 41 L69 59 L50 69 L31 59 L31 41 Z" stroke="#3fb950" />
+                      <circle cx="50" cy="50" r="4.5" fill="#3fb950" />
+                    </svg>
+                  </div>
+                  <div class="spec">
+                    <div class="who">sam@pitower</div>
+                    <div class="rule">─────────────────────────────</div>
+                    <div class="k">uptime</div><div class="v">362 days</div>
+                    <div class="k">os</div><div class="v">Talos Linux (immutable)</div>
+                    <div class="k">cluster</div><div class="v">pitower · 6 nodes</div>
+                    <div class="k">k8s</div><div class="v">v1.36.1</div>
+                    <div class="k">cni</div><div class="v">Cilium · eBPF / DSR</div>
+                    <div class="k">gitops</div><div class="v">ArgoCD · 81 apps</div>
+                    <div class="k">ingress</div><div class="v">Envoy Gateway</div>
+                    <div class="k">storage</div><div class="v">Rook-Ceph · CNPG</div>
+                    <div class="k">region</div><div class="v">Zürich, CH</div>
+                  </div>
+                </div>
+                <div class="foot">
+                  <span>&rarr;</span>
+                  <a href="https://home.wibrow.dev">home</a> ·
+                  <a href="https://grafana.wibrow.dev">grafana</a> ·
+                  <a href="https://argocd.wibrow.dev">argocd</a> ·
+                  <a href="https://jellyfin.wibrow.dev">jellyfin</a> ·
+                  <a href="https://tools.wibrow.dev">tools</a> ·
+                  <a href="https://miniflux.wibrow.dev">rss</a>
+                  <br />
+                  <span>&rarr;</span>
+                  <a href="https://github.com/swibrow/home-ops">github.com/swibrow/home-ops</a>
+                </div>
+              </div>
+            </main>
+            <noscript>
+              <style>.boot .l, .runline, .card { opacity: 1; translate: 0 0; }</style>
+            </noscript>
+            <script>
+              (function () {
+                var lines = document.querySelectorAll(".boot .l");
+                var run = document.querySelector(".runline");
+                var card = document.querySelector(".card");
+                var i = 0;
+                function step() {
+                  if (i < lines.length) {
+                    lines[i].classList.add("show");
+                    i += 1;
+                    setTimeout(step, 220);
+                  } else {
+                    setTimeout(function () {
+                      run.classList.add("show");
+                      setTimeout(function () { card.classList.add("show"); }, 480);
+                    }, 260);
+                  }
+                }
+                setTimeout(step, 280);
+              })();
+            </script>
+          </body>
+        </html>
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/gateway.networking.k8s.io/httproute_v1.json
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: apex
+  annotations:
+    external-dns.alpha.kubernetes.io/controller: none
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: envoy-external
+      namespace: networking
+      sectionName: https
+  hostnames:
+    - "wibrow.dev"
+  rules:
+    - filters:
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set:
+              - name: Cache-Control
+                value: public, max-age=300
+        - type: ExtensionRef
+          extensionRef:
+            group: gateway.envoyproxy.io
+            kind: HTTPRouteFilter
+            name: apex
+      matches:
+        - path:
+            type: PathPrefix
+            value: /

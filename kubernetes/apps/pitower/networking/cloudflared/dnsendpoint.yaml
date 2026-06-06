@@ -9,6 +9,11 @@ spec:
     - dnsName: "external.wibrow.dev"
       recordType: CNAME
       targets: ["7ee9277a-e2f3-45ae-a0ac-4e85d39fc334.cfargotunnel.com"]
+    # Apex — Cloudflare CNAME-flattens this to the tunnel so wibrow.dev resolves
+    # (the wildcard below does NOT cover the bare apex).
+    - dnsName: "wibrow.dev"
+      recordType: CNAME
+      targets: ["7ee9277a-e2f3-45ae-a0ac-4e85d39fc334.cfargotunnel.com"]
     # Wildcard so any unmatched subdomain resolves to the tunnel and hits the
     # envoy-external fallback 404 route instead of returning NXDOMAIN.
     - dnsName: "*.wibrow.dev"
