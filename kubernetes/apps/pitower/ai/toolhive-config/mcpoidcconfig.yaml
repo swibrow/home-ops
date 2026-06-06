@@ -14,3 +14,8 @@ spec:
     # ("httprc.Client: resource already exists") and every token is rejected.
     issuer: https://idm.wibrow.dev/oauth2/openid/toolhive-mcp
     clientId: toolhive-mcp
+    # idm.wibrow.dev resolves to the envoy-external LB (private 10.20.10.x) inside
+    # the cluster; allow toolhive's JWKS/OIDC + protected-resource fetches to hit
+    # private IPs, otherwise discovery is blocked as an SSRF risk.
+    jwksAllowPrivateIP: true
+    protectedResourceAllowPrivateIP: true
