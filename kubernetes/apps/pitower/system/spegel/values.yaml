@@ -4,7 +4,8 @@ spegel:
 serviceMonitor:
   enabled: true
 
+# Dashboard vendored + patched locally at apps/pitower/monitoring/grafana/dashboards/spegel.json
+# (chart JSON points the pod/registry template variables at an unresolved ${DS_PROMETHEUS}
+# export placeholder, so panels render blank). Keep this disabled to avoid a duplicate uid.
 grafanaDashboard:
-  enabled: true
-  labels:
-    grafana_dashboard: "1"
+  enabled: false

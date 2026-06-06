@@ -32,6 +32,7 @@ configMapGenerator:
   - name: grafana-dashboards-nodes
     files:
       - dashboards/worker-01-fabric-watch.json
+      - dashboards/spegel.json
     options:
       disableNameSuffixHash: true
       labels:
