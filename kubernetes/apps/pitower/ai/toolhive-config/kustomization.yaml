@@ -14,3 +14,4 @@ resources:
   - mcpserver-grafana.yaml
   - mcpserver-kubernetes.yaml
   - mcpserver-argocd.yaml
+  - gateway-reload-hook.yaml

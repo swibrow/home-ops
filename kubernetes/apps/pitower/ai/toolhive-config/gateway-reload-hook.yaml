@@ -1,0 +1,73 @@
+---
+# ArgoCD PostSync hook: re-index the vMCP gateway after the toolhive-config app
+# syncs. The ToolHive operator watches MCPGroup membership but never rolls the
+# vMCP pod (no backend hash on its Deployment), so a newly added MCPServer is
+# not picked up until the gateway restarts. This rolls it on every sync.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: toolhive-gateway-reloader
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: toolhive-gateway-reloader
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "patch"]
+  - apiGroups: ["toolhive.stacklok.dev"]
+    resources: ["mcpservers"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: toolhive-gateway-reloader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: toolhive-gateway-reloader
+subjects:
+  - kind: ServiceAccount
+    name: toolhive-gateway-reloader
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: toolhive-gateway-reload
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 600
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      serviceAccountName: toolhive-gateway-reloader
+      restartPolicy: Never
+      containers:
+        - name: kubectl
+          image: registry.k8s.io/kubectl:v1.36.1
+          env:
+            - name: HOME
+              value: /tmp
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+              echo "Waiting for all MCPServers in ai to become Ready..."
+              kubectl wait --for=jsonpath='{.status.phase}'=Ready \
+                mcpservers.toolhive.stacklok.dev --all -n ai --timeout=300s \
+                || echo "wait timed out or no servers; continuing to restart anyway"
+              echo "Rolling vMCP gateway to re-index backends..."
+              kubectl rollout restart deployment/mcp-gateway-internal -n ai
+              kubectl rollout status deployment/mcp-gateway-internal -n ai --timeout=180s
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
