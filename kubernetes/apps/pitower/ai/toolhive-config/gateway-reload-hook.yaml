@@ -13,9 +13,12 @@ kind: Role
 metadata:
   name: toolhive-gateway-reloader
 rules:
-  - apiGroups: ["apps"]
-    resources: ["deployments"]
-    verbs: ["get", "list", "watch", "patch"]
+  # Delete (not rollout-restart) the gateway pod: the ToolHive operator owns the
+  # Deployment via SSA and reverts a restartedAt annotation, so rollout restart
+  # is a no-op. Deleting the pod forces the ReplicaSet to recreate it.
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch", "delete"]
   - apiGroups: ["toolhive.stacklok.dev"]
     resources: ["mcpservers"]
     verbs: ["get", "list", "watch"]
@@ -59,13 +62,16 @@ spec:
             - -c
             - |
               set -eu
+              sel="app.kubernetes.io/instance=mcp-gateway-internal"
               echo "Waiting for all MCPServers in ai to become Ready..."
               kubectl wait --for=jsonpath='{.status.phase}'=Ready \
                 mcpservers.toolhive.stacklok.dev --all -n ai --timeout=300s \
-                || echo "wait timed out or no servers; continuing to restart anyway"
-              echo "Rolling vMCP gateway to re-index backends..."
-              kubectl rollout restart deployment/mcp-gateway-internal -n ai
-              kubectl rollout status deployment/mcp-gateway-internal -n ai --timeout=180s
+                || echo "wait timed out or no servers; continuing anyway"
+              echo "Deleting vMCP gateway pod to force backend re-index..."
+              kubectl delete pod -l "$sel" -n ai --wait=false
+              sleep 5
+              kubectl wait --for=condition=ready pod -l "$sel" -n ai --timeout=180s
+              echo "vMCP gateway re-indexed."
           resources:
             requests:
               cpu: 10m
