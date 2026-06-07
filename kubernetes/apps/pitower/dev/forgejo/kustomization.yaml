@@ -2,7 +2,7 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: git
+namespace: dev
 resources:
   - externalsecret.yaml
   - httproute.yaml
@@ -22,11 +22,11 @@ configMapGenerator:
       - CLAIM_NAME=forgejo
       - SECRET_NAME=forgejo-volsync
       - STORAGE_SIZE=10Gi
-      - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/git/forgejo
+      - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/dev/forgejo
 helmCharts:
   - name: forgejo
     repo: oci://code.forgejo.org/forgejo-helm
     version: 17.1.0
     releaseName: forgejo
-    namespace: git
+    namespace: dev
     valuesFile: values.yaml

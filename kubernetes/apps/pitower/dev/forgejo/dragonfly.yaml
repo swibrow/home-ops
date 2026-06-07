@@ -3,7 +3,7 @@ apiVersion: dragonflydb.io/v1alpha1
 kind: Dragonfly
 metadata:
   name: forgejo-dragonfly
-  namespace: git
+  namespace: dev
 spec:
   replicas: 1
   # Dragonfly reserves ~256Mi per io thread and refuses to start unless the memory
