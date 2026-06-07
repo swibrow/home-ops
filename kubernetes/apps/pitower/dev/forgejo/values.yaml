@@ -84,8 +84,15 @@ gitea:
     security:
       REVERSE_PROXY_TRUSTED_PROXIES: 10.0.0.0/8
     service:
-      DISABLE_REGISTRATION: true
+      # Allow account creation, but only via external OAuth (kanidm) — no local self-signup.
+      DISABLE_REGISTRATION: false
+      ALLOW_ONLY_EXTERNAL_REGISTRATION: true
       SHOW_REGISTRATION_BUTTON: false
+    oauth2_client:
+      # Auto-create a Forgejo account on first kanidm login (skips the link/register page).
+      ENABLE_AUTO_REGISTRATION: true
+      USERNAME: preferred_username
+      ACCOUNT_LINKING: auto
     indexer:
       ISSUE_INDEXER_TYPE: bleve
       REPO_INDEXER_ENABLED: true
