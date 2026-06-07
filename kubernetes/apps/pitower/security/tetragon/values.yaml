@@ -10,6 +10,10 @@ export:
   mode: "stdout"
 
 tetragon:
+  # hostNetwork agent: default health gRPC port 6789 collides with the Rook
+  # ceph-mon v1 port on mon nodes (worker-03/05/06). Move it off 6789.
+  healthGrpc:
+    port: 6790
   prometheus:
     enabled: true
     serviceMonitor:
