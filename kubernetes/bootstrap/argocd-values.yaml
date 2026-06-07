@@ -7,7 +7,9 @@ global:
 configs:
   cm:
     exec.enabled: true
-    admin.enabled: true
+    # Local admin account disabled — UI/API login is SSO-only (dex/GitHub).
+    # Break-glass: re-enable here, or use `argocd --core` (direct to k8s).
+    admin.enabled: false
     statusbadge.enabled: true
     # Read-only API account for the ToolHive ArgoCD MCP server (token in Infisical)
     accounts.mcp: apiKey
