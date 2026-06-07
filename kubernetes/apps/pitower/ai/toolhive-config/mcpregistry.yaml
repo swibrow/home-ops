@@ -1,0 +1,44 @@
+---
+# yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpregistry_v1beta1.json
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPRegistry
+metadata:
+  name: toolhive-registry
+spec:
+  displayName: Pitower MCP Registry
+  # The operator renders configYAML into a ConfigMap mounted at /config/config.yaml
+  # in the registry-api container and creates a Service named "<name>-api" on :8080
+  # (here: toolhive-registry-api). The kubernetes source auto-discovers MCPServer
+  # CRs in the listed namespaces, but ONLY those annotated
+  # toolhive.stacklok.dev/registry-export: "true" (see mcpserver-*.yaml).
+  configYAML: |
+    sources:
+      - name: cluster
+        kubernetes:
+          namespaces:
+            - ai
+    registries:
+      - name: default
+        sources:
+          - cluster
+    auth:
+      mode: anonymous
+    database:
+      host: toolhive-registry-rw.cloudnative-pg.svc.cluster.local
+      port: 5432
+      user: toolhive_registry
+      database: toolhive_registry
+      sslMode: disable
+  # registry-api has no in-memory mode; Postgres is mandatory. The DB password is
+  # injected via env (Viper THV_REGISTRY_* AutomaticEnv) from the CNPG-derived
+  # secret rather than inlined in the ConfigMap configYAML above.
+  podTemplateSpec:
+    spec:
+      containers:
+        - name: registry-api
+          env:
+            - name: THV_REGISTRY_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: toolhive-registry-db-secrets
+                  key: DB_PASS

@@ -14,4 +14,14 @@ resources:
   - mcpserver-grafana.yaml
   - mcpserver-kubernetes.yaml
   - mcpserver-argocd.yaml
-  - gateway-reload-hook.yaml
+  - mcpregistry.yaml
+components:
+  - ../../../../components/cnpg-db
+configMapGenerator:
+  # Generates the toolhive-registry-db-secrets Secret (DB_HOST/PORT/USER/PASS/NAME)
+  # from the CNPG-managed toolhive-registry-app secret, consumed by the MCPRegistry.
+  - name: cnpg-db-config
+    literals:
+      - APP_NAME=toolhive-registry
+      - SECRET_NAME=toolhive-registry-db-secrets
+      - CNPG_SECRET_KEY=toolhive-registry-app

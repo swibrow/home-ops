@@ -4,6 +4,11 @@ apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServer
 metadata:
   name: grafana
+  annotations:
+    # Opt-in: only annotated MCPServers are exported to the MCPRegistry / Cloud UI.
+    toolhive.stacklok.dev/registry-export: "true"
+    toolhive.stacklok.dev/registry-title: Grafana
+    toolhive.stacklok.dev/registry-description: Query Grafana dashboards, Prometheus, and Loki.
 spec:
   image: docker.io/grafana/mcp-grafana:0.15.2
   transport: sse

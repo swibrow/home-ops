@@ -12,6 +12,27 @@ spec:
       namespace: networking
       sectionName: https
   rules:
-    - backendRefs:
+    # MCP protocol traffic — both streamable-http (POST) and SSE (GET) carry
+    # `Accept: ... text/event-stream`. This rule has a header match, so by Gateway
+    # API precedence it outranks the catch-all `/` rule below for those requests,
+    # and MCP clients keep using https://mcp.wibrow.dev unchanged. Browser/UI
+    # traffic (no event-stream Accept) falls through to the Cloud UI.
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+          headers:
+            - name: accept
+              type: RegularExpression
+              value: .*text/event-stream.*
+      backendRefs:
         - name: vmcp-mcp-gateway-internal
           port: 4483
+    # Everything else → ToolHive Cloud UI (registry browser) on root.
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: toolhive-ui
+          port: 3000
