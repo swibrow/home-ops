@@ -30,7 +30,9 @@ configs:
     reposerver.parallelism.limit: "4"
 
   rbac:
-    policy.default: role:admin
+    # Default is read-only, NOT admin — admin must be granted explicitly below.
+    # (role:admin default would silently give every account, incl. mcp, admin.)
+    policy.default: role:readonly
     policy: |
       # Admin role assignments
       g, sam.wibrow@gmail.com, role:admin
