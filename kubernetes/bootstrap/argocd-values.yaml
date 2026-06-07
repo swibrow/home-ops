@@ -35,7 +35,9 @@ configs:
     # Default is read-only, NOT admin — admin must be granted explicitly below.
     # (role:admin default would silently give every account, incl. mcp, admin.)
     policy.default: role:readonly
-    policy: |
+    # MUST be `policy.csv` — ArgoCD ignores a bare `policy` key, so these
+    # bindings were silently inert before (default-admin masked it).
+    policy.csv: |
       # Admin role assignments. Dex/GitHub enforces RBAC on the GitHub numeric
       # user id (sub), not the email — bind both so admin matches regardless.
       g, 15628653, role:admin
