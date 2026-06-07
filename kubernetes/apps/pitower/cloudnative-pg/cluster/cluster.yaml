@@ -58,26 +58,6 @@ spec:
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
-  name: lldap
-  namespace: cloudnative-pg
-spec:
-  instances: 2
-  imageName: ghcr.io/cloudnative-pg/postgresql:16
-  enableSuperuserAccess: true
-  bootstrap:
-    initdb:
-      database: lldap
-      owner: lldap
-  storage:
-    size: 100Mi
-    storageClass: openebs-hostpath
-  monitoring:
-    enablePodMonitor: true
----
-# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/postgresql.cnpg.io/cluster_v1.json
-apiVersion: postgresql.cnpg.io/v1
-kind: Cluster
-metadata:
   name: firefly
   namespace: cloudnative-pg
 spec:

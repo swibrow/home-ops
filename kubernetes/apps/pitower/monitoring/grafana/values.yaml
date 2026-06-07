@@ -94,9 +94,6 @@ datasources:
           implementation: prometheus
 dashboards:
   default:
-    authelia:
-      url: https://raw.githubusercontent.com/authelia/authelia/master/examples/grafana-dashboards/simple.json
-      datasource: Prometheus
     cloudflared:
       gnetId: 17457 # https://grafana.com/grafana/dashboards/17457?tab=revisions
       revision: 6

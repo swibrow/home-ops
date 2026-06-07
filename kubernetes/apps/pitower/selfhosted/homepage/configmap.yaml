@@ -213,15 +213,6 @@ data:
             icon: obsidian.svg
             href: https://obsidian.wibrow.dev
             description: Notes sync
-    - Security:
-        - Authelia:
-            icon: authelia.svg
-            href: https://auth.wibrow.dev
-            description: Authentication
-        - LLDAP:
-            icon: mdi-account-group
-            href: https://lldap.wibrow.dev
-            description: LDAP directory
     - Monitoring:
         - Gatus:
             icon: gatus.svg
