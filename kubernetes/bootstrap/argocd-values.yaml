@@ -9,6 +9,8 @@ configs:
     exec.enabled: true
     admin.enabled: true
     statusbadge.enabled: true
+    # Read-only API account for the ToolHive ArgoCD MCP server (token in Infisical)
+    accounts.mcp: apiKey
     kustomize.buildOptions: --enable-helm --load-restrictor LoadRestrictionsNone
     dex.config: |
       connectors:
@@ -32,6 +34,8 @@ configs:
     policy: |
       # Admin role assignments
       g, sam.wibrow@gmail.com, role:admin
+      # MCP server account — read-only (also enforced app-side via MCP_READ_ONLY)
+      g, mcp, role:readonly
     scopes: "[groups, email]"
 
   clusterCredentials: {}

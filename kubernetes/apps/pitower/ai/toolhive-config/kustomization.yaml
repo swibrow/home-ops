@@ -13,3 +13,4 @@ resources:
   - mcpserver-home-assistant.yaml
   - mcpserver-grafana.yaml
   - mcpserver-kubernetes.yaml
+  - mcpserver-argocd.yaml
