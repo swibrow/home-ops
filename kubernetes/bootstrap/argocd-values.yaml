@@ -36,7 +36,9 @@ configs:
     # (role:admin default would silently give every account, incl. mcp, admin.)
     policy.default: role:readonly
     policy: |
-      # Admin role assignments
+      # Admin role assignments. Dex/GitHub enforces RBAC on the GitHub numeric
+      # user id (sub), not the email — bind both so admin matches regardless.
+      g, 15628653, role:admin
       g, sam.wibrow@gmail.com, role:admin
       # MCP server account — read-only (also enforced app-side via MCP_READ_ONLY)
       g, mcp, role:readonly
