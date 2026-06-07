@@ -3,9 +3,10 @@
 # has no native OIDC). Requires a kanidm OAuth2 client named "code-server":
 #   kanidm system oauth2 create code-server "Code Server" https://claude.wibrow.dev
 #   kanidm system oauth2 add-redirect-url code-server https://claude.wibrow.dev/oauth2/callback
-#   kanidm system oauth2 update-scope-map code-server <group> openid email profile
-#   kanidm system oauth2 warning-insecure-client-disable-pkce code-server  # EG 1.8 OIDC has no PKCE
+#   kanidm system oauth2 update-scope-map code-server app_access openid email profile
 #   kanidm system oauth2 show-basic-secret code-server  # -> Infisical /ai/claude-code/oidc-client-secret
+# EG v1.8 sends PKCE (S256) by default, so keep PKCE enabled on the kanidm client.
+# Only members of the app_access group can log in.
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: SecurityPolicy
 metadata:
