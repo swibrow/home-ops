@@ -1,0 +1,22 @@
+---
+# Render all CRDs (TracingPolicy etc.) into the chart so ArgoCD owns them
+# declaratively, rather than letting the operator install them out-of-band.
+crds:
+  installMethod: helm
+
+# Export events to a stdout sidecar so they land in the cluster log pipeline
+# (VictoriaLogs), queryable in Grafana.
+export:
+  mode: "stdout"
+
+tetragon:
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+
+tetragonOperator:
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: true
