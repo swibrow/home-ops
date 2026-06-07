@@ -7,7 +7,7 @@ controllers:
       app:
         image:
           repository: cupcakearmy/cryptgeon
-          tag: 2.9.1
+          tag: 2.9.2
         env:
           REDIS: redis://localhost:6379
           SIZE_LIMIT: "104857600" # 100MB
