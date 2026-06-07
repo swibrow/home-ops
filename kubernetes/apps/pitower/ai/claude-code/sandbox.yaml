@@ -33,7 +33,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: code-server
-          image: ghcr.io/swibrow/claude-code:2.1.167
+          image: ghcr.io/swibrow/claude-code-sandbox:2.1.167
           # Auth is enforced upstream by the Envoy Gateway SecurityPolicy (OIDC via
           # kanidm), so code-server itself runs without a password. Authenticate
           # Claude with `claude login` in the terminal — the token persists on the PVC.
