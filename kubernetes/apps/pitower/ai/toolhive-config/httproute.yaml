@@ -12,6 +12,19 @@ spec:
       namespace: networking
       sectionName: https
   rules:
+    # OAuth protected-resource metadata (RFC 9728). MCP clients (claude.ai) GET
+    # this from the 401 WWW-Authenticate `resource_metadata` hint, WITHOUT an
+    # event-stream Accept header — so without this explicit rule it falls through
+    # to the Cloud UI and 404s, and OAuth discovery never starts. PathPrefix is
+    # more specific than `/`, so it outranks both rules below. Covers the
+    # path-suffixed variants (…/oauth-protected-resource/mcp) too.
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /.well-known/oauth-protected-resource
+      backendRefs:
+        - name: vmcp-mcp-gateway-internal
+          port: 4483
     # MCP protocol traffic — both streamable-http (POST) and SSE (GET) carry
     # `Accept: ... text/event-stream`. This rule has a header match, so by Gateway
     # API precedence it outranks the catch-all `/` rule below for those requests,
