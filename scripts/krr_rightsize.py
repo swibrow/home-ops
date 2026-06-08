@@ -15,6 +15,8 @@ import argparse
 import json
 import math
 import sys
+import urllib.parse
+import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -94,6 +96,52 @@ def parse_mem(value) -> float | None:
         return None
 
 
+def prom_instant_query(base_url: str, query: str, *, timeout: int = 60) -> float | None:
+    """Run a Prometheus instant query, returning the first scalar value or None."""
+    url = base_url.rstrip("/") + "/api/v1/query?" + urllib.parse.urlencode({"query": query})
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as resp:  # noqa: S310 (in-cluster URL)
+            payload = json.loads(resp.read().decode())
+    except Exception as exc:  # network/JSON errors → fall back to KRR's value
+        print(f"# prometheus query failed: {exc}", file=sys.stderr)
+        return None
+    if payload.get("status") != "success":
+        return None
+    result = payload.get("data", {}).get("result") or []
+    if not result:
+        return None
+    try:
+        return float(result[0]["value"][1])
+    except (KeyError, IndexError, ValueError, TypeError):
+        return None
+
+
+def avg_memory_bytes(
+    base_url: str,
+    namespace: str,
+    container: str,
+    pods: list,
+    *,
+    window: str,
+) -> float | None:
+    """Trailing-average working-set bytes for a container across the workload's pods.
+
+    KRR's simple strategy only ever recommends peak (max-of-window) memory, so to set
+    *requests* to the steady-state average we query Prometheus directly, scoped to the
+    exact pod names KRR reported for this workload.
+    """
+    names = [p.get("name") for p in pods if isinstance(p, dict) and p.get("name")]
+    if not names:
+        return None
+    pod_re = "|".join(names)
+    query = (
+        "avg(avg_over_time(container_memory_working_set_bytes{"
+        f'namespace="{namespace}",container="{container}",pod=~"{pod_re}"'
+        f"}}[{window}]))"
+    )
+    return prom_instant_query(base_url, query)
+
+
 def index_app_template_apps() -> dict[tuple[str, str], tuple[Path, str, str]]:
     """Return {(namespace, deployment_name): (values_path, release, controller_key)}."""
     yaml = YAML(typ="safe")
@@ -151,6 +199,8 @@ def apply_recommendations(
     min_cpu_abs: float,
     min_mem_abs: float,
     dry_run: bool,
+    prometheus_url: str | None = None,
+    avg_window: str = "14d",
 ) -> tuple[list[Change], list[str]]:
     krr = json.loads(krr_path.read_text())
     index = index_app_template_apps()
@@ -167,6 +217,16 @@ def apply_recommendations(
         rec = (scan.get("recommended") or {}).get("requests") or {}
         rec_cpu = rec.get("cpu", {}).get("value") if isinstance(rec.get("cpu"), dict) else None
         rec_mem = rec.get("memory", {}).get("value") if isinstance(rec.get("memory"), dict) else None
+
+        # Override KRR's peak memory with the trailing average working-set so that
+        # requests reflect steady-state usage (KRR offers no memory-average mode).
+        if prometheus_url:
+            avg_mem = avg_memory_bytes(
+                prometheus_url, ns, container, obj.get("pods") or [], window=avg_window
+            )
+            if isinstance(avg_mem, (int, float)) and avg_mem > 0:
+                rec_mem = avg_mem
+
         if not isinstance(rec_cpu, (int, float)) and not isinstance(rec_mem, (int, float)):
             continue
 
@@ -227,7 +287,17 @@ def main() -> int:
     ap.add_argument("--min-cpu-abs", type=float, default=0.01, help="min CPU delta in cores (default 10m)")
     ap.add_argument("--min-mem-abs", type=float, default=50 * 1024 * 1024, help="min mem delta in bytes (default 50Mi)")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument(
+        "--avg-memory",
+        action="store_true",
+        help="set memory requests to the trailing-average working set (queried from Prometheus) instead of KRR's peak",
+    )
+    ap.add_argument("--prometheus-url", default=None, help="Prometheus base URL (required for --avg-memory)")
+    ap.add_argument("--avg-window", default="14d", help="averaging window for --avg-memory (default 14d)")
     args = ap.parse_args()
+
+    if args.avg_memory and not args.prometheus_url:
+        ap.error("--avg-memory requires --prometheus-url")
 
     changes, skipped = apply_recommendations(
         args.krr_json,
@@ -235,6 +305,8 @@ def main() -> int:
         min_cpu_abs=args.min_cpu_abs,
         min_mem_abs=args.min_mem_abs,
         dry_run=args.dry_run,
+        prometheus_url=args.prometheus_url if args.avg_memory else None,
+        avg_window=args.avg_window,
     )
 
     if changes:
