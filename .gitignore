@@ -69,3 +69,4 @@ site/
 .venv/
 
 .secrets/
+.gstack/
