@@ -1,4 +1,4 @@
-name: Drydock
+name: ArgoCD Diff
 
 on:
   pull_request:
