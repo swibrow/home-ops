@@ -1,3 +1,25 @@
+machine:
+  # The control-plane nodes (worker-01/02/03, 16Gi) also run app workloads
+  # (allowSchedulingOnControlPlanes), so they run chronically hot (~85% mem).
+  # Without reserved headroom an app-load spike (e.g. the hourly Renovate burst)
+  # starves/jams the apiserver until kubelet liveness-kills it (exit 137), and
+  # every reconnecting client thunders the next one — a control-plane death
+  # spiral (2026-06-08). Carve out memory/CPU for the host services (etcd runs
+  # as a Talos service, not a pod) and evict low-priority app pods early, while
+  # the static control-plane pods (system-node-critical) are evicted last.
+  # Merges with the cluster-wide kubelet.extraConfig in shared/patches/general.patch.
+  kubelet:
+    extraConfig:
+      systemReserved:
+        cpu: 500m
+        memory: 1536Mi
+      kubeReserved:
+        cpu: 500m
+        memory: 512Mi
+      evictionHard:
+        memory.available: "750Mi"
+        nodefs.available: "10%"
+        imagefs.available: "15%"
 cluster:
   allowSchedulingOnControlPlanes: true
   coreDNS:

@@ -8,7 +8,22 @@ spec:
   # renovate: datasource=docker depName=ghcr.io/renovatebot/renovate
   image: ghcr.io/renovatebot/renovate:43.216.1
   schedule: "0 * * * *"
-  parallelism: 5
+  # Keep the hourly fan-out gentle. At parallelism 5 the burst of executor pods
+  # (512Mi-1.5Gi each) landed on the control-plane nodes and tipped the already
+  # memory-saturated apiservers into a liveness-kill death spiral (2026-06-08).
+  parallelism: 2
+  # Pin executors OFF the control-plane nodes (worker-01/02/03). They are the
+  # only 16Gi nodes so they double as app nodes, but the apiserver/etcd live
+  # there too — a renovate burst must not compete with them. DoesNotExist on the
+  # control-plane role label forces executors onto worker-05/06 (worker-04 is
+  # walled off by its media-home taint, which renovate does not tolerate).
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: DoesNotExist
   provider:
     name: github
   githubAppReference:
