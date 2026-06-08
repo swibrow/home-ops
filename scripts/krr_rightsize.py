@@ -1,12 +1,33 @@
 #!/usr/bin/env python3
-"""Apply KRR recommendations to app-template values.yaml files.
+"""Apply KRR recommendations to resource requests across the repo.
 
-Reads KRR JSON output, locates the corresponding values.yaml under
-kubernetes/apps/pitower/<namespace>/<app>/, and updates
-controllers.<ctrl>.containers.<container>.resources.requests.{cpu,memory}.
+Two complementary mechanisms feed the same patching logic:
 
-Skips workloads that aren't bjw-s-labs/app-template charts and any
-delta below the configured thresholds.
+1. **app-template auto-discovery** — for bjw-s-labs/app-template charts the
+   structure is uniform, so the script locates the values.yaml under
+   kubernetes/apps/pitower/<namespace>/<app>/ and updates
+   controllers.<ctrl>.containers.<container>.resources.requests.{cpu,memory}.
+
+2. **inline marker comments** — for every other chart/CR schema (rook, envoy,
+   victoria-metrics, dragonfly, toolhive, crowdsec, ...) the KRR→block mapping
+   can't be inferred, so it is declared explicitly. Annotate any `resources:`
+   block with a comment on (or directly above) the `resources:` line:
+
+       # krr: <workload-name>/<container>[@<namespace>]
+       resources:
+         requests:
+           cpu: 100m
+           memory: 512Mi
+
+   <workload-name>/<container> must match KRR's reported object name + container
+   (i.e. `kubectl`'s deployment/statefulset/daemonset name). Namespace defaults
+   to the sibling kustomization.yaml's `namespace:` (or the category dir); use
+   `@<namespace>` to override. The marked block's requests are patched in place,
+   regardless of how the surrounding chart nests it. Multi-document files are
+   supported.
+
+Skips any delta below the configured thresholds. A workload with neither an
+app-template match nor a marker is left untouched (and reported on stderr).
 """
 
 from __future__ import annotations
@@ -14,6 +35,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import re
 import sys
 import urllib.parse
 import urllib.request
@@ -192,6 +214,187 @@ def should_change(current, recommended, *, kind: str, min_pct: float, min_abs: f
     return (delta / current) >= min_pct
 
 
+def compute_rec(scan: dict, prometheus_url: str | None, avg_window: str) -> tuple[float | None, float | None]:
+    """Extract (cpu_cores, memory_bytes) from a KRR scan, overriding memory with
+    the trailing-average working set when a Prometheus URL is supplied."""
+    obj = scan.get("object") or {}
+    rec = (scan.get("recommended") or {}).get("requests") or {}
+    rec_cpu = rec.get("cpu", {}).get("value") if isinstance(rec.get("cpu"), dict) else None
+    rec_mem = rec.get("memory", {}).get("value") if isinstance(rec.get("memory"), dict) else None
+    if prometheus_url:
+        avg_mem = avg_memory_bytes(
+            prometheus_url, obj.get("namespace"), obj.get("container"), obj.get("pods") or [], window=avg_window
+        )
+        if isinstance(avg_mem, (int, float)) and avg_mem > 0:
+            rec_mem = avg_mem
+    return rec_cpu, rec_mem
+
+
+def apply_to_requests(
+    requests,
+    rec_cpu,
+    rec_mem,
+    *,
+    path: Path,
+    ns: str,
+    ctrl: str,
+    container: str,
+    min_pct: float,
+    min_cpu_abs: float,
+    min_mem_abs: float,
+) -> list[Change]:
+    """Patch cpu/memory on a requests mapping in place, returning the changes made."""
+    out: list[Change] = []
+    if isinstance(rec_cpu, (int, float)):
+        current = parse_cpu(requests.get("cpu"))
+        if should_change(current, rec_cpu, kind="cpu", min_pct=min_pct, min_abs=min_cpu_abs):
+            before, after = str(requests.get("cpu", "<unset>")), fmt_cpu(rec_cpu)
+            if before != after:
+                requests["cpu"] = after
+                out.append(Change(path, ns, ctrl, container, "cpu", before, after))
+    if isinstance(rec_mem, (int, float)):
+        current = parse_mem(requests.get("memory"))
+        if should_change(current, rec_mem, kind="memory", min_pct=min_pct, min_abs=min_mem_abs):
+            before, after = str(requests.get("memory", "<unset>")), fmt_mem(rec_mem)
+            if before != after:
+                requests["memory"] = after
+                out.append(Change(path, ns, ctrl, container, "memory", before, after))
+    return out
+
+
+MARKER_RE = re.compile(r"#\s*krr:\s*([^\s#]+)")
+
+
+def parse_marker(spec: str) -> tuple[str, str, str | None] | None:
+    """Parse a marker spec `<workload>/<container>[@<namespace>]`."""
+    ns = None
+    if "@" in spec:
+        spec, ns = spec.rsplit("@", 1)
+    if "/" not in spec:
+        return None
+    name, _, container = spec.partition("/")
+    if not name or not container:
+        return None
+    return name, container, (ns or None)
+
+
+def resolve_namespace(path: Path) -> str | None:
+    """Namespace for a marked file: sibling kustomization's namespace, else the
+    category directory (kubernetes/apps/<cluster>/<category>/<app>/...)."""
+    kust = path.parent / "kustomization.yaml"
+    if kust.exists():
+        try:
+            kdata = YAML(typ="safe").load(kust.read_text()) or {}
+        except Exception:
+            kdata = {}
+        if kdata.get("namespace"):
+            return kdata["namespace"]
+    try:
+        return path.relative_to(APPS_ROOT).parts[0]
+    except ValueError:
+        return None
+
+
+def collect_resource_blocks(node, out: list) -> None:
+    """Recursively collect (line, requests_map) for every `resources` mapping that
+    has a `requests` child. `line` is the 0-indexed source line of the
+    `resources:` key (absolute within the document stream)."""
+    if hasattr(node, "items"):
+        lc = getattr(node, "lc", None)
+        for k, v in node.items():
+            if k == "resources" and hasattr(v, "get") and isinstance(v.get("requests"), dict):
+                line = lc.data[k][0] if (lc is not None and k in getattr(lc, "data", {})) else None
+                out.append((line, v["requests"]))
+            collect_resource_blocks(v, out)
+    elif isinstance(node, list):
+        for item in node:
+            collect_resource_blocks(item, out)
+
+
+def _marker_yaml() -> YAML:
+    yaml = YAML()
+    yaml.preserve_quotes = True
+    yaml.width = 4096
+    yaml.indent(mapping=2, sequence=4, offset=2)
+    return yaml
+
+
+def apply_marker_recommendations(
+    scan_index: dict[tuple, dict],
+    *,
+    skip_paths: set[Path],
+    prometheus_url: str | None,
+    avg_window: str,
+    min_pct: float,
+    min_cpu_abs: float,
+    min_mem_abs: float,
+    dry_run: bool,
+) -> tuple[list[Change], list[str]]:
+    """Patch resource requests on `# krr: <workload>/<container>`-marked blocks in
+    any (non-app-template) YAML under APPS_ROOT."""
+    changes: list[Change] = []
+    skipped: list[str] = []
+
+    for path in sorted(APPS_ROOT.rglob("*.yaml")):
+        if "/charts/" in str(path) or path in skip_paths:
+            continue
+        text = path.read_text()
+        if "krr:" not in text:
+            continue
+
+        markers = []
+        for lineno, line in enumerate(text.splitlines(), start=1):
+            m = MARKER_RE.search(line)
+            if not m:
+                continue
+            parsed = parse_marker(m.group(1))
+            if parsed:
+                markers.append((lineno, *parsed))
+        if not markers:
+            continue
+
+        rel = path.relative_to(REPO_ROOT)
+        yaml = _marker_yaml()
+        try:
+            docs = list(yaml.load_all(text))
+        except Exception as exc:
+            skipped.append(f"{rel}: marker file parse error ({exc})")
+            continue
+
+        blocks: list = []
+        for doc in docs:
+            collect_resource_blocks(doc, blocks)
+        blocks = sorted([b for b in blocks if b[0] is not None], key=lambda b: b[0])
+
+        file_changes: list[Change] = []
+        for lineno, name, container, marker_ns in markers:
+            ns = marker_ns or resolve_namespace(path)
+            scan = scan_index.get((ns, name, container))
+            if scan is None:
+                skipped.append(f"{ns}/{name}/{container}: marker in {rel}:{lineno} has no matching krr scan")
+                continue
+            # Nearest resources block at or below the marker line.
+            cand = [b for b in blocks if b[0] + 1 >= lineno]
+            if not cand:
+                skipped.append(f"{ns}/{name}/{container}: marker in {rel}:{lineno} has no resources block below it")
+                continue
+            requests = cand[0][1]
+            rec_cpu, rec_mem = compute_rec(scan, prometheus_url, avg_window)
+            file_changes += apply_to_requests(
+                requests, rec_cpu, rec_mem,
+                path=path, ns=ns, ctrl=name, container=container,
+                min_pct=min_pct, min_cpu_abs=min_cpu_abs, min_mem_abs=min_mem_abs,
+            )
+
+        if file_changes:
+            changes += file_changes
+            if not dry_run:
+                with path.open("w") as f:
+                    yaml.dump_all(docs, f)
+
+    return changes, skipped
+
+
 def apply_recommendations(
     krr_path: Path,
     *,
@@ -207,6 +410,13 @@ def apply_recommendations(
     changes: list[Change] = []
     skipped: list[str] = []
 
+    # Reverse lookup for the marker pass: (namespace, workload, container) -> scan.
+    scan_index: dict[tuple, dict] = {}
+    for scan in krr.get("scans", []):
+        o = scan.get("object") or {}
+        scan_index[(o.get("namespace"), o.get("name"), o.get("container"))] = scan
+
+    # --- Pass 1: app-template charts (auto-discovered) ---
     file_states: dict[Path, tuple[YAML, object]] = {}
 
     for scan in krr.get("scans", []):
@@ -214,24 +424,14 @@ def apply_recommendations(
         ns = obj.get("namespace")
         name = obj.get("name")
         container = obj.get("container")
-        rec = (scan.get("recommended") or {}).get("requests") or {}
-        rec_cpu = rec.get("cpu", {}).get("value") if isinstance(rec.get("cpu"), dict) else None
-        rec_mem = rec.get("memory", {}).get("value") if isinstance(rec.get("memory"), dict) else None
 
-        # Override KRR's peak memory with the trailing average working-set so that
-        # requests reflect steady-state usage (KRR offers no memory-average mode).
-        if prometheus_url:
-            avg_mem = avg_memory_bytes(
-                prometheus_url, ns, container, obj.get("pods") or [], window=avg_window
-            )
-            if isinstance(avg_mem, (int, float)) and avg_mem > 0:
-                rec_mem = avg_mem
-
+        rec_cpu, rec_mem = compute_rec(scan, prometheus_url, avg_window)
         if not isinstance(rec_cpu, (int, float)) and not isinstance(rec_mem, (int, float)):
             continue
 
         target = index.get((ns, name))
         if target is None:
+            # Not app-template — a marker may still cover it in pass 2.
             skipped.append(f"{ns}/{name}/{container}: no app-template match")
             continue
         values_path, _release, ctrl_key = target
@@ -252,30 +452,35 @@ def apply_recommendations(
 
         resources = cdef.setdefault("resources", {})
         requests = resources.setdefault("requests", {})
-
-        if isinstance(rec_cpu, (int, float)):
-            current = parse_cpu(requests.get("cpu"))
-            if should_change(current, rec_cpu, kind="cpu", min_pct=min_pct, min_abs=min_cpu_abs):
-                before = str(requests.get("cpu", "<unset>"))
-                after = fmt_cpu(rec_cpu)
-                if before != after:
-                    requests["cpu"] = after
-                    changes.append(Change(values_path, ns, ctrl_key, container, "cpu", before, after))
-
-        if isinstance(rec_mem, (int, float)):
-            current = parse_mem(requests.get("memory"))
-            if should_change(current, rec_mem, kind="memory", min_pct=min_pct, min_abs=min_mem_abs):
-                before = str(requests.get("memory", "<unset>"))
-                after = fmt_mem(rec_mem)
-                if before != after:
-                    requests["memory"] = after
-                    changes.append(Change(values_path, ns, ctrl_key, container, "memory", before, after))
+        changes += apply_to_requests(
+            requests, rec_cpu, rec_mem,
+            path=values_path, ns=ns, ctrl=ctrl_key, container=container,
+            min_pct=min_pct, min_cpu_abs=min_cpu_abs, min_mem_abs=min_mem_abs,
+        )
 
     if not dry_run:
         for path, (yaml, vdata) in file_states.items():
             if any(c.path == path for c in changes):
                 with path.open("w") as f:
                     yaml.dump(vdata, f)
+
+    # --- Pass 2: everything else, via inline `# krr:` markers ---
+    marker_changes, marker_skipped = apply_marker_recommendations(
+        scan_index,
+        skip_paths={t[0] for t in index.values()},
+        prometheus_url=prometheus_url,
+        avg_window=avg_window,
+        min_pct=min_pct,
+        min_cpu_abs=min_cpu_abs,
+        min_mem_abs=min_mem_abs,
+        dry_run=dry_run,
+    )
+    changes += marker_changes
+
+    # A scan covered by a marker is no longer "skipped" — drop those notes.
+    marked_keys = {(c.namespace, c.controller, c.container) for c in marker_changes}
+    skipped = [s for s in skipped if not any(s.startswith(f"{ns}/{nm}/{ct}:") for (ns, nm, ct) in marked_keys)]
+    skipped += marker_skipped
 
     return changes, skipped
 
