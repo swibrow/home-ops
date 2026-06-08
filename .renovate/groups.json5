@@ -63,6 +63,15 @@
       separateMinorPatch: true,
     },
     {
+      description: "Group all GitHub Actions patch updates",
+      groupName: "github-actions",
+      matchManagers: ["github-actions"],
+      matchUpdateTypes: ["patch"],
+      group: {
+        commitMessageTopic: "{{{groupName}}} group",
+      },
+    },
+    {
       description: "silence-operator image and CRD",
       groupName: "silence-operator",
       matchPackagePatterns: ["silence-operator"],
