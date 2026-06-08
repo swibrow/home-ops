@@ -48,6 +48,7 @@ spec:
               upstream_service_time_ms: '%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%'
               client_ip: '%DOWNSTREAM_REMOTE_ADDRESS_WITHOUT_PORT%'
               xff: '%REQ(X-FORWARDED-FOR)%'
+              cf_connecting_ip: '%REQ(CF-CONNECTING-IP)%'
               user_agent: '%REQ(USER-AGENT)%'
               referer: '%REQ(REFERER)%'
               request_id: '%REQ(X-REQUEST-ID)%'

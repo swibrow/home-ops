@@ -16,10 +16,6 @@ config:
         nodes:
           - filter: "evt.Parsed.message != ''"
             statics:
-              # xff carries the real client IP through the Cloudflare tunnel
-              # (ClientTrafficPolicy numTrustedHops: 1). Refine if xff is a list.
-              - meta: source_ip
-                expression: "JsonExtract(evt.Parsed.message, 'xff')"
               - meta: http_verb
                 expression: "JsonExtract(evt.Parsed.message, 'method')"
               - meta: http_path
@@ -34,6 +30,23 @@ config:
                 expression: "JsonExtract(evt.Parsed.message, 'host')"
               - target: evt.StrTime
                 expression: "JsonExtract(evt.Parsed.message, 'start_time')"
+          # Real client IP resolution, in priority order. Behind the Cloudflare
+          # tunnel, xff/client_ip are just cloudflared's pod IP — the real client
+          # is in CF-Connecting-IP. Fall back to xff then the peer for non-CF
+          # paths (envoy-direct, internal). Each guarded by an IP-shaped regex so
+          # null/"-"/lists don't poison source_ip.
+          - filter: "JsonExtract(evt.Parsed.message, 'cf_connecting_ip') matches '^[0-9a-fA-F:.]+$'"
+            statics:
+              - meta: source_ip
+                expression: "JsonExtract(evt.Parsed.message, 'cf_connecting_ip')"
+          - filter: "evt.Meta.source_ip == '' && JsonExtract(evt.Parsed.message, 'xff') matches '^[0-9a-fA-F:.]+$'"
+            statics:
+              - meta: source_ip
+                expression: "JsonExtract(evt.Parsed.message, 'xff')"
+          - filter: "evt.Meta.source_ip == '' && JsonExtract(evt.Parsed.message, 'client_ip') matches '^[0-9a-fA-F:.]+$'"
+            statics:
+              - meta: source_ip
+                expression: "JsonExtract(evt.Parsed.message, 'client_ip')"
 
 lapi:
   enabled: true
