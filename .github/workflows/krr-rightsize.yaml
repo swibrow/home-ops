@@ -96,7 +96,7 @@ jobs:
 
           This branch is refreshed in place each week rather than opening a new PR per run.
 
-          Skipped charts that are not bjw-s app-template (argocd, rook-ceph, cnpg, victoria-metrics, etc.).
+          Coverage: bjw-s app-template charts are matched automatically; other charts/CRs (rook, envoy, victoria-metrics, dragonfly, crowdsec, ...) are patched only where a `# krr: <workload>/<container>` marker comment annotates the resources block. Anything with neither a match nor a marker is left untouched.
           EOF
           )
           gh label create automation \
