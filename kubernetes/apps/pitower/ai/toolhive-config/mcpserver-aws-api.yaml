@@ -50,11 +50,13 @@ spec:
       value: no-auth
     # ToolHive runs the workload with a read-only root filesystem, so the server
     # can't find a writable temp/working dir (gettempdir() fails on /tmp). Point
-    # HOME + the working dir at the emptyDir mounted below.
+    # HOME + the working dir at the emptyDir mounted below. The server validates
+    # that AWS_API_MCP_WORKING_DIR already EXISTS (it won't mkdir), so use /tmp
+    # itself — the emptyDir mount point — not a subdir that nothing creates.
     - name: HOME
       value: /tmp
     - name: AWS_API_MCP_WORKING_DIR
-      value: /tmp/workdir
+      value: /tmp
   # emptyDir for /tmp — the only writable path under the read-only rootfs. The
   # CRD `volumes` field is hostPath-only, so this goes via podTemplateSpec
   # (workload container is named "mcp").
