@@ -6,6 +6,11 @@ global:
   priorityClassName: system-cluster-critical
 configs:
   cm:
+    # Slow app reconciliation (was 120s) + jitter to spread reconciles out,
+    # cutting Application event churn + apiserver LIST load. Raised during a
+    # control-plane OOM incident driven by a 116k-Event watch-cache bloat.
+    timeout.reconciliation: 300s
+    timeout.reconciliation.jitter: 60s
     exec.enabled: true
     # Local admin account disabled — UI/API login is SSO-only (dex/GitHub).
     # Break-glass: re-enable here, or use `argocd --core` (direct to k8s).
