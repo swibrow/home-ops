@@ -16,7 +16,7 @@ jobs:
     runs-on: home-ops
     steps:
       - name: Drydock render, test and diff
-        uses: sholdee/drydock/pr-action@v0.1.18
+        uses: sholdee/drydock/pr-action@44517ae22ae64618dc8e4104e94a5a25c47b5e79 # v0.1.18
         with:
           version: v0.1.18
           # Self-hosted runner can't write to /usr/local/bin; use a writable dir.
