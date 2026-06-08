@@ -228,6 +228,12 @@ spec:
     initdb:
       database: toolhive_registry
       owner: toolhive_registry
+      # The registry-api migrations run as the owner and CREATE ROLE a
+      # least-privilege app role (toolhive_registry_server), so the owner needs
+      # CREATEROLE. Runs as superuser at bootstrap; applied manually on the
+      # already-bootstrapped cluster.
+      postInitApplicationSQL:
+        - ALTER ROLE toolhive_registry CREATEROLE;
   storage:
     size: 100Mi
     storageClass: openebs-hostpath
