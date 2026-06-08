@@ -51,18 +51,25 @@ cephClusterSpec:
     count: 1
 
   resources:
+    # krr: rook-ceph-mgr-a/mgr
     mgr:
       requests:
         cpu: "125m"
         memory: "512Mi"
       limits:
         memory: "2Gi"
+    # krr: rook-ceph-mon-aa/mon
+    # Shared by mon-aa/ab/ac. Review memory diffs carefully — ceph mons want
+    # steady headroom; an average-based request can crowd them under recovery.
     mon:
       requests:
         cpu: "49m"
         memory: "512Mi"
       limits:
         memory: "1Gi"
+    # krr: rook-ceph-osd-0/osd
+    # Shared by osd-0/1/2. Review memory diffs carefully — OSDs grow to
+    # osd_memory_target (~4Gi); an average request can OOM them during backfill.
     osd:
       requests:
         cpu: "100m"
@@ -75,6 +82,7 @@ cephClusterSpec:
         memory: "128Mi"
       limits:
         memory: "256Mi"
+    # krr: rook-ceph-crashcollector-worker-01/ceph-crash
     crashcollector:
       requests:
         cpu: "15m"

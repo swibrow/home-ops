@@ -22,6 +22,7 @@ spec:
     - name: toolhive-secret
       key: HA_TOKEN
       targetEnvName: HA_TOKEN
+  # krr: home-assistant/toolhive
   resources:
     requests:
       cpu: 25m

@@ -73,6 +73,7 @@ config:
       height: 110
       valueExpr: string(int(result)) + "%"
 
+# krr: kromgo/kromgo
 resources:
   requests:
     cpu: 10m

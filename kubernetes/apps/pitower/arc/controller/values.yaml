@@ -1,5 +1,6 @@
 replicaCount: 1
 
+# krr: arc-gha-rs-controller/manager
 resources:
   requests:
     cpu: 10m

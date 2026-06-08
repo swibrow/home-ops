@@ -20,6 +20,7 @@ server:
     type: ClusterIP
   serviceMonitor:
     enabled: true
+  # krr: victoria-logs/vlogs
   resources:
     requests:
       cpu: 50m

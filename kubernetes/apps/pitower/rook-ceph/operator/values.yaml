@@ -65,6 +65,7 @@ csi:
 # rook-ceph-exporter ServiceMonitors and no ceph_* metrics are scraped.
 monitoring:
   enabled: true
+# krr: rook-ceph-operator/rook-ceph-operator
 resources:
   requests:
     memory: 128Mi

@@ -27,6 +27,7 @@ spec:
     - name: toolhive-argocd
       key: ARGOCD_API_TOKEN
       targetEnvName: ARGOCD_API_TOKEN
+  # krr: argocd/toolhive
   resources:
     requests:
       cpu: 25m

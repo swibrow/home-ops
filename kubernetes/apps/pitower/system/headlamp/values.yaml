@@ -34,6 +34,7 @@ httpRoute:
       namespace: networking
       sectionName: https
 
+# krr: headlamp/headlamp
 resources:
   requests:
     cpu: 10m

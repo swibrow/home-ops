@@ -20,6 +20,7 @@ spec:
   serviceAccount: toolhive-kubernetes
   groupRef:
     name: mcp-tools
+  # krr: kubernetes/toolhive
   resources:
     requests:
       cpu: 50m

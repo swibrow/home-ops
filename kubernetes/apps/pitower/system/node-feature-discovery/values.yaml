@@ -1,6 +1,7 @@
 prometheus:
   enable: true
 master:
+  # krr: node-feature-discovery-master/master
   resources:
     requests:
       cpu: 21m
@@ -17,6 +18,7 @@ worker:
         - pci
         - system
         - usb
+  # krr: node-feature-discovery-worker/worker
   resources:
     requests:
       cpu: 5m

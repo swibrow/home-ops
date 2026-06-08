@@ -11,6 +11,7 @@ spec:
   # comfortable headroom — plenty for a small Forgejo cache/queue/session workload.
   args:
     - "--proactor_threads=1"
+  # krr: forgejo-dragonfly/dragonfly
   resources:
     requests:
       cpu: 50m

@@ -23,6 +23,7 @@ logging:
   level: info
   format: json
 
+# krr: renovate-operator/renovate-operator
 resources:
   requests:
     cpu: 25m

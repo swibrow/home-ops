@@ -29,6 +29,7 @@ spec:
     - name: toolhive-grafana-pass
       key: GRAFANA_PASSWORD
       targetEnvName: GRAFANA_PASSWORD
+  # krr: grafana/toolhive
   resources:
     requests:
       cpu: 25m

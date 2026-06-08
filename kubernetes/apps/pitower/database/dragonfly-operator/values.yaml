@@ -6,6 +6,7 @@ crds:
 manager:
   image:
     repository: ghcr.io/dragonflydb/operator
+  # krr: dragonfly-operator/manager
   resources:
     requests:
       cpu: 10m

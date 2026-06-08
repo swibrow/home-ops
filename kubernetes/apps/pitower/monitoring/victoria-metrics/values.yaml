@@ -19,6 +19,7 @@ server:
   service:
     servicePort: 8428
     type: ClusterIP
+  # krr: victoria-metrics-server/vmsingle
   resources:
     requests:
       cpu: 100m

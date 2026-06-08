@@ -296,15 +296,21 @@ def resolve_namespace(path: Path) -> str | None:
 
 
 def collect_resource_blocks(node, out: list) -> None:
-    """Recursively collect (line, requests_map) for every `resources` mapping that
-    has a `requests` child. `line` is the 0-indexed source line of the
-    `resources:` key (absolute within the document stream)."""
+    """Recursively collect (line, requests_map) for every mapping that holds a
+    `requests` child carrying cpu/memory — regardless of the enclosing key name.
+
+    This matches the common `resources: {requests: ...}` shape but also schemas
+    that key resources by component, e.g. rook's `resources: {mgr: {requests: ...},
+    mon: {requests: ...}}`. `line` is the 0-indexed source line (absolute within
+    the document stream) of the key whose value is the resource-bearing mapping
+    (the `resources:` / `mgr:` / `server:` line a marker is placed above)."""
     if hasattr(node, "items"):
         lc = getattr(node, "lc", None)
         for k, v in node.items():
-            if k == "resources" and hasattr(v, "get") and isinstance(v.get("requests"), dict):
+            req = v.get("requests") if hasattr(v, "get") else None
+            if hasattr(req, "get") and ("cpu" in req or "memory" in req):
                 line = lc.data[k][0] if (lc is not None and k in getattr(lc, "data", {})) else None
-                out.append((line, v["requests"]))
+                out.append((line, req))
             collect_resource_blocks(v, out)
     elif isinstance(node, list):
         for item in node:

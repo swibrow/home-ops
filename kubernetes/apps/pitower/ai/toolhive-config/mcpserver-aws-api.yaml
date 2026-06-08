@@ -68,6 +68,7 @@ spec:
       volumes:
         - name: tmp
           emptyDir: {}
+  # krr: aws-api/toolhive
   resources:
     requests:
       cpu: 50m

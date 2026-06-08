@@ -5,6 +5,7 @@ reloader:
   reloadStrategy: annotations
 
   deployment:
+    # krr: reloader-reloader/reloader-reloader
     resources:
       requests:
         cpu: 5m
