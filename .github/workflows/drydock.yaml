@@ -21,3 +21,11 @@ jobs:
           version: v0.1.18
           path: .
           base-ref: ${{ github.base_ref }}
+          # Only diff apps whose manifests actually changed. Ignore paths that
+          # don't map to an Application so they don't trigger a full-repo render.
+          changed-only: "true"
+          changed-only-ignore: |
+            .github/**
+            docs/**
+            terraform/**
+            *.md
