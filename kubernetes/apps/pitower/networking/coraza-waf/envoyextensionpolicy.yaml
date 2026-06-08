@@ -1,0 +1,37 @@
+---
+# Coraza WAF (OWASP Core Rule Set) as an Envoy Wasm filter, attached to the
+# public envoy-external Gateway so it covers every route that traverses it.
+#
+# coraza-proxy-wasm bundles the OWASP CRS, so the @owasp_crs/* includes resolve
+# inside the wasm module — no rule files to mount.
+#
+# ROLLOUT: starts in DetectionOnly (logs hits, blocks nothing) so we can watch
+# for CRS false positives against real traffic before enforcing. Flip the last
+# directive to `SecRuleEngine On` once the logs look clean.
+# failOpen: true means a wasm init/runtime fault lets traffic through rather
+# than 5xx-ing every public request.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyExtensionPolicy
+metadata:
+  name: coraza-waf
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: envoy-external
+  wasm:
+    - name: coraza
+      failOpen: true
+      code:
+        type: Image
+        pullPolicy: IfNotPresent
+        image:
+          url: ghcr.io/corazawaf/coraza-proxy-wasm:0.6.0
+      config:
+        default_directives: default
+        directives_map:
+          default:
+            - Include @recommended-conf
+            - Include @crs-setup-conf
+            - Include @owasp_crs/*.conf
+            - SecRuleEngine DetectionOnly
