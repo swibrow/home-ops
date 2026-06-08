@@ -14,6 +14,7 @@ resources:
   - mcpserver-grafana.yaml
   - mcpserver-kubernetes.yaml
   - mcpserver-argocd.yaml
+  - mcpserver-aws-api.yaml
   - mcpregistry.yaml
 components:
   - ../../../../components/cnpg-db

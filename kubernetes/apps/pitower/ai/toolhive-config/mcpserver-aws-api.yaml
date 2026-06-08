@@ -1,0 +1,56 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: toolhive-aws-ro
+  namespace: ai
+  annotations:
+    # IRSA: amazon-eks-pod-identity-webhook injects AWS_ROLE_ARN +
+    # AWS_WEB_IDENTITY_TOKEN_FILE and the projected sts.amazonaws.com token.
+    # Role defined in terraform/general/toolhive.tf (pitower-toolhive-aws-ro).
+    eks.amazonaws.com/role-arn: arn:aws:iam::633355703129:role/pitower-toolhive-aws-ro
+---
+# yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpserver_v1beta1.json
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServer
+metadata:
+  name: aws-api
+  annotations:
+    toolhive.stacklok.dev/registry-export: "true"
+    toolhive.stacklok.dev/registry-title: AWS API
+    toolhive.stacklok.dev/registry-description: Read-only AWS access via the AWS CLI.
+spec:
+  # Runs AWS CLI commands. Read-only is enforced at the tool layer
+  # (READ_OPERATIONS_ONLY) AND the IAM layer (ReadOnlyAccess on the IRSA role).
+  # renovate: datasource=docker
+  image: public.ecr.aws/awslabs-mcp/awslabs/aws-api-mcp-server:1.3.42
+  transport: streamable-http
+  # The server listens on :8000/mcp in streamable-http mode; the ToolHive proxy
+  # fronts it on 8080.
+  proxyPort: 8080
+  mcpPort: 8000
+  serviceAccount: toolhive-aws-ro
+  groupRef:
+    name: mcp-tools
+  # builtin "network" — the AWS server needs outbound egress to *.amazonaws.com
+  # and sts.amazonaws.com (the in-cluster servers use the default profile).
+  permissionProfile:
+    type: builtin
+    name: network
+  env:
+    - name: READ_OPERATIONS_ONLY
+      value: "true"
+    - name: AWS_API_MCP_TRANSPORT
+      value: streamable-http
+    - name: AWS_REGION
+      value: eu-central-2
+    # vMCP/kanidm enforces auth at the edge; the server itself is unauthenticated
+    # and only reachable in-cluster via the vMCP aggregation.
+    - name: AUTH_TYPE
+      value: no-auth
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
