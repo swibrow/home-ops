@@ -35,8 +35,8 @@ controllers:
             enabled: true
         resources:
           requests:
-            cpu: 15m
-            memory: 128Mi
+            cpu: 45m
+            memory: 538Mi
       valkey:
         image:
           repository: valkey/valkey
@@ -49,6 +49,10 @@ controllers:
         envFrom:
           - secretRef:
               name: ghostfolio-secrets
+        resources:
+          requests:
+            cpu: 10m
+            memory: 100Mi
 service:
   app:
     controller: ghostfolio

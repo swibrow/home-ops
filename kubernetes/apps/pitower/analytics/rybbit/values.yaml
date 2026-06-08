@@ -65,8 +65,8 @@ controllers:
           readiness: *beprobes
         resources:
           requests:
-            cpu: 50m
-            memory: 256Mi
+            cpu: 148m
+            memory: 337Mi
           limits:
             memory: 1Gi
 
@@ -94,7 +94,7 @@ controllers:
           readiness: *clprobes
         resources:
           requests:
-            cpu: 25m
+            cpu: 10m
             memory: 128Mi
           limits:
             memory: 512Mi
@@ -148,8 +148,8 @@ controllers:
           readiness: *chprobes
         resources:
           requests:
-            cpu: 100m
-            memory: 512Mi
+            cpu: 52m
+            memory: 763Mi
           limits:
             memory: 2Gi
 

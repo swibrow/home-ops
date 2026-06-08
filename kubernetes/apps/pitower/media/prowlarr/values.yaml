@@ -41,7 +41,7 @@ controllers:
         resources:
           requests:
             cpu: 18m
-            memory: 128Mi
+            memory: 214Mi
           limits:
             memory: 256Mi
         securityContext:
