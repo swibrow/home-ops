@@ -6,7 +6,7 @@ metadata:
   namespace: renovate
 spec:
   # renovate: datasource=docker depName=ghcr.io/renovatebot/renovate
-  image: ghcr.io/renovatebot/renovate:43.216.1
+  image: ghcr.io/renovatebot/renovate:43.216.2
   schedule: "0 * * * *"
   # Keep the hourly fan-out gentle. At parallelism 5 the burst of executor pods
   # (512Mi-1.5Gi each) landed on the control-plane nodes and tipped the already
