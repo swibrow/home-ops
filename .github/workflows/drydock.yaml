@@ -19,6 +19,8 @@ jobs:
         uses: sholdee/drydock/pr-action@v0.1.18
         with:
           version: v0.1.18
+          # Self-hosted runner can't write to /usr/local/bin; use a writable dir.
+          install-dir: ${{ runner.temp }}/drydock-bin
           path: kubernetes
           base-ref: ${{ github.base_ref }}
           # changed-only is on by default; ignore non-manifest paths so edits to
