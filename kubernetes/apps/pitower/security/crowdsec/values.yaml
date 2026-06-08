@@ -1,0 +1,99 @@
+---
+# Talos uses containerd; the agent strips the CRI prefix via crowdsecurity/cri-logs
+container_runtime: containerd
+
+config:
+  parsers:
+    # s01-parse: normalize Envoy Gateway JSON access logs into the HTTP fields
+    # the crowdsecurity/http-* scenarios expect. The acquisition only tails the
+    # envoy-external pods, so every line here is an Envoy access-log JSON object.
+    s01-parse:
+      envoy-gateway-logs.yaml: |
+        onsuccess: next_stage
+        name: wibrow/envoy-gateway-logs
+        description: "Parse Envoy Gateway JSON access logs"
+        filter: "evt.Parsed.program == 'envoy' && evt.Parsed.message contains 'response_code'"
+        nodes:
+          - filter: "evt.Parsed.message != ''"
+            statics:
+              - meta: http_verb
+                expression: "JsonExtract(evt.Parsed.message, 'method')"
+              - meta: http_path
+                expression: "JsonExtract(evt.Parsed.message, 'path')"
+              - parsed: request
+                expression: "JsonExtract(evt.Parsed.message, 'path')"
+              - meta: http_status
+                expression: "JsonExtract(evt.Parsed.message, 'response_code')"
+              - meta: http_user_agent
+                expression: "JsonExtract(evt.Parsed.message, 'user_agent')"
+              - meta: target_fqdn
+                expression: "JsonExtract(evt.Parsed.message, 'host')"
+              - target: evt.StrTime
+                expression: "JsonExtract(evt.Parsed.message, 'start_time')"
+          # Real client IP resolution, in priority order. Behind the Cloudflare
+          # tunnel, xff/client_ip are just cloudflared's pod IP — the real client
+          # is in CF-Connecting-IP. Fall back to xff then the peer for non-CF
+          # paths (envoy-direct, internal). Each guarded by an IP-shaped regex so
+          # null/"-"/lists don't poison source_ip.
+          - filter: "JsonExtract(evt.Parsed.message, 'cf_connecting_ip') matches '^[0-9a-fA-F:.]+$'"
+            statics:
+              - meta: source_ip
+                expression: "JsonExtract(evt.Parsed.message, 'cf_connecting_ip')"
+          - filter: "evt.Meta.source_ip == '' && JsonExtract(evt.Parsed.message, 'xff') matches '^[0-9a-fA-F:.]+$'"
+            statics:
+              - meta: source_ip
+                expression: "JsonExtract(evt.Parsed.message, 'xff')"
+          - filter: "evt.Meta.source_ip == '' && JsonExtract(evt.Parsed.message, 'client_ip') matches '^[0-9a-fA-F:.]+$'"
+            statics:
+              - meta: source_ip
+                expression: "JsonExtract(evt.Parsed.message, 'client_ip')"
+
+lapi:
+  enabled: true
+  # Community blocklist (online API) stays enabled by default — do NOT set
+  # DISABLE_ONLINE_API. Decisions + bouncer keys persist on the default SC.
+  persistentVolume:
+    data:
+      enabled: true
+      size: 1Gi
+    config:
+      enabled: true
+      size: 128Mi
+  # krr: crowdsec-lapi/crowdsec-lapi
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+
+agent:
+  enabled: true
+  # Tail the public gateway's access logs from each node's container logs
+  acquisition:
+    - namespace: networking
+      podName: envoy-external-*
+      program: envoy
+  env:
+    # cri-logs strips the containerd wrapper; base-http-scenarios pulls in the
+    # http-logs parser + the full HTTP attack scenario set; whitelists keeps
+    # RFC1918 / health-check traffic from generating bans.
+    - name: PARSERS
+      value: "crowdsecurity/cri-logs crowdsecurity/whitelists"
+    - name: COLLECTIONS
+      value: "crowdsecurity/base-http-scenarios"
+  # krr: crowdsec-agent/crowdsec-agent
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true

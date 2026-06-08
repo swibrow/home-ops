@@ -1,0 +1,40 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: security
+
+configMapGenerator:
+  - name: grafana-dashboards-crowdsec
+    files:
+      - dashboards/crowdsec.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: Security
+
+helmCharts:
+  - name: crowdsec
+    repo: https://crowdsecurity.github.io/helm-charts
+    version: 0.24.0
+    releaseName: crowdsec
+    namespace: security
+    valuesFile: values.yaml
+
+# Drop the chart's Helm test pods — they have no toggle and ArgoCD would apply
+# them as bare Pods.
+patches:
+  - patch: |-
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: crowdsec-test-agent
+      $patch: delete
+  - patch: |-
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: crowdsec-test-lapi-up
+      $patch: delete
