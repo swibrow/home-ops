@@ -7,11 +7,13 @@ metadata:
 spec:
   # renovate: datasource=docker depName=ghcr.io/renovatebot/renovate
   image: ghcr.io/renovatebot/renovate:43.216.2
-  schedule: "0 * * * *"
-  # Keep the hourly fan-out gentle. At parallelism 5 the burst of executor pods
+  # Run once a day (02:00). Hourly fan-out was unnecessary churn; daily keeps the
+  # control-plane memory pressure down while still catching updates promptly.
+  schedule: "0 2 * * *"
+  # One executor at a time. At parallelism 5 the burst of executor pods
   # (512Mi-1.5Gi each) landed on the control-plane nodes and tipped the already
   # memory-saturated apiservers into a liveness-kill death spiral (2026-06-08).
-  parallelism: 2
+  parallelism: 1
   # Pin executors OFF the control-plane nodes (worker-01/02/03). They are the
   # only 16Gi nodes so they double as app nodes, but the apiserver/etcd live
   # there too — a renovate burst must not compete with them. DoesNotExist on the
