@@ -15,8 +15,19 @@ metadata:
     toolhive.stacklok.dev/registry-url: "https://mcp.wibrow.dev/home-assistant/mcp"
 spec:
   image: docker.io/voska/hass-mcp:0.4.1
-  transport: stdio
+  # HTTP transport, NOT stdio: ToolHive's proxy only mounts the embedded OAuth AS
+  # HTTP handlers (/oauth/*, /.well-known/*) for non-stdio transports — a stdio proxy
+  # serves /mcp (401) but 404s every AS endpoint, so DCR/discovery is dead. hass-mcp
+  # serves MCP streamable-http with --http; the proxy fronts it on 8080.
+  transport: streamable-http
   proxyPort: 8080
+  mcpPort: 8000
+  args:
+    - --http
+    - --port
+    - "8000"
+    - --host
+    - 0.0.0.0
   groupRef:
     name: mcp-tools
   # Per-server external exposure at https://mcp.wibrow.dev/home-assistant via the
