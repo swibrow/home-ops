@@ -60,21 +60,18 @@ spec:
       - profile
       - email
       - groups
-  # Authorize on internal kanidm group: only members of mcp-tools may use the server.
-  # ToolHive synthesises THVGroup entities from the token's `groups` claim (a
-  # well-known default). kanidm doesn't put groups in the *access* token by default,
-  # so a claim-map on the toolhive-mcp client injects a `groups` claim for mcp-tools
-  # members. kanidm rejects `@` in claim-map values (SPN form is illegal there), so
-  # the emitted value is the bare `mcp-tools` — match exactly that, not the SPN.
+  # Group gating happens at kanidm, NOT in Cedar. kanidm only emits group claims in
+  # the id_token/userinfo, never the access token, and Cedar evaluates the upstream
+  # *access* token — so a THVGroup policy can never see groups and would deny-all.
+  # Instead the toolhive-mcp client's kanidm scope-map is restricted to the mcp-tools
+  # group: non-members get access_denied at the IdP and never receive a token. Anyone
+  # holding a valid token is therefore already an authorized mcp-tools member, so
+  # Cedar just allows all authenticated principals.
   authzConfig:
     type: inline
     inline:
-      # Tell Cedar which upstream IdP's token claims to evaluate (the embedded AS
-      # stores the kanidm token; without this Cedar reads the AS-issued token, which
-      # carries no groups → THVGroup empty → all tools filtered out).
-      primaryUpstreamProvider: kanidm
       policies:
-        - 'permit(principal in THVGroup::"mcp-tools", action, resource);'
+        - 'permit(principal, action, resource);'
   # krr: kubernetes/toolhive
   resources:
     requests:
