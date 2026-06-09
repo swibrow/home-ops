@@ -42,6 +42,90 @@ spec:
       backendRefs:
         - name: mcp-kubernetes-proxy
           port: 8080
+    # grafana (SSE on /sse + a messages endpoint; endpointPrefix re-adds /grafana).
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /.well-known/oauth-protected-resource/grafana
+      backendRefs:
+        - name: mcp-grafana-proxy
+          port: 8080
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /grafana
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: mcp-grafana-proxy
+          port: 8080
+    # home-assistant
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /.well-known/oauth-protected-resource/home-assistant
+      backendRefs:
+        - name: mcp-home-assistant-proxy
+          port: 8080
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /home-assistant
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: mcp-home-assistant-proxy
+          port: 8080
+    # argocd
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /.well-known/oauth-protected-resource/argocd
+      backendRefs:
+        - name: mcp-argocd-proxy
+          port: 8080
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /argocd
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: mcp-argocd-proxy
+          port: 8080
+    # aws-api
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /.well-known/oauth-protected-resource/aws-api
+      backendRefs:
+        - name: mcp-aws-api-proxy
+          port: 8080
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /aws-api
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: mcp-aws-api-proxy
+          port: 8080
     # ── Aggregate vMCP + Cloud UI (mcp.wibrow.dev) ───────────────────────────
     # OAuth protected-resource metadata (RFC 9728). MCP clients (claude.ai) GET
     # this from the 401 WWW-Authenticate `resource_metadata` hint, WITHOUT an

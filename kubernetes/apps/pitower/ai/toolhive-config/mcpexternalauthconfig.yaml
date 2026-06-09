@@ -61,3 +61,154 @@ spec:
             - profile
             - email
             - groups
+---
+# Embedded AS for grafana — see kubernetes-authserver above for the full rationale.
+# Shares the one toolhive-auth-dragonfly (keys are namespaced per server) and the
+# toolhive-authserver-secret. Its callback https://mcp.wibrow.dev/grafana/oauth/callback
+# must be registered on the kanidm toolhive-mcp client.
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPExternalAuthConfig
+metadata:
+  name: grafana-authserver
+spec:
+  type: embeddedAuthServer
+  embeddedAuthServer:
+    issuer: https://mcp.wibrow.dev/grafana
+    baselineClientScopes:
+      - openid
+    signingKeySecretRefs:
+      - name: toolhive-authserver-secret
+        key: signing-key
+    hmacSecretRefs:
+      - name: toolhive-authserver-secret
+        key: hmac
+    storage:
+      type: redis
+      redis:
+        addr: toolhive-auth-dragonfly.ai:6379
+        aclUserConfig:
+          passwordSecretRef:
+            name: toolhive-authserver-secret
+            key: redis-password
+    upstreamProviders:
+      - name: kanidm
+        type: oidc
+        oidcConfig:
+          issuerUrl: https://idm.wibrow.dev/oauth2/openid/toolhive-mcp
+          clientId: toolhive-mcp
+          scopes:
+            - openid
+            - profile
+            - email
+            - groups
+---
+# Embedded AS for home-assistant. Callback https://mcp.wibrow.dev/home-assistant/oauth/callback.
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPExternalAuthConfig
+metadata:
+  name: home-assistant-authserver
+spec:
+  type: embeddedAuthServer
+  embeddedAuthServer:
+    issuer: https://mcp.wibrow.dev/home-assistant
+    baselineClientScopes:
+      - openid
+    signingKeySecretRefs:
+      - name: toolhive-authserver-secret
+        key: signing-key
+    hmacSecretRefs:
+      - name: toolhive-authserver-secret
+        key: hmac
+    storage:
+      type: redis
+      redis:
+        addr: toolhive-auth-dragonfly.ai:6379
+        aclUserConfig:
+          passwordSecretRef:
+            name: toolhive-authserver-secret
+            key: redis-password
+    upstreamProviders:
+      - name: kanidm
+        type: oidc
+        oidcConfig:
+          issuerUrl: https://idm.wibrow.dev/oauth2/openid/toolhive-mcp
+          clientId: toolhive-mcp
+          scopes:
+            - openid
+            - profile
+            - email
+            - groups
+---
+# Embedded AS for argocd. Callback https://mcp.wibrow.dev/argocd/oauth/callback.
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPExternalAuthConfig
+metadata:
+  name: argocd-authserver
+spec:
+  type: embeddedAuthServer
+  embeddedAuthServer:
+    issuer: https://mcp.wibrow.dev/argocd
+    baselineClientScopes:
+      - openid
+    signingKeySecretRefs:
+      - name: toolhive-authserver-secret
+        key: signing-key
+    hmacSecretRefs:
+      - name: toolhive-authserver-secret
+        key: hmac
+    storage:
+      type: redis
+      redis:
+        addr: toolhive-auth-dragonfly.ai:6379
+        aclUserConfig:
+          passwordSecretRef:
+            name: toolhive-authserver-secret
+            key: redis-password
+    upstreamProviders:
+      - name: kanidm
+        type: oidc
+        oidcConfig:
+          issuerUrl: https://idm.wibrow.dev/oauth2/openid/toolhive-mcp
+          clientId: toolhive-mcp
+          scopes:
+            - openid
+            - profile
+            - email
+            - groups
+---
+# Embedded AS for aws-api. Callback https://mcp.wibrow.dev/aws-api/oauth/callback.
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPExternalAuthConfig
+metadata:
+  name: aws-api-authserver
+spec:
+  type: embeddedAuthServer
+  embeddedAuthServer:
+    issuer: https://mcp.wibrow.dev/aws-api
+    baselineClientScopes:
+      - openid
+    signingKeySecretRefs:
+      - name: toolhive-authserver-secret
+        key: signing-key
+    hmacSecretRefs:
+      - name: toolhive-authserver-secret
+        key: hmac
+    storage:
+      type: redis
+      redis:
+        addr: toolhive-auth-dragonfly.ai:6379
+        aclUserConfig:
+          passwordSecretRef:
+            name: toolhive-authserver-secret
+            key: redis-password
+    upstreamProviders:
+      - name: kanidm
+        type: oidc
+        oidcConfig:
+          issuerUrl: https://idm.wibrow.dev/oauth2/openid/toolhive-mcp
+          clientId: toolhive-mcp
+          scopes:
+            - openid
+            - profile
+            - email
+            - groups

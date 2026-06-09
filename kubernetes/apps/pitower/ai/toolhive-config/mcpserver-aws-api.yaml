@@ -20,9 +20,9 @@ metadata:
     toolhive.stacklok.dev/registry-title: AWS API
     toolhive.stacklok.dev/registry-description: Read-only AWS access via the AWS CLI.
     # Required for registry export: the registry-server's kubernetes source skips
-    # any MCPServer missing BOTH registry-description AND registry-url (becomes the
-    # catalog entry's Remotes[].URL). Value matches the proxy Service .status.url.
-    toolhive.stacklok.dev/registry-url: "http://mcp-aws-api-proxy.ai.svc.cluster.local:8080/mcp"
+    # any MCPServer missing BOTH registry-description AND registry-url. External
+    # path-based endpoint so consumers can add this single server.
+    toolhive.stacklok.dev/registry-url: "https://mcp.wibrow.dev/aws-api/mcp"
 spec:
   # Runs AWS CLI commands. Read-only is enforced at the tool layer
   # (READ_OPERATIONS_ONLY) AND the IAM layer (ReadOnlyAccess on the IRSA role).
@@ -36,6 +36,31 @@ spec:
   serviceAccount: toolhive-aws-ro
   groupRef:
     name: mcp-tools
+  # Per-server external exposure at https://mcp.wibrow.dev/aws-api via the embedded
+  # OAuth AS (DCR). See mcpserver-kubernetes.yaml + embedded-authserver memory.
+  endpointPrefix: /aws-api
+  resourceOverrides:
+    proxyDeployment:
+      env:
+        - name: INSECURE_DISABLE_URL_VALIDATION
+          value: "true"
+  authServerRef:
+    kind: MCPExternalAuthConfig
+    name: aws-api-authserver
+  oidcConfigRef:
+    name: aws-api-authserver-oidc
+    audience: https://mcp.wibrow.dev/aws-api
+    resourceUrl: https://mcp.wibrow.dev/aws-api
+    scopes:
+      - openid
+      - profile
+      - email
+      - groups
+  authzConfig:
+    type: inline
+    inline:
+      policies:
+        - 'permit(principal, action, resource);'
   # builtin "network" — the AWS server needs outbound egress to *.amazonaws.com
   # and sts.amazonaws.com (the in-cluster servers use the default profile).
   permissionProfile:

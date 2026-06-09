@@ -10,9 +10,9 @@ metadata:
     toolhive.stacklok.dev/registry-title: Grafana
     toolhive.stacklok.dev/registry-description: Query Grafana dashboards, Prometheus, and Loki.
     # Required for export: the registry-server kubernetes source skips any MCPServer
-    # missing BOTH registry-description AND registry-url (becomes the catalog entry's
-    # Remotes[].URL). Value matches the proxy Service .status.url.
-    toolhive.stacklok.dev/registry-url: "http://mcp-grafana-proxy.ai.svc.cluster.local:8080/sse#grafana"
+    # missing BOTH registry-description AND registry-url. External path-based SSE
+    # endpoint so consumers can add this single server.
+    toolhive.stacklok.dev/registry-url: "https://mcp.wibrow.dev/grafana/sse"
 spec:
   image: docker.io/grafana/mcp-grafana:0.15.2
   transport: sse
@@ -23,6 +23,34 @@ spec:
     - sse
   groupRef:
     name: mcp-tools
+  # Per-server external exposure at https://mcp.wibrow.dev/grafana via the embedded
+  # OAuth AS (DCR for agents). See mcpserver-kubernetes.yaml + the embedded-authserver
+  # memory for the full rationale; group gating is at the kanidm scope-map (mcp-tools),
+  # so Cedar just allows authenticated principals. SSE: endpointPrefix re-prepends
+  # /grafana onto the messages endpoint the proxy advertises.
+  endpointPrefix: /grafana
+  resourceOverrides:
+    proxyDeployment:
+      env:
+        - name: INSECURE_DISABLE_URL_VALIDATION
+          value: "true"
+  authServerRef:
+    kind: MCPExternalAuthConfig
+    name: grafana-authserver
+  oidcConfigRef:
+    name: grafana-authserver-oidc
+    audience: https://mcp.wibrow.dev/grafana
+    resourceUrl: https://mcp.wibrow.dev/grafana
+    scopes:
+      - openid
+      - profile
+      - email
+      - groups
+  authzConfig:
+    type: inline
+    inline:
+      policies:
+        - 'permit(principal, action, resource);'
   env:
     - name: GRAFANA_URL
       value: http://grafana.monitoring.svc.cluster.local

@@ -37,3 +37,50 @@ spec:
     # the cluster, and the AS hairpins to validate its own tokens — allow private IPs.
     jwksAllowPrivateIP: true
     protectedResourceAllowPrivateIP: true
+---
+# Resource-server validation for the remaining per-server embedded auth servers.
+# issuer MUST match each MCPExternalAuthConfig.embeddedAuthServer.issuer (the AS),
+# NOT kanidm. Private IPs allowed (mcp.wibrow.dev hairpins to the envoy-external LB).
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPOIDCConfig
+metadata:
+  name: grafana-authserver-oidc
+spec:
+  type: inline
+  inline:
+    issuer: https://mcp.wibrow.dev/grafana
+    jwksAllowPrivateIP: true
+    protectedResourceAllowPrivateIP: true
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPOIDCConfig
+metadata:
+  name: home-assistant-authserver-oidc
+spec:
+  type: inline
+  inline:
+    issuer: https://mcp.wibrow.dev/home-assistant
+    jwksAllowPrivateIP: true
+    protectedResourceAllowPrivateIP: true
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPOIDCConfig
+metadata:
+  name: argocd-authserver-oidc
+spec:
+  type: inline
+  inline:
+    issuer: https://mcp.wibrow.dev/argocd
+    jwksAllowPrivateIP: true
+    protectedResourceAllowPrivateIP: true
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPOIDCConfig
+metadata:
+  name: aws-api-authserver-oidc
+spec:
+  type: inline
+  inline:
+    issuer: https://mcp.wibrow.dev/aws-api
+    jwksAllowPrivateIP: true
+    protectedResourceAllowPrivateIP: true
