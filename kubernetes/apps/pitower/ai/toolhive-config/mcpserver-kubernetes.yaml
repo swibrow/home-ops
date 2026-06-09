@@ -44,11 +44,11 @@ spec:
       - email
       - groups
   # Authorize on internal kanidm group: only members of mcp-tools may use the server.
-  # ToolHive synthesises THVGroup entities from the token's `groups` claim.
+  # ToolHive synthesises THVGroup entities from the token's `groups` claim (a
+  # well-known default, so no groupClaimName override needed).
   authzConfig:
     type: inline
     inline:
-      groupClaimName: groups
       policies:
         - 'permit(principal in THVGroup::"mcp-tools", action, resource);'
   # krr: kubernetes/toolhive
