@@ -12,6 +12,37 @@ spec:
       namespace: networking
       sectionName: https
   rules:
+    # ── Per-server path-based exposure (mcp.wibrow.dev/<server>) ──────────────
+    # Each individually-exposed MCPServer enforces its own kanidm OAuth + group
+    # authz at its proxy. Gateway API ranks rules by longest matching path, so
+    # these /<server>-prefixed rules outrank the generic /.well-known, event-stream,
+    # and / rules below — the vMCP aggregate at /mcp is untouched.
+    #
+    # kubernetes — OAuth discovery (RFC 9728 path-suffixed metadata). NOT stripped:
+    # the proxy serves /.well-known/oauth-protected-resource/kubernetes directly.
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /.well-known/oauth-protected-resource/kubernetes
+      backendRefs:
+        - name: mcp-kubernetes-proxy
+          port: 8080
+    # kubernetes — MCP traffic. Strip /kubernetes so the proxy sees /mcp; the
+    # MCPServer's endpointPrefix re-adds it on advertised URLs.
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /kubernetes
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: mcp-kubernetes-proxy
+          port: 8080
+    # ── Aggregate vMCP + Cloud UI (mcp.wibrow.dev) ───────────────────────────
     # OAuth protected-resource metadata (RFC 9728). MCP clients (claude.ai) GET
     # this from the 401 WWW-Authenticate `resource_metadata` hint, WITHOUT an
     # event-stream Accept header — so without this explicit rule it falls through

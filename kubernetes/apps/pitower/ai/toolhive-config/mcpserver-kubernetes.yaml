@@ -11,8 +11,9 @@ metadata:
     toolhive.stacklok.dev/registry-description: Read-only access to the pitower cluster.
     # Required for export: the registry-server kubernetes source skips any MCPServer
     # missing BOTH registry-description AND registry-url (becomes the catalog entry's
-    # Remotes[].URL). Value matches the proxy Service .status.url.
-    toolhive.stacklok.dev/registry-url: "http://mcp-kubernetes-proxy.ai.svc.cluster.local:8080/mcp"
+    # Remotes[].URL). External path-based endpoint (see oidcConfigRef.resourceUrl +
+    # the per-server rules in httproute.yaml) so consumers can add this single server.
+    toolhive.stacklok.dev/registry-url: "https://mcp.wibrow.dev/kubernetes/mcp"
 spec:
   image: ghcr.io/stackloklabs/mkp/server:0.4.2
   transport: streamable-http
@@ -24,6 +25,32 @@ spec:
   serviceAccount: toolhive-kubernetes
   groupRef:
     name: mcp-tools
+  # Exposed individually at https://mcp.wibrow.dev/kubernetes (path-based ingress on
+  # the shared mcp-gateway HTTPRoute). The proxy enforces kanidm OAuth itself (same
+  # client as the vMCP) and emits its own RFC 9728 protected-resource metadata.
+  # endpointPrefix: Envoy strips /kubernetes before forwarding (ReplacePrefixMatch),
+  # so the proxy prepends it back onto advertised endpoint URLs.
+  endpointPrefix: /kubernetes
+  oidcConfigRef:
+    name: toolhive-mcp-oidc
+    # Reuse the toolhive-mcp public client — one login works for the vMCP and every
+    # individually-exposed server (same kanidm trust domain). Access is gated by
+    # group membership below, not by a per-server client/audience.
+    audience: toolhive-mcp
+    resourceUrl: https://mcp.wibrow.dev/kubernetes
+    scopes:
+      - openid
+      - profile
+      - email
+      - groups
+  # Authorize on internal kanidm group: only members of mcp-tools may use the server.
+  # ToolHive synthesises THVGroup entities from the token's `groups` claim.
+  authzConfig:
+    type: inline
+    inline:
+      groupClaimName: groups
+      policies:
+        - 'permit(principal in THVGroup::"mcp-tools", action, resource);'
   # krr: kubernetes/toolhive
   resources:
     requests:
