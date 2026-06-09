@@ -35,6 +35,8 @@ spec:
       env:
         - name: INSECURE_DISABLE_URL_VALIDATION
           value: "true"
+        - name: TOOLHIVE_DEBUG
+          value: "true"
   # Exposed individually at https://mcp.wibrow.dev/kubernetes (path-based ingress on
   # the shared mcp-gateway HTTPRoute). The proxy enforces kanidm OAuth itself (same
   # client as the vMCP) and emits its own RFC 9728 protected-resource metadata.
@@ -65,6 +67,10 @@ spec:
   authzConfig:
     type: inline
     inline:
+      # Tell Cedar which upstream IdP's token claims to evaluate (the embedded AS
+      # stores the kanidm token; without this Cedar reads the AS-issued token, which
+      # carries no groups → THVGroup empty → all tools filtered out).
+      primaryUpstreamProvider: kanidm
       policies:
         - 'permit(principal in THVGroup::"mcp-tools@idm.wibrow.dev", action, resource);'
   # krr: kubernetes/toolhive
