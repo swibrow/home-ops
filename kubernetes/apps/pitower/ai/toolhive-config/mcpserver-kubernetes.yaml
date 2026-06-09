@@ -62,8 +62,10 @@ spec:
       - groups
   # Authorize on internal kanidm group: only members of mcp-tools may use the server.
   # ToolHive synthesises THVGroup entities from the token's `groups` claim (a
-  # well-known default). kanidm emits groups in SPN form (<name>@idm.wibrow.dev),
-  # same as every other app's group binding — so match the full SPN, not bare name.
+  # well-known default). kanidm doesn't put groups in the *access* token by default,
+  # so a claim-map on the toolhive-mcp client injects a `groups` claim for mcp-tools
+  # members. kanidm rejects `@` in claim-map values (SPN form is illegal there), so
+  # the emitted value is the bare `mcp-tools` — match exactly that, not the SPN.
   authzConfig:
     type: inline
     inline:
@@ -72,7 +74,7 @@ spec:
       # carries no groups → THVGroup empty → all tools filtered out).
       primaryUpstreamProvider: kanidm
       policies:
-        - 'permit(principal in THVGroup::"mcp-tools@idm.wibrow.dev", action, resource);'
+        - 'permit(principal in THVGroup::"mcp-tools", action, resource);'
   # krr: kubernetes/toolhive
   resources:
     requests:
