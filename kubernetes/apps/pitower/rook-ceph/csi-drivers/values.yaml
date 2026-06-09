@@ -1,0 +1,82 @@
+# Ceph-CSI drivers, managed by the ceph-csi-operator (Rook v1.20 handed CSI
+# driver management off to it; the rook-ceph operator chart only ships the
+# operator + CRDs). This chart renders the OperatorConfig + the rbd Driver CR.
+#
+# CephConnection / ClientProfile CRs are intentionally NOT set here — Rook owns
+# the live `rook-ceph` ones; setting cephConnections/clientProfiles would
+# collide. Only cephfs is deliberately disabled (no cephfs Driver CR).
+#
+# nodePlugin tolerations let the RBD CSI plugin run on the tainted media-home
+# (worker-04 / jellyfin) and storage nodes. Resources ported from the pre-1.20
+# operator Helm csi values.
+operatorConfig:
+  create: true
+  name: ceph-csi-operator-config
+  # Pin to rook-ceph (the ceph-csi-operator's namespace) so this singleton
+  # adopts the live object instead of rendering namespace-less. The chart keys
+  # off this value, not Release.Namespace / the kustomize namespace transformer.
+  namespace: rook-ceph
+  driverSpecDefaults:
+    clusterName: rook-ceph
+    fsGroupPolicy: File
+    nodePlugin:
+      tolerations: &nodePluginTolerations
+        - key: dedicated
+          operator: Equal
+          value: media-home
+          effect: NoSchedule
+        - key: dedicated
+          operator: Equal
+          value: storage
+          effect: NoSchedule
+        - key: node-issue
+          operator: Equal
+          value: "true"
+          effect: NoExecute
+
+drivers:
+  rbd:
+    enabled: true
+    name: rook-ceph.rbd.csi.ceph.com
+    clusterName: rook-ceph
+    fsGroupPolicy: File
+    snapshotPolicy: volumeSnapshot
+    nodePlugin:
+      priorityClassName: system-node-critical
+      tolerations: *nodePluginTolerations
+      resources:
+        plugin:
+          requests: { memory: 64Mi, cpu: 25m }
+          limits: { memory: 1Gi }
+        registrar:
+          requests: { memory: 32Mi, cpu: 10m }
+          limits: { memory: 256Mi }
+    controllerPlugin:
+      replicas: 2
+      priorityClassName: system-cluster-critical
+      resources:
+        provisioner:
+          requests: { memory: 32Mi, cpu: 10m }
+          limits: { memory: 256Mi }
+        resizer:
+          requests: { memory: 32Mi, cpu: 10m }
+          limits: { memory: 256Mi }
+        attacher:
+          requests: { memory: 32Mi, cpu: 10m }
+          limits: { memory: 256Mi }
+        snapshotter:
+          requests: { memory: 32Mi, cpu: 10m }
+          limits: { memory: 256Mi }
+        plugin:
+          requests: { memory: 64Mi, cpu: 10m }
+          limits: { memory: 1Gi }
+        omapGenerator:
+          requests: { memory: 64Mi, cpu: 25m }
+          limits: { memory: 1Gi }
+
+  cephfs:
+    enabled: false
+  nfs:
+    enabled: false
+  nvmeof:
+    enabled: false

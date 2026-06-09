@@ -2,63 +2,10 @@ image:
   repository: ghcr.io/rook/ceph
 crds:
   enabled: true
-csi:
-  enableCephfsDriver: false
-  csiRBDProvisionerResource: |
-    - name: csi-provisioner
-      resource:
-        requests: { memory: 32Mi, cpu: 10m }
-        limits: { memory: 256Mi }
-    - name: csi-resizer
-      resource:
-        requests: { memory: 32Mi, cpu: 10m }
-        limits: { memory: 256Mi }
-    - name: csi-attacher
-      resource:
-        requests: { memory: 32Mi, cpu: 10m }
-        limits: { memory: 256Mi }
-    - name: csi-snapshotter
-      resource:
-        requests: { memory: 32Mi, cpu: 10m }
-        limits: { memory: 256Mi }
-    - name: csi-rbdplugin
-      resource:
-        requests: { memory: 64Mi, cpu: 10m }
-        limits: { memory: 1Gi }
-    - name: csi-omap-generator
-      resource:
-        requests: { memory: 64Mi, cpu: 25m }
-        limits: { memory: 1Gi }
-    - name: liveness-prometheus
-      resource:
-        requests: { memory: 32Mi, cpu: 10m }
-        limits: { memory: 256Mi }
-  csiRBDPluginResource: |
-    - name: driver-registrar
-      resource:
-        requests: { memory: 32Mi, cpu: 10m }
-        limits: { memory: 256Mi }
-    - name: csi-rbdplugin
-      resource:
-        requests: { memory: 64Mi, cpu: 25m }
-        limits: { memory: 1Gi }
-    - name: liveness-prometheus
-      resource:
-        requests: { memory: 32Mi, cpu: 10m }
-        limits: { memory: 256Mi }
-  pluginTolerations:
-    - key: dedicated
-      operator: Equal
-      value: media-home
-      effect: NoSchedule
-    - key: dedicated
-      operator: Equal
-      value: storage
-      effect: NoSchedule
-    - key: node-issue
-      operator: Equal
-      value: "true"
-      effect: NoExecute
+# CSI driver settings (tolerations, resources, cephfs-disabled) are NO LONGER
+# configured here. Rook v1.20 removed CSI management from the operator Helm
+# chart and handed it to the ceph-csi-operator. Those settings now live as CRs
+# in ./csi/ (OperatorConfig + Driver). installCsiOperator defaults to true.
 # Grants the operator RBAC to create ServiceMonitors/PrometheusRules. Must be
 # true because the cluster chart sets cephClusterSpec.monitoring.enabled: true —
 # otherwise the operator is forbidden from creating the rook-ceph-mgr /
