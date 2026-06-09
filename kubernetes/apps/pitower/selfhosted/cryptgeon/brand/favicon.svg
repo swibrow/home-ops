@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="wibrow.dev secrets">
+  <defs>
+    <linearGradient id="vault" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#818cf8"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#0f172a"/>
+  <path d="M24 30 V22 a8 8 0 0 1 16 0 V30" fill="none" stroke="url(#vault)" stroke-width="5" stroke-linecap="round"/>
+  <rect x="17" y="29" width="30" height="24" rx="7" fill="url(#vault)"/>
+  <circle cx="32" cy="39" r="4" fill="#fff"/>
+  <path d="M30 39 h4 l-1 8 h-2 z" fill="#fff"/>
+</svg>

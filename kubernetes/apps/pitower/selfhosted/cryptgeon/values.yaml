@@ -11,6 +11,11 @@ controllers:
         env:
           REDIS: redis://localhost:6379
           SIZE_LIMIT: "104857600" # 100MB
+          # Branding — assets served same-origin by the brand sidecar (see /brand route)
+          THEME_PAGE_TITLE: "wibrow.dev · secrets"
+          THEME_TEXT: "Share a self-destructing, end-to-end encrypted secret. It is stored encrypted, viewable once, then gone."
+          THEME_IMAGE: "https://secrets.wibrow.dev/brand/logo.svg"
+          THEME_FAVICON: "https://secrets.wibrow.dev/brand/favicon.svg"
         resources:
           requests:
             cpu: 5m
@@ -39,12 +44,39 @@ controllers:
           limits:
             memory: 128Mi
 
+      # Static server for the branding assets (logo + favicon), served same-origin
+      brand:
+        image:
+          repository: joseluisq/static-web-server
+          tag: 2.38.0
+        env:
+          SERVER_PORT: &brandPort 8080
+          SERVER_ROOT: /var/www
+          SERVER_COMPRESSION: "true"
+        resources:
+          requests:
+            cpu: 5m
+            memory: 8Mi
+          limits:
+            memory: 32Mi
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 65534
+          runAsGroup: 65534
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+
 service:
   app:
     controller: cryptgeon
     ports:
       http:
+        primary: true
         port: &port 8000
+      brand:
+        port: *brandPort
 
 persistence:
   valkey-data:
@@ -53,6 +85,13 @@ persistence:
       cryptgeon:
         valkey:
           - path: /data
+  brand:
+    type: configMap
+    name: cryptgeon-brand
+    advancedMounts:
+      cryptgeon:
+        brand:
+          - path: /var/www/brand
 
 route:
   app:
@@ -63,6 +102,13 @@ route:
         namespace: networking
         sectionName: https
     rules:
+      - matches:
+          - path:
+              type: PathPrefix
+              value: /brand
+        backendRefs:
+          - identifier: app
+            port: *brandPort
       - backendRefs:
           - identifier: app
             port: *port
