@@ -19,3 +19,21 @@ spec:
     # private IPs, otherwise discovery is blocked as an SSRF risk.
     jwksAllowPrivateIP: true
     protectedResourceAllowPrivateIP: true
+---
+# yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpoidcconfig_v1beta1.json
+# Resource-server validation for the kubernetes MCP server when it runs behind its
+# OWN embedded auth server (mcpexternalauthconfig.yaml / authServerRef). The proxy
+# validates incoming bearer tokens against the embedded AS's JWKS — so the issuer
+# here MUST match the embeddedAuthServer.issuer, NOT kanidm.
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPOIDCConfig
+metadata:
+  name: kubernetes-authserver-oidc
+spec:
+  type: inline
+  inline:
+    issuer: https://mcp.wibrow.dev/kubernetes
+    # mcp.wibrow.dev resolves to the envoy-external LB (private 10.20.10.x) inside
+    # the cluster, and the AS hairpins to validate its own tokens — allow private IPs.
+    jwksAllowPrivateIP: true
+    protectedResourceAllowPrivateIP: true

@@ -1,0 +1,28 @@
+---
+# Storage backend for the ToolHive embedded OAuth authorization server
+# (MCPExternalAuthConfig type embeddedAuthServer). Holds DCR client registrations,
+# authorization codes, and refresh tokens so they survive proxy restarts — without
+# this they'd live in the proxy's memory and every restart would drop registrations.
+# Redis-protocol; the toolhive AS storage.redis.addr points at this Service.
+apiVersion: dragonflydb.io/v1alpha1
+kind: Dragonfly
+metadata:
+  name: toolhive-auth-dragonfly
+spec:
+  replicas: 1
+  # AUTH password (toolhive's redis storage requires auth). Same Secret/key the AS
+  # references via storage.redis.aclUserConfig.passwordSecretRef.
+  authentication:
+    passwordFromSecret:
+      name: toolhive-authserver-secret
+      key: redis-password
+  # Dragonfly reserves ~256Mi per io thread and refuses to start unless the memory
+  # limit exceeds threads*256Mi. One thread is plenty for OAuth session state.
+  args:
+    - "--proactor_threads=1"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      memory: 512Mi

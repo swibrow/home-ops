@@ -31,12 +31,17 @@ spec:
   # endpointPrefix: Envoy strips /kubernetes before forwarding (ReplacePrefixMatch),
   # so the proxy prepends it back onto advertised endpoint URLs.
   endpointPrefix: /kubernetes
+  # Embedded OAuth authorization server (mcpexternalauthconfig.yaml). Provides DCR
+  # so agents like Claude Code can self-register (kanidm has no DCR), brokering the
+  # actual login upstream to kanidm. authServerRef turns the AS on; oidcConfigRef
+  # validates the tokens IT issues (issuer matches the AS, not kanidm).
+  authServerRef:
+    kind: MCPExternalAuthConfig
+    name: kubernetes-authserver
   oidcConfigRef:
-    name: toolhive-mcp-oidc
-    # Reuse the toolhive-mcp public client — one login works for the vMCP and every
-    # individually-exposed server (same kanidm trust domain). Access is gated by
-    # group membership below, not by a per-server client/audience.
-    audience: toolhive-mcp
+    name: kubernetes-authserver-oidc
+    # The embedded AS issues tokens with aud = the resource (RFC 8707); match it.
+    audience: https://mcp.wibrow.dev/kubernetes
     resourceUrl: https://mcp.wibrow.dev/kubernetes
     scopes:
       - openid
