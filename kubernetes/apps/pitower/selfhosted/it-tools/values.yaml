@@ -2,6 +2,8 @@ controllers:
   it-tools:
     replicas: 1
     strategy: RollingUpdate
+    annotations:
+      reloader.stakater.com/auto: "true"
     containers:
       app:
         image:
@@ -59,3 +61,18 @@ persistence:
     type: emptyDir
     globalMounts:
       - path: /tmp
+
+  # Branding — mounted same-origin into the nginx web root. it-tools renders
+  # /home.custom.md as a block on the home page (logo referenced from /brand).
+  brand:
+    type: configMap
+    name: it-tools-brand
+    advancedMounts:
+      it-tools:
+        app:
+          - path: /usr/share/nginx/html/home.custom.md
+            subPath: home.custom.md
+            readOnly: true
+          - path: /usr/share/nginx/html/brand/logo.svg
+            subPath: logo.svg
+            readOnly: true
