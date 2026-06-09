@@ -9,6 +9,10 @@ metadata:
     toolhive.stacklok.dev/registry-export: "true"
     toolhive.stacklok.dev/registry-title: Grafana
     toolhive.stacklok.dev/registry-description: Query Grafana dashboards, Prometheus, and Loki.
+    # Required for export: the registry-server kubernetes source skips any MCPServer
+    # missing BOTH registry-description AND registry-url (becomes the catalog entry's
+    # Remotes[].URL). Value matches the proxy Service .status.url.
+    toolhive.stacklok.dev/registry-url: "http://mcp-grafana-proxy.ai.svc.cluster.local:8080/sse#grafana"
 spec:
   image: docker.io/grafana/mcp-grafana:0.15.2
   transport: sse

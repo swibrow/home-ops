@@ -9,6 +9,10 @@ metadata:
     toolhive.stacklok.dev/registry-export: "true"
     toolhive.stacklok.dev/registry-title: ArgoCD
     toolhive.stacklok.dev/registry-description: Read-only access to ArgoCD applications.
+    # Required for export: the registry-server kubernetes source skips any MCPServer
+    # missing BOTH registry-description AND registry-url (becomes the catalog entry's
+    # Remotes[].URL). Value matches the proxy Service .status.url.
+    toolhive.stacklok.dev/registry-url: "http://mcp-argocd-proxy.ai.svc.cluster.local:8080/mcp"
 spec:
   image: ghcr.io/argoproj-labs/mcp-for-argocd:v0.7.0
   # Image default CMD is `node dist/index.js http` (HTTP stream on :3000).

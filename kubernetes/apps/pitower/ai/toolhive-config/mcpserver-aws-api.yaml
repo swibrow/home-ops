@@ -19,6 +19,10 @@ metadata:
     toolhive.stacklok.dev/registry-export: "true"
     toolhive.stacklok.dev/registry-title: AWS API
     toolhive.stacklok.dev/registry-description: Read-only AWS access via the AWS CLI.
+    # Required for registry export: the registry-server's kubernetes source skips
+    # any MCPServer missing BOTH registry-description AND registry-url (becomes the
+    # catalog entry's Remotes[].URL). Value matches the proxy Service .status.url.
+    toolhive.stacklok.dev/registry-url: "http://mcp-aws-api-proxy.ai.svc.cluster.local:8080/mcp"
 spec:
   # Runs AWS CLI commands. Read-only is enforced at the tool layer
   # (READ_OPERATIONS_ONLY) AND the IAM layer (ReadOnlyAccess on the IRSA role).

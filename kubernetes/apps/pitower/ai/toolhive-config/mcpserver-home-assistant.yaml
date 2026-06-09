@@ -9,6 +9,10 @@ metadata:
     toolhive.stacklok.dev/registry-export: "true"
     toolhive.stacklok.dev/registry-title: Home Assistant
     toolhive.stacklok.dev/registry-description: Control and query Home Assistant entities.
+    # Required for export: the registry-server kubernetes source skips any MCPServer
+    # missing BOTH registry-description AND registry-url (becomes the catalog entry's
+    # Remotes[].URL). Value matches the proxy Service .status.url.
+    toolhive.stacklok.dev/registry-url: "http://mcp-home-assistant-proxy.ai.svc.cluster.local:8080/mcp"
 spec:
   image: docker.io/voska/hass-mcp:0.4.1
   transport: stdio
