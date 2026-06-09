@@ -9,7 +9,7 @@ controllers:
           repository: cupcakearmy/cryptgeon
           tag: 2.9.2
         env:
-          REDIS: redis://localhost:6379
+          REDIS: redis://cryptgeon-dragonfly.selfhosted.svc.cluster.local:6379
           SIZE_LIMIT: "104857600" # 100MB
           # Branding — assets served same-origin by the brand sidecar (see /brand route)
           THEME_PAGE_TITLE: "wibrow.dev · secrets"
@@ -32,17 +32,6 @@ controllers:
             spec:
               failureThreshold: 30
               periodSeconds: 5
-
-      valkey:
-        image:
-          repository: valkey/valkey
-          tag: 9.1
-        resources:
-          requests:
-            cpu: 5m
-            memory: 32Mi
-          limits:
-            memory: 128Mi
 
       # Static server for the branding assets (logo + favicon), served same-origin
       brand:
@@ -79,12 +68,6 @@ service:
         port: *brandPort
 
 persistence:
-  valkey-data:
-    existingClaim: cryptgeon-valkey
-    advancedMounts:
-      cryptgeon:
-        valkey:
-          - path: /data
   brand:
     type: configMap
     name: cryptgeon-brand

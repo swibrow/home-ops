@@ -1,0 +1,20 @@
+---
+apiVersion: dragonflydb.io/v1alpha1
+kind: Dragonfly
+metadata:
+  name: cryptgeon-dragonfly
+  namespace: selfhosted
+spec:
+  replicas: 1
+  # Dragonfly reserves ~256Mi per io thread and refuses to start unless the memory
+  # limit exceeds threads*256Mi. 1 thread under a 512Mi limit leaves comfortable
+  # headroom for cryptgeon's small, ephemeral one-time-secret store (in-memory by
+  # design; secrets are viewable once then evicted, so no persistence/snapshot).
+  args:
+    - "--proactor_threads=1"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
