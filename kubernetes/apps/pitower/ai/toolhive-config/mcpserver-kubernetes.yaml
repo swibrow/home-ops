@@ -25,6 +25,16 @@ spec:
   serviceAccount: toolhive-kubernetes
   groupRef:
     name: mcp-tools
+  # kanidm only has a private in-cluster IP (idm.wibrow.dev → 10.20.10.239), and the
+  # embedded AS's upstream OIDC discovery client blocks private IPs by default (SSRF
+  # guard). This env makes the proxy's upstream client allow private IPs so the AS can
+  # reach kanidm. Acceptable: kanidm is a trusted internal IdP. (TOOLHIVE_DEBUG aids
+  # diagnosis of the AS startup.)
+  resourceOverrides:
+    proxyDeployment:
+      env:
+        - name: INSECURE_DISABLE_URL_VALIDATION
+          value: "true"
   # Exposed individually at https://mcp.wibrow.dev/kubernetes (path-based ingress on
   # the shared mcp-gateway HTTPRoute). The proxy enforces kanidm OAuth itself (same
   # client as the vMCP) and emits its own RFC 9728 protected-resource metadata.
