@@ -51,6 +51,11 @@ drivers:
         registrar:
           requests: { memory: 32Mi, cpu: 10m }
           limits: { memory: 256Mi }
+        # Chart toYaml's every sidecar key; unset keys render as `null` which
+        # the Driver CRD rejects. Empty objects = no resource constraints.
+        liveness: {}
+        addons: {}
+        logRotator: {}
     controllerPlugin:
       replicas: 2
       priorityClassName: system-cluster-critical
@@ -73,6 +78,9 @@ drivers:
         omapGenerator:
           requests: { memory: 64Mi, cpu: 25m }
           limits: { memory: 1Gi }
+        liveness: {}
+        addons: {}
+        logRotator: {}
 
   cephfs:
     enabled: false
