@@ -20,6 +20,11 @@ spec:
   # limit exceeds threads*256Mi. One thread is plenty for OAuth session state.
   args:
     - "--proactor_threads=1"
+    # ToolHive's auth-server storage runs Lua scripts that touch keys not declared
+    # in KEYS[] (e.g. thv:auth:{ns:server}:user:upstream:<uuid>). Standard Redis
+    # permits this; Dragonfly rejects undeclared-key access by default and the OAuth
+    # callback fails with "failed to store session". Allow it to match Redis.
+    - "--default_lua_flags=allow-undeclared-keys"
   resources:
     requests:
       cpu: 50m
