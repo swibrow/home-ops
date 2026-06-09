@@ -20,10 +20,11 @@ spec:
     # endpoints under this (…/kubernetes/oauth/authorize, …/token, …/register).
     issuer: https://mcp.wibrow.dev/kubernetes
     # Scopes every DCR-registered client may request at /oauth/authorize. Keep
-    # narrow — these are granted to ALL dynamically-registered clients.
+    # narrow — these are granted to ALL dynamically-registered clients. Must be a
+    # subset of the upstream's scopes_supported; kanidm's toolhive-mcp advertises
+    # only openid/profile/email/groups (no offline_access), so just openid here.
     baselineClientScopes:
       - openid
-      - offline_access
     # Persistent signing (RS256) + HMAC material. Without these the AS auto-gens
     # ephemeral keys (dev only) and every restart invalidates issued tokens.
     # Sourced from Infisical via externalsecret.yaml → Secret toolhive-authserver-secret.
