@@ -17,10 +17,19 @@ spec:
         kubernetes:
           namespaces:
             - ai
+      # File source carries registry entries the kubernetes source can't express
+      # (skills have no CRD). registry.json is mounted from the toolhive-registry-data
+      # ConfigMap below; path must match the volumeMount mountPath.
+      - name: skills
+        file:
+          path: /data/registry/registry.json
+        syncPolicy:
+          interval: 15m
     registries:
       - name: default
         sources:
           - cluster
+          - skills
     auth:
       mode: anonymous
     database:
@@ -42,3 +51,12 @@ spec:
                 secretKeyRef:
                   name: toolhive-registry-db-secrets
                   key: DB_PASS
+  # Mount the registry data file consumed by the "skills" file source above.
+  volumes:
+    - name: registry-data
+      configMap:
+        name: toolhive-registry-data
+  volumeMounts:
+    - name: registry-data
+      mountPath: /data/registry
+      readOnly: true

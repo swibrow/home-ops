@@ -34,3 +34,9 @@ configMapGenerator:
       - APP_NAME=toolhive-registry
       - SECRET_NAME=toolhive-registry-db-secrets
       - CNPG_SECRET_KEY=toolhive-registry-app
+  # Registry data file (skills) mounted into registry-api for the "skills" file source.
+  - name: toolhive-registry-data
+    files:
+      - registry.json
+generatorOptions:
+  disableNameSuffixHash: true
