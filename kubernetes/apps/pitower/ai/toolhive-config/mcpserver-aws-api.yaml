@@ -71,6 +71,15 @@ spec:
       value: "true"
     - name: AWS_API_MCP_TRANSPORT
       value: streamable-http
+    # Bind on all interfaces: the server defaults to 127.0.0.1, but the toolhive
+    # proxy dials the workload by pod IP → connection refused and the proxy 502s
+    # (this was broken silently behind auth until the vMCP health checks caught
+    # it). ALLOWED_HOSTS defaults to the bind host, so the proxy's pod-IP Host
+    # header would still be rejected — open it up; the proxy is the only caller.
+    - name: AWS_API_MCP_HOST
+      value: 0.0.0.0
+    - name: AWS_API_MCP_ALLOWED_HOSTS
+      value: "*"
     - name: AWS_REGION
       value: eu-central-2
     # vMCP/kanidm enforces auth at the edge; the server itself is unauthenticated
