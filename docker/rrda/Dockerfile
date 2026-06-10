@@ -10,7 +10,7 @@ WORKDIR /src/rrda
 
 RUN go build -o /rrda
 
-FROM alpine:3.23
+FROM alpine:3.24
 
 RUN apk add --no-cache ca-certificates
 
