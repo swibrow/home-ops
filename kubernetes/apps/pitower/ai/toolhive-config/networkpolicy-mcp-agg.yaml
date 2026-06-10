@@ -1,0 +1,79 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.31.1/networkpolicy-networking-v1.json
+# The agg-tier MCPServers (mcpserver-*-agg.yaml) are deliberately
+# UNAUTHENTICATED — the vMCP enforces kanidm OAuth at its edge — and two of
+# them carry privileged identities (toolhive-kubernetes cluster-view RBAC,
+# toolhive-aws-ro IRSA). Without a policy, any pod in the cluster could call
+# them. Lock proxy ingress to the vMCP pod only.
+#
+# Label anatomy (verified live): each MCPServer creates TWO pods —
+#   proxy (Deployment):      app.kubernetes.io/name=mcpserver, toolhive-name=<name>
+#   workload (StatefulSet):  toolhive-basename=<name>, toolhive-name=<name>
+# Only the proxy carries app.kubernetes.io/name=mcpserver; only the workload
+# carries toolhive-basename. The vMCP pod:
+#   app.kubernetes.io/name=virtualmcpserver, toolhive-name=mcp-gateway-internal
+#
+# Kubelet liveness/readiness probes are exempt from NetworkPolicy under Cilium.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mcp-agg-proxy-from-vmcp-only
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: mcpserver
+    matchExpressions:
+      - key: toolhive-name
+        operator: In
+        values:
+          - kubernetes-agg
+          - grafana-agg
+          - home-assistant-agg
+          - argocd-agg
+          - aws-api-agg
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: virtualmcpserver
+              toolhive-name: mcp-gateway-internal
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+# Same lock for the agg-tier WORKLOAD pods (they hold the actual SA tokens /
+# IRSA creds and listen unauthenticated on their mcpPort): only the agg proxies
+# may reach them. Selected via toolhive-basename, which only workload pods have.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mcp-agg-workload-from-proxy-only
+spec:
+  podSelector:
+    matchExpressions:
+      - key: toolhive-basename
+        operator: In
+        values:
+          - kubernetes-agg
+          - grafana-agg
+          - home-assistant-agg
+          - argocd-agg
+          - aws-api-agg
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: mcpserver
+            matchExpressions:
+              - key: toolhive-name
+                operator: In
+                values:
+                  - kubernetes-agg
+                  - grafana-agg
+                  - home-assistant-agg
+                  - argocd-agg
+                  - aws-api-agg

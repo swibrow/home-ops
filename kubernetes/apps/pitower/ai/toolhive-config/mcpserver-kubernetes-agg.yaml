@@ -1,0 +1,32 @@
+---
+# yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpserver_v1beta1.json
+# Aggregate-tier copy of mcpserver-kubernetes.yaml for the vMCP
+# (mcp-gateway-internal). Unauthenticated and in-cluster only: no embedded AS
+# (authServerRef), no token validation (oidcConfigRef), no endpointPrefix, no
+# httproute rule, not exported to the registry. The vMCP enforces auth at its
+# edge and discovers this backend as unauthenticated (outgoingAuth discovered).
+# Ingress is restricted to the vMCP pod by networkpolicy-mcp-agg.yaml — this
+# matters: the workload reuses the cluster-view ServiceAccount below.
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServer
+metadata:
+  name: kubernetes-agg
+spec:
+  image: ghcr.io/stackloklabs/mkp/server:0.4.2
+  transport: streamable-http
+  proxyPort: 8080
+  mcpPort: 8080
+  args:
+    # Read-only; flip to true (and rebind RBAC) for write access.
+    - --read-write=false
+  # Reuses the SA + ClusterRoleBinding defined in mcpserver-kubernetes.yaml.
+  serviceAccount: toolhive-kubernetes
+  groupRef:
+    name: mcp-agg
+  # krr: kubernetes/toolhive
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 128Mi

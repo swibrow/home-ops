@@ -1,0 +1,40 @@
+---
+# yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpserver_v1beta1.json
+# Aggregate-tier copy of mcpserver-home-assistant.yaml for the vMCP —
+# unauthenticated, in-cluster only, ingress locked to the vMCP pod
+# (networkpolicy-mcp-agg.yaml). See mcpserver-kubernetes-agg.yaml for the
+# dual-tier rationale.
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServer
+metadata:
+  name: home-assistant-agg
+spec:
+  image: docker.io/voska/hass-mcp:0.4.1
+  # Keep HTTP transport (NOT stdio) like the per-server copy: hass-mcp's image
+  # default is stdio, and vMCP backends must speak sse/streamable-http.
+  transport: streamable-http
+  proxyPort: 8080
+  mcpPort: 8000
+  args:
+    - --http
+    - --port
+    - "8000"
+    - --host
+    - 0.0.0.0
+  groupRef:
+    name: mcp-agg
+  env:
+    - name: HA_URL
+      value: http://homeassistant.iot:8123
+  # Reuses the ExternalSecret-managed Secret from externalsecret.yaml.
+  secrets:
+    - name: toolhive-secret
+      key: HA_TOKEN
+      targetEnvName: HA_TOKEN
+  # krr: home-assistant/toolhive
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      memory: 256Mi

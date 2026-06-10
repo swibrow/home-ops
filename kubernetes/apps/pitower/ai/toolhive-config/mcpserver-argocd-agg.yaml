@@ -1,0 +1,35 @@
+---
+# yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpserver_v1beta1.json
+# Aggregate-tier copy of mcpserver-argocd.yaml for the vMCP — unauthenticated,
+# in-cluster only, ingress locked to the vMCP pod (networkpolicy-mcp-agg.yaml).
+# See mcpserver-kubernetes-agg.yaml for the dual-tier rationale.
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServer
+metadata:
+  name: argocd-agg
+spec:
+  image: ghcr.io/argoproj-labs/mcp-for-argocd:v0.7.0
+  # Image default CMD is `node dist/index.js http` (HTTP stream on :3000).
+  transport: streamable-http
+  proxyPort: 8080
+  mcpPort: 3000
+  groupRef:
+    name: mcp-agg
+  env:
+    - name: ARGOCD_BASE_URL
+      value: http://argocd-server.argocd.svc
+    # Refuse any mutating operations regardless of the token's RBAC.
+    - name: MCP_READ_ONLY
+      value: "true"
+  # Reuses the ExternalSecret-managed Secret from externalsecret.yaml.
+  secrets:
+    - name: toolhive-argocd
+      key: ARGOCD_API_TOKEN
+      targetEnvName: ARGOCD_API_TOKEN
+  # krr: argocd/toolhive
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      memory: 256Mi

@@ -17,6 +17,12 @@ resources:
   - mcpserver-kubernetes.yaml
   - mcpserver-argocd.yaml
   - mcpserver-aws-api.yaml
+  - mcpserver-home-assistant-agg.yaml
+  - mcpserver-grafana-agg.yaml
+  - mcpserver-kubernetes-agg.yaml
+  - mcpserver-argocd-agg.yaml
+  - mcpserver-aws-api-agg.yaml
+  - networkpolicy-mcp-agg.yaml
   - mcpregistry.yaml
 components:
   - ../../../../components/cnpg-db

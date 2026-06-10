@@ -1,12 +1,21 @@
 ---
 # yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/virtualmcpserver_v1beta1.json
+# Aggregate MCP gateway at https://mcp.wibrow.dev (root /mcp — the httproute
+# catch-all `/` already sends everything not claimed by a per-server prefix
+# here, including this AS's /oauth/* and /.well-known/* endpoints).
+#
+# Dual-tier: this vMCP aggregates the UNAUTHENTICATED mcp-agg copies
+# (mcpserver-*-agg.yaml), NOT the per-server mcp-tools tier — the per-server
+# embedded ASes each demand tokens from a different issuer and there is no
+# RFC 8693 token exchange, so a single vMCP token could never satisfy them.
+# Auth for the aggregate happens HERE, with the vMCP's own embedded AS.
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: VirtualMCPServer
 metadata:
   name: mcp-gateway-internal
 spec:
   groupRef:
-    name: mcp-tools
+    name: mcp-agg
   config:
     aggregation:
       conflictResolution: prefix
@@ -14,16 +23,98 @@ spec:
         prefixFormat: "{workload}_"
   embeddingServerRef:
     name: mcp-tools-embedding
+  # Embedded OAuth2/OIDC authorization server, same pattern as the per-server
+  # tier (see mcpexternalauthconfig.yaml for the full rationale): kanidm has no
+  # Dynamic Client Registration, but MCP clients like Claude Code REQUIRE DCR.
+  # This AS exposes /oauth/* + /.well-known/* under the root issuer and brokers
+  # the actual login upstream to kanidm (shared public PKCE client toolhive-mcp).
+  authServerConfig:
+    # Issuer = the public root URL of the aggregate. The AS advertises its
+    # endpoints under it (…/oauth/authorize, …/token, …/register).
+    issuer: https://mcp.wibrow.dev
+    # Scopes every DCR-registered client may request. Keep narrow — granted to
+    # ALL dynamically-registered clients; kanidm's toolhive-mcp advertises only
+    # openid/profile/email/groups (no offline_access), so just openid here.
+    baselineClientScopes:
+      - openid
+    # Persistent signing (RS256) + HMAC material — shared with the per-server
+    # ASes via externalsecret.yaml → Secret toolhive-authserver-secret. Without
+    # these the AS auto-gens ephemeral keys and restarts invalidate tokens.
+    signingKeySecretRefs:
+      - name: toolhive-authserver-secret
+        key: signing-key
+    hmacSecretRefs:
+      - name: toolhive-authserver-secret
+        key: hmac
+    # DCR registrations + auth codes + refresh tokens live in the shared
+    # Dragonfly (dragonfly.yaml; keys are namespaced per server/issuer) so they
+    # survive vMCP restarts.
+    storage:
+      type: redis
+      redis:
+        addr: toolhive-auth-dragonfly.ai:6379
+        # Password-only AUTH (no ACL username) — Dragonfly requirepass. Same
+        # Secret/key the Dragonfly CR sets via authentication.passwordFromSecret.
+        aclUserConfig:
+          passwordSecretRef:
+            name: toolhive-authserver-secret
+            key: redis-password
+    upstreamProviders:
+      # kanidm public PKCE client toolhive-mcp — no client secret. The AS
+      # redirects users here to log in, then exchanges the code. redirectUri
+      # defaults to {resourceUrl}/oauth/callback =
+      # https://mcp.wibrow.dev/oauth/callback, which is registered on the
+      # toolhive-mcp client in kanidm.
+      - name: kanidm
+        type: oidc
+        oidcConfig:
+          issuerUrl: https://idm.wibrow.dev/oauth2/openid/toolhive-mcp
+          clientId: toolhive-mcp
+          scopes:
+            - openid
+            - profile
+            - email
+            - groups
   incomingAuth:
     type: oidc
+    # Validate the tokens the embedded AS itself issues (issuer/audience match
+    # the AS, NOT kanidm — the AS mints aud = resourceUrl per RFC 8707).
     oidcConfigRef:
-      name: toolhive-mcp-oidc
-      audience: toolhive-mcp
+      name: vmcp-authserver-oidc
+      audience: https://mcp.wibrow.dev
       resourceUrl: https://mcp.wibrow.dev
       scopes:
         - openid
         - profile
         - email
         - groups
+    # Group gating happens at kanidm, NOT in Cedar: kanidm never emits group
+    # claims in the access token Cedar evaluates, so THVGroup policies would
+    # deny-all. The toolhive-mcp client's kanidm scope-map is restricted to the
+    # mcp-tools group — non-members get access_denied at the IdP — so any valid
+    # token already belongs to an authorized member; Cedar just allows it.
+    authzConfig:
+      type: inline
+      inline:
+        policies:
+          - 'permit(principal, action, resource);'
+  # The mcp-agg backends declare no externalAuthConfigRef, so discovery resolves
+  # them as unauthenticated — exactly what the agg tier is. (The CRD enum for
+  # outgoingAuth.default.type is only [discovered, externalAuthConfigRef]; there
+  # is no explicit "unauthenticated".)
   outgoingAuth:
     source: discovered
+  # The AS's upstream OIDC discovery client blocks private IPs by default (SSRF
+  # guard), but kanidm (idm.wibrow.dev) resolves to the envoy-external LB
+  # (private 10.20.10.x) in-cluster — same issue and fix as the per-server
+  # proxies (resourceOverrides.proxyDeployment.env there). The vMCP CRD has no
+  # resourceOverrides env hook, but podTemplateSpec merges into the operator's
+  # deployment; the container is named "vmcp" (verified live). Acceptable:
+  # kanidm is a trusted internal IdP.
+  podTemplateSpec:
+    spec:
+      containers:
+        - name: vmcp
+          env:
+            - name: INSECURE_DISABLE_URL_VALIDATION
+              value: "true"
