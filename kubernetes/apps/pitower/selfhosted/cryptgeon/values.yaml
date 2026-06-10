@@ -37,7 +37,7 @@ controllers:
       brand:
         image:
           repository: joseluisq/static-web-server
-          tag: 2.38.0
+          tag: 2.42.0
         env:
           SERVER_PORT: &brandPort 8080
           SERVER_ROOT: /var/www
