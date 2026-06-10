@@ -1,7 +1,7 @@
 # OIDC login is handled by Better Auth against kanidm. kanidm has no declarative
 # client support here, so the confidential client is created imperatively:
-#   kanidm system oauth2 create toolhive-ui "ToolHive UI" https://mcp.wibrow.dev
-#   kanidm system oauth2 add-redirect-url toolhive-ui https://mcp.wibrow.dev/api/auth/oauth2/callback/oidc
+#   kanidm system oauth2 create toolhive-ui "ToolHive UI" https://toolhive.wibrow.dev
+#   kanidm system oauth2 add-redirect-url toolhive-ui https://toolhive.wibrow.dev/api/auth/oauth2/callback/oidc
 #   kanidm system oauth2 update-scope-map toolhive-ui app_access openid email profile
 #   kanidm system oauth2 show-basic-secret toolhive-ui  # -> Infisical /ai/toolhive-ui/OIDC_CLIENT_SECRET
 # Only members of the app_access group can log in. BETTER_AUTH_SECRET is a separate
@@ -21,10 +21,10 @@ controllers:
           # (operator names it "<registry>-api" on :8080).
           API_BASE_URL: http://toolhive-registry-api.ai.svc.cluster.local:8080
           # Public base URL; Better Auth derives the OIDC redirect from this as
-          # ${BETTER_AUTH_URL}/api/auth/oauth2/callback/oidc. Shares the mcp host:
-          # browser/UI traffic lands here, MCP traffic is split off by the
-          # mcp-gateway HTTPRoute (see toolhive-config/httproute.yaml).
-          BETTER_AUTH_URL: https://mcp.wibrow.dev
+          # ${BETTER_AUTH_URL}/api/auth/oauth2/callback/oidc. Own host, decoupled
+          # from mcp.wibrow.dev so the UI never shadows MCP/OAuth paths there
+          # (the old Accept-header split silently 404'd missed AS endpoints).
+          BETTER_AUTH_URL: https://toolhive.wibrow.dev
           # kanidm per-client issuer (bare host 404s); discovery appends
           # /.well-known/openid-configuration
           OIDC_ISSUER_URL: https://idm.wibrow.dev/oauth2/openid/toolhive-ui
@@ -56,6 +56,12 @@ service:
       http:
         port: 3000
 
-# No route here — traffic arrives via the shared mcp-gateway HTTPRoute on
-# mcp.wibrow.dev (toolhive-config/httproute.yaml), which forwards non-MCP
-# requests to this Service (toolhive-ui:3000).
+route:
+  app:
+    enabled: true
+    hostnames:
+      - toolhive.wibrow.dev
+    parentRefs:
+      - name: envoy-external
+        namespace: networking
+        sectionName: https

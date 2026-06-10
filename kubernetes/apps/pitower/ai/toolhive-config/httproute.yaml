@@ -126,41 +126,17 @@ spec:
       backendRefs:
         - name: mcp-aws-api-proxy
           port: 8080
-    # ── Aggregate vMCP + Cloud UI (mcp.wibrow.dev) ───────────────────────────
-    # OAuth protected-resource metadata (RFC 9728). MCP clients (claude.ai) GET
-    # this from the 401 WWW-Authenticate `resource_metadata` hint, WITHOUT an
-    # event-stream Accept header — so without this explicit rule it falls through
-    # to the Cloud UI and 404s, and OAuth discovery never starts. PathPrefix is
-    # more specific than `/`, so it outranks both rules below. Covers the
-    # path-suffixed variants (…/oauth-protected-resource/mcp) too.
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /.well-known/oauth-protected-resource
-      backendRefs:
-        - name: vmcp-mcp-gateway-internal
-          port: 4483
-    # MCP protocol traffic — both streamable-http (POST) and SSE (GET) carry
-    # `Accept: ... text/event-stream`. This rule has a header match, so by Gateway
-    # API precedence it outranks the catch-all `/` rule below for those requests,
-    # and MCP clients keep using https://mcp.wibrow.dev unchanged. Browser/UI
-    # traffic (no event-stream Accept) falls through to the Cloud UI.
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /
-          headers:
-            - name: accept
-              type: RegularExpression
-              value: .*text/event-stream.*
-      backendRefs:
-        - name: vmcp-mcp-gateway-internal
-          port: 4483
-    # Everything else → ToolHive Cloud UI (registry browser) on root.
+    # ── Aggregate vMCP (mcp.wibrow.dev) ──────────────────────────────────────
+    # Everything not claimed by a per-server prefix above goes to the vMCP:
+    # /mcp protocol traffic, RFC 9728 protected-resource metadata, and any
+    # future root-level OAuth/AS endpoints (/oauth/*, authorization-server
+    # metadata) — no per-endpoint rules or Accept-header heuristics needed.
+    # The Cloud UI lives on its own host (toolhive.wibrow.dev, route in the
+    # toolhive-ui app) so it can never shadow MCP/OAuth paths here.
     - matches:
         - path:
             type: PathPrefix
             value: /
       backendRefs:
-        - name: toolhive-ui
-          port: 3000
+        - name: vmcp-mcp-gateway-internal
+          port: 4483
