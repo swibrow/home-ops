@@ -118,3 +118,7 @@ spec:
           env:
             - name: INSECURE_DISABLE_URL_VALIDATION
               value: "true"
+            # Surface embedded-AS request/error detail (DCR, authorize, token
+            # exchange) — INFO logs show nothing for the OAuth endpoints.
+            - name: TOOLHIVE_DEBUG
+              value: "true"
