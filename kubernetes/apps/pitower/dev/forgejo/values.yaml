@@ -3,7 +3,7 @@ image:
   rootless: true
   registry: code.forgejo.org
   repository: forgejo/forgejo
-  tag: 15.0.2-rootless
+  tag: 15.0.3-rootless
 
 # Use the volsync-managed PVC (created by the volsync component as "forgejo")
 persistence:
