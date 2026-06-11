@@ -24,6 +24,7 @@ resources:
   - mcpserver-aws-api-agg.yaml
   - networkpolicy-mcp-agg.yaml
   - mcpregistry.yaml
+  - skill-publish-job.yaml
 components:
   - ../../../../components/cnpg-db
 configMapGenerator:
@@ -34,9 +35,9 @@ configMapGenerator:
       - APP_NAME=toolhive-registry
       - SECRET_NAME=toolhive-registry-db-secrets
       - CNPG_SECRET_KEY=toolhive-registry-app
-  # Registry data file (skills) mounted into registry-api for the "skills" file source.
-  - name: toolhive-registry-data
+  # Skill publish payload (POST body) for the toolhive-skill-publish hook Job.
+  - name: toolhive-skill-payload
     files:
-      - registry.json
+      - skill-pr.json
 generatorOptions:
   disableNameSuffixHash: true

@@ -1,0 +1,23 @@
+{
+  "skill": {
+    "namespace": "io.github.swibrow",
+    "name": "pr",
+    "title": "Pull Request Workflow",
+    "description": "Create a branch, commit changes, push, and open a pull request. Use when asked to open a PR, create a PR, branch and push, or submit this for review.",
+    "version": "1.0.0",
+    "status": "active",
+    "license": "MIT",
+    "packages": [
+      {
+        "registryType": "git",
+        "url": "https://github.com/swibrow/home-ops",
+        "ref": "main",
+        "subfolder": "kubernetes/apps/pitower/ai/toolhive-config/skills/pr"
+      }
+    ],
+    "repository": {
+      "url": "https://github.com/swibrow/home-ops",
+      "type": "git"
+    }
+  }
+}
