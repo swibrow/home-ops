@@ -79,10 +79,20 @@ spec:
     type: oidc
     # Validate the tokens the embedded AS itself issues (issuer/audience match
     # the AS, NOT kanidm — the AS mints aud = resourceUrl per RFC 8707).
+    # TRAILING SLASH IS LOAD-BEARING: resourceUrl becomes the AS's only
+    # AllowedAudiences entry and the token endpoint EXACT-matches the client's
+    # RFC 8707 `resource` param against it. claude.ai normalizes the root
+    # origin to "https://mcp.wibrow.dev/" and got invalid_target on the
+    # slash-less form (browser flow succeeded, token exchange 400'd, no log —
+    # rejection logs at debug only). Spec-conformant clients echo the
+    # protected-resource metadata's `resource` field, so they follow the
+    # slashed form automatically. The AS issuer stays slash-less (RFC 8414
+    # pattern forbids a trailing slash); the upstream callback is unaffected
+    # (defaultRedirectURI TrimRights the slash).
     oidcConfigRef:
       name: vmcp-authserver-oidc
-      audience: https://mcp.wibrow.dev
-      resourceUrl: https://mcp.wibrow.dev
+      audience: https://mcp.wibrow.dev/
+      resourceUrl: https://mcp.wibrow.dev/
       scopes:
         - openid
         - profile
