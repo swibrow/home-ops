@@ -1,23 +1,75 @@
 # Shared Talos recipes — imported by each cluster justfile.
+#
+# Cluster lifecycle is managed by topf (https://github.com/postfinance/topf):
+# it reads ./topf.yaml, decrypts secrets.sops.yaml transparently via sops
+# (age key from SOPS_AGE_KEY_FILE, exported by the cluster justfile) and
+# layers patches from all/, control-plane/, worker/ and node/<host>/.
+#
+# talosctl remains for read-only diagnostics that topf does not cover.
+#
 # Requires the importing justfile to define:
-#   - nodes: space-separated node IPs
+#   - nodes: space-separated node IPs (diagnostics only)
 #   - talosconfig: path to the cluster's talosconfig
 
 _endpoint := replace(nodes, " ", ",")
 _talos := "TALOSCONFIG=" + talosconfig + " talosctl --endpoints " + _endpoint
 
-# Apply config to a node by name
-[working-directory: 'clusterconfig']
-apply-node name:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    ip=$({{ _talos }} -n {{ _endpoint }} get members -o json | jq -rs --arg h "{{ name }}" '[.[] | select(.spec.hostname == $h) | .spec.addresses[0]][0]')
-    echo "Applying config to {{ name }} (${ip})"
-    {{ _talos }} apply-config --nodes "${ip}" --file ./{{ name }}.yaml
+# --- lifecycle (topf) ---
+
+# Show all nodes and their current state
+status:
+    topf nodes
+
+# Render full machine configs to clusterconfig/ for inspection
+render:
+    topf render --output ./clusterconfig
+
+# Show pending config changes without applying (exit 2 = changes pending)
+diff:
+    topf apply --dry-run
+
+# Apply config to all nodes, or a regex subset (e.g. just apply 'worker-0[12]')
+apply filter='.*':
+    topf apply --nodes-filter '{{ filter }}'
+
+# Bootstrap a brand-new cluster (nodes booted into maintenance mode)
+bootstrap:
+    topf apply --auto-bootstrap
+
+# Upgrade Talos to the talosVersion/schematicId in topf.yaml (preserves data)
+upgrade filter='.*':
+    topf upgrade --nodes-filter '{{ filter }}'
+
+# Preview pending upgrades (exit 2 = upgrades due)
+upgrade-check:
+    topf upgrade --dry-run
+
+# Reset a node by name: wipes STATE+EPHEMERAL, node returns to maintenance mode
+reset name:
+    topf reset --nodes-filter '^{{ name }}$' --full=false
+
+# Write a short-lived (12h) admin kubeconfig to clusterconfig/kubeconfig
+kubeconfig:
+    @mkdir -p ./clusterconfig
+    topf kubeconfig > ./clusterconfig/kubeconfig
+    @echo "export KUBECONFIG=$PWD/clusterconfig/kubeconfig"
+
+# Generate the talosconfig used by the diagnostics recipes below
+talosconfig:
+    @mkdir -p ./clusterconfig
+    topf talosconfig > {{ talosconfig }}
+
+# Print resolved factory schematic IDs for all nodes
+schematic-ids:
+    topf schematic-ids
+
+# --- addons ---
 
 # Build and apply kustomize addons (CNI + kubelet-csr-approver)
 addons:
     kustomize build ./addons --enable-helm | kubectl apply -f -
+
+# --- diagnostics (talosctl, read-only) ---
 
 # List container images on a node sorted by size
 image-list node:

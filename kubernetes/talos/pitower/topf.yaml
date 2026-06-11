@@ -1,0 +1,47 @@
+clusterName: pitower
+clusterEndpoint: https://10.20.10.0:6443
+kubernetesVersion: 1.36.1
+talosVersion: 1.13.3
+
+# Resolved to a factory schematic ID locally (86e7fd87…). The AMD control
+# planes use the cluster default; the Intel workers override it per node.
+schematicId: "@../shared/extensions/amd.yaml"
+
+# topf decrypts this transparently via sops; the age key is wired up through
+# SOPS_AGE_KEY_FILE in the justfile.
+secretsPath: secrets.sops.yaml
+
+nodes:
+  - host: worker-01
+    ip: 10.20.10.1
+    role: control-plane
+    data:
+      mac: "1c:83:41:40:88:41"
+  - host: worker-02
+    ip: 10.20.10.2
+    role: control-plane
+    data:
+      mac: "1c:83:41:40:66:25"
+  - host: worker-03
+    ip: 10.20.10.3
+    role: control-plane
+    data:
+      mac: "1c:83:41:40:65:13"
+  - host: worker-04
+    ip: 10.20.10.4
+    role: worker
+    schematicId: "@../shared/extensions/intel.yaml"
+    data:
+      mac: "10:02:b5:86:00:fb"
+  - host: worker-05
+    ip: 10.20.10.5
+    role: worker
+    schematicId: "@../shared/extensions/intel.yaml"
+    data:
+      mac: "28:d2:44:6d:64:bf"
+  - host: worker-06
+    ip: 10.20.10.6
+    role: worker
+    schematicId: "@../shared/extensions/intel.yaml"
+    data:
+      mac: "50:7b:9d:31:ae:cd"

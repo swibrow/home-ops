@@ -6,99 +6,60 @@ Procedures for upgrading Talos Linux, Kubernetes, and applications in the cluste
 
 ## Talos Linux Upgrades
 
-Talos upgrades are performed per-architecture using factory images that include the appropriate system extensions. The cluster currently runs **Talos v1.12.4**.
-
-### Architecture-Specific Images
-
-The justfile defines four factory images, each tailored to a specific hardware type:
-
-| Variable | Architecture | Nodes | Extensions |
-|:---------|:-------------|:------|:-----------|
-| `cp_image` | ARM64 | 192.168.0.201-202 | Base Pi 4 extensions |
-| `cp_amd_image` | AMD64 | 192.168.0.203 | AMD extensions |
-| `worker_intel_image` | AMD64 | 192.168.0.204 | Intel GPU extensions |
+Talos upgrades are driven by [topf](https://github.com/postfinance/topf): the target version is `talosVersion` in the cluster's `topf.yaml`, and per-hardware system extensions come from schematic files referenced via `schematicId: "@../shared/extensions/<file>.yaml"` (cluster default + per-node overrides). topf resolves schematic IDs locally and compares both version *and* schematic against each running node, so editing an extension file flags the affected nodes for upgrade just like a version bump.
 
 ### Pre-Upgrade Checklist
 
 Before upgrading Talos:
 
-- [ ] Verify cluster health: `talosctl health`
-- [ ] Check etcd membership: `talosctl etcd members --nodes 192.168.0.201`
-- [ ] Back up etcd: `talosctl etcd snapshot etcd-backup.snapshot --nodes 192.168.0.201`
+- [ ] Verify cluster health: `just health`
+- [ ] Check etcd membership: `talosctl etcd members --nodes 10.20.10.1`
+- [ ] Back up etcd: `talosctl etcd snapshot etcd-backup.snapshot --nodes 10.20.10.1`
 - [ ] Review the [Talos release notes](https://www.talos.dev/latest/introduction/what-is-new/) for breaking changes
-- [ ] Update the factory image IDs if extensions have changed: `just image-id`
-- [ ] Update the image variables in the justfile
+- [ ] Bump `talosVersion` in `topf.yaml` (and edit `shared/extensions/*.yaml` if extensions change)
+- [ ] Preview: `just upgrade-check` (exit 2 = upgrades due)
 
 ### Upgrade Procedure
 
 !!! warning "Sequential Upgrades"
-    All upgrade recipes process nodes one at a time with `--wait` and `--preserve`. Never upgrade all nodes simultaneously.
+    topf upgrades nodes one at a time with per-node confirmation, data preservation, and a stabilization wait. Never force-parallelize upgrades.
 
 #### Step 1: Upgrade Control Plane Nodes
 
-Upgrade ARM-based control plane nodes first:
-
 ```bash
-cd pitower/talos
+cd kubernetes/talos/pitower
 just upgrade-controlplanes
-```
-
-Then upgrade AMD control plane node(s):
-
-```bash
-just upgrade-controlplanes-amd
 ```
 
 Each node upgrade:
 
-1. Downloads the new Talos image
-2. Stages the upgrade
-3. Reboots the node
-4. Waits for the node to come back with the new version
-5. Proceeds to the next node
+1. Checks etcd health (refuses to proceed if unhealthy)
+2. Stages the new installer image and reboots (kexec)
+3. Waits for the node to come back with the new version
+4. Proceeds to the next node
 
 #### Step 2: Upgrade Worker Nodes
 
-Upgrade Intel/AMD workers:
-
 ```bash
-just upgrade-workers-intel
+just upgrade-workers
 ```
 
 #### Step 3: Verify
 
 ```bash
-talosctl version --nodes 192.168.0.201
-talosctl health
+just status
+just health
 kubectl get nodes -o wide
 ```
 
-### The `--preserve` Flag
+### Updating System Extensions
 
-All upgrade commands use `--preserve`, which retains the node's ephemeral partition data across the upgrade. This means:
+When you change system extensions:
 
-- Container images are preserved (faster restart)
-- Local PVs are retained
-- The node rejoins the cluster faster
-
-!!! note "When NOT to Preserve"
-    Omit `--preserve` only when you want a clean slate (e.g., after major version upgrades that require a fresh state).
-
-### Updating Factory Images
-
-When Talos releases a new version or you change system extensions:
-
-1. Update extension files in `pitower/talos/extensions/` (e.g., `amd.yaml`, `intel.yaml`)
-
-2. Get new schematic IDs:
-
-    ```bash
-    just image-id
-    ```
-
-3. Update the image variables at the top of the justfile with the new schematic IDs and version tag
-
-4. Proceed with the upgrade
+1. Edit the schematic files in `kubernetes/talos/shared/extensions/` (e.g., `amd.yaml`, `intel.yaml`, `rpi-poe.yaml`)
+2. Check the resolved IDs: `just schematic-ids`
+3. If the extension combination is brand-new to the image factory, register it once with `topf upgrade --dry-run --submit-to-factory`
+4. `just upgrade-check` will now show the affected nodes as due — proceed with the upgrade
 
 ---
 
@@ -110,19 +71,21 @@ Kubernetes version is managed by Talos. When upgrading Talos, check whether the 
 
 ```bash
 kubectl version
-talosctl get machineconfig --nodes 192.168.0.201 -o yaml | grep kubernetesVersion
+grep kubernetesVersion kubernetes/talos/pitower/topf.yaml
 ```
 
 ### Upgrade Kubernetes
 
-If you need to upgrade Kubernetes independently of Talos:
+Use `talosctl upgrade-k8s` for minor upgrades — it validates version skew and rolls components in order, which `topf apply` does not:
 
 ```bash
-talosctl upgrade-k8s --to <version> --nodes 192.168.0.201
+talosctl upgrade-k8s --to <version> --nodes 10.20.10.1
 ```
 
+Afterwards, update `kubernetesVersion` in `topf.yaml` to match, so the next `just apply` doesn't revert it. For patch-level bumps (e.g. `1.36.1` → `1.36.2`), editing `kubernetesVersion` and running `just apply` is fine.
+
 !!! info "Talos-Managed Kubernetes"
-    Talos manages the Kubernetes control plane components (API server, controller manager, scheduler, etcd). A Talos upgrade often includes a Kubernetes version bump. Check the Talos release notes for the bundled Kubernetes version.
+    Talos manages the Kubernetes control plane components (API server, controller manager, scheduler, etcd). Each Talos release supports a specific Kubernetes version range — check the release notes before bumping either version.
 
 ### Post-Upgrade Verification
 

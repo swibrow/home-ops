@@ -1,0 +1,9 @@
+# Every pistack node is a control plane; the API VIP floats across all three.
+machine:
+  network:
+    interfaces:
+      - deviceSelector:
+          physical: true
+        dhcp: true
+        vip:
+          ip: 10.20.20.0

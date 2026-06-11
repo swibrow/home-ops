@@ -61,7 +61,7 @@ To track a site, embed the snippet in the page `<head>` (get `data-site-id` from
 ## Infrastructure
 
 - Cluster: `pitower`, control plane at 192.168.0.201
-- Talos configs: `kubernetes/talos/pitower/`
+- Talos configs: `kubernetes/talos/pitower/` — lifecycle managed with [topf](https://github.com/postfinance/topf) (`topf.yaml` + layered patches in `all/`, `control-plane/`, `node/<host>/`; secrets stay SOPS-encrypted, decrypted by topf via the repo age key). `talosctl` only for diagnostics.
 - Terraform: `terraform/` (AWS, Cloudflare, etc.)
 
 ## Task Tracking

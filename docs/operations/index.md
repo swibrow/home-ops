@@ -1,30 +1,33 @@
 # Operations
 
-Day-to-day operations for the the Kubernetes cluster running on Talos Linux.
+Day-to-day operations for the Kubernetes clusters running on Talos Linux.
 
 ---
 
 ## Overview
 
-Cluster operations are automated through a combination of [justfile](https://github.com/casey/just) recipes and `talosctl` commands. The justfile lives at `pitower/talos/justfile` and provides high-level recipes for common tasks like configuration generation, node management, upgrades, and diagnostics.
+Cluster lifecycle is managed declaratively with [topf](https://github.com/postfinance/topf), driven through [justfile](https://github.com/casey/just) recipes. Each cluster directory under `kubernetes/talos/` contains a `topf.yaml` (cluster identity, node inventory, Talos/Kubernetes versions, schematic references) plus layered machine-config patches. Secrets stay SOPS-encrypted on disk — topf decrypts `secrets.sops.yaml` transparently via sops and the repo age key.
+
+`talosctl` is still used for read-only diagnostics (logs, services, dashboards) and Kubernetes minor upgrades (`talosctl upgrade-k8s`).
 
 ```mermaid
 flowchart TD
     Operator((Operator))
     Just[justfile recipes]
+    Topf[topf]
     Talosctl[talosctl]
     Kubectl[kubectl]
     ArgoCD[ArgoCD]
 
     Operator --> Just
-    Operator --> Talosctl
-    Operator --> Kubectl
-
-    Just -->|config, patch, apply| Talosctl
+    Just -->|apply, upgrade, reset, render| Topf
+    Just -->|diagnostics| Talosctl
     Just -->|addons| Kubectl
     ArgoCD -->|sync| Kubectl
 
-    Talosctl --> Nodes[Talos Nodes]
+    Topf -->|sops + age| Secrets[(secrets.sops.yaml)]
+    Topf --> Nodes[Talos Nodes]
+    Talosctl --> Nodes
     Kubectl --> API[Kubernetes API]
 ```
 
@@ -32,15 +35,20 @@ flowchart TD
 
 ## Quick Reference
 
+Run from the cluster directory (`kubernetes/talos/pitower` or `kubernetes/talos/pistack`), or via root justfile modules (`just pitower::<recipe>`).
+
 | Task | Command | Details |
 |:-----|:--------|:--------|
-| Generate configs | `just config` | Decrypt secrets and generate Talos machine configs |
-| Apply to control planes | `just apply-controlplanes` | Push configs to 192.168.0.201-203 |
-| Apply to workers | `just apply-workers` | Push configs to all worker nodes |
-| Reboot control planes | `just reboot-controlplanes` | Sequential reboot with wait |
-| Upgrade control planes | `just upgrade-controlplanes` | ARM image upgrade with --preserve |
-| Check cluster health | `talosctl health` | Verify etcd, kubelet, and API server |
-| View dashboard | `talosctl dashboard` | Interactive node dashboard |
+| Show node status | `just status` | `topf nodes` — stage, readiness, schematic, version |
+| Preview config changes | `just diff` | `topf apply --dry-run`, exit 2 = changes pending |
+| Apply config | `just apply` | All nodes, or `just apply 'worker-0[12]'` (regex) |
+| Render configs | `just render` | Write merged machine configs to `clusterconfig/` |
+| Upgrade Talos | `just upgrade` | To `talosVersion`/`schematicId` from `topf.yaml` |
+| Check pending upgrades | `just upgrade-check` | `topf upgrade --dry-run`, exit 2 = upgrades due |
+| Reset a node | `just reset <name>` | Wipes STATE+EPHEMERAL, back to maintenance mode |
+| Admin kubeconfig | `just kubeconfig` | Short-lived (12h), written to `clusterconfig/` |
+| Talosconfig | `just talosconfig` | Generated from the secrets bundle |
+| Cluster health | `just health` | `talosctl health` |
 
 ---
 
@@ -55,14 +63,18 @@ flowchart TD
 
 ---
 
-## Node Layout
+## Node Layout (pitower)
 
-| IP Address | Hostname | Role | Architecture |
-|:-----------|:---------|:-----|:-------------|
-| 192.168.0.201 | worker-01 | Control Plane | ARM64 (Pi 4) |
-| 192.168.0.202 | worker-02 | Control Plane | ARM64 (Pi 4) |
-| 192.168.0.203 | worker-03 | Control Plane | AMD64 |
-| 192.168.0.204 | worker-04 | Worker | AMD64 (Intel) |
+| IP Address | Hostname | Role | Hardware |
+|:-----------|:---------|:-----|:---------|
+| 10.20.10.1 | worker-01 | Control Plane | AMD64 (AMD GPU) |
+| 10.20.10.2 | worker-02 | Control Plane | AMD64 (AMD GPU) |
+| 10.20.10.3 | worker-03 | Control Plane | AMD64 (AMD GPU) |
+| 10.20.10.4 | worker-04 | Worker | AMD64 (Intel GPU), tainted `dedicated=media-home` |
+| 10.20.10.5 | worker-05 | Worker | AMD64 (Intel GPU) |
+| 10.20.10.6 | worker-06 | Worker | AMD64 (Intel GPU) |
 
-!!! info "Talos Version"
-    The cluster runs Talos Linux **v1.12.4** with per-architecture factory images that include system extensions (Intel GPU, AMD).
+API VIP: `10.20.10.0`. The pistack cluster (3× Raspberry Pi control planes) lives at `10.20.20.1-3` with VIP `10.20.20.0`.
+
+!!! info "Versions"
+    Talos and Kubernetes versions are pinned per cluster in `topf.yaml` (`talosVersion`, `kubernetesVersion`). Factory schematics with system extensions are referenced declaratively from `kubernetes/talos/shared/extensions/` via `schematicId: "@…"` — topf computes the schematic IDs locally.
