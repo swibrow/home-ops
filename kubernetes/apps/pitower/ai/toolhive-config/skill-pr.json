@@ -5,7 +5,7 @@
     "title": "Pull Request Workflow",
     "description": "Create a branch, commit changes, push, and open a pull request. Use when asked to open a PR, create a PR, branch and push, or submit this for review.",
     "version": "1.0.0",
-    "status": "active",
+    "status": "ACTIVE",
     "license": "MIT",
     "packages": [
       {
