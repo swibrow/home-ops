@@ -9,6 +9,7 @@ controllers:
           tag: 3.8.0
         env:
           NODE_ENV: production
+          ROOT_URL: https://portfolio.wibrow.dev
           REDIS_HOST: localhost
           REDIS_PORT: "6379"
           ENABLE_FEATURE_AUTH_OIDC: "true"
