@@ -1,0 +1,33 @@
+---
+# yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpserverentry_v1beta1.json
+# GitHub's HOSTED MCP server, aggregated into the vMCP as a zero-infrastructure
+# group member (no pods/services — the vMCP connects to the remote directly).
+# Hosted over self-hosted: GitHub-recommended, auto-updated, full toolset
+# parity with the container image, and the container would need a PAT anyway.
+# MCPServerEntry over MCPRemoteProxy: vMCP→MCPRemoteProxy auth is not yet
+# implemented upstream, while entries are first-class vMCP group members.
+# No "-agg" suffix: unlike the in-cluster servers there is no per-server
+# mcp-tools tier sibling, and the bare name gives the cleaner `github_` tool
+# prefix under the vMCP's {workload}_ conflict resolution.
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServerEntry
+metadata:
+  name: github
+spec:
+  groupRef:
+    name: mcp-agg
+  remoteUrl: https://api.githubcopilot.com/mcp/
+  # GitHub's remote MCP is Streamable HTTP only (no SSE endpoint).
+  transport: streamable-http
+  headerForward:
+    # The secret value is the FULL header value including the "Bearer " prefix
+    # (templated in externalsecret.yaml).
+    addHeadersFromSecret:
+      - headerName: Authorization
+        valueSecretRef:
+          name: toolhive-github
+          key: token
+    # Optional scoping knobs GitHub honors on the hosted server:
+    #   X-MCP-Toolsets: "repos,issues,pull_requests,actions"  (limit toolsets)
+    #   X-MCP-Readonly: "true"                                 (read-only mode)
+    # Left unset → GitHub's default toolset selection.

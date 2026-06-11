@@ -22,6 +22,7 @@ resources:
   - mcpserver-kubernetes-agg.yaml
   - mcpserver-argocd-agg.yaml
   - mcpserver-aws-api-agg.yaml
+  - mcpserverentry-github.yaml
   - networkpolicy-mcp-agg.yaml
   - mcpregistry.yaml
   - skill-publish-job.yaml
