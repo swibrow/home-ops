@@ -8,7 +8,7 @@ kind: MCPServer
 metadata:
   name: argocd-agg
 spec:
-  image: ghcr.io/argoproj-labs/mcp-for-argocd:v0.7.0
+  image: ghcr.io/argoproj-labs/mcp-for-argocd:v0.8.0
   # Image default CMD is `node dist/index.js http` (HTTP stream on :3000).
   transport: streamable-http
   proxyPort: 8080
