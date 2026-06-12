@@ -1,6 +1,6 @@
 # Justfile Recipes
 
-Complete reference for the Talos justfile recipes. Lifecycle recipes are shared between clusters via `kubernetes/talos/shared/talos.justfile` and wrap [topf](https://github.com/postfinance/topf); diagnostics wrap `talosctl`.
+Complete reference for the Talos justfile recipes. Lifecycle recipes are shared between clusters via `kubernetes/talos/talos.justfile` and wrap [topf](https://github.com/postfinance/topf); diagnostics wrap `talosctl`.
 
 !!! tip "Running Recipes"
     ```bash
@@ -22,7 +22,7 @@ kubernetes/talos/pitower/
 ├── topf.yaml              # cluster identity, nodes, versions, schematics
 ├── secrets.sops.yaml      # SOPS-encrypted secrets bundle (decrypted by topf)
 ├── all/                   # patches applied to every node
-│   ├── 01-general.yaml    #   → symlink to ../shared/patches/general.yaml
+│   ├── 01-general.yaml    #   cluster-wide baseline
 │   ├── 02-hostname.yaml.tpl
 │   └── 03-network.yaml.tpl
 ├── control-plane/         # role-specific patches
@@ -33,7 +33,7 @@ kubernetes/talos/pitower/
 
 Patches merge in order `all/` → `<role>/` → `node/<host>/`, lexicographically within each folder. Files ending in `.tpl` are Go templates with access to `.Node.Host`, `.Node.Role`, `.Node.Data.<key>`, etc.
 
-The installer image is derived from `talosVersion` + `schematicId` in `topf.yaml`. Schematics are referenced as `schematicId: "@../shared/extensions/<file>.yaml"` and resolved to factory IDs locally — no hardcoded hashes.
+The installer image is derived from `talosVersion` + `schematicId` in `topf.yaml`. Schematics are referenced as `schematicId: "@extensions/<file>.yaml"` and resolved to factory IDs locally — no hardcoded hashes.
 
 **Secrets**: `secretsPath: secrets.sops.yaml` points topf at the encrypted bundle. topf shells out to `sops decrypt`; the age key is wired via `SOPS_AGE_KEY_FILE` (exported by each cluster justfile, pointing at `<repo>/age.key`). Nothing is ever written to disk in plaintext.
 
@@ -120,7 +120,7 @@ The diagnostics recipes below need `clusterconfig/talosconfig` — run `just tal
 topf compares the running version *and* schematic against the target installer image and only upgrades nodes that differ — changing an extension file triggers an upgrade just like a version bump. Upgrades run sequentially with per-node confirmation, preserve data (Talos default since v1.8), and wait for stabilization.
 
 ```bash
-# 1. bump talosVersion in topf.yaml (and/or edit shared/extensions/*.yaml)
+# 1. bump talosVersion in topf.yaml (and/or edit extensions/*.yaml)
 # 2. preview
 just upgrade-check
 # 3. roll, control planes first

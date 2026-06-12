@@ -6,7 +6,7 @@ Procedures for upgrading Talos Linux, Kubernetes, and applications in the cluste
 
 ## Talos Linux Upgrades
 
-Talos upgrades are driven by [topf](https://github.com/postfinance/topf): the target version is `talosVersion` in the cluster's `topf.yaml`, and per-hardware system extensions come from schematic files referenced via `schematicId: "@../shared/extensions/<file>.yaml"` (cluster default + per-node overrides). topf resolves schematic IDs locally and compares both version *and* schematic against each running node, so editing an extension file flags the affected nodes for upgrade just like a version bump.
+Talos upgrades are driven by [topf](https://github.com/postfinance/topf): the target version is `talosVersion` in the cluster's `topf.yaml`, and per-hardware system extensions come from schematic files referenced via `schematicId: "@extensions/<file>.yaml"` (cluster default + per-node overrides). topf resolves schematic IDs locally and compares both version *and* schematic against each running node, so editing an extension file flags the affected nodes for upgrade just like a version bump.
 
 ### Pre-Upgrade Checklist
 
@@ -16,7 +16,7 @@ Before upgrading Talos:
 - [ ] Check etcd membership: `talosctl etcd members --nodes 10.20.10.1`
 - [ ] Back up etcd: `talosctl etcd snapshot etcd-backup.snapshot --nodes 10.20.10.1`
 - [ ] Review the [Talos release notes](https://www.talos.dev/latest/introduction/what-is-new/) for breaking changes
-- [ ] Bump `talosVersion` in `topf.yaml` (and edit `shared/extensions/*.yaml` if extensions change)
+- [ ] Bump `talosVersion` in `topf.yaml` (and edit `extensions/*.yaml` if extensions change)
 - [ ] Preview: `just upgrade-check` (exit 2 = upgrades due)
 
 ### Upgrade Procedure
@@ -56,7 +56,7 @@ kubectl get nodes -o wide
 
 When you change system extensions:
 
-1. Edit the schematic files in `kubernetes/talos/shared/extensions/` (e.g., `amd.yaml`, `intel.yaml`, `rpi-poe.yaml`)
+1. Edit the schematic files in `kubernetes/talos/<cluster>/extensions/` (e.g., `amd.yaml`, `intel.yaml`, `rpi-poe.yaml`)
 2. Check the resolved IDs: `just schematic-ids`
 3. If the extension combination is brand-new to the image factory, register it once with `topf upgrade --dry-run --submit-to-factory`
 4. `just upgrade-check` will now show the affected nodes as due — proceed with the upgrade

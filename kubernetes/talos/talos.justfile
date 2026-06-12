@@ -24,9 +24,10 @@ status:
 render:
     topf render --output ./clusterconfig
 
-# Show pending config changes without applying (exit 2 = changes pending)
+# Show pending config changes without applying (topf exits 2 when changes
+# are pending — that's the answer, not a failure, so swallow it)
 diff:
-    topf apply --dry-run
+    topf apply --dry-run || [ $? -eq 2 ]
 
 # Apply config to all nodes, or a regex subset (e.g. just apply 'worker-0[12]')
 apply filter='.*':

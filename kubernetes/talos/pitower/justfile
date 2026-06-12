@@ -2,14 +2,14 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 
 export SOPS_AGE_KEY_FILE := source_directory() / "../../../age.key"
 
-import '../shared/talos.justfile'
+import '../talos.justfile'
 
 talosconfig := source_directory() / "clusterconfig/talosconfig"
 nodes := "10.20.10.1 10.20.10.2 10.20.10.3 10.20.10.4 10.20.10.5 10.20.10.6"
 
 # Apply config to the control planes only
 apply-controlplanes:
-    topf apply --nodes-filter 'worker-0[123]'
+    topf apply --nodes-filter 'worker-0[123]' --dry-run
 
 # Apply config to the workers only
 apply-workers:

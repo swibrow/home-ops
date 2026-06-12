@@ -77,4 +77,4 @@ Run from the cluster directory (`kubernetes/talos/pitower` or `kubernetes/talos/
 API VIP: `10.20.10.0`. The pistack cluster (3× Raspberry Pi control planes) lives at `10.20.20.1-3` with VIP `10.20.20.0`.
 
 !!! info "Versions"
-    Talos and Kubernetes versions are pinned per cluster in `topf.yaml` (`talosVersion`, `kubernetesVersion`). Factory schematics with system extensions are referenced declaratively from `kubernetes/talos/shared/extensions/` via `schematicId: "@…"` — topf computes the schematic IDs locally.
+    Talos and Kubernetes versions are pinned per cluster in `topf.yaml` (`talosVersion`, `kubernetesVersion`). Factory schematics with system extensions are referenced declaratively from `kubernetes/talos/<cluster>/extensions/` via `schematicId: "@…"` — topf computes the schematic IDs locally.

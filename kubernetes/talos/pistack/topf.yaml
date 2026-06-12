@@ -7,7 +7,7 @@ kubernetesVersion: 1.35.5
 talosVersion: 1.12.6
 
 # Resolved to a factory schematic ID locally (f73ac434…).
-schematicId: "@../shared/extensions/rpi-poe.yaml"
+schematicId: "@extensions/rpi-poe.yaml"
 
 # topf decrypts this transparently via sops; the age key is wired up through
 # SOPS_AGE_KEY_FILE in the justfile.
