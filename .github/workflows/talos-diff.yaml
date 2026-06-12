@@ -20,9 +20,10 @@ jobs:
     name: Diff (pitower)
     runs-on: home-ops
     timeout-minutes: 15
+    # runner context is not available in job-level env; SOPS_AGE_KEY_FILE is
+    # exported via GITHUB_ENV in the write-key step.
     env:
       CLUSTER: pitower
-      SOPS_AGE_KEY_FILE: ${{ runner.temp }}/age.key
       NO_COLOR: "1"
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
@@ -45,7 +46,8 @@ jobs:
           AGE_SECRET_KEY: ${{ secrets.AGE_SECRET_KEY }}
         run: |
           umask 077
-          printf '%s\n' "$AGE_SECRET_KEY" > "$SOPS_AGE_KEY_FILE"
+          printf '%s\n' "$AGE_SECRET_KEY" > "$RUNNER_TEMP/age.key"
+          echo "SOPS_AGE_KEY_FILE=$RUNNER_TEMP/age.key" >> "$GITHUB_ENV"
 
       - name: Dry-run against live nodes
         id: dryrun
