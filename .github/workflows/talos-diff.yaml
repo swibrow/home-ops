@@ -39,7 +39,8 @@ jobs:
             | tar -xz -C "$RUNNER_TEMP"
           install -m 0755 "$RUNNER_TEMP/topf" "$HOME/.local/bin/topf"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          topf --version
+          # GITHUB_PATH only applies to later steps; use the full path here.
+          "$HOME/.local/bin/topf" --version
 
       - name: Write age key
         env:
