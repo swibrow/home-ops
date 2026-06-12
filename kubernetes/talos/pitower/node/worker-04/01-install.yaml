@@ -1,0 +1,11 @@
+machine:
+  nodeLabels:
+    feature.node.kubernetes.io/intel-gpu: "true"
+  install:
+    disk: /dev/mmcblk0
+  kubelet:
+    extraConfig:
+      registerWithTaints:
+        - key: dedicated
+          value: media-home
+          effect: NoSchedule

@@ -1,282 +1,174 @@
 # Justfile Recipes
 
-Complete reference for all justfile recipes in `pitower/talos/justfile`. Run recipes from the `pitower/talos/` directory with `just <recipe>`.
+Complete reference for the Talos justfile recipes. Lifecycle recipes are shared between clusters via `kubernetes/talos/talos.justfile` and wrap [topf](https://github.com/postfinance/topf); diagnostics wrap `talosctl`.
 
 !!! tip "Running Recipes"
     ```bash
-    cd pitower/talos
+    cd kubernetes/talos/pitower   # or pistack
     just <recipe-name>
+
+    # or from the repo root via modules
+    just pitower::<recipe-name>
     ```
 
 ---
 
-## Configuration Generation
+## How It Works
 
-Recipes for generating and patching Talos machine configurations from encrypted secrets and patch files.
+topf reads `topf.yaml` in the cluster directory and assembles each node's machine config from layered strategic-merge patches:
+
+```text
+kubernetes/talos/pitower/
+├── topf.yaml              # cluster identity, nodes, versions, schematics
+├── secrets.sops.yaml      # SOPS-encrypted secrets bundle (decrypted by topf)
+├── all/                   # patches applied to every node
+│   ├── 01-general.yaml    #   cluster-wide baseline
+│   ├── 02-hostname.yaml.tpl
+│   └── 03-network.yaml.tpl
+├── control-plane/         # role-specific patches
+│   └── 01-cluster.yaml
+└── node/<host>/           # node-specific patches (highest precedence)
+    └── 01-install.yaml
+```
+
+Patches merge in order `all/` → `<role>/` → `node/<host>/`, lexicographically within each folder. Files ending in `.tpl` are Go templates with access to `.Node.Host`, `.Node.Role`, `.Node.Data.<key>`, etc.
+
+The installer image is derived from `talosVersion` + `schematicId` in `topf.yaml`. Schematics are referenced as `schematicId: "@extensions/<file>.yaml"` and resolved to factory IDs locally — no hardcoded hashes.
+
+**Secrets**: `secretsPath: secrets.sops.yaml` points topf at the encrypted bundle. topf shells out to `sops decrypt`; the age key is wired via `SOPS_AGE_KEY_FILE` (exported by each cluster justfile, pointing at `<repo>/age.key`). Nothing is ever written to disk in plaintext.
+
+---
+
+## Status & Inspection
 
 | Recipe | Description |
 |:-------|:------------|
-| `config` | Generate Talos config from SOPS-encrypted secrets |
-| `patch` | Patch machine configs for all nodes using per-node patches |
+| `status` | `topf nodes` — list nodes with stage, readiness, schematic, Talos version |
+| `render` | Write fully merged machine configs to `clusterconfig/<host>.yaml` |
+| `diff` | `topf apply --dry-run` — show pending config changes (exit 2 = changes) |
+| `schematic-ids` | Print resolved factory schematic IDs for all nodes |
 
-### `just config`
+### `just diff`
 
-Decrypts `secrets.sops.yaml` with SOPS, then runs `talosctl gen config` to produce base control plane and worker configs in `clusterconfig/`.
-
-```bash
-just config
-```
-
-Internally runs:
+The primary "what would change?" command. Shows a redacted diff per node without touching anything:
 
 ```bash
-sops -d ./secrets.sops.yaml > ./secrets.yaml
-talosctl gen config \
-    pitower \
-    https://192.168.0.200:6443 \
-    --with-secrets ./secrets.yaml \
-    --with-examples=true \
-    --config-patch-control-plane @patches/controlplane.patch \
-    --config-patch @patches/general.patch \
-    --output ./clusterconfig \
-    --force
+just diff
 ```
-
-### `just patch`
-
-Takes the base `controlplane.yaml` and `worker.yaml` from `clusterconfig/` and applies per-node patches to produce individual node configs.
-
-```bash
-just patch
-```
-
-This generates files like `worker-01.yaml`, `worker-04.yaml`, etc.
 
 ---
 
 ## Deployment
 
-Recipes for applying configurations to nodes and bootstrapping the cluster.
-
 | Recipe | Description |
 |:-------|:------------|
-| `bootstrap` | Bootstrap the Talos cluster (first-time setup) |
-| `apply-controlplanes` | Apply configs to control plane nodes (192.168.0.201-203) |
-| `apply-workers` | Apply configs to all worker nodes |
-| `apply-worker <name>` | Apply config to a specific worker by name suffix |
+| `apply [filter]` | Apply config to all nodes, or a regex subset |
+| `apply-controlplanes` | pitower: apply to worker-01/02/03 |
+| `apply-workers` | pitower: apply to worker-04/05/06 |
+| `bootstrap` | `topf apply --auto-bootstrap` — first-time cluster bring-up |
 | `addons` | Build and apply kustomize addons (CNI, kubelet-csr-approver) |
+
+### `just apply [filter]`
+
+Applies configuration with pre-flight health checks, per-node diff + confirmation, and a 30s post-apply stabilization wait. The optional filter is a Go regex on the host name:
+
+```bash
+just apply                  # all nodes
+just apply 'worker-04'      # one node
+just apply 'worker-0[123]'  # control planes
+```
 
 ### `just bootstrap`
 
-First-time cluster bootstrap. Bootstraps etcd on node 201 and fetches the kubeconfig.
+First-time cluster setup: boot the nodes into maintenance mode, then:
 
 ```bash
-just bootstrap
+just bootstrap   # topf apply --auto-bootstrap
+just kubeconfig
+just addons      # install Cilium + kubelet-csr-approver
 ```
 
-!!! warning "One-Time Operation"
-    Only run `bootstrap` once during initial cluster setup. Running it again can corrupt the cluster.
-
-### `just apply-controlplanes`
-
-Applies machine configs to all three control plane nodes.
-
-```bash
-just apply-controlplanes
-```
-
-### `just apply-workers`
-
-Applies machine configs to all worker nodes.
-
-```bash
-just apply-workers
-```
-
-### `just apply-worker <name>`
-
-Applies config to a single worker by name suffix. Automatically resolves the node's IP address from Talos member list.
-
-```bash
-# Apply to worker-04 (Intel)
-just apply-worker 04
-```
+`--auto-bootstrap` has no effect on an already-bootstrapped cluster.
 
 ### `just addons`
 
-Builds kustomize addons with Helm support and applies them to the cluster. Used for CNI (Cilium) and kubelet-csr-approver during bootstrap.
-
-```bash
-just addons
-```
+Builds kustomize addons with Helm support and applies them. Used for CNI (Cilium) and kubelet-csr-approver during bootstrap.
 
 ---
 
-## Reboot
-
-Recipes for rebooting nodes sequentially with wait between each node.
+## Credentials
 
 | Recipe | Description |
 |:-------|:------------|
-| `reboot-controlplanes` | Reboot control plane nodes one at a time |
-| `reboot-workers` | Reboot worker nodes one at a time |
+| `kubeconfig` | Write a short-lived (12h) admin kubeconfig to `clusterconfig/kubeconfig` |
+| `talosconfig` | Generate `clusterconfig/talosconfig` from the secrets bundle |
+| `merge-config` | Merge the cluster talosconfig into `~/.talos/config` |
 
-### `just reboot-controlplanes`
-
-Reboots control plane nodes 192.168.0.201 through 203 sequentially, waiting for each node to come back before rebooting the next.
-
-```bash
-just reboot-controlplanes
-```
-
-### `just reboot-workers`
-
-Reboots worker nodes 192.168.0.211 through 214 sequentially with wait.
-
-```bash
-just reboot-workers
-```
-
-!!! note "Sequential Reboot"
-    Both reboot recipes use `--wait` to ensure each node is fully back online before proceeding to the next. This maintains cluster availability throughout the process.
-
----
-
-## Reset
-
-| Recipe | Description |
-|:-------|:------------|
-| `reset <suffix>` | Reset a Talos node by its last IP octet |
-
-### `just reset <suffix>`
-
-Resets a node by wiping its ephemeral and meta partitions, then reboots. Use the last two digits of the node's IP address.
-
-```bash
-# Reset node at 192.168.0.204
-just reset 04
-
-# Reset node at 192.168.0.211
-just reset 11
-```
-
-!!! danger "Destructive Operation"
-    This wipes the node's ephemeral storage and metadata. The node will need to be re-joined to the cluster. Uses `--graceful=false` for a forced reset.
+The diagnostics recipes below need `clusterconfig/talosconfig` — run `just talosconfig` once first.
 
 ---
 
 ## Upgrade
 
-Recipes for upgrading Talos on nodes, grouped by architecture. All upgrades use `--preserve` to retain ephemeral data and `--wait` for sequential processing.
-
 | Recipe | Description |
 |:-------|:------------|
-| `upgrade-controlplanes` | Upgrade control plane nodes with ARM image |
-| `upgrade-controlplanes-amd` | Upgrade control plane nodes with AMD image |
-| `upgrade-workers-intel` | Upgrade Intel/AMD worker nodes |
+| `upgrade [filter]` | Upgrade Talos to `talosVersion`/`schematicId` from `topf.yaml` |
+| `upgrade-check` | `topf upgrade --dry-run` — show pending upgrades (exit 2 = due) |
+| `upgrade-controlplanes` | pitower: upgrade worker-01/02/03 |
+| `upgrade-workers` | pitower: upgrade worker-04/05/06 |
 
-### `just upgrade-controlplanes`
-
-Upgrades ARM-based control plane nodes (201-203) to the current Talos version.
+topf compares the running version *and* schematic against the target installer image and only upgrades nodes that differ — changing an extension file triggers an upgrade just like a version bump. Upgrades run sequentially with per-node confirmation, preserve data (Talos default since v1.8), and wait for stabilization.
 
 ```bash
+# 1. bump talosVersion in topf.yaml (and/or edit extensions/*.yaml)
+# 2. preview
+just upgrade-check
+# 3. roll, control planes first
 just upgrade-controlplanes
+just upgrade-workers
 ```
 
-### `just upgrade-controlplanes-amd`
-
-Upgrades AMD-based control plane nodes (currently node 203 only).
-
-```bash
-just upgrade-controlplanes-amd
-```
-
-### `just upgrade-workers-intel`
-
-Upgrades Intel/AMD worker nodes (currently node 204).
-
-```bash
-just upgrade-workers-intel
-```
-
-!!! info "Factory Images"
-    Each architecture uses a different factory image with tailored system extensions:
-
-    - **ARM control plane**: includes base extensions for Pi 4
-    - **AMD control plane**: includes AMD-specific extensions
-    - **Intel worker**: includes Intel GPU and related extensions
+!!! info "New schematics"
+    Schematic IDs are computed locally. If you create a *brand-new* extension combination the factory has never seen, run any topf command once with `--submit-to-factory` to register it.
 
 ---
 
-## Diagnostics
-
-Recipes for inspecting node images and disk usage.
+## Reset & Reboot
 
 | Recipe | Description |
 |:-------|:------------|
-| `image-list <node>` | List container images on a node sorted by size |
-| `image-usage` | Show image count and disk usage per node |
-| `image-id` | Print Talos factory image IDs from extension files |
+| `reset <name>` | Reset a node by hostname: wipes STATE+EPHEMERAL, returns to maintenance mode |
+| `reboot-controlplanes` | pitower: sequential reboot with wait |
+| `reboot-workers` | pitower: sequential reboot with wait |
 
-### `just image-list <node>`
-
-Lists all container images on a specific node, sorted by size (smallest first).
+### `just reset <name>`
 
 ```bash
-just image-list 192.168.0.201
+just reset worker-04
 ```
 
-### `just image-usage`
+!!! danger "Destructive Operation"
+    Wipes the node's STATE and EPHEMERAL partitions (the machine config is lost; the node comes back in maintenance mode). Re-join with `just apply '<name>'`. Note this differs from the pre-topf recipe, which wiped EPHEMERAL+META but kept STATE.
 
-Shows a summary of image count and containerd disk usage for all nodes.
+---
+
+## Diagnostics (talosctl)
+
+| Recipe | Description |
+|:-------|:------------|
+| `health` | `talosctl health` across all nodes |
+| `members` | Show cluster members |
+| `uptime` | Uptime for all nodes |
+| `services <node>` | List Talos services on a node |
+| `image-list <node>` | List container images on a node sorted by size |
+| `image-usage` | Image count and containerd disk usage per node |
 
 ```bash
 just image-usage
 ```
 
-Example output:
-
+```text
+10.20.10.1      87 images  2.1 GB
+10.20.10.2      85 images  2.0 GB
+...
 ```
-192.168.0.201      87 images  2.1 GB
-192.168.0.202      85 images  2.0 GB
-192.168.0.203      92 images  2.4 GB
-192.168.0.204     104 images  3.8 GB
-```
-
-### `just image-id`
-
-Queries the Talos factory API to get schematic IDs for each architecture's extension file.
-
-```bash
-just image-id
-```
-
-Example output:
-
-```
-amd: f19ad7b4a5d29151f3a59ef2d9c581cf89e77142e52f0abb5022e8f0b95ad0b9
-intel: 97bf8e92fc6bba0f03928b859c08295d7615737b29db06a97be51dc63004e403
-```
-
----
-
-## Complete Recipe Summary
-
-| Recipe | Arguments | Category |
-|:-------|:----------|:---------|
-| `config` | -- | Configuration |
-| `patch` | -- | Configuration |
-| `bootstrap` | -- | Deployment |
-| `apply-controlplanes` | -- | Deployment |
-| `apply-workers` | -- | Deployment |
-| `apply-worker` | `<name>` (e.g., `04`) | Deployment |
-| `addons` | -- | Deployment |
-| `reset` | `<suffix>` (last IP octet) | Reset |
-| `reboot-controlplanes` | -- | Reboot |
-| `reboot-workers` | -- | Reboot |
-| `upgrade-controlplanes` | -- | Upgrade |
-| `upgrade-controlplanes-amd` | -- | Upgrade |
-| `upgrade-workers-intel` | -- | Upgrade |
-| `image-list` | `<node>` (IP address) | Diagnostics |
-| `image-usage` | -- | Diagnostics |
-| `image-id` | -- | Diagnostics |

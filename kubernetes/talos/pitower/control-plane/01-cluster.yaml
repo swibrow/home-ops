@@ -7,7 +7,7 @@ machine:
   # spiral (2026-06-08). Carve out memory/CPU for the host services (etcd runs
   # as a Talos service, not a pod) and evict low-priority app pods early, while
   # the static control-plane pods (system-node-critical) are evicted last.
-  # Merges with the cluster-wide kubelet.extraConfig in shared/patches/general.patch.
+  # Merges with the cluster-wide kubelet.extraConfig in all/01-general.yaml.
   kubelet:
     extraConfig:
       systemReserved:

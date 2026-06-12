@@ -2,58 +2,26 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 
 export SOPS_AGE_KEY_FILE := source_directory() / "../../../age.key"
 
-import '../shared/talos.justfile'
-
-cp_image := "factory.talos.dev/installer/de94b242ed9adec9def2581ffbf1e2d1873e42b17032771770d241dee54d7c00:v1.13.3"
-cp_amd_image := "factory.talos.dev/installer/86e7fd87fc2c25ce2adb947bbf084f78d473e206487a2eb7df5fc157539bc999:v1.13.3"
-worker_intel_image := "factory.talos.dev/installer/97bf8e92fc6bba0f03928b859c08295d7615737b29db06a97be51dc63004e403:v1.13.3"
+import '../talos.justfile'
 
 talosconfig := source_directory() / "clusterconfig/talosconfig"
 nodes := "10.20.10.1 10.20.10.2 10.20.10.3 10.20.10.4 10.20.10.5 10.20.10.6"
 
-# Generate talos config from secrets
-config:
-    sops -d ./secrets.sops.yaml > ./secrets.yaml
-    talosctl gen config \
-        pitower \
-        https://10.20.10.0:6443 \
-        --with-secrets ./secrets.yaml \
-        --with-examples=true \
-        --kubernetes-version 1.36.1 \
-        --config-patch-control-plane @patches/controlplane.patch \
-        --config-patch @../shared/patches/general.patch \
-        --output ./clusterconfig \
-        --force
-
-# Patch machine configs for all nodes
-[working-directory: 'clusterconfig']
-patch:
-    talosctl machineconfig patch ./controlplane.yaml --patch @../patches/nodes/worker-01.patch --output worker-01.yaml
-    talosctl machineconfig patch ./controlplane.yaml --patch @../patches/nodes/worker-02.patch --output worker-02.yaml
-    talosctl machineconfig patch ./controlplane.yaml --patch @../patches/nodes/worker-03.patch --output worker-03.yaml
-    talosctl machineconfig patch ./worker.yaml --patch @../patches/nodes/worker-04.patch --output worker-04.yaml
-    talosctl machineconfig patch ./worker.yaml --patch @../patches/nodes/worker-05.patch --output worker-05.yaml
-    talosctl machineconfig patch ./worker.yaml --patch @../patches/nodes/worker-06.patch --output worker-06.yaml
-
-# Bootstrap the Talos cluster
-[working-directory: 'clusterconfig']
-bootstrap:
-    talosctl bootstrap --talosconfig ./talosconfig --nodes 10.20.10.1
-    talosctl kubeconfig --talosconfig ./talosconfig --nodes 10.20.10.0
-
-# Apply configs to all control plane nodes
-[working-directory: 'clusterconfig']
+# Apply config to the control planes only
 apply-controlplanes:
-    talosctl apply-config --talosconfig {{ talosconfig }} --endpoints 10.20.10.1 --nodes 10.20.10.1 --file ./worker-01.yaml
-    talosctl apply-config --talosconfig {{ talosconfig }} --endpoints 10.20.10.2 --nodes 10.20.10.2 --file ./worker-02.yaml
-    talosctl apply-config --talosconfig {{ talosconfig }} --endpoints 10.20.10.3 --nodes 10.20.10.3 --file ./worker-03.yaml
+    topf apply --nodes-filter 'worker-0[123]' --dry-run
 
-# Apply configs to all worker nodes
-[working-directory: 'clusterconfig']
+# Apply config to the workers only
 apply-workers:
-    talosctl apply-config --talosconfig {{ talosconfig }} --nodes 10.20.10.4 --file ./worker-04.yaml
-    talosctl apply-config --talosconfig {{ talosconfig }} --nodes 10.20.10.5 --file ./worker-05.yaml
-    talosctl apply-config --talosconfig {{ talosconfig }} --nodes 10.20.10.6 --file ./worker-06.yaml
+    topf apply --nodes-filter 'worker-0[456]'
+
+# Upgrade the control planes only
+upgrade-controlplanes:
+    topf upgrade --nodes-filter 'worker-0[123]'
+
+# Upgrade the workers only
+upgrade-workers:
+    topf upgrade --nodes-filter 'worker-0[456]'
 
 # Reboot control plane nodes sequentially
 reboot-controlplanes:
@@ -69,69 +37,4 @@ reboot-workers:
     set -euo pipefail
     for i in 4 5 6; do
         talosctl --talosconfig {{ talosconfig }} reboot --nodes "10.20.10.${i}" --wait
-    done
-
-# Reset a Talos node by name (e.g. just reset worker-03)
-reset name:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    ip=$(talosctl --talosconfig {{ talosconfig }} --endpoints 10.20.10.0 --nodes 10.20.10.0 get members -o json | jq -rs --arg h "{{ name }}" '[.[] | select(.spec.hostname == $h) | .spec.addresses[0]][0]')
-    echo "Resetting {{ name }} (${ip})"
-    talosctl --talosconfig {{ talosconfig }} --endpoints "${ip}" reset \
-        --system-labels-to-wipe=EPHEMERAL \
-        --system-labels-to-wipe=META \
-        --reboot \
-        --graceful=false \
-        --nodes "${ip}"
-
-# Upgrade a single node by name (e.g. just upgrade worker-01)
-upgrade name:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    ip=$(talosctl --talosconfig {{ talosconfig }} --endpoints 10.20.10.0 --nodes 10.20.10.0 get members -o json | jq -rs --arg h "{{ name }}" '[.[] | select(.spec.hostname == $h) | .spec.addresses[0]][0]')
-    case "{{ name }}" in
-        worker-01|worker-02|worker-03) image="{{ cp_amd_image }}" ;;
-        worker-04|worker-05|worker-06) image="{{ worker_intel_image }}" ;;
-        *)                             image="{{ cp_image }}" ;;
-    esac
-    echo "Upgrading {{ name }} (${ip}) with ${image}"
-    talosctl --talosconfig {{ talosconfig }} --endpoints "${ip}" upgrade \
-        --image "${image}" \
-        --nodes "${ip}" \
-        --preserve \
-        --wait
-
-# Upgrade control plane nodes (worker-01/02/03 = 10.20.10.1/2/3, AMD)
-upgrade-controlplanes:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    for i in 1 2 3; do
-        talosctl --talosconfig {{ talosconfig }} upgrade \
-            --image {{ cp_amd_image }} \
-            --nodes "10.20.10.${i}" \
-            --preserve \
-            --wait
-    done
-
-# Upgrade Intel worker nodes
-upgrade-workers-intel:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    for i in 4 5 6; do
-        talosctl --talosconfig {{ talosconfig }} upgrade \
-            --image {{ worker_intel_image }} \
-            --nodes "10.20.10.${i}" \
-            --preserve \
-            --wait
-    done
-
-# Print Talos factory image IDs from extension files
-[working-directory: '../shared/extensions']
-image-id:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    for f in amd.yaml intel.yaml rpi-poe.yaml; do
-        name="${f%.yaml}"
-        id=$(curl -sX POST --data-binary "@${f}" https://factory.talos.dev/schematics | jq -r .id)
-        echo "${name}: ${id}"
     done

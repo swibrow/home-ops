@@ -1,6 +1,6 @@
 # Talos Commands
 
-Common `talosctl` commands for managing and debugging the Talos Linux cluster. These commands complement the [justfile recipes](justfile-recipes.md) for lower-level operations.
+Common `talosctl` commands for debugging the Talos Linux cluster. Cluster lifecycle (config generation, apply, upgrade, reset) is handled by [topf via the justfile recipes](justfile-recipes.md) — `talosctl` complements it for read-only inspection and low-level operations.
 
 !!! tip "Default Endpoint"
     Most commands default to the endpoint configured in `~/.talos/config`. Set the default node/endpoint with:
@@ -162,7 +162,13 @@ talosctl get machineconfig --nodes 10.20.10.1 -o yaml
 
 ### Compare Configs
 
-Diff the running config against a file.
+Diff the running config against the declared state (all nodes, redacted):
+
+```bash
+just diff   # topf apply --dry-run
+```
+
+Or against a single rendered file (`just render` writes them to `clusterconfig/`):
 
 ```bash
 talosctl apply-config --nodes 10.20.10.1 --file ./clusterconfig/worker-01.yaml --dry-run

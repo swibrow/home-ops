@@ -1,0 +1,6 @@
+machine:
+  nodeLabels:
+    feature.node.kubernetes.io/intel-gpu: "true"
+  install:
+    diskSelector:
+      model: "SAMSUNG*"

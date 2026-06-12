@@ -1,0 +1,83 @@
+name: Talos Apply
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - kubernetes/talos/pitower/**
+      - .github/workflows/talos-apply.yaml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: talos-apply
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    name: Apply (pitower)
+    runs-on: home-ops
+    timeout-minutes: 90
+    # runner context is not available in job-level env; SOPS_AGE_KEY_FILE is
+    # exported via GITHUB_ENV in the write-key step.
+    env:
+      NO_COLOR: "1"
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - name: Install topf
+        env:
+          # renovate: datasource=github-releases depName=postfinance/topf
+          TOPF_VERSION: v0.4.0
+        run: |
+          set -euo pipefail
+          install -d "$HOME/.local/bin"
+          curl -fsSL "https://github.com/postfinance/topf/releases/download/${TOPF_VERSION}/topf_linux_amd64.tar.gz" \
+            | tar -xz -C "$RUNNER_TEMP"
+          install -m 0755 "$RUNNER_TEMP/topf" "$HOME/.local/bin/topf"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          # GITHUB_PATH only applies to later steps; use the full path here.
+          "$HOME/.local/bin/topf" --version
+
+      - name: Install sops
+        env:
+          # renovate: datasource=github-releases depName=getsops/sops
+          SOPS_VERSION: v3.13.1
+        run: |
+          set -euo pipefail
+          # topf shells out to sops for secrets decryption; without it the
+          # encrypted bundle is read raw and fails with base64 errors.
+          curl -fsSL "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/sops-${SOPS_VERSION}.linux.amd64" \
+            -o "$HOME/.local/bin/sops"
+          chmod 0755 "$HOME/.local/bin/sops"
+          "$HOME/.local/bin/sops" --version
+
+      - name: Write age key
+        env:
+          AGE_SECRET_KEY: ${{ secrets.AGE_SECRET_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$AGE_SECRET_KEY" > "$RUNNER_TEMP/age.key"
+          echo "SOPS_AGE_KEY_FILE=$RUNNER_TEMP/age.key" >> "$GITHUB_ENV"
+
+      - name: Apply config
+        working-directory: kubernetes/talos/pitower
+        run: |
+          set -euo pipefail
+          # This runner is a pod inside the cluster it is reconfiguring: a change that
+          # needs a reboot will kill the job when topf reaches the runner's own node.
+          # If that happens, re-run the workflow (or finish with `topf apply` locally).
+          topf apply --redact 2>&1 | tee "$RUNNER_TEMP/topf-apply.out"
+
+      - name: Summary
+        if: ${{ !cancelled() }}
+        run: |
+          {
+            echo "### \`topf apply\` (pitower)"
+            echo
+            echo '```'
+            tail -c 60000 "$RUNNER_TEMP/topf-apply.out" 2>/dev/null | sed 's/`//g' || echo "(no output captured)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
