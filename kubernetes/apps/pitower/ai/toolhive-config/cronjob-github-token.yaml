@@ -1,0 +1,88 @@
+---
+# github-agg only reads GITHUB_PERSONAL_ACCESS_TOKEN at process start, and the
+# App installation tokens it gets expire after 60 min — so the StatefulSet must
+# roll every 30 min to pick up the ESO-refreshed Secret (see externalsecret.yaml
+# for the 20m+30m < 60m math). A rollout-restart is just a strategic-merge
+# PATCH of the pod-template restartedAt annotation, so plain curl against the
+# apiserver does it — no kubectl image needed. Reloader would be the natural
+# tool, but the toolhive operator doesn't propagate MCPServer annotations to
+# the StatefulSet it creates, so there's nothing to hang reloader.stakater.com
+# annotations on via GitOps.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: github-token-rotator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-token-rotator
+rules:
+  - apiGroups: ["apps"]
+    resources: ["statefulsets"]
+    resourceNames: ["github-agg"]
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-token-rotator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-token-rotator
+subjects:
+  - kind: ServiceAccount
+    name: github-token-rotator
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: github-token-rotator
+spec:
+  schedule: "*/30 * * * *"
+  timeZone: Europe/Zurich
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 120
+      ttlSecondsAfterFinished: 3600
+      template:
+        spec:
+          serviceAccountName: github-token-rotator
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: restart
+              image: docker.io/curlimages/curl:8.20.0
+              command: ["sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  SA=/var/run/secrets/kubernetes.io/serviceaccount
+                  curl -fsS --cacert "$SA/ca.crt" \
+                    -H "Authorization: Bearer $(cat "$SA/token")" \
+                    -H "Content-Type: application/strategic-merge-patch+json" \
+                    -X PATCH \
+                    "https://kubernetes.default.svc/apis/apps/v1/namespaces/$(cat "$SA/namespace")/statefulsets/github-agg?fieldManager=github-token-rotator" \
+                    -d "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"kubectl.kubernetes.io/restartedAt\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}}}}}" \
+                    -o /dev/null
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  memory: 64Mi
