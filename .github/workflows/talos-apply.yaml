@@ -41,6 +41,19 @@ jobs:
           # GITHUB_PATH only applies to later steps; use the full path here.
           "$HOME/.local/bin/topf" --version
 
+      - name: Install sops
+        env:
+          # renovate: datasource=github-releases depName=getsops/sops
+          SOPS_VERSION: v3.13.1
+        run: |
+          set -euo pipefail
+          # topf shells out to sops for secrets decryption; without it the
+          # encrypted bundle is read raw and fails with base64 errors.
+          curl -fsSL "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/sops-${SOPS_VERSION}.linux.amd64" \
+            -o "$HOME/.local/bin/sops"
+          chmod 0755 "$HOME/.local/bin/sops"
+          "$HOME/.local/bin/sops" --version
+
       - name: Write age key
         env:
           AGE_SECRET_KEY: ${{ secrets.AGE_SECRET_KEY }}
