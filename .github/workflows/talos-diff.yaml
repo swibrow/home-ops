@@ -1,0 +1,116 @@
+name: Talos Diff
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - kubernetes/talos/pitower/**
+      - .github/workflows/talos-diff.yaml
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: talos-diff-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  diff:
+    name: Diff (pitower)
+    runs-on: home-ops
+    timeout-minutes: 15
+    env:
+      CLUSTER: pitower
+      SOPS_AGE_KEY_FILE: ${{ runner.temp }}/age.key
+      NO_COLOR: "1"
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - name: Install topf
+        env:
+          # renovate: datasource=github-releases depName=postfinance/topf
+          TOPF_VERSION: v0.4.0
+        run: |
+          set -euo pipefail
+          install -d "$HOME/.local/bin"
+          curl -fsSL "https://github.com/postfinance/topf/releases/download/${TOPF_VERSION}/topf_linux_amd64.tar.gz" \
+            | tar -xz -C "$RUNNER_TEMP"
+          install -m 0755 "$RUNNER_TEMP/topf" "$HOME/.local/bin/topf"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          topf --version
+
+      - name: Write age key
+        env:
+          AGE_SECRET_KEY: ${{ secrets.AGE_SECRET_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$AGE_SECRET_KEY" > "$SOPS_AGE_KEY_FILE"
+
+      - name: Dry-run against live nodes
+        id: dryrun
+        working-directory: kubernetes/talos/pitower
+        run: |
+          set -euo pipefail
+          # Public repo: --redact keeps secret values out of the job log and PR comment.
+          # topf exits 2 when changes are pending — the expected outcome on a PR,
+          # not a failure.
+          rc=0
+          topf apply --dry-run --redact 2>&1 | tee "$RUNNER_TEMP/topf-diff.out" || rc=$?
+          case "$rc" in
+            0) echo "status=no changes" >> "$GITHUB_OUTPUT" ;;
+            2) echo "status=changes pending" >> "$GITHUB_OUTPUT" ;;
+            *) echo "status=error" >> "$GITHUB_OUTPUT"; exit "$rc" ;;
+          esac
+
+      - name: Install gh CLI
+        if: ${{ !cancelled() }}
+        env:
+          # renovate: datasource=github-releases depName=cli/cli
+          GH_VERSION: v2.94.0
+        run: |
+          set -euo pipefail
+          install -d "$HOME/.local/bin"
+          v="${GH_VERSION#v}"
+          curl -fsSL "https://github.com/cli/cli/releases/download/${GH_VERSION}/gh_${v}_linux_amd64.tar.gz" \
+            | tar -xz -C "$RUNNER_TEMP"
+          install -m 0755 "$RUNNER_TEMP/gh_${v}_linux_amd64/bin/gh" "$HOME/.local/bin/gh"
+
+      - name: Comment diff on PR
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          STATUS: ${{ steps.dryrun.outputs.status || 'error' }}
+        run: |
+          set -euo pipefail
+          MARKER="<!-- talos-diff:${CLUSTER} -->"
+          OUT="$RUNNER_TEMP/topf-diff.out"
+          [ -f "$OUT" ] || echo "(no output captured — dry-run did not start)" > "$OUT"
+
+          BODY="$RUNNER_TEMP/comment.md"
+          {
+            echo "$MARKER"
+            echo "### Talos dry-run \`${CLUSTER}\` — ${STATUS}"
+            echo
+            echo "<details><summary><code>topf apply --dry-run --redact</code></summary>"
+            echo
+            echo '```'
+            # GitHub comment bodies cap at 65536 chars; keep the tail (the summary).
+            tail -c 60000 "$OUT" | sed 's/`//g'
+            echo '```'
+            echo
+            echo "</details>"
+          } > "$BODY"
+
+          cat "$BODY" >> "$GITHUB_STEP_SUMMARY"
+
+          # Sticky comment: edit ours by marker rather than --edit-last, which could
+          # clobber other bot comments (e.g. the drydock argocd-diff).
+          CID=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" --paginate \
+            --jq "[.[] | select(.body | startswith(\"${MARKER}\"))][0].id // empty")
+          if [ -n "$CID" ]; then
+            gh api -X PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${CID}" -F "body=@${BODY}" >/dev/null
+          else
+            gh pr comment "$PR_NUMBER" --body-file "$BODY"
+          fi
