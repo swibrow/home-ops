@@ -64,6 +64,10 @@ jobs:
 
       - name: Apply config
         working-directory: kubernetes/talos/pitower
+        env:
+          # topf's --confirm defaults to true and its y/n prompt re-asks forever
+          # on the runner's empty stdin, hanging the job until timeout.
+          TOPF_CONFIRM: "false"
         run: |
           set -euo pipefail
           # This runner is a pod inside the cluster it is reconfiguring: a change that
