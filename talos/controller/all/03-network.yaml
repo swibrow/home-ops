@@ -3,8 +3,14 @@
 # — controller .30, auth .40, pistack .20). No API VIP (that only makes sense
 # for multi-node control planes).
 machine:
+  kubelet:
+    nodeIP:
+      validSubnets:
+        - 10.20.0.0/16
   network:
     interfaces:
       - deviceSelector:
           physical: true
-        dhcp: true
+        vlans:
+          - vlanId: 20
+            dhcp: true
