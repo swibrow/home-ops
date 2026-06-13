@@ -94,8 +94,8 @@ done
 To wipe and reset a node (for reprovisioning or troubleshooting):
 
 ```bash
-just pitower::reset worker-03   # Resets worker-03 (10.20.10.3)
-just pitower::reset worker-05   # Resets worker-05 (10.20.10.5)
+just talos pitower reset worker-03   # Resets worker-03 (10.20.10.3)
+just talos pitower reset worker-05   # Resets worker-05 (10.20.10.5)
 ```
 
 The recipe resolves the node's IP from its hostname via `talosctl get members`, then runs:

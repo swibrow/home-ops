@@ -1,0 +1,7 @@
+# The boot disk is a USB SSD whose model is masked by the USB bridge (shows as
+# "2115"), so select by size — the 128 GB disk is the only one >100 GB (the
+# loop* devices are KB/MB system mounts).
+machine:
+  install:
+    diskSelector:
+      size: ">= 100GB"

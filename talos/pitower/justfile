@@ -1,0 +1,40 @@
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+export SOPS_AGE_KEY_FILE := source_directory() / "../../age.key"
+
+import '../talos.justfile'
+
+talosconfig := source_directory() / "output/talosconfig"
+nodes := "10.20.10.1 10.20.10.2 10.20.10.3 10.20.10.4 10.20.10.5 10.20.10.6"
+
+# Apply config to the control planes only
+apply-controlplanes:
+    topf apply --nodes-filter 'worker-0[123]' --dry-run
+
+# Apply config to the workers only
+apply-workers:
+    topf apply --nodes-filter 'worker-0[456]'
+
+# Upgrade the control planes only
+upgrade-controlplanes:
+    topf upgrade --nodes-filter 'worker-0[123]'
+
+# Upgrade the workers only
+upgrade-workers:
+    topf upgrade --nodes-filter 'worker-0[456]'
+
+# Reboot control plane nodes sequentially
+reboot-controlplanes:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for i in 1 2 3; do
+        talosctl --talosconfig {{ talosconfig }} reboot --endpoints "10.20.10.${i}" --nodes "10.20.10.${i}" --wait
+    done
+
+# Reboot worker nodes sequentially
+reboot-workers:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for i in 4 5 6; do
+        talosctl --talosconfig {{ talosconfig }} reboot --nodes "10.20.10.${i}" --wait
+    done

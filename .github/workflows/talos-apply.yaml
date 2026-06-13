@@ -4,22 +4,76 @@ on:
   push:
     branches: [main]
     paths:
-      - kubernetes/talos/pitower/**
+      - talos/**
       - .github/workflows/talos-apply.yaml
   workflow_dispatch:
+    inputs:
+      clusters:
+        description: 'JSON array of clusters to apply, e.g. ["pitower","auth"]. Empty = all changed.'
+        required: false
+        default: ""
 
 permissions:
   contents: read
 
-concurrency:
-  group: talos-apply
-  cancel-in-progress: false
-
 jobs:
+  # Determine which cluster dirs under talos/ changed in this push, and emit a
+  # JSON array consumed as the apply matrix. A workflow_dispatch can override the
+  # list explicitly; an empty result skips the apply job entirely.
+  changes:
+    name: Detect changed clusters
+    runs-on: home-ops
+    outputs:
+      clusters: ${{ steps.detect.outputs.clusters }}
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed clusters
+        id: detect
+        env:
+          OVERRIDE: ${{ github.event.inputs.clusters }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [ -n "${OVERRIDE:-}" ]; then
+            echo "clusters=${OVERRIDE}" >> "$GITHUB_OUTPUT"
+            echo "Override: ${OVERRIDE}"
+            exit 0
+          fi
+          # First push of a branch reports an all-zero "before"; fall back to HEAD^.
+          base="$BEFORE"
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+            base="${AFTER}^"
+          fi
+          changed=$(git diff --name-only "$base" "$AFTER" -- talos/ \
+            | sed -n 's#^talos/\([^/]*\)/.*#\1#p' | sort -u)
+          json="["; first=1
+          for c in $changed; do
+            [ "$first" -eq 1 ] && first=0 || json="${json},"
+            json="${json}\"${c}\""
+          done
+          json="${json}]"
+          echo "clusters=${json}" >> "$GITHUB_OUTPUT"
+          echo "Changed clusters: ${json}"
+
   apply:
-    name: Apply (pitower)
+    name: Apply (${{ matrix.cluster }})
+    needs: changes
+    if: ${{ needs.changes.outputs.clusters != '[]' && needs.changes.outputs.clusters != '' }}
     runs-on: home-ops
     timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        cluster: ${{ fromJSON(needs.changes.outputs.clusters) }}
+    # Serialize applies per cluster (never two applies racing the same cluster),
+    # but let different clusters apply in parallel.
+    concurrency:
+      group: talos-apply-${{ matrix.cluster }}
+      cancel-in-progress: false
     # runner context is not available in job-level env; SOPS_AGE_KEY_FILE is
     # exported via GITHUB_ENV in the write-key step.
     env:
@@ -63,23 +117,24 @@ jobs:
           echo "SOPS_AGE_KEY_FILE=$RUNNER_TEMP/age.key" >> "$GITHUB_ENV"
 
       - name: Apply config
-        working-directory: kubernetes/talos/pitower
+        working-directory: talos/${{ matrix.cluster }}
         env:
           # topf's --confirm defaults to true and its y/n prompt re-asks forever
           # on the runner's empty stdin, hanging the job until timeout.
           TOPF_CONFIRM: "false"
         run: |
           set -euo pipefail
-          # This runner is a pod inside the cluster it is reconfiguring: a change that
-          # needs a reboot will kill the job when topf reaches the runner's own node.
-          # If that happens, re-run the workflow (or finish with `topf apply` locally).
+          # This runner is a pod inside the pitower cluster. Applying to pitower, a
+          # change that needs a reboot will kill the job when topf reaches the
+          # runner's own node — re-run the workflow (or finish with `topf apply`
+          # locally). Applies to controller/auth/pistack are remote and unaffected.
           topf apply --redact 2>&1 | tee "$RUNNER_TEMP/topf-apply.out"
 
       - name: Summary
         if: ${{ !cancelled() }}
         run: |
           {
-            echo "### \`topf apply\` (pitower)"
+            echo "### \`topf apply\` (${{ matrix.cluster }})"
             echo
             echo '```'
             tail -c 60000 "$RUNNER_TEMP/topf-apply.out" 2>/dev/null | sed 's/`//g' || echo "(no output captured)"

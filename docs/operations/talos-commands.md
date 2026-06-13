@@ -168,10 +168,10 @@ Diff the running config against the declared state (all nodes, redacted):
 just diff   # topf apply --dry-run
 ```
 
-Or against a single rendered file (`just render` writes them to `clusterconfig/`):
+Or against a single rendered file (`just render` writes them to `output/`):
 
 ```bash
-talosctl apply-config --nodes 10.20.10.1 --file ./clusterconfig/worker-01.yaml --dry-run
+talosctl apply-config --nodes 10.20.10.1 --file ./output/worker-01.yaml --dry-run
 ```
 
 ### Version Information

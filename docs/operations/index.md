@@ -6,7 +6,7 @@ Day-to-day operations for the Kubernetes clusters running on Talos Linux.
 
 ## Overview
 
-Cluster lifecycle is managed declaratively with [topf](https://github.com/postfinance/topf), driven through [justfile](https://github.com/casey/just) recipes. Each cluster directory under `kubernetes/talos/` contains a `topf.yaml` (cluster identity, node inventory, Talos/Kubernetes versions, schematic references) plus layered machine-config patches. Secrets stay SOPS-encrypted on disk — topf decrypts `secrets.sops.yaml` transparently via sops and the repo age key.
+Cluster lifecycle is managed declaratively with [topf](https://github.com/postfinance/topf), driven through [justfile](https://github.com/casey/just) recipes. Each cluster directory under `talos/` contains a `topf.yaml` (cluster identity, node inventory, Talos/Kubernetes versions, schematic references) plus layered machine-config patches. Secrets stay SOPS-encrypted on disk — topf decrypts `secrets.sops.yaml` transparently via sops and the repo age key.
 
 `talosctl` is still used for read-only diagnostics (logs, services, dashboards) and Kubernetes minor upgrades (`talosctl upgrade-k8s`).
 
@@ -35,18 +35,18 @@ flowchart TD
 
 ## Quick Reference
 
-Run from the cluster directory (`kubernetes/talos/pitower` or `kubernetes/talos/pistack`), or via root justfile modules (`just pitower::<recipe>`).
+Run from the cluster directory (`talos/pitower` or `talos/pistack`), or via the root `talos` module (`just talos pitower <recipe>`).
 
 | Task | Command | Details |
 |:-----|:--------|:--------|
 | Show node status | `just status` | `topf nodes` — stage, readiness, schematic, version |
 | Preview config changes | `just diff` | `topf apply --dry-run`, exit 2 = changes pending |
 | Apply config | `just apply` | All nodes, or `just apply 'worker-0[12]'` (regex) |
-| Render configs | `just render` | Write merged machine configs to `clusterconfig/` |
+| Render configs | `just render` | Write merged machine configs to `output/` |
 | Upgrade Talos | `just upgrade` | To `talosVersion`/`schematicId` from `topf.yaml` |
 | Check pending upgrades | `just upgrade-check` | `topf upgrade --dry-run`, exit 2 = upgrades due |
 | Reset a node | `just reset <name>` | Wipes STATE+EPHEMERAL, back to maintenance mode |
-| Admin kubeconfig | `just kubeconfig` | Short-lived (12h), written to `clusterconfig/` |
+| Admin kubeconfig | `just kubeconfig` | Short-lived (12h), written to `output/` |
 | Talosconfig | `just talosconfig` | Generated from the secrets bundle |
 | Cluster health | `just health` | `talosctl health` |
 
@@ -77,4 +77,4 @@ Run from the cluster directory (`kubernetes/talos/pitower` or `kubernetes/talos/
 API VIP: `10.20.10.0`. The pistack cluster (3× Raspberry Pi control planes) lives at `10.20.20.1-3` with VIP `10.20.20.0`.
 
 !!! info "Versions"
-    Talos and Kubernetes versions are pinned per cluster in `topf.yaml` (`talosVersion`, `kubernetesVersion`). Factory schematics with system extensions are referenced declaratively from `kubernetes/talos/<cluster>/extensions/` via `schematicId: "@…"` — topf computes the schematic IDs locally.
+    Talos and Kubernetes versions are pinned per cluster in `topf.yaml` (`talosVersion`, `kubernetesVersion`). Factory schematics with system extensions are referenced declaratively from `talos/<cluster>/extensions/` via `schematicId: "@…"` — topf computes the schematic IDs locally.

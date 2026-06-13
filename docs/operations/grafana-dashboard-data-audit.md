@@ -31,7 +31,7 @@ Work through the priority buckets below. Healthy dashboards are listed at the bo
 
 **Applying the Talos change** (item 4) — CPs are worker-01/02/03 = `10.20.10.1/2/3`:
 ```
-cd kubernetes/talos/pitower
+cd talos/pitower
 just config && just patch          # regenerate machine configs from the patch
 just apply-controlplanes           # applies worker-0{1,2,3}.yaml to .1/.2/.3
 ```

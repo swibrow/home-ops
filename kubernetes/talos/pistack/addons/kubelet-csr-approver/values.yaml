@@ -1,5 +1,0 @@
----
-providerRegex: |
-  ^(pistack-01|pistack-02|pistack-03)$
-
-bypassDnsResolution: true

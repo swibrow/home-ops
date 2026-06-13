@@ -1,6 +1,0 @@
-clusterconfig
-# Generated Files
-secrets.yaml
-controlplane.yaml
-*.example.yaml
-*.bak

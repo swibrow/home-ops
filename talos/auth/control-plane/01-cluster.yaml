@@ -1,0 +1,12 @@
+cluster:
+  allowSchedulingOnControlPlanes: true
+  coreDNS:
+      disabled: true
+  apiServer:
+    certSANs:
+      - 127.0.0.1
+      - 10.20.40.1
+  # CNI + kubelet-csr-approver applied at bootstrap. Pre-rendered from ./addons
+  # via `just talos auth render-addons` (Talos runs no Helm/Kustomize).
+  extraManifests:
+    - https://raw.githubusercontent.com/swibrow/home-ops/main/talos/auth/addons-rendered.yaml

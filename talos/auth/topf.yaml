@@ -1,0 +1,23 @@
+clusterName: auth
+# Single-node cluster: no API VIP — the endpoint is the node's own IP.
+clusterEndpoint: https://10.20.40.1:6443
+# Talos v1.12 supports Kubernetes up to 1.35. Pinned to match the other Pi
+# clusters; verify against the running node before the first apply.
+kubernetesVersion: 1.35.5
+talosVersion: 1.12.6
+
+# Resolved to a factory schematic ID locally (f73ac434…).
+schematicId: "@extensions/rpi-poe.yaml"
+
+# topf decrypts this transparently via sops; the age key is wired up through
+# SOPS_AGE_KEY_FILE in the justfile.
+secretsPath: secrets.sops.yaml
+
+nodes:
+  - host: auth
+    ip: 10.20.40.1
+    role: control-plane
+    data:
+      # For identification only (which physical Pi) — not used by the device
+      # selector, which matches the single NIC via `physical: true`.
+      mac: "dc:a6:32:46:b2:ba" # UniFi: pistack-03

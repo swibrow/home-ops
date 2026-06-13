@@ -1,14 +1,14 @@
 # Justfile Recipes
 
-Complete reference for the Talos justfile recipes. Lifecycle recipes are shared between clusters via `kubernetes/talos/talos.justfile` and wrap [topf](https://github.com/postfinance/topf); diagnostics wrap `talosctl`.
+Complete reference for the Talos justfile recipes. Lifecycle recipes are shared between clusters via `talos/talos.justfile` and wrap [topf](https://github.com/postfinance/topf); diagnostics wrap `talosctl`.
 
 !!! tip "Running Recipes"
     ```bash
-    cd kubernetes/talos/pitower   # or pistack
+    cd talos/pitower   # or pistack
     just <recipe-name>
 
-    # or from the repo root via modules
-    just pitower::<recipe-name>
+    # or from the repo root via the talos module
+    just talos pitower <recipe-name>   # or  just talos::pitower::<recipe-name>
     ```
 
 ---
@@ -18,7 +18,7 @@ Complete reference for the Talos justfile recipes. Lifecycle recipes are shared 
 topf reads `topf.yaml` in the cluster directory and assembles each node's machine config from layered strategic-merge patches:
 
 ```text
-kubernetes/talos/pitower/
+talos/pitower/
 ├── topf.yaml              # cluster identity, nodes, versions, schematics
 ├── secrets.sops.yaml      # SOPS-encrypted secrets bundle (decrypted by topf)
 ├── all/                   # patches applied to every node
@@ -44,7 +44,7 @@ The installer image is derived from `talosVersion` + `schematicId` in `topf.yaml
 | Recipe | Description |
 |:-------|:------------|
 | `status` | `topf nodes` — list nodes with stage, readiness, schematic, Talos version |
-| `render` | Write fully merged machine configs to `clusterconfig/<host>.yaml` |
+| `render` | Write fully merged machine configs to `output/<host>.yaml` |
 | `diff` | `topf apply --dry-run` — show pending config changes (exit 2 = changes) |
 | `schematic-ids` | Print resolved factory schematic IDs for all nodes |
 
@@ -100,11 +100,11 @@ Builds kustomize addons with Helm support and applies them. Used for CNI (Cilium
 
 | Recipe | Description |
 |:-------|:------------|
-| `kubeconfig` | Write a short-lived (12h) admin kubeconfig to `clusterconfig/kubeconfig` |
-| `talosconfig` | Generate `clusterconfig/talosconfig` from the secrets bundle |
+| `kubeconfig` | Write a short-lived (12h) admin kubeconfig to `output/kubeconfig` |
+| `talosconfig` | Generate `output/talosconfig` from the secrets bundle |
 | `merge-config` | Merge the cluster talosconfig into `~/.talos/config` |
 
-The diagnostics recipes below need `clusterconfig/talosconfig` — run `just talosconfig` once first.
+The diagnostics recipes below need `output/talosconfig` — run `just talosconfig` once first.
 
 ---
 

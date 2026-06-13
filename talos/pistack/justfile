@@ -1,0 +1,8 @@
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+export SOPS_AGE_KEY_FILE := source_directory() / "../../age.key"
+
+import '../talos.justfile'
+
+talosconfig := source_directory() / "output/talosconfig"
+nodes := "10.20.20.1"
