@@ -15,8 +15,8 @@ kind: GithubAccessToken
 metadata:
   name: github-mcp
 spec:
-  appID: "CHANGE_ME"     # GitHub App ID
-  installID: "CHANGE_ME" # Installation ID
+  appID: "4042475"        # GitHub App ID
+  installID: "139988296"  # Installation ID
   auth:
     privateKey:
       secretRef:
