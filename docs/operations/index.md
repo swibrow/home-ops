@@ -42,11 +42,11 @@ Run from the cluster directory (`talos/pitower` or `talos/pistack`), or via the 
 | Show node status | `just status` | `topf nodes` — stage, readiness, schematic, version |
 | Preview config changes | `just diff` | `topf apply --dry-run`, exit 2 = changes pending |
 | Apply config | `just apply` | All nodes, or `just apply 'worker-0[12]'` (regex) |
-| Render configs | `just render` | Write merged machine configs to `clusterconfig/` |
+| Render configs | `just render` | Write merged machine configs to `output/` |
 | Upgrade Talos | `just upgrade` | To `talosVersion`/`schematicId` from `topf.yaml` |
 | Check pending upgrades | `just upgrade-check` | `topf upgrade --dry-run`, exit 2 = upgrades due |
 | Reset a node | `just reset <name>` | Wipes STATE+EPHEMERAL, back to maintenance mode |
-| Admin kubeconfig | `just kubeconfig` | Short-lived (12h), written to `clusterconfig/` |
+| Admin kubeconfig | `just kubeconfig` | Short-lived (12h), written to `output/` |
 | Talosconfig | `just talosconfig` | Generated from the secrets bundle |
 | Cluster health | `just health` | `talosctl health` |
 

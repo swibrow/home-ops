@@ -4,5 +4,5 @@ export SOPS_AGE_KEY_FILE := source_directory() / "../../age.key"
 
 import '../talos.justfile'
 
-talosconfig := source_directory() / "clusterconfig/talosconfig"
+talosconfig := source_directory() / "output/talosconfig"
 nodes := "10.20.30.1"

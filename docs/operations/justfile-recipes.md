@@ -44,7 +44,7 @@ The installer image is derived from `talosVersion` + `schematicId` in `topf.yaml
 | Recipe | Description |
 |:-------|:------------|
 | `status` | `topf nodes` — list nodes with stage, readiness, schematic, Talos version |
-| `render` | Write fully merged machine configs to `clusterconfig/<host>.yaml` |
+| `render` | Write fully merged machine configs to `output/<host>.yaml` |
 | `diff` | `topf apply --dry-run` — show pending config changes (exit 2 = changes) |
 | `schematic-ids` | Print resolved factory schematic IDs for all nodes |
 
@@ -100,11 +100,11 @@ Builds kustomize addons with Helm support and applies them. Used for CNI (Cilium
 
 | Recipe | Description |
 |:-------|:------------|
-| `kubeconfig` | Write a short-lived (12h) admin kubeconfig to `clusterconfig/kubeconfig` |
-| `talosconfig` | Generate `clusterconfig/talosconfig` from the secrets bundle |
+| `kubeconfig` | Write a short-lived (12h) admin kubeconfig to `output/kubeconfig` |
+| `talosconfig` | Generate `output/talosconfig` from the secrets bundle |
 | `merge-config` | Merge the cluster talosconfig into `~/.talos/config` |
 
-The diagnostics recipes below need `clusterconfig/talosconfig` — run `just talosconfig` once first.
+The diagnostics recipes below need `output/talosconfig` — run `just talosconfig` once first.
 
 ---
 

@@ -20,9 +20,9 @@ _talos := "TALOSCONFIG=" + talosconfig + " talosctl --endpoints " + _endpoint
 status:
     topf nodes
 
-# Render full machine configs to clusterconfig/ for inspection
+# Render full machine configs to output/ for inspection (topf's default dir)
 render:
-    topf render --output ./clusterconfig
+    topf render
 
 # Show pending config changes without applying (topf exits 2 when changes
 # are pending — that's the answer, not a failure, so swallow it)
@@ -49,15 +49,15 @@ upgrade-check:
 reset name:
     topf reset --nodes-filter '^{{ name }}$' --full=false
 
-# Write a short-lived (12h) admin kubeconfig to clusterconfig/kubeconfig
+# Write a short-lived (12h) admin kubeconfig to output/kubeconfig
 kubeconfig:
-    @mkdir -p ./clusterconfig
-    topf kubeconfig > ./clusterconfig/kubeconfig
-    @echo "export KUBECONFIG=$PWD/clusterconfig/kubeconfig"
+    @mkdir -p ./output
+    topf kubeconfig > ./output/kubeconfig
+    @echo "export KUBECONFIG=$PWD/output/kubeconfig"
 
 # Generate the talosconfig used by the diagnostics recipes below
 talosconfig:
-    @mkdir -p ./clusterconfig
+    @mkdir -p ./output
     topf talosconfig > {{ talosconfig }}
 
 # Print resolved factory schematic IDs for all nodes

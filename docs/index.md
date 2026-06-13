@@ -134,7 +134,7 @@ home-ops/
 │   │   ├── argocd/         # ArgoCD app and ApplicationSet definitions
 │   │   └── bootstrap/      # Cluster bootstrap resources
 │   └── talos/
-│       ├── clusterconfig/  # Generated Talos machine configs
+│       ├── output/         # Generated Talos machine configs (gitignored)
 │       ├── extensions/     # Talos system extension definitions
 │       ├── patches/        # Machine config patches (general + per-node)
 │       └── justfile        # Task runner recipes for cluster operations
