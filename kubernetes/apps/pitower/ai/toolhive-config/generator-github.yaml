@@ -1,0 +1,24 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/generators.external-secrets.io/githubaccesstoken_v1alpha1.json
+# Mints short-lived (60 min, non-configurable) GitHub App INSTALLATION tokens
+# from the App's private key. Consumed by the toolhive-github ExternalSecret
+# (dataFrom.sourceRef.generatorRef → Secret key `token`), which refreshes every
+# 20 min. The github-agg MCPServer uses the token as its "PAT".
+#
+# appID/installID are not secrets — fill them in after creating the App:
+#   Settings → Developer settings → GitHub Apps → New GitHub App
+#   installID is in the URL after installing: /settings/installations/<id>
+# Token permissions can optionally be down-scoped below the installation via
+# spec.permissions / spec.repositories; left unset = full installation grant.
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: GithubAccessToken
+metadata:
+  name: github-mcp
+spec:
+  appID: "4042475"        # GitHub App ID
+  installID: "139988296"  # Installation ID
+  auth:
+    privateKey:
+      secretRef:
+        name: toolhive-github-app
+        key: private-key
