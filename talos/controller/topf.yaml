@@ -17,3 +17,7 @@ nodes:
   - host: controller
     ip: 10.20.30.1
     role: control-plane
+    data:
+      # For identification only (which physical Pi) — not used by the device
+      # selector, which matches the single NIC via `physical: true`.
+      mac: "dc:a6:32:4f:ee:e2" # UniFi: pistack-02
