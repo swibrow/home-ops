@@ -27,7 +27,7 @@ Before upgrading Talos:
 #### Step 1: Upgrade Control Plane Nodes
 
 ```bash
-cd kubernetes/talos/pitower
+cd talos/pitower
 just upgrade-controlplanes
 ```
 
@@ -56,7 +56,7 @@ kubectl get nodes -o wide
 
 When you change system extensions:
 
-1. Edit the schematic files in `kubernetes/talos/<cluster>/extensions/` (e.g., `amd.yaml`, `intel.yaml`, `rpi-poe.yaml`)
+1. Edit the schematic files in `talos/<cluster>/extensions/` (e.g., `amd.yaml`, `intel.yaml`, `rpi-poe.yaml`)
 2. Check the resolved IDs: `just schematic-ids`
 3. If the extension combination is brand-new to the image factory, register it once with `topf upgrade --dry-run --submit-to-factory`
 4. `just upgrade-check` will now show the affected nodes as due — proceed with the upgrade
@@ -71,7 +71,7 @@ Kubernetes version is managed by Talos. When upgrading Talos, check whether the 
 
 ```bash
 kubectl version
-grep kubernetesVersion kubernetes/talos/pitower/topf.yaml
+grep kubernetesVersion talos/pitower/topf.yaml
 ```
 
 ### Upgrade Kubernetes

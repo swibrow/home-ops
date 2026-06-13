@@ -1,10 +1,10 @@
 # Justfile Recipes
 
-Complete reference for the Talos justfile recipes. Lifecycle recipes are shared between clusters via `kubernetes/talos/talos.justfile` and wrap [topf](https://github.com/postfinance/topf); diagnostics wrap `talosctl`.
+Complete reference for the Talos justfile recipes. Lifecycle recipes are shared between clusters via `talos/talos.justfile` and wrap [topf](https://github.com/postfinance/topf); diagnostics wrap `talosctl`.
 
 !!! tip "Running Recipes"
     ```bash
-    cd kubernetes/talos/pitower   # or pistack
+    cd talos/pitower   # or pistack
     just <recipe-name>
 
     # or from the repo root via modules
@@ -18,7 +18,7 @@ Complete reference for the Talos justfile recipes. Lifecycle recipes are shared 
 topf reads `topf.yaml` in the cluster directory and assembles each node's machine config from layered strategic-merge patches:
 
 ```text
-kubernetes/talos/pitower/
+talos/pitower/
 ├── topf.yaml              # cluster identity, nodes, versions, schematics
 ├── secrets.sops.yaml      # SOPS-encrypted secrets bundle (decrypted by topf)
 ├── all/                   # patches applied to every node

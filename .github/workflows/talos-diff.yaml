@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - kubernetes/talos/pitower/**
+      - talos/**
       - .github/workflows/talos-diff.yaml
 
 permissions:
@@ -16,14 +16,50 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Determine which cluster dirs under talos/ changed in this PR, and emit a JSON
+  # array consumed as the diff matrix. An empty result skips the diff job.
+  changes:
+    name: Detect changed clusters
+    runs-on: home-ops
+    outputs:
+      clusters: ${{ steps.detect.outputs.clusters }}
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed clusters
+        id: detect
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          changed=$(git diff --name-only "$BASE" "$HEAD" -- talos/ \
+            | sed -n 's#^talos/\([^/]*\)/.*#\1#p' | sort -u)
+          json="["; first=1
+          for c in $changed; do
+            [ "$first" -eq 1 ] && first=0 || json="${json},"
+            json="${json}\"${c}\""
+          done
+          json="${json}]"
+          echo "clusters=${json}" >> "$GITHUB_OUTPUT"
+          echo "Changed clusters: ${json}"
+
   diff:
-    name: Diff (pitower)
+    name: Diff (${{ matrix.cluster }})
+    needs: changes
+    if: ${{ needs.changes.outputs.clusters != '[]' && needs.changes.outputs.clusters != '' }}
     runs-on: home-ops
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        cluster: ${{ fromJSON(needs.changes.outputs.clusters) }}
     # runner context is not available in job-level env; SOPS_AGE_KEY_FILE is
     # exported via GITHUB_ENV in the write-key step.
     env:
-      CLUSTER: pitower
+      CLUSTER: ${{ matrix.cluster }}
       NO_COLOR: "1"
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
@@ -65,7 +101,7 @@ jobs:
 
       - name: Dry-run against live nodes
         id: dryrun
-        working-directory: kubernetes/talos/pitower
+        working-directory: talos/${{ matrix.cluster }}
         run: |
           set -euo pipefail
           # Public repo: --redact keeps secret values out of the job log and PR comment.

@@ -5,4 +5,4 @@ cluster:
   apiServer:
     certSANs:
       - 127.0.0.1
-      - 10.20.20.0
+      - 10.20.40.1

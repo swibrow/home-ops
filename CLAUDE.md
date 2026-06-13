@@ -60,8 +60,9 @@ To track a site, embed the snippet in the page `<head>` (get `data-site-id` from
 
 ## Infrastructure
 
-- Cluster: `pitower`, control plane at 192.168.0.201
-- Talos configs: `kubernetes/talos/pitower/` — lifecycle managed with [topf](https://github.com/postfinance/topf) (`topf.yaml` + layered patches in `all/`, `control-plane/`, `node/<host>/`; secrets stay SOPS-encrypted, decrypted by topf via the repo age key). `talosctl` only for diagnostics.
+- Main cluster: `pitower`, control plane at 192.168.0.201
+- Talos configs live at the repo root under `talos/<cluster>/` — lifecycle managed with [topf](https://github.com/postfinance/topf) (`topf.yaml` + layered patches in `all/`, `control-plane/`, `node/<host>/`; secrets stay SOPS-encrypted, decrypted by topf via the repo age key). `talosctl` only for diagnostics.
+- Single-node management clusters (Raspberry Pi PoE) carry critical services pitower depends on, so a pitower outage can't take them down: `controller` (ArgoCD, `10.20.30.1`), `auth` (Vaultwarden + Kanidm, `10.20.40.1`), `pistack` (`10.20.20.1`). All on VLAN 20 (`10.20.0.0/16`), each in its own `/24`; each is its own cluster with no VIP — API endpoint = node IP.
 - Terraform: `terraform/` (AWS, Cloudflare, etc.)
 
 ## Task Tracking
