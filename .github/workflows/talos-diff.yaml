@@ -37,6 +37,12 @@ jobs:
           set -euo pipefail
           changed=$(git diff --name-only "$BASE" "$HEAD" -- talos/ \
             | sed -n 's#^talos/\([^/]*\)/.*#\1#p' | sort -u)
+          # Clusters held out of CI. pistack is still a live 3-node cluster and
+          # is unreachable at its target single-node IP, so its dry-run would
+          # just error. Remove to re-enable. Keep in sync with talos-apply.yaml.
+          for x in pistack; do
+            changed=$(printf '%s\n' $changed | grep -vxF "$x" || true)
+          done
           json="["; first=1
           for c in $changed; do
             [ "$first" -eq 1 ] && first=0 || json="${json},"

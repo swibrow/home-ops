@@ -50,6 +50,13 @@ jobs:
           fi
           changed=$(git diff --name-only "$base" "$AFTER" -- talos/ \
             | sed -n 's#^talos/\([^/]*\)/.*#\1#p' | sort -u)
+          # Clusters held out of automatic CI apply. pistack is still a live
+          # 3-node cluster; its repo config is the not-yet-applied single-node
+          # target, so auto-applying would clobber it. Remove to re-enable.
+          # (A workflow_dispatch override bypasses this and can force pistack.)
+          for x in pistack; do
+            changed=$(printf '%s\n' $changed | grep -vxF "$x" || true)
+          done
           json="["; first=1
           for c in $changed; do
             [ "$first" -eq 1 ] && first=0 || json="${json},"
