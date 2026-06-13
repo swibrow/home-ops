@@ -6,3 +6,7 @@ cluster:
     certSANs:
       - 127.0.0.1
       - 10.20.20.1
+  # CNI + kubelet-csr-approver applied at bootstrap. Pre-rendered from ./addons
+  # via `just talos pistack render-addons` (Talos runs no Helm/Kustomize).
+  extraManifests:
+    - https://raw.githubusercontent.com/swibrow/home-ops/main/talos/pistack/addons-rendered.yaml
