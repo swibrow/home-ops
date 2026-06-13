@@ -7,8 +7,8 @@ Complete reference for the Talos justfile recipes. Lifecycle recipes are shared 
     cd talos/pitower   # or pistack
     just <recipe-name>
 
-    # or from the repo root via modules
-    just pitower::<recipe-name>
+    # or from the repo root via the talos module
+    just talos pitower <recipe-name>   # or  just talos::pitower::<recipe-name>
     ```
 
 ---

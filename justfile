@@ -3,10 +3,7 @@ mod gh '.justfiles/gh'
 mod k8s '.justfiles/k8s'
 mod sops '.justfiles/sops'
 mod tf '.justfiles/terraform'
-mod pitower 'talos/pitower'
-mod pistack 'talos/pistack'
-mod controller 'talos/controller'
-mod auth 'talos/auth'
+mod talos 'talos'
 
 export TERRAFORM_WORKING_DIR := "terraform"
 export ENVIRONMENT := "dev"

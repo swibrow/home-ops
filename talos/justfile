@@ -1,0 +1,9 @@
+# Talos cluster lifecycle, grouped under the `talos` module. Each submodule wraps
+# one cluster's topf/talosctl recipes (shared via talos.justfile). Invoke as:
+#   just talos pitower apply         # or  just talos::pitower::apply
+#   just talos controller render
+
+mod auth
+mod controller
+mod pistack
+mod pitower

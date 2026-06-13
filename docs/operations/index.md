@@ -35,7 +35,7 @@ flowchart TD
 
 ## Quick Reference
 
-Run from the cluster directory (`talos/pitower` or `talos/pistack`), or via root justfile modules (`just pitower::<recipe>`).
+Run from the cluster directory (`talos/pitower` or `talos/pistack`), or via the root `talos` module (`just talos pitower <recipe>`).
 
 | Task | Command | Details |
 |:-----|:--------|:--------|
