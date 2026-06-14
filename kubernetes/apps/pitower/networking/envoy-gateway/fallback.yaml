@@ -154,7 +154,9 @@ metadata:
   name: fallback-404
   annotations:
     external-dns.alpha.kubernetes.io/controller: none
-    # Intentional catch-all that returns 404 by design — don't monitor it.
+    # Wildcard host (*.wibrow.dev) can't be auto-probed, so opt out of
+    # sidecar discovery. It's still monitored as a canary via an explicit
+    # 404-asserting endpoint in the gatus config (External Gateway Fallback).
     gatus.home-operations.com/enabled: "false"
 spec:
   parentRefs:
