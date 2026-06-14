@@ -1,0 +1,32 @@
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyExtensionPolicy
+metadata:
+  name: gatus-rybbit-inject
+  namespace: monitoring
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: gatus
+  lua:
+    - type: Inline
+      # Gatus has no custom-JS hook (only custom-css), so inject the Rybbit
+      # tracking script at the gateway. Gatus serves brotli even at origin, so
+      # strip Accept-Encoding on the request to get a plain-text body we can
+      # string-match </head> in. Cloudflare re-compresses to the browser.
+      inline: |
+        function envoy_on_request(h)
+          h:headers():remove("accept-encoding")
+        end
+        function envoy_on_response(h)
+          local ct = h:headers():get("content-type")
+          if ct == nil or not string.find(ct, "text/html") then return end
+          local body = h:body()
+          local html = body:getBytes(0, body:length())
+          local i = string.find(html, "</head>", 1, true)
+          if i == nil then return end
+          local tag = '<script src="https://insights.wibrow.dev/api/script.js" data-site-id="089e23c6b738" defer></script>'
+          h:headers():remove("content-length")
+          body:setBytes(string.sub(html, 1, i - 1) .. tag .. string.sub(html, i))
+        end

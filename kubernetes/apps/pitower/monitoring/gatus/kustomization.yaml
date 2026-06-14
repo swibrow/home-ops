@@ -5,6 +5,7 @@ kind: Kustomization
 namespace: monitoring
 resources:
   - configmap.yaml
+  - envoyextensionpolicy.yaml
 components:
   - ../../../../components/cnpg-db
 configMapGenerator:
