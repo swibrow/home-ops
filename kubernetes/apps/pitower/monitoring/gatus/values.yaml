@@ -27,6 +27,49 @@ controllers:
     annotations:
       reloader.stakater.com/auto: "true"
 
+    initContainers:
+      # Native sidecar (restartPolicy: Always) so it starts and writes
+      # /config/gatus-sidecar.yaml BEFORE the gatus app container reads /config.
+      # Gatus only reloads when a config file's mod-time is newer than its load
+      # time, so if it walks /config before this writes, it never picks the file
+      # up (the sidecar only rewrites on HTTPRoute changes). Ordering it ahead of
+      # the app avoids that race. Name sorts before the gate below.
+      a-gatus-sidecar:
+        image:
+          repository: ghcr.io/home-operations/gatus-sidecar
+          tag: 0.3.0
+        restartPolicy: Always
+        env:
+          TZ: Europe/Zurich
+        args:
+          - --auto-httproute
+          - --default-interval=5m
+          - --output=/config/gatus-sidecar.yaml
+          # Probe the bare hostname, not the first non-root PathPrefix match
+          # (multi-rule routes like /api, /badges would otherwise 404). Per-route
+          # path overrides via the endpoint annotation still apply.
+          - --probe-paths=false
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32M
+          limits:
+            memory: 64M
+      # Block the gatus app until the sidecar has produced its first config, so
+      # the initial directory walk includes every discovered endpoint.
+      b-wait-for-endpoints:
+        image:
+          repository: public.ecr.aws/docker/library/busybox
+          tag: latest
+        command:
+          - sh
+          - -c
+          - |
+            until [ -s /config/gatus-sidecar.yaml ]; do
+              echo "waiting for /config/gatus-sidecar.yaml"; sleep 1;
+            done
+            echo "endpoints config present"
+
     containers:
       app:
         image:
@@ -89,29 +132,6 @@ controllers:
             memory: 64M
           limits:
             memory: 256M
-
-      # Auto-generates a Gatus endpoint for every HTTPRoute in the cluster.
-      # Writes /config/gatus-sidecar.yaml, which Gatus merges from GATUS_CONFIG_PATH.
-      gatus-sidecar:
-        image:
-          repository: ghcr.io/home-operations/gatus-sidecar
-          tag: 0.3.0
-        env:
-          TZ: Europe/Zurich
-        args:
-          - --auto-httproute
-          - --default-interval=5m
-          - --output=/config/gatus-sidecar.yaml
-          # Probe the bare hostname, not the first non-root PathPrefix match
-          # (multi-rule routes like /api, /badges would otherwise 404). Per-route
-          # path overrides via the endpoint annotation still apply.
-          - --probe-paths=false
-        resources:
-          requests:
-            cpu: 10m
-            memory: 32M
-          limits:
-            memory: 64M
 
 service:
   app:
