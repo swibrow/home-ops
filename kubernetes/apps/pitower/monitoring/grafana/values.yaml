@@ -153,6 +153,14 @@ serviceMonitor:
 route:
   main:
     enabled: true
+    annotations:
+      # Unauthenticated / redirects to /login (302), so probe Grafana's own
+      # health endpoint instead — 200 + database:ok means it's actually serving.
+      gatus.home-operations.com/endpoint: |
+        path: /api/health
+        conditions:
+          - "[STATUS] == 200"
+          - "[BODY].database == ok"
     hostnames:
       - grafana.wibrow.dev
     parentRefs:
