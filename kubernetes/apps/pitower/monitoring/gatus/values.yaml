@@ -146,7 +146,7 @@ route:
     hostnames:
       - status.wibrow.dev
     parentRefs:
-      - name: envoy-internal
+      - name: envoy-external
         namespace: networking
         sectionName: https
 
