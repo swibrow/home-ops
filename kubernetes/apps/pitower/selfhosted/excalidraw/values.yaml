@@ -19,14 +19,13 @@ controllers:
         #     memory: 10Mi
         # limits:
         #   memory: 512Mi
-        env:
-          PORT: &port 8080
 service:
   app:
     controller: excalidraw
     ports:
       http:
-        port: *port
+        # The excalidraw nginx image serves on :80 and ignores the PORT env.
+        port: 80
 
 route:
   app:
