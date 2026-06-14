@@ -154,6 +154,8 @@ metadata:
   name: fallback-404
   annotations:
     external-dns.alpha.kubernetes.io/controller: none
+    # Intentional catch-all that returns 404 by design — don't monitor it.
+    gatus.home-operations.com/enabled: "false"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io

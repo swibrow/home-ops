@@ -102,6 +102,10 @@ controllers:
           - --auto-httproute
           - --default-interval=5m
           - --output=/config/gatus-sidecar.yaml
+          # Probe the bare hostname, not the first non-root PathPrefix match
+          # (multi-rule routes like /api, /badges would otherwise 404). Per-route
+          # path overrides via the endpoint annotation still apply.
+          - --probe-paths=false
         resources:
           requests:
             cpu: 10m

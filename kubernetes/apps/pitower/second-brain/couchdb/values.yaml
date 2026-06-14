@@ -45,6 +45,12 @@ service:
 route:
   app:
     enabled: true
+    annotations:
+      # CouchDB has require_valid_user = true, so an unauthenticated probe gets
+      # 401 everywhere — that response proves it's up and enforcing auth.
+      gatus.home-operations.com/endpoint: |
+        conditions:
+          - "[STATUS] == 401"
     hostnames:
       - obsidian.wibrow.dev
     parentRefs:
