@@ -39,6 +39,14 @@ service:
 route:
   app:
     enabled: true
+    annotations:
+      # rrda is a JSON DNS API with no root index (/ → 404). Probe a real
+      # query so Gatus checks actual resolution instead of the bare host.
+      gatus.home-operations.com/endpoint: |
+        path: /127.0.0.1:53/example.com/a
+        conditions:
+          - "[STATUS] == 200"
+          - "len([BODY].answer) > 0"
     hostnames:
       - rrda.wibrow.dev
     parentRefs:
