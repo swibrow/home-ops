@@ -180,3 +180,8 @@ plugins:
 
 imageRenderer:
   enabled: true
+  # Without this the chart mints a random token every render (its `lookup` to
+  # reuse the existing one returns nil under ArgoCD, which has no cluster
+  # access), churning the Secret and making Reloader restart Grafana on every
+  # reconcile. Pin it to an ESO-managed Secret so the token is deterministic.
+  existingSecret: grafana-image-renderer
