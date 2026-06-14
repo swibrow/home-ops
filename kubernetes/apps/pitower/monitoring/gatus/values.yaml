@@ -1,3 +1,26 @@
+defaultPodOptions:
+  automountServiceAccountToken: true
+
+# ClusterRole + binding so the sidecar can watch HTTPRoutes/Gateways cluster-wide.
+rbac:
+  roles:
+    gatus-sidecar:
+      type: ClusterRole
+      rules:
+        - apiGroups: ["gateway.networking.k8s.io"]
+          resources: ["httproutes", "gateways"]
+          verbs: ["get", "list", "watch"]
+  bindings:
+    gatus-sidecar:
+      type: ClusterRoleBinding
+      roleRef:
+        identifier: gatus-sidecar
+        kind: ClusterRole
+      subjects:
+        - kind: ServiceAccount
+          name: gatus
+          namespace: monitoring
+
 controllers:
   gatus:
     strategy: RollingUpdate
@@ -67,6 +90,25 @@ controllers:
           limits:
             memory: 256M
 
+      # Auto-generates a Gatus endpoint for every HTTPRoute in the cluster.
+      # Writes /config/gatus-sidecar.yaml, which Gatus merges from GATUS_CONFIG_PATH.
+      gatus-sidecar:
+        image:
+          repository: ghcr.io/home-operations/gatus-sidecar
+          tag: 0.3.0
+        env:
+          TZ: Europe/Zurich
+        args:
+          - --auto-httproute
+          - --default-interval=5m
+          - --output=/config/gatus-sidecar.yaml
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32M
+          limits:
+            memory: 64M
+
 service:
   app:
     controller: gatus
@@ -85,7 +127,13 @@ route:
         sectionName: https
 
 persistence:
+  # Writable dir shared by gatus (reads) and the sidecar (writes gatus-sidecar.yaml).
   config:
+    type: emptyDir
+    globalMounts:
+      - path: /config
+  # Static base config layered in as a single read-only file.
+  config-file:
     enabled: true
     type: configMap
     name: gatus-config

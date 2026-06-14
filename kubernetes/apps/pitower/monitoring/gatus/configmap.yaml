@@ -14,31 +14,8 @@ data:
       title: Pitower Status
       header: Pitower Status
 
-    endpoints:
-      - name: ArgoCD
-        group: Infrastructure
-        url: https://argocd.wibrow.dev
-        interval: 5m
-        conditions:
-          - "[STATUS] == 200"
-
-      - name: Grafana
-        group: Monitoring
-        url: https://grafana.wibrow.dev
-        interval: 5m
-        conditions:
-          - "[STATUS] == 200"
-
-      - name: Miniflux
-        group: Apps
-        url: https://miniflux.wibrow.dev
-        interval: 5m
-        conditions:
-          - "[STATUS] == 200"
-
-      - name: Homepage
-        group: Apps
-        url: https://home.wibrow.dev
-        interval: 5m
-        conditions:
-          - "[STATUS] == 200"
+    # Endpoints are auto-generated per HTTPRoute by the gatus-sidecar container
+    # and written to /config/gatus-sidecar.yaml, which Gatus merges from the
+    # GATUS_CONFIG_PATH directory. Override a single route's check by annotating
+    # its HTTPRoute with gatus.home-operations.com/endpoint (YAML fragment) or
+    # opt one out with gatus.home-operations.com/enabled: "false".
