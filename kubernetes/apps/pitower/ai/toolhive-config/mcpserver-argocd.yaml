@@ -1,4 +1,3 @@
----
 # yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpserver_v1beta1.json
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServer
@@ -59,7 +58,7 @@ spec:
   # krr: argocd/toolhive
   resources:
     requests:
-      cpu: 25m
+      cpu: 10m
       memory: 64Mi
     limits:
       memory: 256Mi

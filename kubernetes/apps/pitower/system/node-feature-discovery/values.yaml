@@ -4,7 +4,7 @@ master:
   # krr: node-feature-discovery-master/master
   resources:
     requests:
-      cpu: 21m
+      cpu: 10m
       memory: 51Mi
 worker:
   tolerations:

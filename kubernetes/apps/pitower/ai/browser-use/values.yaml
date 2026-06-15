@@ -24,7 +24,7 @@ controllers:
               name: browser-use-secret
         resources:
           requests:
-            cpu: 100m
+            cpu: 10m
             memory: 512Mi
           limits:
             memory: 4Gi

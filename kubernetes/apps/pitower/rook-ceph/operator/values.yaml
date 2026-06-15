@@ -15,6 +15,6 @@ monitoring:
 # krr: rook-ceph-operator/rook-ceph-operator
 resources:
   requests:
-    memory: 128Mi
-    cpu: 100m
+    memory: 75Mi
+    cpu: 59m
   limits: {}

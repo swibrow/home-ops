@@ -27,8 +27,8 @@ controllers:
           #       key: api_key
         resources:
           requests:
-            cpu: 20m
-            memory: 256M
+            cpu: 10m
+            memory: 146Mi
           limits:
             memory: 768M
 

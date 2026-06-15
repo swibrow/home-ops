@@ -1,4 +1,3 @@
----
 # yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpserver_v1beta1.json
 # Aggregate-tier copy of mcpserver-argocd.yaml for the vMCP — unauthenticated,
 # in-cluster only, ingress locked to the vMCP pod (networkpolicy-mcp-agg.yaml).
@@ -29,7 +28,7 @@ spec:
   # krr: argocd/toolhive
   resources:
     requests:
-      cpu: 25m
+      cpu: 10m
       memory: 64Mi
     limits:
       memory: 256Mi

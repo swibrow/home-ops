@@ -1,4 +1,3 @@
----
 # yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/gateway.envoyproxy.io/envoyproxy_v1alpha1.json
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: EnvoyProxy
@@ -19,8 +18,8 @@ spec:
           # One EnvoyProxy backs envoy-external/internal/direct — sized off the busiest (external).
           resources:
             requests:
-              cpu: 25m
-              memory: 96Mi
+              cpu: 10m
+              memory: 588Mi
             limits:
               memory: 1Gi
       envoyService:

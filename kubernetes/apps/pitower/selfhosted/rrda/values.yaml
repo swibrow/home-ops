@@ -18,6 +18,10 @@ controllers:
               periodSeconds: 30
               timeoutSeconds: 5
           readiness: *probes
+        resources:
+          requests:
+            cpu: 10m
+            memory: 6Mi
       dns-over-https:
         image:
           repository: docker.io/adguard/dnsproxy
@@ -29,6 +33,10 @@ controllers:
           - --upstream=https://1.0.0.1/dns-query
           - --bootstrap=9.9.9.9:53
 
+        resources:
+          requests:
+            cpu: 10m
+            memory: 11Mi
 service:
   app:
     controller: rrda
