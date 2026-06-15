@@ -31,3 +31,16 @@ spec:
       memory: 256Mi
     limits:
       memory: 512Mi
+  # Without a snapshot PVC, Dragonfly is purely in-memory: a pod restart wipes every
+  # DCR client registration and refresh token, and connected clients fail their next
+  # OAuth refresh with invalid_client ("the client does not exist"). The operator
+  # loads the latest snapshot on startup and saves on shutdown + on this cron, so
+  # registrations survive Dragonfly restarts (not just proxy restarts).
+  snapshot:
+    cron: "*/15 * * * *"
+    persistentVolumeClaimSpec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
