@@ -32,11 +32,19 @@ spec:
     # Issuer = the public root URL of the aggregate. The AS advertises its
     # endpoints under it (…/oauth/authorize, …/token, …/register).
     issuer: https://mcp.wibrow.dev
-    # Scopes every DCR-registered client may request. Keep narrow — granted to
-    # ALL dynamically-registered clients; kanidm's toolhive-mcp advertises only
-    # openid/profile/email/groups (no offline_access), so just openid here.
+    # Scopes guaranteed to be requestable by EVERY DCR-registered client at
+    # /oauth/authorize (the AS unions these into each registration). Claude Code
+    # registers with a narrowed scope then requests offline_access at /authorize
+    # to obtain a refresh token; without it here DCR/authorize fails with
+    # "unsupported scope: offline_access" and the client never gets a usable
+    # registration (surfaces as invalid_client). All baseline values MUST appear
+    # in the upstream-derived scopesSupported set or the AS refuses to start —
+    # hence offline_access is also added to the kanidm upstream scopes below.
+    # Keep this narrow: every public client (Claude Code, Cursor, VS Code) gains
+    # the right to request these.
     baselineClientScopes:
       - openid
+      - offline_access
     # Persistent signing (RS256) + HMAC material — shared with the per-server
     # ASes via externalsecret.yaml → Secret toolhive-authserver-secret. Without
     # these the AS auto-gens ephemeral keys and restarts invalidate tokens.
@@ -70,11 +78,19 @@ spec:
         oidcConfig:
           issuerUrl: https://idm.wibrow.dev/oauth2/openid/toolhive-mcp
           clientId: toolhive-mcp
+          # offline_access: REQUIRED so the upstream-derived scopesSupported
+          # includes it (the AS won't start with offline_access in
+          # baselineClientScopes otherwise). The AS will request offline_access
+          # from kanidm at login, so the toolhive-mcp client's scope-map for the
+          # mcp-tools group must grant it:
+          #   kanidm system oauth2 update-scope-map toolhive-mcp mcp-tools \
+          #     openid profile email groups offline_access
           scopes:
             - openid
             - profile
             - email
             - groups
+            - offline_access
   incomingAuth:
     type: oidc
     # Validate the tokens the embedded AS itself issues (issuer/audience match
