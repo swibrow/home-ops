@@ -41,3 +41,13 @@ route:
       - name: envoy-external
         namespace: networking
         sectionName: https
+    # Route through the KEDA HTTP add-on interceptor (system ns) instead of
+    # straight to the echo-server Service. The interceptor catches requests for
+    # this host, scales the Deployment 0->1 on the first hit (holding the
+    # request until ready), then forwards to echo-server:8080. Cross-namespace
+    # backendRef → needs the ReferenceGrant in the system namespace.
+    rules:
+      - backendRefs:
+          - name: keda-add-ons-http-interceptor-proxy
+            namespace: system
+            port: 8080

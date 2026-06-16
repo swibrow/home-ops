@@ -1,0 +1,25 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/kedacore/http-add-on/main/config/crd/bases/http.keda.sh_httpscaledobjects.yaml
+# Scale echo-server to zero when idle, back up on the first HTTP request.
+# The KEDA HTTP add-on interceptor routes by Host header (see route.app in
+# values.yaml → interceptor backendRef); this object tells it which workload
+# the `echo.wibrow.dev` host maps to and the min/max replica bounds.
+apiVersion: http.keda.sh/v1alpha1
+kind: HTTPScaledObject
+metadata:
+  name: echo-server
+spec:
+  hosts:
+    - echo.wibrow.dev
+  scaleTargetRef:
+    name: echo-server
+    kind: Deployment
+    apiVersion: apps/v1
+    service: echo-server
+    port: 8080
+  replicas:
+    min: 0
+    max: 3
+  # Seconds with no traffic before scaling back to zero. Short for testing;
+  # raise it (default 300) once you've seen it work.
+  scaledownPeriod: 60
