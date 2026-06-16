@@ -50,7 +50,7 @@ controllers:
       cronjob:
         image:
           repository: alpine
-          tag: 3.24.0
+          tag: 3.24.1
           pullPolicy: IfNotPresent
         command:
           - sh
