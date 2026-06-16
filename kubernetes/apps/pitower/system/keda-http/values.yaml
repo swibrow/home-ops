@@ -1,0 +1,22 @@
+---
+crds:
+  install: true
+
+operator:
+  replicas: 1
+
+# Right-sized for a home lab — chart defaults are 3 replicas each.
+scaler:
+  replicas: 1
+  metrics:
+    prometheus:
+      enabled: true
+
+interceptor:
+  replicas:
+    min: 1
+    max: 10
+  pdb:
+    enabled: true
+    minAvailable: 0
+    maxUnavailable: 1

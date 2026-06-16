@@ -2,13 +2,14 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: networking
+namespace: system
 resources:
-  - servicemonitor-argocd.yaml
+  - referencegrant.yaml
 helmCharts:
-  - name: kromgo
-    repo: oci://ghcr.io/home-operations/charts
-    version: 0.14.8
-    releaseName: kromgo
-    namespace: networking
+  - name: keda-add-ons-http
+    repo: https://kedacore.github.io/charts
+    version: 0.15.0
+    releaseName: keda-add-ons-http
+    includeCRDs: true
     valuesFile: values.yaml
+    namespace: system
