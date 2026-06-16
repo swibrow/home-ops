@@ -65,8 +65,21 @@ TODO.md
 # MkDocs build output
 site/
 
-# Python virtual environment
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
 .venv/
+venv/
+env/
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
 
 .secrets/
 .gstack/
