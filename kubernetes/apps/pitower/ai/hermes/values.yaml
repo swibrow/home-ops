@@ -1,0 +1,148 @@
+defaultPodOptions:
+  securityContext:
+    fsGroup: 10000
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile:
+      type: RuntimeDefault
+
+controllers:
+  hermes:
+    annotations:
+      reloader.stakater.com/auto: "true"
+    replicas: 1
+    strategy: Recreate
+    type: deployment
+    initContainers:
+      init:
+        image:
+          repository: docker.io/library/alpine
+          tag: "3.24"
+        command:
+          - /bin/sh
+          - -c
+          - |
+            set -eu
+            cp /tmp/config.yaml /opt/data/config.yaml
+            mkdir -p /opt/data/workspace
+            chown -R 10000:10000 /opt/data/config.yaml /opt/data/workspace
+    containers:
+      app:
+        image: &image
+          repository: nousresearch/hermes-agent
+          tag: v2026.6.5@sha256:9ad3b04ec916ea2c2da22358fd43b024c788d74073210695af88bfc2e63869b4
+        args: ["gateway", "run", "--no-supervise"]
+        env:
+          AGENTMEMORY_URL: http://agentmemory.ai:3111
+          AGENTMEMORY_PROJECT: hermes
+          HERMES_HOME: /opt/data
+          HOME: /opt/data
+          TZ: Europe/Zurich
+        envFrom:
+          - secretRef:
+              name: hermes
+        resources:
+          requests:
+            cpu: 500m
+          limits:
+            memory: 2Gi
+        ports:
+          - containerPort: &port 8642
+            name: http
+            protocol: TCP
+      dashboard:
+        image: *image
+        args: ["dashboard", "--host", "0.0.0.0", "--insecure"]
+        env:
+          TZ: Europe/Zurich
+          GATEWAY_HEALTH_URL: http://localhost:8642
+        resources:
+          requests:
+            cpu: 50m
+          limits:
+            memory: 1Gi
+        ports:
+          - containerPort: &dashboardPort 9119
+            name: http
+            protocol: TCP
+      codeserver:
+        image:
+          repository: ghcr.io/coder/code-server
+          tag: 4.124.2@sha256:726c75e330d99c9e6545ff1208042ccc3d97465cf24cdb48b304d111a43cd441
+        args:
+          - --auth
+          - none
+          - --user-data-dir
+          - /home/node/.vscode
+          - --extensions-dir
+          - /home/node/.vscode
+          - --port
+          - "12321"
+          - /opt/data
+        env:
+          TZ: Europe/Zurich
+        resources:
+          requests:
+            cpu: 10m
+          limits:
+            memory: 1Gi
+        ports:
+          - containerPort: &codeserverPort 12321
+            name: codeserver
+            protocol: TCP
+
+service:
+  app:
+    controller: hermes
+    ports:
+      http:
+        port: *port
+      codeserver:
+        port: *codeserverPort
+  dashboard:
+    controller: hermes
+    ports:
+      http:
+        port: *dashboardPort
+
+route:
+  app:
+    hostnames:
+      - hermes.wibrow.dev
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+    rules:
+      - backendRefs:
+          - identifier: dashboard
+            port: http
+  codeserver:
+    hostnames:
+      - hermes-code.wibrow.dev
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+    rules:
+      - backendRefs:
+          - identifier: app
+            port: codeserver
+
+persistence:
+  config:
+    existingClaim: hermes
+    globalMounts:
+      - path: /opt/data
+  configmap:
+    type: configMap
+    name: hermes-config
+    defaultMode: 0755
+    globalMounts:
+      - path: /tmp/config.yaml
+        subPath: config.yaml
+  agentmemory-plugin:
+    type: configMap
+    name: hermes-agentmemory-plugin
+    defaultMode: 0755
+    globalMounts:
+      - path: /opt/data/plugins/agentmemory
