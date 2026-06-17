@@ -46,6 +46,16 @@ spec:
     # scopesSupported. Verified 2026-06-15.
     baselineClientScopes:
       - openid
+    # Token lifetimes. Because offline_access can't be granted (see note above),
+    # MCP clients like Claude Code never get a usable refresh token — so the
+    # access-token lifespan IS the effective session length before re-auth. The
+    # default 1h forces near-constant re-auth. Raise it to the DCR client
+    # registration ceiling (~30d, a non-configurable toolhive operator default),
+    # so re-auth is only needed when the client registration itself expires.
+    # Defaults if unset: access 1h, refresh 7d, authCode 10m.
+    tokenLifespans:
+      accessTokenLifespan: 720h
+      refreshTokenLifespan: 720h
     # Persistent signing (RS256) + HMAC material — shared with the per-server
     # ASes via externalsecret.yaml → Secret toolhive-authserver-secret. Without
     # these the AS auto-gens ephemeral keys and restarts invalidate tokens.
