@@ -8,7 +8,10 @@ providers:
   anthropic:
     base_url: https://api.anthropic.com/
     api_mode: anthropic_messages
-    api_key: ${ANTHROPIC_API_KEY}
+    # No api_key here: hermes does NOT interpolate ${VAR} in config (that only
+    # works under Flux postBuild substitution, which this repo doesn't use).
+    # The Anthropic client reads the ANTHROPIC_API_KEY env var directly, which
+    # is injected via envFrom from the `hermes` secret.
 toolsets:
   - hermes-cli
 terminal:
