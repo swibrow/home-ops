@@ -6,10 +6,5 @@ spec:
   hostname: pitower
   subnetRouter:
     advertiseRoutes:
-      - 10.244.0.0/16
-      - 10.10.0.0/16
-      - 10.20.0.0/16
-      - 10.50.0.0/24
-      - 10.101.0.0/16
-      - 192.168.0.0/24
+      - 10.0.0.0/8
   exitNode: true
