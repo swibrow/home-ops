@@ -17,12 +17,18 @@ controllers:
         image:
           repository: docker.io/library/alpine
           tag: "3.24"
+        envFrom:
+          - secretRef:
+              name: hermes
         command:
           - /bin/sh
           - -c
           - |
             set -eu
-            cp /tmp/config.yaml /opt/data/config.yaml
+            # Bake the real ANTHROPIC_API_KEY into the config (hermes needs it inline
+            # and does not interpolate ${VAR}). Key chars are [A-Za-z0-9_-] only, so
+            # '|' is a safe sed delimiter.
+            sed "s|__ANTHROPIC_API_KEY__|${ANTHROPIC_API_KEY}|g" /tmp/config.yaml > /opt/data/config.yaml
             mkdir -p /opt/data/workspace
             chown -R 10000:10000 /opt/data/config.yaml /opt/data/workspace
     containers:
@@ -55,6 +61,11 @@ controllers:
         env:
           TZ: Europe/Zurich
           GATEWAY_HEALTH_URL: http://localhost:8642
+          HERMES_HOME: /opt/data
+          HOME: /opt/data
+        envFrom:
+          - secretRef:
+              name: hermes
         resources:
           requests:
             cpu: 50m
