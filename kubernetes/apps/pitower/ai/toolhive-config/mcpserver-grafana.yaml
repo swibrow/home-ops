@@ -14,7 +14,7 @@ metadata:
     # endpoint so consumers can add this single server.
     toolhive.stacklok.dev/registry-url: "https://mcp.wibrow.dev/grafana/sse"
 spec:
-  image: docker.io/grafana/mcp-grafana:0.15.2
+  image: docker.io/grafana/mcp-grafana:0.16.0
   transport: sse
   proxyPort: 8080
   mcpPort: 8000
