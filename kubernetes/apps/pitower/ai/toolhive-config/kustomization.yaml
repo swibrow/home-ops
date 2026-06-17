@@ -10,6 +10,7 @@ resources:
   - mcpoidcconfig.yaml
   - mcpexternalauthconfig.yaml
   - virtualmcpserver.yaml
+  - virtualmcpserver-agents.yaml
   - httproute.yaml
   - externalsecret.yaml
   - mcpserver-home-assistant.yaml

@@ -36,10 +36,16 @@ spec:
     - Ingress
   ingress:
     - from:
+        # Public OAuth vMCP (mcp.wibrow.dev).
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: virtualmcpserver
               toolhive-name: mcp-gateway-internal
+        # Anonymous agents vMCP (in-cluster, for Hermes) — virtualmcpserver-agents.yaml.
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: virtualmcpserver
+              toolhive-name: mcp-gateway-agents
       ports:
         - protocol: TCP
           port: 8080
@@ -80,3 +86,27 @@ spec:
                   - argocd-agg
                   - aws-api-agg
                   - github-agg
+---
+# The agents vMCP (mcp-gateway-agents, virtualmcpserver-agents.yaml) is
+# ANONYMOUS and fronts the same privileged agg tools, so restrict ITS ingress to
+# the Hermes pod only. Other in-cluster clients must use the OAuth vMCP at
+# mcp.wibrow.dev. vMCP listens on 4483 (svc vmcp-mcp-gateway-agents → :4483).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vmcp-agents-from-hermes-only
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: virtualmcpserver
+      toolhive-name: mcp-gateway-agents
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: hermes
+      ports:
+        - protocol: TCP
+          port: 4483

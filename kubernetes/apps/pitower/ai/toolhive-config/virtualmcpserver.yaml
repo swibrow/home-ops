@@ -49,13 +49,16 @@ spec:
     # Token lifetimes. Because offline_access can't be granted (see note above),
     # MCP clients like Claude Code never get a usable refresh token — so the
     # access-token lifespan IS the effective session length before re-auth. The
-    # default 1h forces near-constant re-auth. Raise it to the DCR client
-    # registration ceiling (~30d, a non-configurable toolhive operator default),
-    # so re-auth is only needed when the client registration itself expires.
-    # Defaults if unset: access 1h, refresh 7d, authCode 10m.
+    # default 1h forces near-constant re-auth.
+    #
+    # The operator HARD-CAPS the access token at 24h: a longer value fails
+    # validation and crashloops the vMCP on boot ("access token lifespan must be
+    # between 1m0s and 24h0m0s"). 720h (the earlier 30d attempt) is invalid — 24h
+    # is the ceiling, still 24× the 1h default. refresh kept equal (it's unusable
+    # anyway without offline_access). Defaults if unset: access 1h, refresh 7d.
     tokenLifespans:
-      accessTokenLifespan: 720h
-      refreshTokenLifespan: 720h
+      accessTokenLifespan: 24h
+      refreshTokenLifespan: 24h
     # Persistent signing (RS256) + HMAC material — shared with the per-server
     # ASes via externalsecret.yaml → Secret toolhive-authserver-secret. Without
     # these the AS auto-gens ephemeral keys and restarts invalidate tokens.

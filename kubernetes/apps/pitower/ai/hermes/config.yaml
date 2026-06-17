@@ -46,8 +46,12 @@ platform_toolsets:
   telegram:
     - hermes-telegram
 mcp_servers:
+  # Anonymous in-cluster agents vMCP (toolhive-config/virtualmcpserver-agents.yaml).
+  # The public vMCP (vmcp-mcp-gateway-internal, mcp.wibrow.dev) requires a browser
+  # OAuth flow Hermes can't do, so it has a dedicated anonymous sibling, netpol-
+  # locked to this pod.
   toolhive:
-    url: http://vmcp-mcp-gateway-internal.ai:4483/mcp
+    url: http://vmcp-mcp-gateway-agents.ai:4483/mcp
 auxiliary:
   vision:
     provider: anthropic

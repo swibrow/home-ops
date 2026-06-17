@@ -1,0 +1,42 @@
+---
+# yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/virtualmcpserver_v1beta1.json
+# Second, ANONYMOUS vMCP aggregating the same mcp-agg group as
+# virtualmcpserver.yaml — but for in-cluster, server-side agents (Hermes) that
+# cannot run an interactive browser OAuth flow against the public vMCP's
+# embedded AS. No httproute: ClusterIP only (svc vmcp-mcp-gateway-agents.ai:4483),
+# and ingress-locked to the hermes pod by networkpolicy-mcp-agg.yaml.
+#
+# The mcp-agg backends are already unauthenticated (the public vMCP enforces
+# kanidm OAuth at ITS edge, not at the backends); this simply exposes the same
+# aggregate to trusted internal agents without the OAuth edge. No authServerConfig
+# here, so none of the embedded-AS gotchas (token lifespan cap, kanidm private-IP
+# discovery) apply.
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: VirtualMCPServer
+metadata:
+  name: mcp-gateway-agents
+spec:
+  groupRef:
+    name: mcp-agg
+  config:
+    aggregation:
+      conflictResolution: prefix
+      conflictResolutionConfig:
+        prefixFormat: "{workload}_"
+  embeddingServerRef:
+    name: mcp-tools-embedding
+  incomingAuth:
+    type: anonymous
+  # mcp-agg backends declare no externalAuthConfigRef, so discovery resolves them
+  # as unauthenticated — same as the public vMCP's outgoing tier.
+  outgoingAuth:
+    source: discovered
+  podTemplateSpec:
+    spec:
+      containers:
+        - name: vmcp
+          resources:
+            requests:
+              memory: 256Mi
+            limits:
+              memory: 1Gi
