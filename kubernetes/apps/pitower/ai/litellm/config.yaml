@@ -1,0 +1,31 @@
+# LiteLLM proxy config — hosted providers only (no local inference).
+# Provider keys are injected as env vars from the `litellm` secret
+# (Infisical /ai/litellm/*). LITELLM_MASTER_KEY + DATABASE_URL are read
+# from the environment automatically and are not referenced here.
+model_list:
+  # --- Anthropic (direct API key) ---
+  - model_name: claude-opus
+    litellm_params:
+      model: anthropic/claude-opus-4-8
+      api_key: os.environ/ANTHROPIC_API_KEY
+  - model_name: claude-sonnet
+    litellm_params:
+      model: anthropic/claude-sonnet-4-6
+      api_key: os.environ/ANTHROPIC_API_KEY
+  - model_name: claude-haiku
+    litellm_params:
+      model: anthropic/claude-haiku-4-5
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+  # --- OpenRouter (catch-all passthrough) ---
+  # Reach any OpenRouter model by id, e.g. `openrouter/google/gemini-2.5-pro`.
+  # The explicit claude-* aliases above take precedence for those names.
+  - model_name: "*"
+    litellm_params:
+      model: openrouter/*
+      api_key: os.environ/OPENROUTER_API_KEY
+
+litellm_settings:
+  drop_params: true
+  num_retries: 2
+  request_timeout: 600

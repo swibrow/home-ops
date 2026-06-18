@@ -1,0 +1,116 @@
+defaultPodOptions:
+  securityContext:
+    fsGroup: 1000
+    fsGroupChangePolicy: OnRootMismatch
+    runAsGroup: 1000
+    runAsNonRoot: true
+    runAsUser: 1000
+    seccompProfile:
+      type: RuntimeDefault
+
+controllers:
+  litellm:
+    annotations:
+      reloader.stakater.com/auto: "true"
+    replicas: 1
+    strategy: Recreate
+    type: deployment
+    containers:
+      app:
+        image:
+          repository: ghcr.io/berriai/litellm-database
+          tag: v1.89.2-stable
+        args:
+          - --config
+          - /config/config.yaml
+          - --port
+          - "4000"
+        env:
+          # litellm-database runs `prisma migrate deploy` on boot; HOME must be writable.
+          HOME: /tmp
+          STORE_MODEL_IN_DB: "true"
+          LITELLM_MODE: PRODUCTION
+          TZ: Europe/Zurich
+          # Connection string assembled by the cnpg-db component (DB_URL key).
+          DATABASE_URL:
+            valueFrom:
+              secretKeyRef:
+                name: litellm-db-secret
+                key: DB_URL
+        envFrom:
+          - secretRef:
+              name: litellm
+        probes:
+          liveness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /health/liveliness
+                port: 4000
+              initialDelaySeconds: 30
+              periodSeconds: 30
+              timeoutSeconds: 5
+              failureThreshold: 6
+          readiness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /health/readiness
+                port: 4000
+              periodSeconds: 10
+              timeoutSeconds: 5
+              failureThreshold: 6
+          startup:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /health/liveliness
+                port: 4000
+              periodSeconds: 5
+              failureThreshold: 60
+        resources:
+          requests:
+            cpu: 50m
+            memory: 256Mi
+          limits:
+            memory: 1Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+
+persistence:
+  config:
+    type: configMap
+    name: litellm-config
+    globalMounts:
+      - path: /config
+        readOnly: true
+  tmp:
+    type: emptyDir
+    globalMounts:
+      - path: /tmp
+
+service:
+  app:
+    controller: litellm
+    ports:
+      http:
+        port: 4000
+
+route:
+  app:
+    hostnames:
+      - litellm.wibrow.dev
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+    rules:
+      - backendRefs:
+          - identifier: app
+            port: 4000

@@ -1,0 +1,27 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ai
+resources:
+  - externalsecret.yaml
+components:
+  - ../../../../components/cnpg-db
+configMapGenerator:
+  - name: litellm-config
+    options:
+      disableNameSuffixHash: true
+    files:
+      - config.yaml
+  - name: cnpg-db-config
+    literals:
+      - APP_NAME=litellm
+      - SECRET_NAME=litellm-db-secret
+      - CNPG_SECRET_KEY=litellm-app
+helmCharts:
+  - name: app-template
+    repo: oci://ghcr.io/bjw-s-labs/helm
+    version: 5.0.1
+    releaseName: litellm
+    namespace: ai
+    valuesFile: values.yaml
