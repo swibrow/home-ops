@@ -2,6 +2,6 @@
 talosctl = "1.13.4"
 kubectl = "1.36.2"
 kustomize = "5.8.1"
-helm = "4.2.1"
+helm = "4.2.2"
 sops = "3.13.1"
 jq = "1.8.1"
