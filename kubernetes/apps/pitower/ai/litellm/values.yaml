@@ -18,7 +18,7 @@ controllers:
     containers:
       app:
         image:
-          repository: ghcr.io/berriai/litellm
+          repository: ghcr.io/berriai/litellm-database
           tag: v1.89.2
         args:
           - --config
