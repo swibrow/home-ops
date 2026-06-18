@@ -141,3 +141,16 @@ route:
         backendRefs:
           - identifier: app
             port: 3113
+  # REST API (3111) — consumed by remote MCP clients (e.g. Claude Code via
+  # @agentmemory/mcp). Bearer-auth via AGENTMEMORY_SECRET; internal gateway only.
+  api:
+    hostnames:
+      - agentmemory-api.wibrow.dev
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+    rules:
+      - backendRefs:
+          - identifier: app
+            port: 3111
