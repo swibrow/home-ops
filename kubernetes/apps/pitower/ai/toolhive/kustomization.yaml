@@ -7,7 +7,7 @@ namespace: ai
 helmCharts:
   - name: toolhive-operator-crds
     repo: oci://ghcr.io/stacklok/toolhive
-    version: 0.29.3
+    version: 0.30.0
     releaseName: toolhive-operator-crds
     namespace: ai
   - name: toolhive-operator
