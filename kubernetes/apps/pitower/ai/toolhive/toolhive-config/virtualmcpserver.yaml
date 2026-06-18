@@ -110,7 +110,7 @@ spec:
     # pattern forbids a trailing slash); the upstream callback is unaffected
     # (defaultRedirectURI TrimRights the slash).
     oidcConfigRef:
-      name: vmcp-authserver-oidc
+      name: mcp-gateway-oidc
       audience: https://mcp.wibrow.dev/
       resourceUrl: https://mcp.wibrow.dev/
       scopes:

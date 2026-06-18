@@ -9,7 +9,12 @@
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPOIDCConfig
 metadata:
-  name: vmcp-authserver-oidc
+  # Renamed from vmcp-authserver-oidc: the original was stamped with a
+  # deletionTimestamp by the old toolhive-config app's prune during the nest
+  # migration, but stayed referenced by mcp-gateway so the operator finalizer
+  # (correctly) blocked deletion → wedged "Terminating" forever. Renaming points the
+  # vMCP at a fresh object and lets the old one finalize cleanly. Spec is unchanged.
+  name: mcp-gateway-oidc
 spec:
   type: inline
   inline:
