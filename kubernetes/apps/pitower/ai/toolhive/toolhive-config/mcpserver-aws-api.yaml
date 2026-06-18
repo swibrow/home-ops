@@ -11,18 +11,13 @@ metadata:
     eks.amazonaws.com/role-arn: arn:aws:iam::633355703129:role/pitower-toolhive-aws-ro
 ---
 # yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpserver_v1beta1.json
+# AWS API MCP backend (AWS CLI). Unauthenticated and in-cluster only — auth is at the
+# vMCP edge, ingress locked to the two vMCP pods (networkpolicy.yaml); that lock matters
+# here: the workload runs as the IRSA ServiceAccount above.
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServer
 metadata:
   name: aws-api
-  annotations:
-    toolhive.stacklok.dev/registry-export: "true"
-    toolhive.stacklok.dev/registry-title: AWS API
-    toolhive.stacklok.dev/registry-description: Read-only AWS access via the AWS CLI.
-    # Required for registry export: the registry-server's kubernetes source skips
-    # any MCPServer missing BOTH registry-description AND registry-url. External
-    # path-based endpoint so consumers can add this single server.
-    toolhive.stacklok.dev/registry-url: "https://mcp.wibrow.dev/aws-api/mcp"
 spec:
   # Runs AWS CLI commands. Read-only is enforced at the tool layer
   # (READ_OPERATIONS_ONLY) AND the IAM layer (ReadOnlyAccess on the IRSA role).
@@ -33,36 +28,12 @@ spec:
   # fronts it on 8080.
   proxyPort: 8080
   mcpPort: 8000
+  # Reuses the IRSA SA defined in mcpserver-aws-api.yaml (pitower-toolhive-aws-ro).
   serviceAccount: toolhive-aws-ro
   groupRef:
     name: mcp-tools
-  # Per-server external exposure at https://mcp.wibrow.dev/aws-api via the embedded
-  # OAuth AS (DCR). See mcpserver-kubernetes.yaml + embedded-authserver memory.
-  endpointPrefix: /aws-api
-  resourceOverrides:
-    proxyDeployment:
-      env:
-        - name: INSECURE_DISABLE_URL_VALIDATION
-          value: "true"
-  authServerRef:
-    kind: MCPExternalAuthConfig
-    name: aws-api-authserver
-  oidcConfigRef:
-    name: aws-api-authserver-oidc
-    audience: https://mcp.wibrow.dev/aws-api
-    resourceUrl: https://mcp.wibrow.dev/aws-api
-    scopes:
-      - openid
-      - profile
-      - email
-      - groups
-  authzConfig:
-    type: inline
-    inline:
-      policies:
-        - 'permit(principal, action, resource);'
   # builtin "network" — the AWS server needs outbound egress to *.amazonaws.com
-  # and sts.amazonaws.com (the in-cluster servers use the default profile).
+  # and sts.amazonaws.com.
   permissionProfile:
     type: builtin
     name: network
@@ -71,19 +42,16 @@ spec:
       value: "true"
     - name: AWS_API_MCP_TRANSPORT
       value: streamable-http
-    # Bind on all interfaces: the server defaults to 127.0.0.1, but the toolhive
-    # proxy dials the workload by pod IP → connection refused and the proxy 502s
-    # (this was broken silently behind auth until the vMCP health checks caught
-    # it). ALLOWED_HOSTS defaults to the bind host, so the proxy's pod-IP Host
-    # header would still be rejected — open it up; the proxy is the only caller.
+    # Bind on all interfaces + accept any Host header — see mcpserver-aws-api.yaml
+    # for the full rationale (default 127.0.0.1 bind 502s the toolhive proxy).
     - name: AWS_API_MCP_HOST
       value: 0.0.0.0
     - name: AWS_API_MCP_ALLOWED_HOSTS
       value: "*"
     - name: AWS_REGION
       value: eu-central-2
-    # vMCP/kanidm enforces auth at the edge; the server itself is unauthenticated
-    # and only reachable in-cluster via the vMCP aggregation.
+    # The vMCP enforces auth at the edge; the server itself is unauthenticated
+    # and only reachable from the vMCP pod (networkpolicy-mcp-agg.yaml).
     - name: AUTH_TYPE
       value: no-auth
     # ToolHive runs the workload with a read-only root filesystem, so the server

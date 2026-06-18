@@ -1,0 +1,25 @@
+---
+# API-key auth for the anonymous vMCP, enforced at the Envoy external gateway on the
+# mcp-api.wibrow.dev route only (the OAuth route mcp.wibrow.dev and the no-auth internal
+# route are untouched). Clients send the key in the X-API-Key header; EG matches it
+# against the toolhive-mcp-apikeys Secret (key = client id, value = the API key, no
+# Bearer prefix), populated from Infisical via externalsecret.yaml.
+# This is the path for header-capable clients (Claude Code / Desktop / curl); the
+# claude.ai web connector is OAuth-only and uses mcp.wibrow.dev instead.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: mcp-gateway-api
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: mcp-gateway-api
+  apiKeyAuth:
+    credentialRefs:
+      - group: ""
+        kind: Secret
+        name: toolhive-mcp-apikeys
+    extractFrom:
+      - headers:
+          - X-API-Key

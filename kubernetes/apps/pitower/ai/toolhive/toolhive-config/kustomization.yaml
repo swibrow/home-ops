@@ -3,34 +3,36 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: ai
+
+# Wave 1: the MCP CRs reconcile after the operator + CRDs (toolhive-operator, wave 0).
+commonAnnotations:
+  argocd.argoproj.io/sync-wave: "1"
+
 resources:
   - mcpgroup.yaml
   - embeddingserver.yaml
   - dragonfly.yaml
   - mcpoidcconfig.yaml
-  - mcpexternalauthconfig.yaml
   - virtualmcpserver.yaml
-  - virtualmcpserver-agents.yaml
+  - virtualmcpserver-direct.yaml
   - httproute.yaml
+  - securitypolicy.yaml
   - externalsecret.yaml
-  - mcpserver-home-assistant.yaml
-  - mcpserver-grafana.yaml
   - mcpserver-kubernetes.yaml
+  - mcpserver-grafana.yaml
+  - mcpserver-home-assistant.yaml
   - mcpserver-argocd.yaml
   - mcpserver-aws-api.yaml
-  - mcpserver-home-assistant-agg.yaml
-  - mcpserver-grafana-agg.yaml
-  - mcpserver-kubernetes-agg.yaml
-  - mcpserver-argocd-agg.yaml
-  - mcpserver-aws-api-agg.yaml
-  - mcpserver-github-agg.yaml
+  - mcpserver-github.yaml
   - generator-github.yaml
   - cronjob-github-token.yaml
-  - networkpolicy-mcp-agg.yaml
+  - networkpolicy.yaml
   - mcpregistry.yaml
   - skill-publish-job.yaml
 components:
-  - ../../../../components/cnpg-db
+  # One extra ../ vs the old ai/toolhive-config location — this now lives one level
+  # deeper at ai/toolhive/toolhive-config.
+  - ../../../../../components/cnpg-db
 configMapGenerator:
   # Generates the toolhive-registry-db-secrets Secret (DB_HOST/PORT/USER/PASS/NAME)
   # from the CNPG-managed toolhive-registry-app secret, consumed by the MCPRegistry.

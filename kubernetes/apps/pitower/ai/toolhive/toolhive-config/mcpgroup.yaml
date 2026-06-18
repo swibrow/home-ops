@@ -1,0 +1,13 @@
+---
+# yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpgroup_v1beta1.json
+# The single backend group. Every MCPServer joins it via spec.groupRef, and both
+# vMCPs (mcp-gateway = OAuth, mcp-gateway-direct = anonymous) aggregate it via their
+# own spec.groupRef. Backends are unauthenticated and in-cluster only; auth is
+# enforced at the vMCP edge / the gateway. Ingress to the backends is locked to the
+# two vMCP pods by networkpolicy.yaml.
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPGroup
+metadata:
+  name: mcp-tools
+spec:
+  description: MCP tool backends aggregated by the vMCP gateways

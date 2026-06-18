@@ -1,6 +1,6 @@
 ---
 # yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpserver_v1beta1.json
-# GitHub MCP for the vMCP agg tier, authenticated as a GITHUB APP.
+# GitHub MCP backend, authenticated as a GITHUB APP.
 # Self-hosted container, NOT the hosted api.githubcopilot.com endpoint: the
 # hosted server rejects App installation tokens (ghs_) with 400 "Authorization
 # header is badly formatted" (github/github-mcp-server#696) and the server has
@@ -21,13 +21,13 @@
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServer
 metadata:
-  name: github-agg
+  name: github
 spec:
   image: ghcr.io/github/github-mcp-server:v1.3.0
   transport: stdio
   proxyPort: 8080
   groupRef:
-    name: mcp-agg
+    name: mcp-tools
   env:
     - name: GITHUB_TOOLSETS
       value: repos,issues,pull_requests,actions,labels

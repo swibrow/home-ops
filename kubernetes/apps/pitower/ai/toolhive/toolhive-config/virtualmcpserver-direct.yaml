@@ -1,0 +1,40 @@
+---
+# yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/virtualmcpserver_v1beta1.json
+# ANONYMOUS vMCP aggregating the same mcp-tools backend group as the OAuth
+# mcp-gateway (virtualmcpserver.yaml). It carries no embedded AS, so auth is applied
+# OUTSIDE it: the Envoy apiKeyAuth SecurityPolicy on the external route
+# (mcp-api.wibrow.dev), and nothing on the no-auth internal route
+# (mcp-internal.wibrow.dev). It's also the in-cluster endpoint for server-side agents
+# (Hermes) at svc vmcp-mcp-gateway-direct.ai:4483, which can't run a browser OAuth
+# flow. Ingress to the pod is locked to the envoy proxies + the hermes pod by
+# networkpolicy.yaml. No authServerConfig here, so none of the embedded-AS gotchas
+# (token-lifespan cap, kanidm private-IP discovery) apply.
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: VirtualMCPServer
+metadata:
+  name: mcp-gateway-direct
+spec:
+  groupRef:
+    name: mcp-tools
+  config:
+    aggregation:
+      conflictResolution: prefix
+      conflictResolutionConfig:
+        prefixFormat: "{workload}_"
+  embeddingServerRef:
+    name: mcp-tools-embedding
+  incomingAuth:
+    type: anonymous
+  # Backends declare no externalAuthConfigRef, so discovery resolves them as
+  # unauthenticated — same as the OAuth vMCP's outgoing tier.
+  outgoingAuth:
+    source: discovered
+  podTemplateSpec:
+    spec:
+      containers:
+        - name: vmcp
+          resources:
+            requests:
+              memory: 256Mi
+            limits:
+              memory: 1Gi

@@ -2,17 +2,12 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: ai
-
-helmCharts:
-  - name: toolhive-operator-crds
-    repo: oci://ghcr.io/stacklok/toolhive
-    version: 0.30.0
-    releaseName: toolhive-operator-crds
-    namespace: ai
-  - name: toolhive-operator
-    repo: oci://ghcr.io/stacklok/toolhive
-    version: 0.30.0
-    releaseName: toolhive-operator
-    namespace: ai
-    valuesFile: values.yaml
+# Single ArgoCD app (pitower-ai-toolhive) — the cluster ApplicationSet generator
+# matches kubernetes/apps/{cluster}/*/* (category/app), so this parent aggregates the
+# nested operator/config/ui kustomizations rather than them being three sibling apps.
+# Sync ordering is via argocd.argoproj.io/sync-wave commonAnnotations in each child
+# (operator wave 0 → CRDs+operator first; config/ui wave 1 → the MCP CRs after).
+resources:
+  - toolhive-operator
+  - toolhive-config
+  - toolhive-ui

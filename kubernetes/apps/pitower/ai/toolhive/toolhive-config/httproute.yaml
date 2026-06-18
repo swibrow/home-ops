@@ -1,0 +1,77 @@
+---
+# OAuth gateway — the embedded-AS vMCP at https://mcp.wibrow.dev. The / catch-all
+# carries MCP traffic plus the AS's /oauth/* and /.well-known/* endpoints. Used by
+# the claude.ai web connector and any OAuth-capable MCP client.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/gateway.networking.k8s.io/httproute_v1.json
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: mcp-gateway
+spec:
+  hostnames:
+    - mcp.wibrow.dev
+  parentRefs:
+    - name: envoy-external
+      namespace: networking
+      sectionName: https
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: vmcp-mcp-gateway
+          port: 4483
+---
+# API-key gateway — the anonymous vMCP at https://mcp-api.wibrow.dev, gated by the
+# Envoy apiKeyAuth SecurityPolicy (securitypolicy.yaml) that targets THIS route.
+# Used by Claude Code / Desktop / curl, which send X-API-Key.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/gateway.networking.k8s.io/httproute_v1.json
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: mcp-gateway-api
+spec:
+  hostnames:
+    - mcp-api.wibrow.dev
+  parentRefs:
+    - name: envoy-external
+      namespace: networking
+      sectionName: https
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: vmcp-mcp-gateway-direct
+          port: 4483
+---
+# Internal gateway — the same anonymous vMCP at https://mcp-internal.wibrow.dev on
+# envoy-internal, with NO SecurityPolicy (no auth, LAN-only). Gatus probes /health
+# here (the OAuth/API routes would 401/406 a plain GET).
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/gateway.networking.k8s.io/httproute_v1.json
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: mcp-gateway-internal
+  annotations:
+    gatus.home-operations.com/endpoint: |
+      path: /health
+      conditions:
+        - "[STATUS] == 200"
+spec:
+  hostnames:
+    - mcp-internal.wibrow.dev
+  parentRefs:
+    - name: envoy-internal
+      namespace: networking
+      sectionName: https
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: vmcp-mcp-gateway-direct
+          port: 4483

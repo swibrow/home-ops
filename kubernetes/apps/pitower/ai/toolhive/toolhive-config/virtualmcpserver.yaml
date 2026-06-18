@@ -1,21 +1,20 @@
 ---
 # yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/virtualmcpserver_v1beta1.json
-# Aggregate MCP gateway at https://mcp.wibrow.dev (root /mcp — the httproute
-# catch-all `/` already sends everything not claimed by a per-server prefix
-# here, including this AS's /oauth/* and /.well-known/* endpoints).
+# OAuth MCP gateway at https://mcp.wibrow.dev (httproute mcp-gateway → / catch-all,
+# which also carries this AS's /oauth/* and /.well-known/* endpoints).
 #
-# Dual-tier: this vMCP aggregates the UNAUTHENTICATED mcp-agg copies
-# (mcpserver-*-agg.yaml), NOT the per-server mcp-tools tier — the per-server
-# embedded ASes each demand tokens from a different issuer and there is no
-# RFC 8693 token exchange, so a single vMCP token could never satisfy them.
-# Auth for the aggregate happens HERE, with the vMCP's own embedded AS.
+# This is the OAuth tier: required for the claude.ai web connector, whose UI is
+# OAuth-only (no static-key/header field). It aggregates the mcp-tools backend group
+# and enforces auth HERE with its own embedded AS. The sibling mcp-gateway-direct
+# (virtualmcpserver-direct.yaml) aggregates the SAME group anonymously for the
+# API-key gateway route, the no-auth internal route, and in-cluster agents (Hermes).
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: VirtualMCPServer
 metadata:
-  name: mcp-gateway-internal
+  name: mcp-gateway
 spec:
   groupRef:
-    name: mcp-agg
+    name: mcp-tools
   config:
     aggregation:
       conflictResolution: prefix
@@ -23,11 +22,10 @@ spec:
         prefixFormat: "{workload}_"
   embeddingServerRef:
     name: mcp-tools-embedding
-  # Embedded OAuth2/OIDC authorization server, same pattern as the per-server
-  # tier (see mcpexternalauthconfig.yaml for the full rationale): kanidm has no
-  # Dynamic Client Registration, but MCP clients like Claude Code REQUIRE DCR.
-  # This AS exposes /oauth/* + /.well-known/* under the root issuer and brokers
-  # the actual login upstream to kanidm (shared public PKCE client toolhive-mcp).
+  # Embedded OAuth2/OIDC authorization server: kanidm has no Dynamic Client
+  # Registration, but MCP clients like Claude Code / claude.ai REQUIRE DCR. This AS
+  # exposes /oauth/* + /.well-known/* under the root issuer and brokers the actual
+  # login upstream to kanidm (shared public PKCE client toolhive-mcp).
   authServerConfig:
     # Issuer = the public root URL of the aggregate. The AS advertises its
     # endpoints under it (…/oauth/authorize, …/token, …/register).

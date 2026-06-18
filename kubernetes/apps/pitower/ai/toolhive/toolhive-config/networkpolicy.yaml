@@ -1,0 +1,119 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.31.1/networkpolicy-networking-v1.json
+# The backend MCPServers are deliberately UNAUTHENTICATED (auth is enforced at the
+# vMCP edge / the gateway) and some carry privileged identities (toolhive-kubernetes
+# cluster-view RBAC, toolhive-aws-ro IRSA). Without a policy any pod could call them.
+# Lock proxy ingress to the two vMCP pods only.
+#
+# Label anatomy (verified live): each MCPServer creates TWO pods —
+#   proxy (Deployment):      app.kubernetes.io/name=mcpserver, toolhive-name=<name>
+#   workload (StatefulSet):  toolhive-basename=<name>, toolhive-name=<name>
+# Only the proxy carries app.kubernetes.io/name=mcpserver; only the workload carries
+# toolhive-basename. The vMCP pods carry app.kubernetes.io/name=virtualmcpserver,
+# toolhive-name=<vmcp-name>. Kubelet probes are exempt from NetworkPolicy under Cilium.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mcp-backend-proxy-from-vmcp-only
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: mcpserver
+    matchExpressions:
+      - key: toolhive-name
+        operator: In
+        values:
+          - kubernetes
+          - grafana
+          - home-assistant
+          - argocd
+          - aws-api
+          - github
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        # OAuth vMCP (mcp.wibrow.dev).
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: virtualmcpserver
+              toolhive-name: mcp-gateway
+        # Anonymous vMCP (api-key + internal routes + Hermes).
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: virtualmcpserver
+              toolhive-name: mcp-gateway-direct
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+# Same lock for the backend WORKLOAD pods (they hold the actual SA tokens / IRSA creds
+# and listen unauthenticated on their mcpPort): only the backend proxies may reach them.
+# Selected via toolhive-basename, which only workload pods have.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mcp-backend-workload-from-proxy-only
+spec:
+  podSelector:
+    matchExpressions:
+      - key: toolhive-basename
+        operator: In
+        values:
+          - kubernetes
+          - grafana
+          - home-assistant
+          - argocd
+          - aws-api
+          - github
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: mcpserver
+            matchExpressions:
+              - key: toolhive-name
+                operator: In
+                values:
+                  - kubernetes
+                  - grafana
+                  - home-assistant
+                  - argocd
+                  - aws-api
+                  - github
+---
+# The anonymous vMCP (mcp-gateway-direct) has no auth of its own, so restrict its
+# ingress to the only legitimate callers: the Envoy proxy pods (which terminate the
+# api-key external route and the no-auth internal route — auth/exposure is decided
+# there) and the in-cluster Hermes agent. Other in-cluster pods must use the OAuth
+# vMCP at mcp.wibrow.dev. vMCP listens on 4483. The OAuth vMCP (mcp-gateway) is left
+# unselected (open) because it enforces OAuth itself.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mcp-gateway-direct-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: virtualmcpserver
+      toolhive-name: mcp-gateway-direct
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        # Envoy Gateway proxy pods (networking ns) — front the api-key + internal routes.
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: networking
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/managed-by: envoy-gateway
+        # In-cluster agent (Hermes), same namespace.
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: hermes
+      ports:
+        - protocol: TCP
+          port: 4483

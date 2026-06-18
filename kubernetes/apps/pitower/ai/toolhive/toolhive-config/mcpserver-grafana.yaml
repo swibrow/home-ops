@@ -1,12 +1,11 @@
 ---
 # yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpserver_v1beta1.json
-# Aggregate-tier copy of mcpserver-grafana.yaml for the vMCP — unauthenticated,
-# in-cluster only, ingress locked to the vMCP pod (networkpolicy-mcp-agg.yaml).
-# See mcpserver-kubernetes-agg.yaml for the dual-tier rationale.
+# Grafana MCP backend. Unauthenticated, in-cluster only, ingress locked to the two
+# vMCP pods (networkpolicy.yaml); auth is enforced at the vMCP edge.
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServer
 metadata:
-  name: grafana-agg
+  name: grafana
 spec:
   image: docker.io/grafana/mcp-grafana:0.16.0
   transport: sse
@@ -16,7 +15,7 @@ spec:
     - -t
     - sse
   groupRef:
-    name: mcp-agg
+    name: mcp-tools
   env:
     - name: GRAFANA_URL
       value: http://grafana.monitoring.svc.cluster.local

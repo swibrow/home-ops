@@ -1,0 +1,18 @@
+---
+# Resource-server validation for the mcp-gateway vMCP, which runs its OWN embedded
+# auth server (virtualmcpserver.yaml spec.authServerConfig). The vMCP validates
+# incoming bearer tokens against the embedded AS's JWKS — so the issuer here MUST
+# match authServerConfig.issuer (the AS root), NOT kanidm. mcp.wibrow.dev hairpins to
+# the envoy-external LB (private 10.20.10.239) in-cluster, so JWKS/discovery fetches
+# need the private-IP allowances.
+# yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpoidcconfig_v1beta1.json
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPOIDCConfig
+metadata:
+  name: vmcp-authserver-oidc
+spec:
+  type: inline
+  inline:
+    issuer: https://mcp.wibrow.dev
+    jwksAllowPrivateIP: true
+    protectedResourceAllowPrivateIP: true
