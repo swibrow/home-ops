@@ -24,8 +24,23 @@ config:
       name tail
       alias kubernetes
       path /var/log/containers/*.log
-      parser containerd
+      parser cri-log
       tag kubernetes.*
+
+  ## Strip the CRI prefix ("<time> stdout F ") into discrete fields, leaving the
+  ## bare application log line in `log` so the kubernetes filter's `merge_log`
+  ## can JSON-decode it (e.g. envoy access logs) and the VictoriaLogs output's
+  ## `_msg_field=log` carries the real message. Built-in `cri` capture-group
+  ## name differs across images (log vs message), so define it explicitly.
+  ## https://docs.fluentbit.io/manual/pipeline/parsers/configuring-parser
+  customParsers: |
+    [PARSER]
+      Name        cri-log
+      Format      regex
+      Regex       ^(?<time>[^ ]+) (?<stream>stdout|stderr) (?<logtag>[^ ]*) (?<log>.*)$
+      Time_Key    time
+      Time_Format %Y-%m-%dT%H:%M:%S.%L%z
+      Time_Keep   Off
 
   ## https://docs.fluentbit.io/manual/pipeline/filters
   filters: |
