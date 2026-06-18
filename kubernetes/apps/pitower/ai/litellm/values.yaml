@@ -17,8 +17,10 @@ controllers:
     type: deployment
     containers:
       app:
+        # non_root variant: prisma baked for UID 1000 (avoids the runtime
+        # "Installing Prisma CLI" reinstall + NotConnectedError under non-root).
         image:
-          repository: ghcr.io/berriai/litellm-database
+          repository: ghcr.io/berriai/litellm-non_root
           tag: v1.89.2
         args:
           - --config
@@ -26,8 +28,6 @@ controllers:
           - --port
           - "4000"
         env:
-          # litellm-database runs `prisma migrate deploy` on boot; HOME must be writable.
-          HOME: /tmp
           STORE_MODEL_IN_DB: "true"
           LITELLM_MODE: PRODUCTION
           TZ: Europe/Zurich
