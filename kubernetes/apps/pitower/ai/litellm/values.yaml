@@ -74,9 +74,9 @@ controllers:
         resources:
           requests:
             cpu: 100m
-            memory: 512Mi
+            memory: 1Gi
           limits:
-            memory: 2Gi
+            memory: 4Gi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
