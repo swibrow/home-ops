@@ -46,9 +46,9 @@ data:
         doorbell_sub:
           - rtsp://{FRIGATE_DOORBELL_USER}:{FRIGATE_DOORBELL_PASSWORD}@Doorbell.iot:8554/ch2
         backyard:
-          - rtsp://{FRIGATE_BACKYARD_USER}:{FRIGATE_BACKYARD_PASSWORD}@Camera-G100-26DC.iot:8554/ch1
+          - rtsp://{FRIGATE_BACKYARD_USER}:{FRIGATE_BACKYARD_PASSWORD}@Camera-G100-6751.iot:8554/ch1
         backyard_sub:
-          - rtsp://{FRIGATE_BACKYARD_USER}:{FRIGATE_BACKYARD_PASSWORD}@Camera-G100-26DC.iot:8554/ch2
+          - rtsp://{FRIGATE_BACKYARD_USER}:{FRIGATE_BACKYARD_PASSWORD}@Camera-G100-6751.iot:8554/ch2
         attic:
           - rtsp://{FRIGATE_ATTIC_USER}:{FRIGATE_ATTIC_PASSWORD}@Camera-G100-9849.iot:8554/ch1
         attic_sub:
