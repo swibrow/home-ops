@@ -1,0 +1,50 @@
+---
+# yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpserver_v1beta1.json
+# Infisical MCP backend (@infisical/mcp). No upstream image / registry entry exists, so
+# we run a pinned image built from docker/infisical-mcp/Dockerfile. Authenticates with a
+# DEDICATED Infisical machine identity (Universal Auth) — NOT the broad external-secrets
+# identity — so its scope can be limited in Infisical. stdio image: the ToolHive proxy
+# fronts it on 8080 (same pattern as the github backend).
+#
+# SECURITY: this is a secrets-manager backend. It joins the mcp-tools group, so it's
+# reachable through BOTH vMCPs — including the anonymous mcp-gateway-direct (api-key
+# route, LAN no-auth route, and the in-cluster Hermes agent). Anyone who can reach those
+# can read whatever the machine identity is allowed to. Scope the identity tightly in
+# Infisical, or split this into its own OAuth-only group if that exposure is unacceptable.
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServer
+metadata:
+  name: infisical
+spec:
+  # Built by build-docker-images.yaml from docker/infisical-mcp/Dockerfile.
+  # renovate: datasource=docker
+  image: ghcr.io/swibrow/infisical-mcp:0.0.23
+  transport: stdio
+  proxyPort: 8080
+  groupRef:
+    name: mcp-tools
+  # Needs outbound egress to the Infisical EU API.
+  permissionProfile:
+    type: builtin
+    name: network
+  env:
+    - name: INFISICAL_HOST_URL
+      value: https://eu.infisical.com
+    - name: INFISICAL_AUTH_METHOD
+      value: universal-auth
+  # spec.secrets is keyed by Secret name (x-kubernetes-list-map-keys: [name]), so each
+  # env var must come from its own Secret — two ExternalSecrets in externalsecret.yaml.
+  secrets:
+    - name: toolhive-infisical-client-id
+      key: INFISICAL_UNIVERSAL_AUTH_CLIENT_ID
+      targetEnvName: INFISICAL_UNIVERSAL_AUTH_CLIENT_ID
+    - name: toolhive-infisical-client-secret
+      key: INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET
+      targetEnvName: INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET
+  # krr: infisical/toolhive
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      memory: 256Mi

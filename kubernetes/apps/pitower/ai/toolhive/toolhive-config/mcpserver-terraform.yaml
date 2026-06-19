@@ -1,0 +1,29 @@
+---
+# yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpserver_v1beta1.json
+# Terraform MCP backend (HashiCorp). Registry lookups for providers, modules, and
+# policies — no credentials needed for the public registry. TFE_TOKEN /
+# ENABLE_TF_OPERATIONS are only for Terraform Cloud/Enterprise workspace ops, which
+# we don't use (state lives in S3). Unauthenticated, in-cluster only; auth enforced
+# at the vMCP edge, ingress locked to the vMCP pods (networkpolicy.yaml). stdio
+# image — the ToolHive proxy fronts it on 8080 (same pattern as the github backend).
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServer
+metadata:
+  name: terraform
+spec:
+  image: docker.io/hashicorp/terraform-mcp-server:0.5.2
+  transport: stdio
+  proxyPort: 8080
+  groupRef:
+    name: mcp-tools
+  # Registry docs lookups need outbound egress to registry.terraform.io.
+  permissionProfile:
+    type: builtin
+    name: network
+  # krr: terraform/toolhive
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      memory: 256Mi

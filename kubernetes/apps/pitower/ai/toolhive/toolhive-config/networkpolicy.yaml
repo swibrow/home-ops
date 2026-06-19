@@ -29,6 +29,11 @@ spec:
           - argocd
           - aws-api
           - github
+          - clickhouse
+          - terraform
+          - context7
+          - database-toolbox
+          - infisical
   policyTypes:
     - Ingress
   ingress:
@@ -66,6 +71,11 @@ spec:
           - argocd
           - aws-api
           - github
+          - clickhouse
+          - terraform
+          - context7
+          - database-toolbox
+          - infisical
   policyTypes:
     - Ingress
   ingress:
@@ -83,6 +93,11 @@ spec:
                   - argocd
                   - aws-api
                   - github
+                  - clickhouse
+                  - terraform
+                  - context7
+                  - database-toolbox
+                  - infisical
 ---
 # The anonymous vMCP (mcp-gateway-direct) has no auth of its own, so restrict its
 # ingress to the only legitimate callers: the Envoy proxy pods (which terminate the

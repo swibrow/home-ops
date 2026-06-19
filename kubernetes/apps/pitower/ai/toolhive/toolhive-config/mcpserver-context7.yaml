@@ -1,0 +1,29 @@
+---
+# yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpserver_v1beta1.json
+# Context7 MCP backend — version-specific library/framework docs and code examples
+# pulled into the prompt. Runs without an API key (free tier rate limits); add a
+# CONTEXT7_API_KEY secret later for higher limits. Unauthenticated and in-cluster
+# only; auth enforced at the vMCP edge, ingress locked to the vMCP pods
+# (networkpolicy.yaml). stdio image — the ToolHive proxy fronts it on 8080 (same
+# pattern as the github backend).
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServer
+metadata:
+  name: context7
+spec:
+  image: ghcr.io/stacklok/dockyard/npx/context7:2.1.8
+  transport: stdio
+  proxyPort: 8080
+  groupRef:
+    name: mcp-tools
+  # Fetches docs from context7.com — needs outbound egress.
+  permissionProfile:
+    type: builtin
+    name: network
+  # krr: context7/toolhive
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      memory: 256Mi

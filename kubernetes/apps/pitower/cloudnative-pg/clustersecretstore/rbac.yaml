@@ -29,3 +29,30 @@ kind: ServiceAccount
 metadata:
   name: external-secrets-pg
   namespace: cloudnative-pg
+---
+# Lets the database-toolbox MCP backend (ai namespace) read CNPG app-user secrets so
+# its init container can build a multi-source genai-toolbox config dynamically. Scoped
+# to secrets in this namespace only — the same DB credentials the toolbox connects with.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: toolhive-database-toolbox-secrets-reader
+  namespace: cloudnative-pg
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: toolhive-database-toolbox-secrets-reader
+  namespace: cloudnative-pg
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: toolhive-database-toolbox-secrets-reader
+subjects:
+  - kind: ServiceAccount
+    name: toolhive-database-toolbox
+    namespace: ai

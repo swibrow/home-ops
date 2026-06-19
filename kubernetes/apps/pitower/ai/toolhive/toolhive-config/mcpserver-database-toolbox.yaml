@@ -1,0 +1,145 @@
+---
+# ServiceAccount for the database-toolbox backend. The init container uses this
+# SA's token to list the CNPG app-user secrets in the cloudnative-pg namespace —
+# the Role/RoleBinding that grants that read live with the cnpg app, at
+# kubernetes/apps/pitower/cloudnative-pg/clustersecretstore/rbac.yaml.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: toolhive-database-toolbox
+  namespace: ai
+---
+# Generator script for the init container below. Enumerates every CNPG `<cluster>-app`
+# secret and emits one genai-toolbox `source` + execute-sql/list-tables tools per
+# cluster into a shared emptyDir, so the set of databases is DYNAMIC — new CNPG
+# clusters are picked up on the next pod restart, with no edits here. Passwords stay
+# in pod memory (emptyDir), never in a committed ConfigMap.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-toolbox-scripts
+  namespace: ai
+data:
+  generate.sh: |
+    #!/bin/sh
+    set -eu
+    OUT=/shared/tools.yaml
+    NS=cloudnative-pg
+    : > "$OUT"
+    count=0
+    # CNPG labels every managed secret with cnpg.io/cluster; only the `<cluster>-app`
+    # secret carries app-user login creds (host/port/user/password/dbname).
+    for name in $(kubectl get secrets -n "$NS" -l cnpg.io/cluster \
+        -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'); do
+      case "$name" in *-app) ;; *) continue ;; esac
+      json=$(kubectl get secret "$name" -n "$NS" -o json)
+      get() { printf '%s' "$json" | jq -r --arg k "$1" '.data[$k] // empty' | base64 -d; }
+      # YAML-safe single-quote (double any embedded quote)
+      q() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/''/g")"; }
+      db=$(get dbname);  [ -n "$db" ] || continue
+      host=$(get host); port=$(get port); user=$(get user); pass=$(get password)
+      case "$host" in *.*) fqdn="$host" ;; *) fqdn="${host}.${NS}.svc.cluster.local" ;; esac
+      cluster="${name%-app}"
+      {
+        echo "---"
+        echo "kind: source"
+        echo "name: ${cluster}"
+        echo "type: postgres"
+        echo "host: $(q "$fqdn")"
+        echo "port: $(q "$port")"
+        echo "database: $(q "$db")"
+        echo "user: $(q "$user")"
+        echo "password: $(q "$pass")"
+        echo "---"
+        echo "kind: tool"
+        echo "name: ${cluster}_execute_sql"
+        echo "type: postgres-execute-sql"
+        echo "source: ${cluster}"
+        echo "description: $(q "Execute a SQL statement against the '${cluster}' CNPG PostgreSQL database. Connects as the app user (read/write on its own database).")"
+        echo "---"
+        echo "kind: tool"
+        echo "name: ${cluster}_list_tables"
+        echo "type: postgres-list-tables"
+        echo "source: ${cluster}"
+        echo "description: $(q "List tables and inspect schema (columns, indexes, constraints) in the '${cluster}' CNPG PostgreSQL database.")"
+      } >> "$OUT"
+      count=$((count + 1))
+    done
+    echo "database-toolbox: generated ${count} postgres source(s) -> ${OUT}"
+    [ "$count" -gt 0 ] || echo "WARNING: no CNPG '<cluster>-app' secrets found in ${NS}"
+---
+# yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpserver_v1beta1.json
+# Database Toolbox MCP backend (Google genai-toolbox) — ONE server fronting ALL CNPG
+# clusters. The init container generates a multi-source tools.yaml from the live
+# `<cluster>-app` secrets (see ConfigMap above), so coverage is dynamic. Auth reuses
+# each cluster's existing app user (read/write on its own database) per the chosen
+# trade-off; the execute-sql tool can therefore write — it's a human-in-the-loop dev
+# tool, not for autonomous agents. Unauthenticated and in-cluster only; auth is
+# enforced at the vMCP edge, ingress locked to the vMCP pods (networkpolicy.yaml).
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServer
+metadata:
+  name: database-toolbox
+spec:
+  # renovate: datasource=docker
+  image: us-central1-docker.pkg.dev/database-toolbox/toolbox/toolbox:1.1.0
+  transport: streamable-http
+  proxyPort: 8080
+  # toolbox serves its MCP endpoint on :5000; the ToolHive proxy fronts it on 8080.
+  mcpPort: 5000
+  serviceAccount: toolhive-database-toolbox
+  args:
+    - --tools-file=/shared/tools.yaml
+    - --address=0.0.0.0
+  groupRef:
+    name: mcp-tools
+  # Outbound egress to the CNPG `*-rw` services (5432) and, for the init container,
+  # the kube-apiserver.
+  permissionProfile:
+    type: builtin
+    name: network
+  # Init container (generate.sh) + shared volume for the rendered tools.yaml. The CRD
+  # `volumes` field is hostPath-only, so volumes/initContainers go via podTemplateSpec.
+  # The main workload container is named "mcp".
+  podTemplateSpec:
+    spec:
+      initContainers:
+        - name: generate-tools
+          image: alpine/k8s:1.31.1
+          command: ["sh", "/scripts/generate.sh"]
+          env:
+            - name: HOME
+              value: /shared
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+            - name: shared
+              mountPath: /shared
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+      containers:
+        - name: mcp
+          volumeMounts:
+            - name: shared
+              mountPath: /shared
+              readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: database-toolbox-scripts
+        - name: shared
+          emptyDir: {}
+  # krr: database-toolbox/toolhive
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 256Mi

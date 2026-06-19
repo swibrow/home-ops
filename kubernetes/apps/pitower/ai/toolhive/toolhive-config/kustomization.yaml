@@ -24,6 +24,11 @@ resources:
   - mcpserver-argocd.yaml
   - mcpserver-aws-api.yaml
   - mcpserver-github.yaml
+  - mcpserver-clickhouse.yaml
+  - mcpserver-terraform.yaml
+  - mcpserver-context7.yaml
+  - mcpserver-database-toolbox.yaml
+  - mcpserver-infisical.yaml
   - generator-github.yaml
   - cronjob-github-token.yaml
   - networkpolicy.yaml
