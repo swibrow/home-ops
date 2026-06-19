@@ -50,6 +50,12 @@ controllers:
           GRAPH_EXTRACTION_ENABLED: "true"
           III_REST_PORT: "3111"
           RUST_LOG: warn
+          # Viewer/stream default to binding localhost only (REST on 3111 binds all
+          # interfaces, which is why only it was reachable). Bind to 0.0.0.0 so the
+          # kube Service can reach the viewer (3113) + stream (3112); set the public
+          # URL so the in-browser websocket targets the gateway, not localhost:3112.
+          AGENTMEMORY_VIEWER_HOST: 0.0.0.0
+          AGENTMEMORY_VIEWER_URL: https://agentmemory.wibrow.dev
           VIEWER_ALLOWED_HOSTS: agentmemory.wibrow.dev
           VIEWER_ALLOWED_ORIGINS: https://agentmemory.wibrow.dev
           TZ: Europe/Zurich
