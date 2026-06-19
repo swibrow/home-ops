@@ -75,7 +75,16 @@ kubelet:
     # run, so it can only gain the label via target relabeling (relabelings),
     # not metricRelabelings. Without it the join never cancels and KubeletDown
     # fires permanently even though every kubelet is up.
+    #
+    # Keep the chart-default metrics_path relabel too: the KubeletDown rule
+    # selects up{job="kubelet",metrics_path="/metrics"}, so the main /metrics
+    # endpoint must carry that label. Overriding `relabelings` with only the
+    # cluster stamp drops the default and makes the selector match nothing,
+    # which also makes KubeletDown fire permanently.
     relabelings:
+      - action: replace
+        sourceLabels: ["__metrics_path__"]
+        targetLabel: metrics_path
       - action: replace
         targetLabel: cluster
         replacement: pitower
