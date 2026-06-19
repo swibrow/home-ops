@@ -6,7 +6,7 @@ metadata:
   namespace: renovate
 spec:
   # renovate: datasource=docker depName=ghcr.io/renovatebot/renovate
-  image: ghcr.io/renovatebot/renovate:43.229.1
+  image: ghcr.io/renovatebot/renovate:43.232.0
   # Run once a day (02:00). Hourly fan-out was unnecessary churn; daily keeps the
   # control-plane memory pressure down while still catching updates promptly.
   schedule: "0 2 * * *"
