@@ -37,7 +37,12 @@ controllers:
           AGENTMEMORY_TOOLS: all
           # Embeddings run on-device (BGE-small via @xenova/transformers); no external service.
           EMBEDDING_PROVIDER: local
-          # Chat LLM (consolidation / graph extraction) via the real Anthropic API.
+          # Chat LLM (compression / consolidation / graph extraction) runs via the
+          # Claude Agent SDK against a Claude subscription, NOT the metered Anthropic
+          # API. Auth = CLAUDE_CODE_OAUTH_TOKEN (from `claude setup-token`, injected
+          # by the externalsecret); no ANTHROPIC_API_KEY is set, so the SDK bills the
+          # subscription. ANTHROPIC_MODEL still selects the (light) model the SDK uses.
+          AGENTMEMORY_ALLOW_AGENT_SDK: "true"
           ANTHROPIC_MODEL: claude-haiku-4-5-20251001
           AGENTMEMORY_LLM_TIMEOUT_MS: "120000"
           AGENTMEMORY_AUTO_COMPRESS: "true"
