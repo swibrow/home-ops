@@ -69,8 +69,8 @@ data:
                 - detect
         detect:
           enabled: true
-          width: 640
-          height: 360
+          width: 1280
+          height: 720
           fps: 5
         objects:
           track:
@@ -90,8 +90,8 @@ data:
                 - detect
         detect:
           enabled: true
-          width: 640
-          height: 360
+          width: 1280
+          height: 720
           fps: 5
         objects:
           track:
@@ -111,8 +111,8 @@ data:
                 - detect
         detect:
           enabled: true
-          width: 640
-          height: 480
+          width: 1280
+          height: 960
           fps: 5
         objects:
           track:
@@ -139,8 +139,8 @@ data:
                 - detect
         detect:
           enabled: true
-          width: 640
-          height: 360
+          width: 1280
+          height: 720
           fps: 5
         objects:
           track:
@@ -160,8 +160,8 @@ data:
                 - detect
         detect:
           enabled: true
-          width: 640
-          height: 360
+          width: 1280
+          height: 720
           fps: 5
         objects:
           track:
