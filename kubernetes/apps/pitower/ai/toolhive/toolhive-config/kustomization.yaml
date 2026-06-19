@@ -15,6 +15,7 @@ resources:
   - mcpoidcconfig.yaml
   - virtualmcpserver.yaml
   - virtualmcpserver-direct.yaml
+  - virtualmcpserver-secrets.yaml
   - httproute.yaml
   - securitypolicy.yaml
   - externalsecret.yaml

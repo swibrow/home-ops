@@ -6,11 +6,11 @@
 # identity — so its scope can be limited in Infisical. stdio image: the ToolHive proxy
 # fronts it on 8080 (same pattern as the github backend).
 #
-# SECURITY: this is a secrets-manager backend. It joins the mcp-tools group, so it's
-# reachable through BOTH vMCPs — including the anonymous mcp-gateway-direct (api-key
-# route, LAN no-auth route, and the in-cluster Hermes agent). Anyone who can reach those
-# can read whatever the machine identity is allowed to. Scope the identity tightly in
-# Infisical, or split this into its own OAuth-only group if that exposure is unacceptable.
+# SECURITY: this is a secrets-manager backend, so it is DELIBERATELY isolated from the
+# shared mcp-tools group. It joins its own mcp-secrets group (mcpgroup.yaml), aggregated
+# ONLY by the OAuth-protected mcp-gateway-secrets vMCP (virtualmcpserver-secrets.yaml) at
+# https://mcp-secrets.wibrow.dev. It is NOT exposed on the anonymous mcp-gateway-direct
+# (api-key/LAN/Hermes), and networkpolicy.yaml locks its ingress to that one vMCP pod.
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServer
 metadata:
@@ -22,7 +22,7 @@ spec:
   transport: stdio
   proxyPort: 8080
   groupRef:
-    name: mcp-tools
+    name: mcp-secrets
   # Needs outbound egress to the Infisical EU API.
   permissionProfile:
     type: builtin

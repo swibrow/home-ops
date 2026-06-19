@@ -33,7 +33,6 @@ spec:
           - terraform
           - context7
           - database-toolbox
-          - infisical
   policyTypes:
     - Ingress
   ingress:
@@ -75,7 +74,6 @@ spec:
           - terraform
           - context7
           - database-toolbox
-          - infisical
   policyTypes:
     - Ingress
   ingress:
@@ -97,6 +95,61 @@ spec:
                   - terraform
                   - context7
                   - database-toolbox
+---
+# The infisical backend is in the isolated mcp-secrets group, so it accepts ingress ONLY
+# from the OAuth-only mcp-gateway-secrets vMCP — NOT from the two mcp-tools vMCPs. This is
+# the network half of keeping a secrets-manager off the anonymous gateway (the group/
+# aggregation split is the other half). Same two-policy proxy/workload shape as the shared
+# mcp-tools locks above, scoped to infisical.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mcp-secrets-proxy-from-secrets-vmcp-only
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: mcpserver
+    matchExpressions:
+      - key: toolhive-name
+        operator: In
+        values:
+          - infisical
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: virtualmcpserver
+              toolhive-name: mcp-gateway-secrets
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+# Backend WORKLOAD pod (holds the Infisical machine-identity creds): only the infisical
+# proxy may reach it. Selected via toolhive-basename, which only workload pods carry.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mcp-secrets-workload-from-proxy-only
+spec:
+  podSelector:
+    matchExpressions:
+      - key: toolhive-basename
+        operator: In
+        values:
+          - infisical
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: mcpserver
+            matchExpressions:
+              - key: toolhive-name
+                operator: In
+                values:
                   - infisical
 ---
 # The anonymous vMCP (mcp-gateway-direct) has no auth of its own, so restrict its
