@@ -105,7 +105,7 @@ spec:
     spec:
       initContainers:
         - name: generate-tools
-          image: alpine/k8s:1.31.1
+          image: alpine/k8s:1.36.2
           command: ["sh", "/scripts/generate.sh"]
           env:
             - name: HOME
