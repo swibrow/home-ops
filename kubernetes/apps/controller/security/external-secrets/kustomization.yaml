@@ -1,0 +1,12 @@
+---
+# controller overlay — external-secrets is identical across the management
+# clusters (no Prometheus, so the base already has serviceMonitor/grafana off),
+# so this just consumes the shared base verbatim. No per-cluster values needed.
+#
+# The Infisical machine-identity secret (universal-auth-credentials) is applied
+# manually from _base/security/external-secrets/stores/infisical/secret.sops.yaml.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: security
+resources:
+  - ../../../_base/security/external-secrets
