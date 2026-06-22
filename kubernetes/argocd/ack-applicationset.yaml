@@ -1,0 +1,170 @@
+---
+# Dedicated ApplicationSet for AWS Controllers for Kubernetes (ACK).
+#
+# Separate from the unified `home-ops` ApplicationSet (./applicationset.yaml)
+# because ACK can't go through that AppSet's git-directory + kustomize render
+# path: the umbrella `ack-chart` ships the shared common CRDs (adoptedresources,
+# fieldexports, iamroleselectors) once per enabled subchart, and
+# `kustomize build --enable-helm` hard-errors on the duplicate resource IDs
+# (ACK community #2018). ArgoCD's NATIVE Helm source + ServerSideApply applies
+# them cleanly, so this AppSet uses a Helm source directly.
+#
+# A clusters generator selects ONLY pitower (label home-ops/cluster: pitower on
+# its cluster Secret) and deploys to {{.server}} — generated app: `pitower-ack`.
+#
+# All controllers share ONE IRSA role (pitower-ack-controllers, defined in
+# terraform/general/ack.tf). Each subchart's ServiceAccount is
+# ack-<svc>-controller in ack-system, matched by the role trust policy
+# StringLike `system:serviceaccount:ack-system:ack-*-controller`.
+#
+# Applied MANUALLY (like ./applicationset.yaml) — not managed by ArgoCD:
+#   kubectl apply -f kubernetes/argocd/ack-applicationset.yaml
+# NOTE: the chart version (targetRevision) is baked into this template, so a
+# version bump requires re-applying this file (Renovate edits it, but the
+# generated Application only picks it up on re-apply).
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: ack
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - clusters:
+        selector:
+          matchLabels:
+            home-ops/cluster: pitower
+  template:
+    metadata:
+      name: "{{.name}}-ack"
+      namespace: argocd
+      labels:
+        app.kubernetes.io/name: ack
+        app.kubernetes.io/managed-by: argocd
+        home-ops/cluster: "{{.name}}"
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: apps
+      source:
+        repoURL: public.ecr.aws/aws-controllers-k8s
+        chart: ack-chart
+        targetRevision: 46.113.0
+        helm:
+          releaseName: ack
+          # Each controller is a subchart toggled by `<svc>.enabled`; all share
+          # the eu-central-2 region and the single IRSA role above. Add a
+          # controller by appending the same block AND extending the IAM policy
+          # in ack.tf.
+          values: |
+            acm:
+              enabled: true
+              aws:
+                region: eu-central-2
+              serviceAccount:
+                annotations:
+                  eks.amazonaws.com/role-arn: arn:aws:iam::633355703129:role/pitower-ack-controllers
+            cloudfront:
+              enabled: true
+              aws:
+                region: eu-central-2
+              serviceAccount:
+                annotations:
+                  eks.amazonaws.com/role-arn: arn:aws:iam::633355703129:role/pitower-ack-controllers
+            dynamodb:
+              enabled: true
+              aws:
+                region: eu-central-2
+              serviceAccount:
+                annotations:
+                  eks.amazonaws.com/role-arn: arn:aws:iam::633355703129:role/pitower-ack-controllers
+            ec2:
+              enabled: true
+              aws:
+                region: eu-central-2
+              serviceAccount:
+                annotations:
+                  eks.amazonaws.com/role-arn: arn:aws:iam::633355703129:role/pitower-ack-controllers
+            elbv2:
+              enabled: true
+              aws:
+                region: eu-central-2
+              serviceAccount:
+                annotations:
+                  eks.amazonaws.com/role-arn: arn:aws:iam::633355703129:role/pitower-ack-controllers
+            iam:
+              enabled: true
+              aws:
+                region: eu-central-2
+              serviceAccount:
+                annotations:
+                  eks.amazonaws.com/role-arn: arn:aws:iam::633355703129:role/pitower-ack-controllers
+            kms:
+              enabled: true
+              aws:
+                region: eu-central-2
+              serviceAccount:
+                annotations:
+                  eks.amazonaws.com/role-arn: arn:aws:iam::633355703129:role/pitower-ack-controllers
+            rds:
+              enabled: true
+              aws:
+                region: eu-central-2
+              serviceAccount:
+                annotations:
+                  eks.amazonaws.com/role-arn: arn:aws:iam::633355703129:role/pitower-ack-controllers
+            route53:
+              enabled: true
+              aws:
+                region: eu-central-2
+              serviceAccount:
+                annotations:
+                  eks.amazonaws.com/role-arn: arn:aws:iam::633355703129:role/pitower-ack-controllers
+            s3:
+              enabled: true
+              aws:
+                region: eu-central-2
+              serviceAccount:
+                annotations:
+                  eks.amazonaws.com/role-arn: arn:aws:iam::633355703129:role/pitower-ack-controllers
+            secretsmanager:
+              enabled: true
+              aws:
+                region: eu-central-2
+              serviceAccount:
+                annotations:
+                  eks.amazonaws.com/role-arn: arn:aws:iam::633355703129:role/pitower-ack-controllers
+            sns:
+              enabled: true
+              aws:
+                region: eu-central-2
+              serviceAccount:
+                annotations:
+                  eks.amazonaws.com/role-arn: arn:aws:iam::633355703129:role/pitower-ack-controllers
+            sqs:
+              enabled: true
+              aws:
+                region: eu-central-2
+              serviceAccount:
+                annotations:
+                  eks.amazonaws.com/role-arn: arn:aws:iam::633355703129:role/pitower-ack-controllers
+      destination:
+        server: "{{.server}}"
+        namespace: ack-system
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: false
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+          - SkipDryRunOnMissingResource=true
+          - ApplyOutOfSyncOnly=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+      revisionHistoryLimit: 3
