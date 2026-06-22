@@ -42,3 +42,17 @@ Render each visible floor of the house (basement, first floor, attic) as a colou
 Turn on a light or switch when motion is detected.
 
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fswibrow%2Fhome-ops%2Fmain%2Fiot%2Fhomeassistant%2Fblueprints%2Fmotion_activated_light.yaml)
+
+## Water
+
+### Water Schedule (Sonoff Smart Water Valve)
+
+Open a water valve on a schedule for a fixed duration, then close it. Built for a
+Sonoff smart water valve exposed as a `switch` via zigbee2mqtt.
+
+- **Start time / days:** Runs at a configured time on the selected weekdays
+- **Duration:** Keeps the valve open for a set duration, then closes it
+- **Skip condition (optional):** Skip watering when e.g. a rain sensor is on or rain is forecast
+- **Enable toggle (optional):** Pause the schedule with an `input_boolean` instead of deleting it
+
+[![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fswibrow%2Fhome-ops%2Fmain%2Fiot%2Fhomeassistant%2Fblueprints%2Fwater_schedule.yaml)

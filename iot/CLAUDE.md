@@ -74,3 +74,18 @@ Run custom actions when motion is detected. Supports multiple motion sensors and
 - Triggers when any sensor detects motion
 - Waits until ALL sensors are clear before starting the countdown
 - Uses `mode: restart` so new motion resets the timer
+
+### water_schedule.yaml
+Open a water valve on a schedule for a fixed duration, then close it. Built for a Sonoff smart water valve exposed as a `switch` via zigbee2mqtt, but works with any switch/valve entity.
+
+**Inputs:**
+- Water Valve - the switch/valve entity to control
+- Start Time - time of day to start watering
+- Watering Days - weekdays to run (multi-select)
+- Watering Duration - how long to keep the valve open
+- Skip Condition (optional) - skip watering when true (rain sensor, forecast, soil moisture)
+- Enable Toggle (optional) - `input_boolean` that must be on for the schedule to run
+
+**Behavior:**
+- Triggers at the start time, checks weekday + enable toggle + skip condition, then opens the valve, waits the duration, and closes it
+- Uses `mode: restart`; if HA restarts mid-watering the run is cancelled and the valve stays open (use a hardware auto-off timer or a separate safety automation if needed)
