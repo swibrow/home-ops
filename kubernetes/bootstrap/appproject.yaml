@@ -9,6 +9,8 @@ spec:
   description: Apps
   sourceRepos:
     - https://github.com/swibrow/home-ops
+    # ACK umbrella chart (app-ack.yaml) — OCI Helm registry
+    - public.ecr.aws/aws-controllers-k8s
   destinations:
     - namespace: "*"
       name: "*"
