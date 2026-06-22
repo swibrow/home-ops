@@ -48,7 +48,8 @@ controllers:
               name: hermes
         resources:
           requests:
-            cpu: 500m
+            cpu: 14m
+            memory: 167Mi
           limits:
             memory: 2Gi
         ports:
@@ -69,6 +70,7 @@ controllers:
         resources:
           requests:
             cpu: 50m
+            memory: 216Mi
           limits:
             memory: 1Gi
         ports:
@@ -94,6 +96,7 @@ controllers:
         resources:
           requests:
             cpu: 10m
+            memory: 72Mi
           limits:
             memory: 1Gi
         ports:

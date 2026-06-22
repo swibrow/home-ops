@@ -1,4 +1,3 @@
----
 # yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpserver_v1beta1.json
 # Kubernetes MCP backend (the "mkp" server). Unauthenticated and in-cluster only —
 # auth is enforced at the vMCP edge (OAuth on mcp-gateway, API key at the gateway on
@@ -22,7 +21,7 @@ spec:
   # krr: kubernetes/toolhive
   resources:
     requests:
-      cpu: 50m
+      cpu: 10m
       memory: 64Mi
     limits:
       memory: 128Mi

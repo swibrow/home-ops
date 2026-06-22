@@ -1,4 +1,3 @@
----
 # yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpserver_v1beta1.json
 # Terraform MCP backend (HashiCorp). Registry lookups for providers, modules, and
 # policies — no credentials needed for the public registry. TFE_TOKEN /
@@ -23,7 +22,7 @@ spec:
   # krr: terraform/toolhive
   resources:
     requests:
-      cpu: 25m
+      cpu: 10m
       memory: 64Mi
     limits:
       memory: 256Mi

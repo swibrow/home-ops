@@ -1,4 +1,3 @@
----
 # yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpserver_v1beta1.json
 # ClickHouse MCP backend, pointed at Rybbit's analytics ClickHouse. Read-only by
 # design — the server only exposes list_databases/list_tables/run_select_query.
@@ -34,7 +33,7 @@ spec:
   # krr: clickhouse/toolhive
   resources:
     requests:
-      cpu: 25m
-      memory: 64Mi
+      cpu: 10m
+      memory: 10Mi
     limits:
       memory: 256Mi

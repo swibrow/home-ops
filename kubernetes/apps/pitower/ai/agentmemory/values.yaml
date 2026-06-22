@@ -95,8 +95,8 @@ controllers:
               timeoutSeconds: 5
         resources:
           requests:
-            cpu: 100m
-            memory: 256Mi
+            cpu: 18m
+            memory: 420Mi
           limits:
             memory: 2Gi
         securityContext:
