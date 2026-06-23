@@ -1,5 +1,10 @@
 # Home Assistant Blueprints
 
+Home Assistant instance: <https://ha.wibrow.dev>
+
+To import a blueprint, click its **Import Blueprint** badge below (opens the
+import dialog in your Home Assistant instance).
+
 ## Aqara H2 Switches
 
 ### Single Rocker (WS-K07E)
