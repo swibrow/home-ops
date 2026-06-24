@@ -1,0 +1,130 @@
+blueprint:
+  name: Water Schedule (Sonoff Smart Water Valve)
+  source_url: https://github.com/swibrow/home-ops/blob/main/iot/homeassistant/blueprints/water_schedule.yaml
+  description: |
+    Open a water valve on a schedule for a fixed duration, then close it again.
+
+    Designed for a Sonoff smart water valve exposed as a `switch` entity via
+    zigbee2mqtt, but works with any switch/valve that can be turned on and off.
+
+    **Features:**
+    - Runs at a configured start time on selected days of the week
+    - Keeps the valve open for a configurable duration, then closes it
+    - Optional skip condition (e.g. rain sensor on, weather is rainy, soil already wet)
+    - Optional enable toggle (`input_boolean`) to pause the schedule without deleting it
+    - Re-triggering during a run restarts the timer (mode: restart)
+
+    Create one automation per watering slot. For multiple start times per day,
+    create the blueprint multiple times with different start times.
+
+    **Note:** If Home Assistant restarts mid-watering the run is cancelled and
+    the valve stays open. Set a hardware auto-off timer on the valve, or add a
+    separate "close valve" safety automation, if that matters for your setup.
+  domain: automation
+  author: Home Assistant
+  input:
+    valve_entity:
+      name: Water Valve
+      description: The switch/valve entity to control (Sonoff smart water valve via zigbee2mqtt)
+      selector:
+        entity:
+          filter:
+            - domain: switch
+            - domain: valve
+    start_time:
+      name: Start Time
+      description: Time of day to start watering
+      default: "06:00:00"
+      selector:
+        time: {}
+    watering_days:
+      name: Watering Days
+      description: Days of the week on which to water
+      default:
+        - mon
+        - tue
+        - wed
+        - thu
+        - fri
+        - sat
+        - sun
+      selector:
+        select:
+          multiple: true
+          mode: list
+          options:
+            - label: Monday
+              value: mon
+            - label: Tuesday
+              value: tue
+            - label: Wednesday
+              value: wed
+            - label: Thursday
+              value: thu
+            - label: Friday
+              value: fri
+            - label: Saturday
+              value: sat
+            - label: Sunday
+              value: sun
+    watering_duration:
+      name: Watering Duration
+      description: How long to keep the valve open
+      default:
+        hours: 0
+        minutes: 15
+        seconds: 0
+      selector:
+        duration: {}
+    skip_condition:
+      name: Skip Condition (optional)
+      description: >-
+        If this condition is true at the start time, watering is skipped.
+        Useful for rain sensors, weather forecasts, or soil moisture checks.
+      default: []
+      selector:
+        condition: {}
+    enable_entity:
+      name: Enable Toggle (optional)
+      description: >-
+        An input_boolean that must be on for the schedule to run. Leave empty
+        to always run. Lets you pause watering without deleting the automation.
+      default: []
+      selector:
+        entity:
+          filter:
+            - domain: input_boolean
+
+mode: restart
+max_exceeded: silent
+
+triggers:
+  - trigger: time
+    at: !input start_time
+
+variables:
+  enable_entity: !input enable_entity
+  watering_days: !input watering_days
+
+conditions:
+  - alias: "Today is a watering day"
+    condition: template
+    value_template: "{{ now().strftime('%a') | lower in watering_days }}"
+  - alias: "Schedule is enabled"
+    condition: template
+    value_template: "{{ enable_entity | length == 0 or is_state(enable_entity, 'on') }}"
+  - alias: "Skip condition is not met"
+    condition: not
+    conditions: !input skip_condition
+
+actions:
+  - alias: "Open the water valve"
+    action: homeassistant.turn_on
+    target:
+      entity_id: !input valve_entity
+  - alias: "Keep the valve open for the watering duration"
+    delay: !input watering_duration
+  - alias: "Close the water valve"
+    action: homeassistant.turn_off
+    target:
+      entity_id: !input valve_entity
