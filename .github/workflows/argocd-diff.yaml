@@ -16,12 +16,12 @@ jobs:
     runs-on: home-ops
     steps:
       - name: Drydock render, test and diff
-        uses: sholdee/drydock/pr-action@45f1cb9d648370f27a791b1f019b7d093dd23969 # v0.2.0
+        uses: sholdee/drydock/pr-action@5205bad7e816d3ae060b53b136779848c12a15c8 # v0.2.1
         with:
           # Must track the pr-action tag above — the wrapper passes flags the
           # pinned binary must understand (v0.2.0 added --render-cache-dir).
           # renovate: datasource=github-releases depName=sholdee/drydock
-          version: v0.2.0
+          version: v0.2.1
           # Self-hosted runner can't write to /usr/local/bin; use a writable dir.
           install-dir: ${{ runner.temp }}/drydock-bin
           path: kubernetes
