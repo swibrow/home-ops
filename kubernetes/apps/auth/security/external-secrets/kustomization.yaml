@@ -1,0 +1,10 @@
+---
+# auth overlay — consumes the shared external-secrets base verbatim (same as
+# controller). The Infisical machine-identity secret (universal-auth-credentials)
+# is applied manually from
+# _base/security/external-secrets/stores/infisical/secret.sops.yaml.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: security
+resources:
+  - ../../../_base/security/external-secrets

@@ -1,0 +1,5 @@
+---
+# controller (single-node) overlay — only the diffs from _base/kube-system/coredns.
+# One replica, and no hostname topologySpread (a 2nd replica could never schedule
+# on a one-node cluster and would sit Pending forever).
+replicaCount: 1

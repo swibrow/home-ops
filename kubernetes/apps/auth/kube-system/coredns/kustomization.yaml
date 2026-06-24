@@ -1,0 +1,16 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: kube-system
+
+helmCharts:
+  - name: coredns
+    repo: https://coredns.github.io/helm
+    version: 1.46.0
+    releaseName: coredns
+    namespace: kube-system
+    # Shared base values + this cluster's overlay (later file wins).
+    valuesFile: ../../../_base/kube-system/coredns/values.yaml
+    additionalValuesFiles:
+      - values.yaml

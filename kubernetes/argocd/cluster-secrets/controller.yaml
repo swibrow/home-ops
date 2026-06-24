@@ -1,0 +1,29 @@
+---
+# Hub cluster registration (controller — where ArgoCD itself runs).
+#
+# Points at the local API, so apps under kubernetes/apps/controller/*/* deploy
+# in-cluster. The `home-ops/managed` label is what the unified ApplicationSet
+# (../applicationset.yaml) selects on; `name: controller` MUST match the
+# directory under kubernetes/apps/<cluster>.
+#
+# Prepared for cutover — apply (or fold into the controller ArgoCD bootstrap)
+# once ArgoCD runs on controller. No credentials needed for the local cluster.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: controller-cluster
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: cluster
+    home-ops/managed: "true"
+    home-ops/cluster: controller
+type: Opaque
+stringData:
+  name: controller
+  server: https://kubernetes.default.svc
+  config: |
+    {
+      "tlsClientConfig": {
+        "insecure": false
+      }
+    }

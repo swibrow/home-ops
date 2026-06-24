@@ -1,0 +1,94 @@
+---
+# Unified, cluster-selector-driven ApplicationSet (hub-spoke).
+#
+# Supersedes the per-cluster ApplicationSets in ./clusters/*.yaml once ArgoCD
+# has moved to the `controller` hub. A single matrix generator:
+#
+#   1. clusters generator (PRODUCER) — selects every registered ArgoCD cluster
+#      Secret carrying `home-ops/managed: "true"`, exposing {{.name}} / {{.server}}.
+#   2. git directories generator (CONSUMER) — scans ONLY that cluster's app tree
+#      via `kubernetes/apps/{{.name}}/*/*`. Because {{.name}} comes from the
+#      producer, each cluster scans just its own dirs — no cluster×app cross
+#      product. (Matrix rule: the consumer generator must come AFTER the producer.)
+#
+# Apps then deploy to `{{.server}}` (the selected cluster's API), so the same
+# AppSet drives the hub (controller, in-cluster) and every spoke (pitower, …).
+#
+# REQUIRED cluster-Secret convention (in the argocd namespace, self-managed by
+# the controller ArgoCD bootstrap):
+#   labels:
+#     argocd.argoproj.io/secret-type: cluster
+#     home-ops/managed: "true"          # <- selected by this AppSet
+#   stringData:
+#     name: <cluster>                    # MUST match the dir under kubernetes/apps/<cluster>
+#     server: <api>                      # hub: https://kubernetes.default.svc | spoke: https://<vip>:6443
+#     config: { … bearerToken/CA for spokes … }
+#
+# Applied MANUALLY (like the per-cluster files) — not managed by ArgoCD — to
+# avoid an AppSet managing the AppSet:  kubectl apply -f kubernetes/argocd/applicationset.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: home-ops
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - matrix:
+        generators:
+          - clusters:
+              selector:
+                matchLabels:
+                  home-ops/managed: "true"
+          - git:
+              repoURL: https://github.com/swibrow/home-ops
+              revision: main
+              directories:
+                - path: kubernetes/apps/{{.name}}/*/*
+  template:
+    metadata:
+      name: "{{.name}}-{{index .path.segments 3}}-{{index .path.segments 4}}"
+      namespace: argocd
+      labels:
+        app.kubernetes.io/name: "{{index .path.segments 4}}"
+        app.kubernetes.io/instance: "{{.name}}-{{index .path.segments 3}}-{{index .path.segments 4}}"
+        app.kubernetes.io/component: "{{index .path.segments 3}}"
+        app.kubernetes.io/part-of: "{{.name}}"
+        app.kubernetes.io/managed-by: argocd
+        home-ops/cluster: "{{.name}}"
+        home-ops/category: "{{index .path.segments 3}}"
+        home-ops/namespace: "{{index .path.segments 3}}"
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: apps
+      source:
+        repoURL: https://github.com/swibrow/home-ops
+        targetRevision: main
+        path: "{{.path.path}}"
+      destination:
+        server: "{{.server}}"
+        namespace: "{{index .path.segments 3}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: false
+        managedNamespaceMetadata:
+          labels:
+            pod-security.kubernetes.io/enforce: privileged
+            pod-security.kubernetes.io/audit: privileged
+            pod-security.kubernetes.io/warn: privileged
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+          - SkipDryRunOnMissingResource=true
+          - ApplyOutOfSyncOnly=true
+          - Timeout=600
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+      revisionHistoryLimit: 3

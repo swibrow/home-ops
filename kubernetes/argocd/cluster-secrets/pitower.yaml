@@ -1,0 +1,54 @@
+---
+# Spoke cluster registration (pitower — managed remotely by the controller hub).
+#
+# The bearer token + CA are pulled from Infisical via ESO and templated into the
+# ArgoCD cluster Secret, so no credential lands in git. The `home-ops/managed`
+# label is what ../applicationset.yaml selects on; `name: pitower` MUST match the
+# directory under kubernetes/apps/pitower.
+#
+# CUTOVER PREREQUISITES (do these first, then apply this file):
+#   1. On pitower, create a least-privilege (or cluster-admin) ServiceAccount
+#      `argocd-manager` (kube-system) + ClusterRoleBinding + a long-lived
+#      ServiceAccount token Secret. See cluster-rbac on pitower.
+#   2. Store that token and the pitower API CA (base64) in Infisical at
+#      /argocd/clusters/pitower/{bearerToken,caData}.
+#   3. server below is the pitower API VIP (10.20.10.0); confirm reachability
+#      from controller (VLAN 20) before cutover.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: pitower-cluster
+  namespace: argocd
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: infisical
+  target:
+    name: pitower-cluster
+    creationPolicy: Owner
+    template:
+      engineVersion: v2
+      metadata:
+        labels:
+          argocd.argoproj.io/secret-type: cluster
+          home-ops/managed: "true"
+          home-ops/cluster: pitower
+      data:
+        name: pitower
+        server: https://10.20.10.0:6443
+        config: |
+          {
+            "bearerToken": "{{ .bearerToken }}",
+            "tlsClientConfig": {
+              "insecure": false,
+              "caData": "{{ .caData }}"
+            }
+          }
+  data:
+    - secretKey: bearerToken
+      remoteRef:
+        key: /argocd/clusters/pitower/bearerToken
+    - secretKey: caData
+      remoteRef:
+        key: /argocd/clusters/pitower/caData
