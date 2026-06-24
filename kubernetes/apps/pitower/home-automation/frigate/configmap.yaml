@@ -169,6 +169,9 @@ data:
 
     record:
       enabled: true
+      retain:
+        days: 7
+        mode: motion
       alerts:
         retain:
           days: 30
