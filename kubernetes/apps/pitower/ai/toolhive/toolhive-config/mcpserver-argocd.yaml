@@ -1,4 +1,3 @@
----
 # yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpserver_v1beta1.json
 # ArgoCD MCP backend. Unauthenticated, in-cluster only, ingress locked to the two
 # vMCP pods (networkpolicy.yaml); auth is enforced at the vMCP edge.
@@ -28,7 +27,7 @@ spec:
   # krr: argocd/toolhive
   resources:
     requests:
-      cpu: 25m
+      cpu: 10m
       memory: 64Mi
     limits:
       memory: 256Mi

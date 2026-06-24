@@ -1,4 +1,3 @@
----
 # yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpserver_v1beta1.json
 # Context7 MCP backend — version-specific library/framework docs and code examples
 # pulled into the prompt. Runs without an API key (free tier rate limits); add a
@@ -23,7 +22,7 @@ spec:
   # krr: context7/toolhive
   resources:
     requests:
-      cpu: 25m
+      cpu: 10m
       memory: 64Mi
     limits:
       memory: 256Mi

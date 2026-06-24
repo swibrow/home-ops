@@ -16,6 +16,10 @@ controllers:
               httpGet:
                 port: *port
           readiness: *probes
+        resources:
+          requests:
+            cpu: 10m
+            memory: 8Mi
 service:
   app:
     controller: whoami

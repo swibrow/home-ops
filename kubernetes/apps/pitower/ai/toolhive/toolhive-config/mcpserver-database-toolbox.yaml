@@ -1,4 +1,3 @@
----
 # ServiceAccount for the database-toolbox backend. The init container uses this
 # SA's token to list the CNPG app-user secrets in the cloudnative-pg namespace —
 # the Role/RoleBinding that grants that read live with the cnpg app, at
@@ -139,7 +138,7 @@ spec:
   # krr: database-toolbox/toolhive
   resources:
     requests:
-      cpu: 50m
-      memory: 128Mi
+      cpu: 10m
+      memory: 15Mi
     limits:
       memory: 256Mi

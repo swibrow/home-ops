@@ -1,4 +1,3 @@
----
 # yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpserver_v1beta1.json
 # Infisical MCP backend (@infisical/mcp). No upstream image / registry entry exists, so
 # we run a pinned image built from docker/infisical-mcp/Dockerfile. Authenticates with a
@@ -44,7 +43,7 @@ spec:
   # krr: infisical/toolhive
   resources:
     requests:
-      cpu: 25m
+      cpu: 10m
       memory: 64Mi
     limits:
       memory: 256Mi

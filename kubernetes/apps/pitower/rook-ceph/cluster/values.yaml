@@ -54,8 +54,8 @@ cephClusterSpec:
     # krr: rook-ceph-mgr-a/mgr
     mgr:
       requests:
-        cpu: "125m"
-        memory: "512Mi"
+        cpu: "18m"
+        memory: "675Mi"
       limits:
         memory: "2Gi"
     # krr: rook-ceph-mon-aa/mon
@@ -63,7 +63,7 @@ cephClusterSpec:
     # steady headroom; an average-based request can crowd them under recovery.
     mon:
       requests:
-        cpu: "49m"
+        cpu: "30m"
         memory: "512Mi"
       limits:
         memory: "1Gi"
@@ -72,7 +72,7 @@ cephClusterSpec:
     # osd_memory_target (~4Gi); an average request can OOM them during backfill.
     osd:
       requests:
-        cpu: "100m"
+        cpu: "48m"
         memory: "1Gi"
       limits:
         memory: "6Gi"
@@ -86,7 +86,7 @@ cephClusterSpec:
     crashcollector:
       requests:
         cpu: "15m"
-        memory: "64Mi"
+        memory: "7Mi"
       limits:
         memory: "64Mi"
     logcollector:
