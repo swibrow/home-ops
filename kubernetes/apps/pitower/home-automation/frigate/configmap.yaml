@@ -169,21 +169,24 @@ data:
 
     record:
       enabled: true
+      # Retain "forever" — 100 years. Note: Frigate's storage maintainer still
+      # force-deletes the oldest recordings when the drive runs out of free
+      # space, so true forever requires freeing the shared Synology volume.
       retain:
-        days: 7
+        days: 36500
         mode: motion
       alerts:
         retain:
-          days: 30
+          days: 36500
           mode: motion
       detections:
         retain:
-          days: 14
+          days: 36500
           mode: motion
 
     snapshots:
       enabled: true
       retain:
-        default: 14
+        default: 36500
 
     version: 0.17-0
