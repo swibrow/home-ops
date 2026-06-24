@@ -1,0 +1,26 @@
+# Ansible management for plain (non-Talos) Linux hosts.
+# Secrets are SOPS-encrypted with the repo age key (SOPS_AGE_KEY_FILE from the root justfile).
+
+# Install required Ansible collections
+deps:
+    ansible-galaxy collection install -r requirements.yaml
+
+# Ping the nut host over SSH
+ping:
+    ansible nut -m ping
+
+# Dry-run the full nut playbook (network + NUT) and show a diff
+check:
+    ansible-playbook playbooks/site.yaml --check --diff
+
+# Apply the full nut playbook (network + NUT)
+deploy:
+    ansible-playbook playbooks/site.yaml
+
+# Apply only the NUT role
+deploy-nut:
+    ansible-playbook playbooks/nut.yaml
+
+# Gather and print facts for the nut host
+facts:
+    ansible nut -m setup

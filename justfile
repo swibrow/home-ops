@@ -4,6 +4,7 @@ mod k8s '.justfiles/k8s'
 mod sops '.justfiles/sops'
 mod tf '.justfiles/terraform'
 mod talos 'talos'
+mod ansible 'ansible'
 
 export TERRAFORM_WORKING_DIR := "terraform"
 export ENVIRONMENT := "dev"

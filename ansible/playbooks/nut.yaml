@@ -1,0 +1,6 @@
+---
+- name: Configure Network UPS Tools on the nut node
+  hosts: nut
+  become: true
+  roles:
+    - nut

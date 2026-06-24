@@ -1,0 +1,29 @@
+---
+# The node is single-NIC and lives ONLY on VLAN 20. eth0 carries the tagged VLAN
+# but holds no IP on the untagged/native LAN (carrier only); vlan20 owns the
+# address and the default route.
+#
+# NM is the source of truth on this host (netplan only renders to it), so
+# interfaces are managed as NM connections via community.general.nmcli — NOT
+# netplan drop-ins (netplan apply regenerates every connection and made eth0
+# grab a second DHCP lease).
+
+# Primary physical link: keep it up to carry VLAN tags, but no IP of its own.
+host_primary_link:
+  conn_name: netplan-eth0
+  ifname: eth0
+  carrier_only: true
+
+host_vlans:
+  - name: vlan20
+    id: 20
+    link: eth0
+    dhcp4: true
+    dhcp6: false
+    # This VLAN carries the default route now that eth0 has no native IP.
+    use_dhcp_routes: true
+
+# NM connections from an earlier netplan-based attempt, removed so they don't
+# collide with the managed connections above.
+host_vlans_legacy_connections:
+  - netplan-vlan20

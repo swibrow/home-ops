@@ -1,0 +1,14 @@
+{{ ansible_managed | comment }}
+{% for ups in nut_devices %}
+[{{ ups.name }}]
+    driver = {{ ups.driver }}
+    port = {{ ups.port }}
+    desc = "{{ ups.desc }}"
+{% if ups.vendorid | default('') | length > 0 %}
+    vendorid = {{ ups.vendorid }}
+{% endif %}
+{% if ups.serial | default('') | length > 0 %}
+    serial = {{ ups.serial }}
+{% endif %}
+
+{% endfor %}

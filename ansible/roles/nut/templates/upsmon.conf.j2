@@ -1,0 +1,9 @@
+{{ ansible_managed | comment }}
+{% for ups in nut_devices %}
+MONITOR {{ ups.name }}@localhost 1 monitor {{ nut_monitor_password }} master
+{% endfor %}
+
+MINSUPPLIES 1
+SHUTDOWNCMD "{{ nut_shutdown_cmd }}"
+POLLFREQ 5
+POLLFREQALERT 5

@@ -1,0 +1,11 @@
+---
+all:
+  children:
+    nut:
+      hosts:
+        nut:
+          # On VLAN 20 only (no native-LAN IP). This is the DHCP-assigned VLAN-20
+          # address — set a UniFi reservation to pin it, or use nut.servers.local
+          # from a host that can resolve the VLAN-20 (10.20.0.1) DNS.
+          ansible_host: 10.20.85.197
+          ansible_user: nut

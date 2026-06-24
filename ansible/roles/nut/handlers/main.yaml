@@ -1,0 +1,22 @@
+---
+# A UPS connected before the NUT udev rules were installed keeps root:root on its
+# USB node, so the driver can't open it. Reapply the rules to already-present devices.
+- name: Reload udev rules for NUT
+  ansible.builtin.shell: udevadm control --reload-rules && udevadm trigger --action=add --subsystem-match=usb
+  changed_when: true
+
+# nut-driver-enumerator regenerates the per-UPS nut-driver@<name>.service units from ups.conf.
+- name: Regenerate nut drivers
+  ansible.builtin.systemd_service:
+    name: nut-driver-enumerator.service
+    state: restarted
+
+- name: Restart nut-server
+  ansible.builtin.systemd_service:
+    name: nut-server
+    state: restarted
+
+- name: Restart nut-monitor
+  ansible.builtin.systemd_service:
+    name: nut-monitor
+    state: restarted

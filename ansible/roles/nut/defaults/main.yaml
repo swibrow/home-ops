@@ -1,0 +1,31 @@
+---
+# NUT operating mode. netserver = drive local UPSes AND expose them on the network.
+nut_mode: netserver
+
+# Address upsd listens on. 0.0.0.0 exposes to the whole LAN; narrow to the node IP if preferred.
+nut_listen_address: "0.0.0.0"
+nut_listen_port: 3493
+
+# UPSes attached to this node. One [section] per device in ups.conf.
+# With two USB UPSes, `port: auto` is ambiguous — pin `vendorid` and/or `serial`
+# (run `sudo nut-scanner -U` on the node to capture the distinguishing IDs) so each
+# driver binds the correct device. Leave a value empty/omit to skip that match.
+nut_devices:
+  - name: eaton
+    driver: usbhid-ups
+    port: auto
+    desc: "Eaton 5S"
+    vendorid: "0463"
+    serial: ""
+  - name: cyberpower
+    driver: usbhid-ups
+    port: auto
+    desc: "CyberPower PR1500LCDRT2U"
+    vendorid: "0764"
+    serial: "320203EN30000049"
+
+# Shut the Pi itself down on a critical battery event (cluster orchestration is out of scope).
+nut_shutdown_cmd: "/sbin/shutdown -h +0"
+
+# Open tcp/3493 in ufw when ufw is active.
+nut_manage_ufw: true

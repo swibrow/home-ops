@@ -1,0 +1,7 @@
+---
+- name: nut node (network + NUT)
+  hosts: nut
+  become: true
+  roles:
+    - network
+    - nut

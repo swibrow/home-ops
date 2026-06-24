@@ -1,0 +1,79 @@
+---
+- name: Load SOPS-encrypted NUT secrets
+  community.sops.load_vars:
+    file: "{{ role_path }}/vars/secrets.sops.yaml"
+
+- name: Install NUT packages
+  ansible.builtin.apt:
+    name:
+      - nut-server
+      - nut-client
+    state: present
+    update_cache: true
+  notify: Reload udev rules for NUT
+
+- name: Set NUT mode
+  ansible.builtin.template:
+    src: nut.conf.j2
+    dest: /etc/nut/nut.conf
+    owner: root
+    group: nut
+    mode: "0640"
+  notify:
+    - Restart nut-server
+    - Restart nut-monitor
+
+- name: Configure UPS drivers (ups.conf)
+  ansible.builtin.template:
+    src: ups.conf.j2
+    dest: /etc/nut/ups.conf
+    owner: root
+    group: nut
+    mode: "0640"
+  notify:
+    - Regenerate nut drivers
+    - Restart nut-server
+
+- name: Configure upsd listener (upsd.conf)
+  ansible.builtin.template:
+    src: upsd.conf.j2
+    dest: /etc/nut/upsd.conf
+    owner: root
+    group: nut
+    mode: "0640"
+  notify: Restart nut-server
+
+- name: Configure upsd users (upsd.users)
+  ansible.builtin.template:
+    src: upsd.users.j2
+    dest: /etc/nut/upsd.users
+    owner: root
+    group: nut
+    mode: "0640"
+  notify: Restart nut-server
+
+- name: Configure upsmon (upsmon.conf)
+  ansible.builtin.template:
+    src: upsmon.conf.j2
+    dest: /etc/nut/upsmon.conf
+    owner: root
+    group: nut
+    mode: "0640"
+  notify: Restart nut-monitor
+
+- name: Enable and start NUT services
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - nut-server
+    - nut-monitor
+
+- name: Allow NUT port through ufw (when active)
+  community.general.ufw:
+    rule: allow
+    port: "{{ nut_listen_port }}"
+    proto: tcp
+  when: nut_manage_ufw
+  failed_when: false

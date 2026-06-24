@@ -1,0 +1,60 @@
+---
+# Remove legacy netplan-rendered VLAN connections first so they don't collide
+# (same link + VLAN id) with the nmcli-managed connections below.
+- name: Remove legacy netplan VLAN connections
+  community.general.nmcli:
+    conn_name: "{{ item }}"
+    state: absent
+  loop: "{{ host_vlans_legacy_connections }}"
+
+- name: Remove stray netplan drop-in files
+  ansible.builtin.file:
+    path: "/etc/netplan/{{ item }}"
+    state: absent
+  loop:
+    - 95-vlans.yaml
+    - 95-vlan20.yaml
+
+# Ensure the VLAN (with its default route) exists BEFORE stripping eth0's IP,
+# so the host always has a default route during the cutover.
+- name: Ensure VLAN NetworkManager connections
+  community.general.nmcli:
+    type: vlan
+    conn_name: "{{ item.name }}"
+    vlandev: "{{ item.link }}"
+    vlanid: "{{ item.id }}"
+    method4: "{{ 'auto' if item.dhcp4 | default(true) else 'disabled' }}"
+    method6: "{{ 'auto' if item.dhcp6 | default(false) else 'ignore' }}"
+    # never_default keeps the DHCP default route OFF this link unless use_dhcp_routes.
+    never_default4: "{{ not (item.use_dhcp_routes | default(false)) }}"
+    autoconnect: true
+    state: present
+  loop: "{{ host_vlans }}"
+  notify: Reactivate VLAN connections
+
+# eth0: carrier only — no IP on the untagged/native LAN. The link stays up to
+# carry the VLAN tags; vlan20 owns the address and default route.
+# (The community.general.nmcli module reports changed every run for an
+# already-disabled ethernet connection, so use plain nmcli with explicit
+# idempotency keyed off BOTH the stored profile and the live address.)
+- name: Read primary link ipv4 method
+  ansible.builtin.command: "nmcli -g ipv4.method connection show {{ host_primary_link.conn_name }}"
+  register: _primary_method
+  changed_when: false
+  when: host_primary_link.carrier_only | default(false)
+
+- name: Set primary link to carrier-only (no IP)
+  ansible.builtin.command: >-
+    nmcli connection modify {{ host_primary_link.conn_name }}
+    ipv4.method disabled ipv6.method disabled
+  when:
+    - host_primary_link.carrier_only | default(false)
+    - _primary_method.stdout | default('') | trim != 'disabled'
+  notify: Reapply primary link
+
+- name: Detect leftover IPv4 address on the primary link
+  ansible.builtin.command: "ip -4 -oneline address show {{ host_primary_link.ifname }}"
+  register: _primary_addrs
+  changed_when: _primary_addrs.stdout | trim != ''
+  when: host_primary_link.carrier_only | default(false)
+  notify: Reapply primary link
