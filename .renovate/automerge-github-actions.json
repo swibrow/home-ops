@@ -4,10 +4,8 @@
     {
       "matchManagers": ["github-actions"],
       "automerge": true,
-      "automergeType": "branch",
       "matchUpdateTypes": ["minor", "patch"],
-      "minimumReleaseAge": "3 days",
-      "ignoreTests": true
+      "minimumReleaseAge": "3 days"
     },
     {
       "description": "Automerge trusted actions sooner",
@@ -17,10 +15,8 @@
         "/^actions\\//"
       ],
       "automerge": true,
-      "automergeType": "branch",
       "matchUpdateTypes": ["minor", "patch", "digest"],
-      "minimumReleaseAge": "1 minute",
-      "ignoreTests": true
+      "minimumReleaseAge": "1 minute"
     }
   ]
 }
