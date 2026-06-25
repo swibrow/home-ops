@@ -7,31 +7,8 @@ metadata:
 spec:
   # renovate: datasource=docker depName=ghcr.io/renovatebot/renovate
   image: ghcr.io/renovatebot/renovate:43.233.3
-  # Run twice a day (02:00 + 06:00). The 02:00 run is the main pass; 06:00 is a
-  # "settle pass" that exists to refresh the Dependency Dashboard issue.
-  #
-  # Renovate only writes the dashboard on a clean run (writeUpdates returns
-  # 'done'). With platformAutomerge on (inherited config) + the many automerge
-  # rules in this repo's renovate.json5, GitHub merges green PRs asynchronously
-  # *during* the ~2min run; when Renovate then hits a branch whose PR flipped to
-  # merged it throws REPOSITORY_CHANGED ("Repository has changed during
-  # renovation - aborting") and skips the dashboard step. So the main pass almost
-  # always aborts and the dashboard goes stale (issue #1049).
-  #
-  # By 06:00 the morning's auto-merges have all landed and there is nothing left
-  # to merge, so the settle pass runs clean and updates the dashboard. Hourly
-  # fan-out was unnecessary churn; twice-daily keeps control-plane memory
-  # pressure down (parallelism 1, pinned off the CPs) while fixing the dashboard.
   schedule: "0 2,6 * * *"
-  # One executor at a time. At parallelism 5 the burst of executor pods
-  # (512Mi-1.5Gi each) landed on the control-plane nodes and tipped the already
-  # memory-saturated apiservers into a liveness-kill death spiral (2026-06-08).
   parallelism: 1
-  # Pin executors OFF the control-plane nodes (worker-01/02/03). They are the
-  # only 16Gi nodes so they double as app nodes, but the apiserver/etcd live
-  # there too — a renovate burst must not compete with them. DoesNotExist on the
-  # control-plane role label forces executors onto worker-05/06 (worker-04 is
-  # walled off by its media-home taint, which renovate does not tolerate).
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
@@ -46,24 +23,12 @@ spec:
     appIdSecretKey: app_id
     installationIdSecretKey: installation_id
     pemSecretKey: private_key
-  # Manage all swibrow repos. The operator handles discovery itself (discovery
-  # job runs `renovate --autodiscover`; executor jobs run `renovate <repo>`
-  # scoped to one repo). Do NOT set RENOVATE_AUTODISCOVER here — it makes each
-  # executor ignore its positional repo arg and process every repo at once.
   discoveryFilters:
     - swibrow/*
-  # Exclude forks at discovery time so no executor Job is scheduled for them
-  # (Renovate also skips forks at runtime, but this avoids the wasted jobs).
   skipForks: true
-  # Inherit central config from swibrow/renovate-config/org-inherited-config.json
-  # for every repo (no per-repo renovate.json needed). Unlike RENOVATE_AUTODISCOVER,
-  # this is a safe global option — it only layers config, not repo selection.
   extraEnv:
     - name: RENOVATE_INHERIT_CONFIG
       value: "true"
-    # Manage every repo directly from the inherited config — no onboarding PR
-    # and no requirement for a per-repo renovate.json. (Set as env, not in the
-    # inherited config file, so they're honored as global self-hosted options.)
     - name: RENOVATE_ONBOARDING
       value: "false"
     - name: RENOVATE_REQUIRE_CONFIG
@@ -73,8 +38,4 @@ spec:
       cpu: 100m
       memory: 512Mi
     limits:
-      # Headroom for memory-heavy repos (npm trees) — at 256Mi/no-limit the
-      # executor was OOMKilled (exit 137) under node memory pressure. Terraform
-      # provider-hash OOMs are handled separately via skipArtifactsUpdate in the
-      # inherited config (swibrow/renovate-config), not by more memory.
-      memory: 1536Mi
+      memory: 4096Mi
