@@ -7,9 +7,22 @@ metadata:
 spec:
   # renovate: datasource=docker depName=ghcr.io/renovatebot/renovate
   image: ghcr.io/renovatebot/renovate:43.233.3
-  # Run once a day (02:00). Hourly fan-out was unnecessary churn; daily keeps the
-  # control-plane memory pressure down while still catching updates promptly.
-  schedule: "0 2 * * *"
+  # Run twice a day (02:00 + 06:00). The 02:00 run is the main pass; 06:00 is a
+  # "settle pass" that exists to refresh the Dependency Dashboard issue.
+  #
+  # Renovate only writes the dashboard on a clean run (writeUpdates returns
+  # 'done'). With platformAutomerge on (inherited config) + the many automerge
+  # rules in this repo's renovate.json5, GitHub merges green PRs asynchronously
+  # *during* the ~2min run; when Renovate then hits a branch whose PR flipped to
+  # merged it throws REPOSITORY_CHANGED ("Repository has changed during
+  # renovation - aborting") and skips the dashboard step. So the main pass almost
+  # always aborts and the dashboard goes stale (issue #1049).
+  #
+  # By 06:00 the morning's auto-merges have all landed and there is nothing left
+  # to merge, so the settle pass runs clean and updates the dashboard. Hourly
+  # fan-out was unnecessary churn; twice-daily keeps control-plane memory
+  # pressure down (parallelism 1, pinned off the CPs) while fixing the dashboard.
+  schedule: "0 2,6 * * *"
   # One executor at a time. At parallelism 5 the burst of executor pods
   # (512Mi-1.5Gi each) landed on the control-plane nodes and tipped the already
   # memory-saturated apiservers into a liveness-kill death spiral (2026-06-08).
