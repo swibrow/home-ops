@@ -6,7 +6,7 @@ controllers:
       app:
         image:
           repository: docker.io/excalidraw/excalidraw
-          tag: latest@sha256:3c2513e830bb6e195147c05b34ecf8393d0ba2b1cc86e93b407a5777d6135c6c
+          tag: latest@sha256:f7ee194addd607bf831d2af0f0a34463dd4225e426cf35199ef0b12a803398e9
           pullPolicy: IfNotPresent
         # probes:
         #   liveness:
