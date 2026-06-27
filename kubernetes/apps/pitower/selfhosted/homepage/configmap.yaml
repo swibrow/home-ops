@@ -199,6 +199,10 @@ data:
             href: https://recipes.wibrow.dev
             description: Recipe management
     - AI:
+        - Open WebUI:
+            icon: open-webui.svg
+            href: https://chat.wibrow.dev
+            description: Chat UI (litellm backend)
         - Browser Use:
             icon: mdi-web
             href: https://browser-use.wibrow.dev
