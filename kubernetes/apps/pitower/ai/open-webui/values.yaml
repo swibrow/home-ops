@@ -25,6 +25,8 @@ controllers:
           OAUTH_CLIENT_ID: open-webui
           OPENID_PROVIDER_URL: "https://idm.wibrow.dev/oauth2/openid/open-webui/.well-known/openid-configuration"
           OAUTH_SCOPES: "openid email profile groups"
+          # Kanidm requires PKCE — Open-WebUI omits it unless this is set.
+          OAUTH_CODE_CHALLENGE_METHOD: "S256"
           # Group-based role management (Kanidm groups arrive in the `groups` claim)
           ENABLE_OAUTH_ROLE_MANAGEMENT: "true"
           OAUTH_ROLES_CLAIM: groups
