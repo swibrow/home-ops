@@ -6,7 +6,7 @@ kind: MCPServer
 metadata:
   name: home-assistant
 spec:
-  image: docker.io/voska/hass-mcp:0.4.1
+  image: docker.io/voska/hass-mcp:0.5.0
   # Keep HTTP transport (NOT stdio) like the per-server copy: hass-mcp's image
   # default is stdio, and vMCP backends must speak sse/streamable-http.
   transport: streamable-http
