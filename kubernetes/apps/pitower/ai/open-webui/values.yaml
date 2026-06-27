@@ -1,0 +1,84 @@
+controllers:
+  open-webui:
+    annotations:
+      reloader.stakater.com/auto: "true"
+    containers:
+      app:
+        image:
+          repository: ghcr.io/open-webui/open-webui
+          tag: v0.9.6
+        env:
+          # Application
+          WEBUI_URL: "https://chat.wibrow.dev"
+          TZ: Europe/Zurich
+          PORT: "8080"
+          # Model backend — litellm (OpenAI-compatible), Ollama disabled
+          ENABLE_OPENAI_API: "true"
+          OPENAI_API_BASE_URL: "http://litellm:4000/v1"
+          ENABLE_OLLAMA_API: "false"
+          # Database — CNPG
+          DATABASE_URL:
+            valueFrom:
+              secretKeyRef:
+                name: open-webui-db-secret
+                key: DB_URL
+        envFrom:
+          - secretRef:
+              name: open-webui
+        probes:
+          liveness: &probe
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /health
+                port: 8080
+              initialDelaySeconds: 30
+              periodSeconds: 30
+              timeoutSeconds: 5
+              failureThreshold: 6
+          readiness: *probe
+          startup:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /health
+                port: 8080
+              initialDelaySeconds: 30
+              periodSeconds: 10
+              failureThreshold: 30
+        resources:
+          requests:
+            cpu: 100m
+            memory: 1Gi
+          limits:
+            memory: 4Gi
+
+service:
+  app:
+    controller: open-webui
+    ports:
+      http:
+        port: 8080
+
+route:
+  app:
+    hostnames:
+      - chat.wibrow.dev
+    parentRefs:
+      - name: envoy-external
+        namespace: networking
+        sectionName: https
+    rules:
+      - backendRefs:
+          - identifier: app
+            port: 8080
+
+persistence:
+  data:
+    existingClaim: open-webui-data
+    advancedMounts:
+      open-webui:
+        app:
+          - path: /app/backend/data

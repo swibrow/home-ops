@@ -1,0 +1,32 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ai
+resources:
+  - ./externalsecret.yaml
+components:
+  - ../../../../components/volsync
+  - ../../../../components/cnpg-db
+configMapGenerator:
+  - name: cnpg-db-config
+    literals:
+      - APP_NAME=open-webui
+      - SECRET_NAME=open-webui-db-secret
+      - CNPG_SECRET_KEY=open-webui-app
+  - name: volsync-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=open-webui
+      - CLAIM_NAME=open-webui-data
+      - SECRET_NAME=open-webui-volsync
+      - STORAGE_SIZE=10Gi
+      - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/ai/open-webui
+helmCharts:
+  - name: app-template
+    repo: oci://ghcr.io/bjw-s-labs/helm
+    version: 5.0.1
+    releaseName: open-webui
+    namespace: ai
+    valuesFile: values.yaml
