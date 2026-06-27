@@ -3,7 +3,7 @@
   "extends": [
     "config:recommended",
     "docker:enableMajor",
-    "helpers:pinGitHubActionDigests",
+    "helpers:pinGitHubActionDigestsToSemver",
     "github>swibrow/home-ops//.renovate/custom-managers.json5",
     "github>swibrow/home-ops//.renovate/commit-message.json",
     "github>swibrow/home-ops//.renovate/pr-labels.json",
