@@ -44,6 +44,12 @@ spec:
       value: "false"
     - name: RENOVATE_REQUIRE_CONFIG
       value: "optional"
+  # Authenticate docker.io lookups so Docker Hub's anonymous pull-rate limit
+  # (429) doesn't abort the run with external-host-error. RENOVATE_HOST_RULES
+  # (JSON) is templated from the dockerhub PAT — see externalsecret.yaml.
+  extraEnvFrom:
+    - secretRef:
+        name: renovate-dockerhub
   resources:
     requests:
       cpu: 100m
