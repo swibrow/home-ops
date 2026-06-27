@@ -7,7 +7,7 @@ controllers:
       app:
         image:
           repository: cupcakearmy/cryptgeon
-          tag: 2.9.2
+          tag: 2.9.3
         env:
           REDIS: redis://cryptgeon-dragonfly.selfhosted.svc.cluster.local:6379
           SIZE_LIMIT: "104857600" # 100MB
