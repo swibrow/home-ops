@@ -20,61 +20,57 @@ model_list:
   # --- OpenRouter (named aliases) ---
   # Curated models that show up in the dropdown. Any other OpenRouter model is
   # still reachable by full id via the catch-all below (e.g. openrouter/...).
-  - model_name: gemini-2.5-pro
+  - model_name: gemini-3-pro
     litellm_params:
-      model: openrouter/google/gemini-2.5-pro
+      model: openrouter/google/gemini-3.1-pro-preview
       api_key: os.environ/OPENROUTER_API_KEY
-  - model_name: gemini-2.5-flash
+  - model_name: gemini-3.5-flash
     litellm_params:
-      model: openrouter/google/gemini-2.5-flash
+      model: openrouter/google/gemini-3.5-flash
       api_key: os.environ/OPENROUTER_API_KEY
-  - model_name: gpt-5
+  - model_name: gpt-5.5
     litellm_params:
-      model: openrouter/openai/gpt-5
+      model: openrouter/openai/gpt-5.5
       api_key: os.environ/OPENROUTER_API_KEY
-  - model_name: gpt-5-mini
+  - model_name: gpt-5.5-pro
     litellm_params:
-      model: openrouter/openai/gpt-5-mini
+      model: openrouter/openai/gpt-5.5-pro
       api_key: os.environ/OPENROUTER_API_KEY
   - model_name: o3
     litellm_params:
       model: openrouter/openai/o3
       api_key: os.environ/OPENROUTER_API_KEY
-  - model_name: gpt-4o
-    litellm_params:
-      model: openrouter/openai/gpt-4o
-      api_key: os.environ/OPENROUTER_API_KEY
   - model_name: grok-4
     litellm_params:
       model: openrouter/x-ai/grok-4.3
       api_key: os.environ/OPENROUTER_API_KEY
-  - model_name: deepseek-v3
+  - model_name: deepseek-v4
     litellm_params:
-      model: openrouter/deepseek/deepseek-chat-v3.1
+      model: openrouter/deepseek/deepseek-v4-pro
       api_key: os.environ/OPENROUTER_API_KEY
-  - model_name: deepseek-r1
+  - model_name: deepseek-v4-flash
     litellm_params:
-      model: openrouter/deepseek/deepseek-r1
+      model: openrouter/deepseek/deepseek-v4-flash
       api_key: os.environ/OPENROUTER_API_KEY
-  - model_name: llama-3.3-70b
+  - model_name: llama-4-maverick
     litellm_params:
-      model: openrouter/meta-llama/llama-3.3-70b-instruct
+      model: openrouter/meta-llama/llama-4-maverick
       api_key: os.environ/OPENROUTER_API_KEY
-  - model_name: qwen3-coder
+  - model_name: qwen3.7-max
     litellm_params:
-      model: openrouter/qwen/qwen3-coder
+      model: openrouter/qwen/qwen3.7-max
       api_key: os.environ/OPENROUTER_API_KEY
-  - model_name: kimi-k2
+  - model_name: kimi-k2.6
     litellm_params:
-      model: openrouter/moonshotai/kimi-k2
+      model: openrouter/moonshotai/kimi-k2.6
       api_key: os.environ/OPENROUTER_API_KEY
-  - model_name: glm-4.6
+  - model_name: glm-5.2
     litellm_params:
-      model: openrouter/z-ai/glm-4.6
+      model: openrouter/z-ai/glm-5.2
       api_key: os.environ/OPENROUTER_API_KEY
-  - model_name: mistral-large
+  - model_name: mistral-medium
     litellm_params:
-      model: openrouter/mistralai/mistral-large
+      model: openrouter/mistralai/mistral-medium-3-5
       api_key: os.environ/OPENROUTER_API_KEY
 
   # --- OpenRouter (catch-all passthrough) ---
