@@ -42,6 +42,9 @@ controllers:
           GENERIC_USERINFO_ENDPOINT: https://idm.wibrow.dev/oauth2/openid/litellm/userinfo
           GENERIC_SCOPE: openid profile email
           GENERIC_CLIENT_USE_PKCE: "true"
+          # Skip the username/password form, go straight to Kanidm. Master-key
+          # login still reachable at /ui/login (LiteLLM has no toggle to disable it).
+          AUTO_REDIRECT_UI_LOGIN_TO_SSO: "true"
           # preferred_username (short name) → maps this person to proxy_admin.
           PROXY_ADMIN_ID: sam
           # Connection string assembled by the cnpg-db component (DB_URL key).
