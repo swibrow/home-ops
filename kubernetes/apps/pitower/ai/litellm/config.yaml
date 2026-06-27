@@ -17,34 +17,58 @@ model_list:
       model: anthropic/claude-haiku-4-5
       api_key: os.environ/ANTHROPIC_API_KEY
 
-  # --- OpenRouter (named aliases) ---
-  # Curated models that show up in the dropdown. Any other OpenRouter model is
-  # still reachable by full id via the catch-all below (e.g. openrouter/...).
-  - model_name: gemini-3-pro
-    litellm_params:
-      model: openrouter/google/gemini-3.1-pro-preview
-      api_key: os.environ/OPENROUTER_API_KEY
+  # --- OpenRouter (named aliases, auto-curated from the live catalog) ---
+  # Newest ~5 chat models per major provider so they show in the dropdown.
+  # Any other OpenRouter model is still reachable by full id via the catch-all.
   - model_name: gemini-3.5-flash
     litellm_params:
       model: openrouter/google/gemini-3.5-flash
       api_key: os.environ/OPENROUTER_API_KEY
-  - model_name: gpt-5.5
+  - model_name: gemini-3.1-flash-lite
     litellm_params:
-      model: openrouter/openai/gpt-5.5
+      model: openrouter/google/gemini-3.1-flash-lite
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: gemma-4-26b-a4b-it
+    litellm_params:
+      model: openrouter/google/gemma-4-26b-a4b-it
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: gemma-4-31b-it
+    litellm_params:
+      model: openrouter/google/gemma-4-31b-it
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: gemini-3.1-pro-preview
+    litellm_params:
+      model: openrouter/google/gemini-3.1-pro-preview
       api_key: os.environ/OPENROUTER_API_KEY
   - model_name: gpt-5.5-pro
     litellm_params:
       model: openrouter/openai/gpt-5.5-pro
       api_key: os.environ/OPENROUTER_API_KEY
-  - model_name: o3
+  - model_name: gpt-5.5
     litellm_params:
-      model: openrouter/openai/o3
+      model: openrouter/openai/gpt-5.5
       api_key: os.environ/OPENROUTER_API_KEY
-  - model_name: grok-4
+  - model_name: gpt-5.4-nano
+    litellm_params:
+      model: openrouter/openai/gpt-5.4-nano
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: gpt-5.4-mini
+    litellm_params:
+      model: openrouter/openai/gpt-5.4-mini
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: gpt-5.4-pro
+    litellm_params:
+      model: openrouter/openai/gpt-5.4-pro
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: grok-4.3
     litellm_params:
       model: openrouter/x-ai/grok-4.3
       api_key: os.environ/OPENROUTER_API_KEY
-  - model_name: deepseek-v4
+  - model_name: grok-4.20
+    litellm_params:
+      model: openrouter/x-ai/grok-4.20
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: deepseek-v4-pro
     litellm_params:
       model: openrouter/deepseek/deepseek-v4-pro
       api_key: os.environ/OPENROUTER_API_KEY
@@ -52,30 +76,205 @@ model_list:
     litellm_params:
       model: openrouter/deepseek/deepseek-v4-flash
       api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: deepseek-v3.2
+    litellm_params:
+      model: openrouter/deepseek/deepseek-v3.2
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: deepseek-v3.1-terminus
+    litellm_params:
+      model: openrouter/deepseek/deepseek-v3.1-terminus
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: deepseek-chat-v3.1
+    litellm_params:
+      model: openrouter/deepseek/deepseek-chat-v3.1
+      api_key: os.environ/OPENROUTER_API_KEY
   - model_name: llama-4-maverick
     litellm_params:
       model: openrouter/meta-llama/llama-4-maverick
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: llama-4-scout
+    litellm_params:
+      model: openrouter/meta-llama/llama-4-scout
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: llama-3.3-70b
+    litellm_params:
+      model: openrouter/meta-llama/llama-3.3-70b-instruct
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: llama-3.1-8b
+    litellm_params:
+      model: openrouter/meta-llama/llama-3.1-8b-instruct
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: llama-3.1-70b
+    litellm_params:
+      model: openrouter/meta-llama/llama-3.1-70b-instruct
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: qwen3.7-plus
+    litellm_params:
+      model: openrouter/qwen/qwen3.7-plus
       api_key: os.environ/OPENROUTER_API_KEY
   - model_name: qwen3.7-max
     litellm_params:
       model: openrouter/qwen/qwen3.7-max
       api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: qwen3.5-plus-20260420
+    litellm_params:
+      model: openrouter/qwen/qwen3.5-plus-20260420
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: qwen3.6-flash
+    litellm_params:
+      model: openrouter/qwen/qwen3.6-flash
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: qwen3.6-35b-a3b
+    litellm_params:
+      model: openrouter/qwen/qwen3.6-35b-a3b
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: kimi-k2.7-code
+    litellm_params:
+      model: openrouter/moonshotai/kimi-k2.7-code
+      api_key: os.environ/OPENROUTER_API_KEY
   - model_name: kimi-k2.6
     litellm_params:
       model: openrouter/moonshotai/kimi-k2.6
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: kimi-k2.5
+    litellm_params:
+      model: openrouter/moonshotai/kimi-k2.5
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: kimi-k2-thinking
+    litellm_params:
+      model: openrouter/moonshotai/kimi-k2-thinking
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: kimi-k2-0905
+    litellm_params:
+      model: openrouter/moonshotai/kimi-k2-0905
       api_key: os.environ/OPENROUTER_API_KEY
   - model_name: glm-5.2
     litellm_params:
       model: openrouter/z-ai/glm-5.2
       api_key: os.environ/OPENROUTER_API_KEY
-  - model_name: mistral-medium
+  - model_name: glm-5.1
+    litellm_params:
+      model: openrouter/z-ai/glm-5.1
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: glm-5v-turbo
+    litellm_params:
+      model: openrouter/z-ai/glm-5v-turbo
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: glm-5-turbo
+    litellm_params:
+      model: openrouter/z-ai/glm-5-turbo
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: glm-5
+    litellm_params:
+      model: openrouter/z-ai/glm-5
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: mistral-medium-3-5
     litellm_params:
       model: openrouter/mistralai/mistral-medium-3-5
       api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: mistral-small-2603
+    litellm_params:
+      model: openrouter/mistralai/mistral-small-2603
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: devstral-2512
+    litellm_params:
+      model: openrouter/mistralai/devstral-2512
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: ministral-14b-2512
+    litellm_params:
+      model: openrouter/mistralai/ministral-14b-2512
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: ministral-8b-2512
+    litellm_params:
+      model: openrouter/mistralai/ministral-8b-2512
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: command-a
+    litellm_params:
+      model: openrouter/cohere/command-a
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: command-r-plus-08-2024
+    litellm_params:
+      model: openrouter/cohere/command-r-plus-08-2024
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: command-r-08-2024
+    litellm_params:
+      model: openrouter/cohere/command-r-08-2024
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: sonar-reasoning-pro
+    litellm_params:
+      model: openrouter/perplexity/sonar-reasoning-pro
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: sonar-pro
+    litellm_params:
+      model: openrouter/perplexity/sonar-pro
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: sonar
+    litellm_params:
+      model: openrouter/perplexity/sonar
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: nova-2-lite
+    litellm_params:
+      model: openrouter/amazon/nova-2-lite-v1
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: nova-premier
+    litellm_params:
+      model: openrouter/amazon/nova-premier-v1
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: nova-lite
+    litellm_params:
+      model: openrouter/amazon/nova-lite-v1
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: nova-micro
+    litellm_params:
+      model: openrouter/amazon/nova-micro-v1
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: nova-pro
+    litellm_params:
+      model: openrouter/amazon/nova-pro-v1
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: phi-4-mini
+    litellm_params:
+      model: openrouter/microsoft/phi-4-mini-instruct
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: phi-4
+    litellm_params:
+      model: openrouter/microsoft/phi-4
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: nemotron-3-ultra-550b-a55b
+    litellm_params:
+      model: openrouter/nvidia/nemotron-3-ultra-550b-a55b
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: nemotron-3-super-120b-a12b
+    litellm_params:
+      model: openrouter/nvidia/nemotron-3-super-120b-a12b
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: llama-3.3-nemotron-super-49b-v1.5
+    litellm_params:
+      model: openrouter/nvidia/llama-3.3-nemotron-super-49b-v1.5
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: minimax-m3
+    litellm_params:
+      model: openrouter/minimax/minimax-m3
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: minimax-m2.7
+    litellm_params:
+      model: openrouter/minimax/minimax-m2.7
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: minimax-m2.5
+    litellm_params:
+      model: openrouter/minimax/minimax-m2.5
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: minimax-m2.1
+    litellm_params:
+      model: openrouter/minimax/minimax-m2.1
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: minimax-m2
+    litellm_params:
+      model: openrouter/minimax/minimax-m2
+      api_key: os.environ/OPENROUTER_API_KEY
 
   # --- OpenRouter (catch-all passthrough) ---
-  # Reach any other OpenRouter model by id, e.g. `openrouter/google/gemma-3-27b-it`.
-  # The explicit aliases above take precedence for those names.
+  # Reach any other OpenRouter model by full id, e.g. openrouter/google/gemma-4-31b-it
   - model_name: "*"
     litellm_params:
       model: openrouter/*
