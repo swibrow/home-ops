@@ -31,6 +31,19 @@ controllers:
           STORE_MODEL_IN_DB: "true"
           LITELLM_MODE: PRODUCTION
           TZ: Europe/Zurich
+          # Admin UI SSO via Kanidm (generic OIDC). "Login with SSO" button;
+          # master-key login stays as break-glass. PKCE (S256) is mandatory on
+          # Kanidm clients — LiteLLM sends it via GENERIC_CLIENT_USE_PKCE.
+          # GENERIC_CLIENT_SECRET injected via the litellm secret (envFrom).
+          PROXY_BASE_URL: https://litellm.wibrow.dev
+          GENERIC_CLIENT_ID: litellm
+          GENERIC_AUTHORIZATION_ENDPOINT: https://idm.wibrow.dev/ui/oauth2
+          GENERIC_TOKEN_ENDPOINT: https://idm.wibrow.dev/oauth2/token
+          GENERIC_USERINFO_ENDPOINT: https://idm.wibrow.dev/oauth2/openid/litellm/userinfo
+          GENERIC_SCOPE: openid profile email
+          GENERIC_CLIENT_USE_PKCE: "true"
+          # preferred_username (short name) → maps this person to proxy_admin.
+          PROXY_ADMIN_ID: sam
           # Connection string assembled by the cnpg-db component (DB_URL key).
           DATABASE_URL:
             valueFrom:
