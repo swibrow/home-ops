@@ -26,6 +26,17 @@ spec:
   discoveryFilters:
     - swibrow/*
   skipForks: true
+  # GitHub PR/Issue events (e.g. Dependency Dashboard checkbox clicks) hit the
+  # operator's webhook server and schedule an on-demand run for the repo,
+  # instead of waiting for the twice-daily cron. Auth = HMAC: the operator
+  # recomputes HMAC-SHA256(body, token) against GitHub's X-Hub-Signature-256.
+  webhook:
+    enabled: true
+    authentication:
+      enabled: true
+      secretRef:
+        name: renovate-secret
+        key: webhook_token
   extraEnv:
     - name: RENOVATE_INHERIT_CONFIG
       value: "true"

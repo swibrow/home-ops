@@ -44,3 +44,18 @@ metrics:
   enabled: true
   serviceMonitor:
     enabled: true
+
+# Public webhook server (port 8082) so GitHub PR/Issue events trigger on-demand
+# renovate runs — interactive Dependency Dashboard checkboxes respond in seconds
+# instead of waiting for the cron. Exposed on the external (Cloudflare-tunnel)
+# gateway; per-job HMAC auth is configured on the RenovateJob (webhook block).
+webhook:
+  enabled: true
+  route:
+    enabled: true
+    hostnames:
+      - renovate-webhook.wibrow.dev
+    parentRefs:
+      - name: envoy-external
+        namespace: networking
+        sectionName: https
