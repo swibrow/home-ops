@@ -13,7 +13,7 @@ spec:
       envoyDeployment:
         replicas: 2
         container:
-          image: mirror.gcr.io/envoyproxy/envoy:v1.38.2
+          image: mirror.gcr.io/envoyproxy/envoy:v1.38.3
           # krr: envoy-external/envoy
           # One EnvoyProxy backs envoy-external/internal/direct — sized off the busiest (external).
           resources:
