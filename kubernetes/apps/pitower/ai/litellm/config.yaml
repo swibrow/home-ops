@@ -3,19 +3,19 @@
 # (Infisical /ai/litellm/*). LITELLM_MASTER_KEY + DATABASE_URL are read
 # from the environment automatically and are not referenced here.
 model_list:
-  # --- Anthropic (direct API key) ---
+  # --- Anthropic (via OpenRouter) ---
   - model_name: claude-opus
     litellm_params:
-      model: anthropic/claude-opus-4-8
-      api_key: os.environ/ANTHROPIC_API_KEY
+      model: openrouter/anthropic/claude-opus-4.8
+      api_key: os.environ/OPENROUTER_API_KEY
   - model_name: claude-sonnet
     litellm_params:
-      model: anthropic/claude-sonnet-4-6
-      api_key: os.environ/ANTHROPIC_API_KEY
+      model: openrouter/anthropic/claude-sonnet-4.6
+      api_key: os.environ/OPENROUTER_API_KEY
   - model_name: claude-haiku
     litellm_params:
-      model: anthropic/claude-haiku-4-5
-      api_key: os.environ/ANTHROPIC_API_KEY
+      model: openrouter/anthropic/claude-haiku-4.5
+      api_key: os.environ/OPENROUTER_API_KEY
 
   # --- OpenRouter (named aliases, auto-curated from the live catalog) ---
   # Newest ~5 chat models per major provider so they show in the dropdown.
