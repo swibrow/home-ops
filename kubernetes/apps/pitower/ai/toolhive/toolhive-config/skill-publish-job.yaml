@@ -19,7 +19,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: publish
-          image: docker.io/curlimages/curl:8.20.0
+          image: docker.io/curlimages/curl:8.21.0
           command:
             - sh
             - -c
