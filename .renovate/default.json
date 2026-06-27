@@ -19,5 +19,9 @@
   ],
   "commitBodyTable": true,
   "rebaseWhen": "auto",
-  "platformCommit": "enabled"
+  "platformCommit": "enabled",
+  "statusCheckNames": {
+    "minimumReleaseAge": null,
+    "mergeConfidence": null
+  }
 }
