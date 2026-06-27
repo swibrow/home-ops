@@ -7,7 +7,10 @@ metadata:
 spec:
   # renovate: datasource=docker depName=ghcr.io/renovatebot/renovate
   image: ghcr.io/renovatebot/renovate:43.244.4
-  schedule: "0 2,6 * * *"
+  # Hourly so the Dependency Dashboard (#1049) tracks current state — it's only
+  # rewritten when a run completes. Was walked down to 0 2,6 during the
+  # repository-changed/422 misdiagnosis; restored now that runs finish cleanly.
+  schedule: "0 * * * *"
   parallelism: 1
   affinity:
     nodeAffinity:
