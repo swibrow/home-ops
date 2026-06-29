@@ -89,8 +89,8 @@ controllers:
               failureThreshold: 60
         resources:
           requests:
-            cpu: 488m
-            memory: 595Mi
+            cpu: 13m
+            memory: 1005Mi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:

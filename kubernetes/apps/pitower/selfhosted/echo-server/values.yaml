@@ -13,7 +13,7 @@ controllers:
           LOG_IGNORE_PATH: /healthz
         resources:
           requests:
-            cpu: 5m
+            cpu: 16m
             memory: 32Mi
           limits:
             memory: 64Mi
