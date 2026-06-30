@@ -10,7 +10,7 @@ spec:
     kind: Deployment
     apiVersion: apps/v1
   minReplicaCount: 0
-  maxReplicaCount: 3
+  maxReplicaCount: 1
   cooldownPeriod: 60
   triggers:
     - type: external-push
