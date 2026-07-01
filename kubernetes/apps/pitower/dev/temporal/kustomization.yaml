@@ -1,0 +1,32 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: dev
+resources:
+  - httproute.yaml
+components:
+  - ../../../../components/cnpg-db
+configMapGenerator:
+  - name: cnpg-db-config
+    literals:
+      - APP_NAME=temporal
+      - SECRET_NAME=temporal-db-secret
+      - CNPG_SECRET_KEY=temporal-superuser
+helmCharts:
+  - name: temporal
+    repo: https://go.temporal.io/helm-charts
+    version: 1.4.0
+    releaseName: temporal
+    namespace: dev
+    valuesFile: values.yaml
+patches:
+  - target:
+      kind: Pod
+      name: temporal-test-cluster-health
+    patch: |
+      $patch: delete
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: temporal-test-cluster-health

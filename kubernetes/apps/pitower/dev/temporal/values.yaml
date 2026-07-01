@@ -1,0 +1,47 @@
+---
+server:
+  replicaCount: 1
+  config:
+    persistence:
+      defaultStore: default
+      visibilityStore: visibility
+      numHistoryShards: 512
+      datastores:
+        default:
+          sql:
+            pluginName: postgres12
+            databaseName: temporal
+            connectAddr: "temporal-rw.cloudnative-pg.svc.cluster.local:5432"
+            connectProtocol: "tcp"
+            user: postgres
+            existingSecret: temporal-db-secret
+            secretKey: DB_PASS
+            createDatabase: true
+            manageSchema: true
+            maxConns: 20
+            maxIdleConns: 20
+            maxConnLifetime: "1h"
+        visibility:
+          sql:
+            pluginName: postgres12
+            databaseName: temporal_visibility
+            connectAddr: "temporal-rw.cloudnative-pg.svc.cluster.local:5432"
+            connectProtocol: "tcp"
+            user: postgres
+            existingSecret: temporal-db-secret
+            secretKey: DB_PASS
+            createDatabase: true
+            manageSchema: true
+            maxConns: 20
+            maxIdleConns: 20
+            maxConnLifetime: "1h"
+
+schema:
+  useHelmHooks: false
+
+shims:
+  dockerize: false
+  elasticsearchTool: false
+
+web:
+  enabled: true
