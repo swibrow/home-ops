@@ -23,8 +23,8 @@ server:
   # krr: victoria-logs/vlogs
   resources:
     requests:
-      cpu: 50m
-      memory: 230Mi
+      cpu: 30m
+      memory: 381Mi
     limits:
       memory: 1Gi
 
