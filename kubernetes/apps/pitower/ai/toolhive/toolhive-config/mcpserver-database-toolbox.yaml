@@ -81,7 +81,7 @@ metadata:
   name: database-toolbox
 spec:
   # renovate: datasource=docker
-  image: us-central1-docker.pkg.dev/database-toolbox/toolbox/toolbox:1.5.0
+  image: us-central1-docker.pkg.dev/database-toolbox/toolbox/toolbox:1.6.0
   transport: streamable-http
   proxyPort: 8080
   # toolbox serves its MCP endpoint on :5000; the ToolHive proxy fronts it on 8080.
