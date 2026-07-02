@@ -6,7 +6,7 @@ namespace: rook-ceph
 helmCharts:
   - name: ceph-csi-drivers
     repo: oci://ghcr.io/home-operations/charts-mirror
-    version: 1.0.1
+    version: 1.0.3
     releaseName: ceph-csi-drivers
     namespace: rook-ceph
     valuesFile: values.yaml
