@@ -1,0 +1,12 @@
+sensor:
+  - platform: history_stats
+    name: Garden Recent Rain Hours
+    entity_id: weather.forecast_home
+    state:
+      - "rainy"
+      - "pouring"
+      - "lightning-rainy"
+    type: time
+    end: "{{ now() }}"
+    duration:
+      hours: 12

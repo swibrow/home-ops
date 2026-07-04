@@ -10,6 +10,9 @@ blueprint:
     **Features:**
     - Runs at a configured start time on selected days of the week
     - Keeps the valve open for a configurable duration, then closes it
+    - Optional weather-aware skip: cancels watering when rain is forecast today
+      (via `weather.get_forecasts`) or when it rained recently (via a numeric
+      recent-rain sensor), logging the reason to the logbook
     - Optional skip condition (e.g. rain sensor on, weather is rainy, soil already wet)
     - Optional enable toggle (`input_boolean`) to pause the schedule without deleting it
     - Re-triggering during a run restarts the timer (mode: restart)
@@ -94,6 +97,55 @@ blueprint:
         entity:
           filter:
             - domain: input_boolean
+    weather_entity:
+      name: Weather Entity (optional)
+      description: >-
+        Weather entity used to skip watering when rain is forecast. Its daily
+        forecast is fetched at run time; watering is skipped if today's total
+        precipitation is at or above the threshold below. Leave empty to disable
+        the forecast check.
+      default: []
+      selector:
+        entity:
+          filter:
+            - domain: weather
+    rain_forecast_threshold:
+      name: Rain Forecast Threshold (mm)
+      description: >-
+        Skip watering if the weather entity forecasts at least this much total
+        precipitation for today.
+      default: 2
+      selector:
+        number:
+          min: 0
+          max: 50
+          step: 0.5
+          unit_of_measurement: mm
+          mode: box
+    recent_rain_entity:
+      name: Recent Rain Sensor (optional)
+      description: >-
+        A numeric sensor measuring recent rainfall — e.g. a history_stats sensor
+        counting the hours the weather was rainy over the last several hours.
+        Watering is skipped if its value is at or above the threshold below.
+        Leave empty to disable the recent-rain check.
+      default: []
+      selector:
+        entity:
+          filter:
+            - domain: sensor
+    recent_rain_threshold:
+      name: Recent Rain Threshold
+      description: >-
+        Skip watering if the recent rain sensor reads at or above this value
+        (matching that sensor's unit — e.g. hours of rain).
+      default: 0.5
+      selector:
+        number:
+          min: 0
+          max: 24
+          step: 0.5
+          mode: box
 
 mode: restart
 max_exceeded: silent
@@ -105,6 +157,10 @@ triggers:
 variables:
   enable_entity: !input enable_entity
   watering_days: !input watering_days
+  weather_entity: !input weather_entity
+  rain_forecast_threshold: !input rain_forecast_threshold
+  recent_rain_entity: !input recent_rain_entity
+  recent_rain_threshold: !input recent_rain_threshold
 
 conditions:
   - alias: "Today is a watering day"
@@ -118,6 +174,40 @@ conditions:
     conditions: !input skip_condition
 
 actions:
+  - alias: "Fetch today's rain forecast"
+    if:
+      - condition: template
+        value_template: "{{ weather_entity | length > 0 }}"
+    then:
+      - action: weather.get_forecasts
+        data:
+          type: daily
+        target:
+          entity_id: !input weather_entity
+        response_variable: rain_forecast
+  - alias: "Skip watering when rain is forecast or it rained recently"
+    variables:
+      today_precip: >-
+        {{ (rain_forecast[weather_entity].forecast[0].precipitation | float(0))
+           if (weather_entity | length > 0 and rain_forecast is defined) else 0 }}
+      recent_rain: >-
+        {{ states(recent_rain_entity) | float(0)
+           if recent_rain_entity | length > 0 else 0 }}
+    if:
+      - condition: template
+        value_template: >-
+          {{ today_precip >= (rain_forecast_threshold | float)
+             or recent_rain >= (recent_rain_threshold | float) }}
+    then:
+      - action: logbook.log
+        data:
+          name: Water Schedule
+          message: >-
+            Skipped watering — forecast {{ today_precip }} mm today
+            (limit {{ rain_forecast_threshold }} mm), recent rain {{ recent_rain }}
+            (limit {{ recent_rain_threshold }}).
+          entity_id: !input valve_entity
+      - stop: "Skipped due to rain"
   - alias: "Open the water valve"
     action: homeassistant.turn_on
     target:
