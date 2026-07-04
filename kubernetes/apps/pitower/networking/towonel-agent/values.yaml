@@ -1,0 +1,89 @@
+defaultPodOptions:
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
+    seccompProfile:
+      type: RuntimeDefault
+
+controllers:
+  towonel-agent:
+    replicas: 1
+
+    annotations:
+      reloader.stakater.com/auto: "true"
+
+    containers:
+      app:
+        image:
+          repository: codeberg.org/towonel/towonel-agent
+          tag: 1.0.1
+        env:
+          NODE_NAME:
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          POD_NAMESPACE:
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          RUST_LOG: info
+          TOWONEL_AGENT_HEALTH_LISTEN_ADDR: 0.0.0.0:9090
+          TOWONEL_AGENT_SERVICES: |
+            [
+              {"hostname":"*.wibrow.dev","origin":"envoy-external.networking.svc.cluster.local:443"}
+            ]
+          TOWONEL_INVITE_TOKEN:
+            valueFrom:
+              secretKeyRef:
+                name: towonel-agent-secret
+                key: TOWONEL_INVITE_TOKEN
+        probes:
+          liveness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /healthz
+                port: 9090
+              periodSeconds: 30
+              timeoutSeconds: 3
+              failureThreshold: 3
+          readiness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /healthz
+                port: 9090
+              periodSeconds: 10
+          startup:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /healthz
+                port: 9090
+              periodSeconds: 5
+              failureThreshold: 60
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            memory: 64Mi
+
+service:
+  app:
+    controller: towonel-agent
+    ports:
+      http:
+        port: 9090
