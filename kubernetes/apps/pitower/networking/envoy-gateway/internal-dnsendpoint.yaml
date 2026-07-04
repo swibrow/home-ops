@@ -16,5 +16,5 @@ spec:
       recordType: A
       targets: ["10.20.10.238"]
       providerSpecific:
-        - name: cloudflare-proxied
+        - name: external-dns.alpha.kubernetes.io/cloudflare-proxied
           value: "false"
