@@ -1,0 +1,47 @@
+singleNamespace: true
+
+workflow:
+  serviceAccount:
+    create: true
+
+controller:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 128Mi
+  metricsConfig:
+    enabled: true
+  serviceMonitor:
+    enabled: true
+
+server:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+  authModes:
+    - sso
+  sso:
+    enabled: true
+    issuer: https://idm.wibrow.dev/oauth2/openid/argo-workflows
+    clientId:
+      name: argo-workflows-sso
+      key: client-id
+    clientSecret:
+      name: argo-workflows-sso
+      key: client-secret
+    redirectUrl: https://argo-workflows.wibrow.dev/oauth2/callback
+    scopes:
+      - groups
+      - email
+      - profile
+    rbac:
+      enabled: true
+  httproute:
+    enabled: true
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+    hostnames:
+      - argo-workflows.wibrow.dev

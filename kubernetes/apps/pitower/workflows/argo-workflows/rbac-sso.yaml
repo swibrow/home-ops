@@ -1,0 +1,32 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argo-workflows-sso-admin
+  namespace: workflows
+  annotations:
+    workflows.argoproj.io/rbac-rule: "'app_access@idm.wibrow.dev' in groups"
+    workflows.argoproj.io/rbac-rule-precedence: "1"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: argo-workflows-sso-admin.service-account-token
+  namespace: workflows
+  annotations:
+    kubernetes.io/service-account.name: argo-workflows-sso-admin
+type: kubernetes.io/service-account-token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: argo-workflows-sso-admin
+  namespace: workflows
+subjects:
+  - kind: ServiceAccount
+    name: argo-workflows-sso-admin
+    namespace: workflows
+roleRef:
+  kind: ClusterRole
+  name: admin
+  apiGroup: rbac.authorization.k8s.io

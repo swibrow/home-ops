@@ -1,0 +1,15 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: workflows
+resources:
+  - eventbus.yaml
+helmCharts:
+  - name: argo-events
+    repo: https://argoproj.github.io/argo-helm
+    version: 2.4.22
+    releaseName: argo-events
+    namespace: workflows
+    valuesFile: values.yaml
+    includeCRDs: true
