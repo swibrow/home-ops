@@ -10,6 +10,7 @@ resources:
   - external.yaml
   - fallback.yaml
   - internal.yaml
+  - internal-dnsendpoint.yaml
   - envoy.yaml
   - podmonitor.yaml
 helmCharts:

@@ -1,5 +1,4 @@
 fullnameOverride: external-dns
-logLevel: debug
 provider: cloudflare
 env:
   - name: CF_API_TOKEN

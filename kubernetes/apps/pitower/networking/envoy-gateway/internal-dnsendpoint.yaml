@@ -1,0 +1,20 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/externaldns.k8s.io/dnsendpoint_v1alpha1.json
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: envoy-internal
+  namespace: networking
+spec:
+  # No external-dns source publishes a record for the Gateway's own hostname
+  # (only gateway-httproute is enabled, which only reads HTTPRoute hostnames
+  # and CNAMEs them to *this* name) — so every app's CNAME target resolves
+  # nowhere without this. Unproxied since 10.20.10.238 is a private IP that
+  # Cloudflare's proxy can't reach.
+  endpoints:
+    - dnsName: "internal.wibrow.dev"
+      recordType: A
+      targets: ["10.20.10.238"]
+      providerSpecific:
+        - name: cloudflare-proxied
+          value: "false"
