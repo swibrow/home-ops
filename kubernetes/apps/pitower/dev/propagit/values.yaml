@@ -1,0 +1,70 @@
+controllers:
+  propagit:
+    annotations:
+      reloader.stakater.com/auto: "true"
+    containers:
+      app:
+        image:
+          repository: ghcr.io/propagit-dev/propagit
+          tag: 0.1.0
+        env:
+          TZ: Europe/Zurich
+          PROPAGIT_ADDR: :8000
+          PROPAGIT_DATABASE_URL:
+            valueFrom:
+              secretKeyRef:
+                name: propagit-db-secret
+                key: DB_URL
+        envFrom:
+          - secretRef:
+              name: propagit-secret
+        probes:
+          liveness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /healthz
+                port: &httpPort 8000
+              periodSeconds: 30
+              timeoutSeconds: 5
+              failureThreshold: 5
+          readiness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /readyz
+                port: *httpPort
+              periodSeconds: 10
+              timeoutSeconds: 5
+              failureThreshold: 5
+          startup:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /healthz
+                port: *httpPort
+              failureThreshold: 30
+              periodSeconds: 10
+        resources:
+          requests:
+            cpu: 10m
+            memory: 64Mi
+          limits:
+            memory: 256Mi
+service:
+  app:
+    controller: propagit
+    ports:
+      http:
+        port: *httpPort
+route:
+  app:
+    hostnames:
+      - propagit.wibrow.dev
+    parentRefs:
+      - name: envoy-direct
+        namespace: networking
+        sectionName: https
