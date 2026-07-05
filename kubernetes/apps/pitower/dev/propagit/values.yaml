@@ -65,6 +65,8 @@ service:
         port: *httpPort
 route:
   app:
+    annotations:
+      external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     hostnames:
       - propagit.wibrow.dev
     parentRefs:
