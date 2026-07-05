@@ -2,6 +2,9 @@ controllers:
   propagit:
     annotations:
       reloader.stakater.com/auto: "true"
+    pod:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
     containers:
       app:
         image:
