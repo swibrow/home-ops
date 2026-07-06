@@ -66,6 +66,11 @@ controllers:
           HOME: /opt/data
           HERMES_DASHBOARD_OIDC_ISSUER: https://idm.wibrow.dev/oauth2/openid/hermes
           HERMES_DASHBOARD_OIDC_CLIENT_ID: hermes
+          # Envoy Gateway terminates TLS upstream; without this hermes builds the
+          # OAuth callback URL from the (plain-HTTP) request it actually receives,
+          # so the redirect_uri sent to Kanidm is http:// and gets rejected as a
+          # mismatch against the registered https:// redirect URL.
+          HERMES_DASHBOARD_PUBLIC_URL: https://hermes.wibrow.dev
         envFrom:
           - secretRef:
               name: hermes
