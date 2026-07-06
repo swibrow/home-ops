@@ -1,6 +1,8 @@
 {{- if .Values.networkPolicy.enabled }}
-# Runner sandboxes may reach DNS, the keep, and external 443 (model API,
-# git hosting, package registries) — nothing else cluster-internal.
+# Runner sandboxes get full internet egress (model API, git hosting, package
+# registries on any port/protocol) plus DNS and the keep — but nothing
+# cluster-internal or LAN: private ranges stay fenced off so a prompt-injected
+# agent cannot wander the home network.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -39,7 +41,4 @@ spec:
               - 10.0.0.0/8
               - 172.16.0.0/12
               - 192.168.0.0/16
-      ports:
-        - protocol: TCP
-          port: 443
 {{- end }}
