@@ -1,0 +1,6 @@
+apiVersion: v2
+name: garrison
+description: Garrison hosted mode — the keep control plane and its raid sandboxes
+type: application
+version: 0.1.0
+appVersion: "0.0.0"

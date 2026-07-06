@@ -1,0 +1,75 @@
+keep:
+  image: garrison-keep:dev
+  imagePullPolicy: IfNotPresent
+  port: 8787
+  # URL runners dial; defaults to the in-cluster service DNS name.
+  publicUrl: ""
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+herald:
+  enabled: false
+  # Defaults to the keep image (it carries every package).
+  image: ""
+  allowedChatIds: ""
+  secret: garrison-herald
+
+# dockerconfigjson secret for pulling private images (keep, herald, and
+# runner sandbox pods). Create it out-of-band in the release namespace, and
+# in runner.namespace too when that differs. Empty disables the reference.
+imagePullSecret: ""
+
+runner:
+  image: garrison-runner:dev
+  namespace: garrison-runs
+  # Optional RuntimeClass for kernel isolation (gVisor/Kata) where available.
+  runtimeClassName: ""
+
+# claude for real raids; fake runs the whole pipeline scripted at zero tokens.
+harness: claude
+# sandbox (agent-sandbox CRs) | process (keep-local child processes) | none
+launcher: sandbox
+# Opt-in: auto-file a GitHub issue on a raid's repo when it fails (needs the
+# GitHub App configured — secrets.externalSecrets.githubApp or garrison-github-app).
+fileIssuesOnFailure: false
+
+persistence:
+  size: 5Gi
+  storageClassName: ""
+
+# Secrets are referenced, never templated with real values. Either create
+# them out-of-band (kubectl create secret ...) or enable externalSecrets to
+# sync them from an external-secrets ClusterSecretStore (Infisical):
+#   <basePath>/KEEP_API_TOKEN, <basePath>/KEEP_RUNNER_TOKEN → garrison-keep-auth
+#   <basePath>/CLAUDE_CODE_OAUTH_TOKEN                      → garrison-runner-env
+#   <basePath>/github-app/GITHUB_APP_ID + _PRIVATE_KEY      → garrison-github-app
+secrets:
+  runnerEnv: garrison-runner-env
+  keepAuth: garrison-keep-auth
+  # Set false in dev to run tokenless (kind, fake harness).
+  authEnabled: true
+  # Set false to open /api/v1 (wartable, CLI) while runners on /internal
+  # stay token-gated — for deployments only reachable over VPN/LAN.
+  apiAuthEnabled: true
+  externalSecrets:
+    enabled: false
+    store: infisical
+    basePath: /garrison
+    githubApp: false
+
+networkPolicy:
+  enabled: true
+
+# Gateway API route exposing the keep (wartable SPA + /api) at a hostname.
+httpRoute:
+  enabled: false
+  hostname: ""
+  gateway:
+    name: ""
+    namespace: ""
+    sectionName: https

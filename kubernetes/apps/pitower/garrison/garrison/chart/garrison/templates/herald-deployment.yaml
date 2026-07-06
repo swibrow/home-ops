@@ -1,0 +1,90 @@
+{{- if .Values.herald.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: garrison-herald
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: garrison-herald
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: garrison-herald
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: garrison-herald
+    spec:
+      automountServiceAccountToken: false
+      {{- with .Values.imagePullSecret }}
+      imagePullSecrets:
+        - name: {{ . }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: herald
+          image: {{ .Values.herald.image | default .Values.keep.image }}
+          imagePullPolicy: {{ .Values.keep.imagePullPolicy }}
+          command: ["node", "packages/herald/bin/herald.js"]
+          env:
+            - name: HERALD_KEEP_URL
+              value: http://garrison-keep.{{ .Release.Namespace }}.svc:{{ .Values.keep.port }}
+            - name: HERALD_ALLOWED_CHAT_IDS
+              value: {{ .Values.herald.allowedChatIds | quote }}
+            - name: HERALD_DATA_DIR
+              value: /data
+            - name: HERALD_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.herald.secret }}
+                  key: HERALD_BOT_TOKEN
+            {{- if and .Values.secrets.authEnabled .Values.secrets.apiAuthEnabled }}
+            - name: HERALD_KEEP_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.keepAuth }}
+                  key: KEEP_API_TOKEN
+            {{- end }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: data
+          emptyDir: {}
+{{- if .Values.secrets.externalSecrets.enabled }}
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: garrison-herald
+  namespace: {{ .Release.Namespace }}
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: {{ .Values.secrets.externalSecrets.store }}
+  target:
+    name: {{ .Values.herald.secret }}
+    creationPolicy: Owner
+  data:
+    - secretKey: HERALD_BOT_TOKEN
+      remoteRef:
+        key: {{ .Values.secrets.externalSecrets.basePath }}/HERALD_BOT_TOKEN
+{{- end }}
+{{- end }}
