@@ -36,6 +36,11 @@ agent:
   reasoning_effort: medium
 streaming:
   enabled: false
+dashboard:
+  basic_auth:
+    username: sam
+    # scrypt hash; plaintext password stored in Infisical at /ai/hermes/DASHBOARD_PASSWORD.
+    password_hash: scrypt$16384$8$1$xuUHK0DPiX6pfows0DbscA==$0SjPi57CMxiyMgxPqLF5OyYySEkJ61Wt9oBnpEaw1hw=
 security:
   redact_secrets: true
 privacy:
