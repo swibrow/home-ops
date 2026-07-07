@@ -17,7 +17,7 @@ harness: claude
 launcher: sandbox
 herald:
   enabled: true
-  allowedChatIds: "1053711635"
+  allowedChatIds: "1053711635,5540433154"
 secrets:
   authEnabled: true
   # wartable is VPN-only (envoy-internal); /internal stays token-gated.
