@@ -5,4 +5,4 @@ operator:
 # /skills and rejects our skills-only file source with "must contain at least one
 # server". The operator passes this image to the registry-api Deployment it manages.
 registryAPI:
-  image: "ghcr.io/stacklok/thv-registry-api:v1.4.11"
+  image: "ghcr.io/stacklok/thv-registry-api:v1.4.12"
