@@ -40,6 +40,9 @@ launcher: sandbox
 # Opt-in: auto-file a GitHub issue on a raid's repo when it fails (needs the
 # GitHub App configured — secrets.externalSecrets.githubApp or garrison-github-app).
 fileIssuesOnFailure: false
+# How often (minutes) the keep polls shipped raids' PRs and reclaims their
+# PVC once merged. 0 disables the sweep. Needs the GitHub App configured.
+cleanupIntervalMinutes: 30
 
 persistence:
   size: 5Gi
