@@ -8,6 +8,8 @@ metadata:
     app.kubernetes.io/name: garrison-herald
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/name: garrison-herald
@@ -24,6 +26,7 @@ spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
+        fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -66,7 +69,8 @@ spec:
               drop: ["ALL"]
       volumes:
         - name: data
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: garrison-herald-data
 {{- if .Values.secrets.externalSecrets.enabled }}
 ---
 apiVersion: external-secrets.io/v1

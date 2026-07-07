@@ -18,6 +18,9 @@ herald:
   image: ""
   allowedChatIds: ""
   secret: garrison-herald
+  persistence:
+    size: 1Gi
+    storageClassName: ""
 
 # dockerconfigjson secret for pulling private images (keep, herald, and
 # runner sandbox pods). Create it out-of-band in the release namespace, and
