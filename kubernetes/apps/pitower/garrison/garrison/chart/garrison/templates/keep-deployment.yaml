@@ -50,6 +50,8 @@ spec:
               value: {{ .Values.launcher }}
             - name: KEEP_FILE_ISSUES_ON_FAILURE
               value: {{ .Values.fileIssuesOnFailure | quote }}
+            - name: KEEP_CLEANUP_INTERVAL_MINUTES
+              value: {{ .Values.cleanupIntervalMinutes | quote }}
             - name: KEEP_RUNNER_IMAGE
               value: {{ .Values.runner.image }}
             - name: KEEP_RUNS_NAMESPACE
