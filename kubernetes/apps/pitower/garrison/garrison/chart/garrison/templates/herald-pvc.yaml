@@ -1,0 +1,15 @@
+{{- if .Values.herald.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: garrison-herald-data
+  namespace: {{ .Release.Namespace }}
+spec:
+  accessModes: ["ReadWriteOnce"]
+  {{- with .Values.herald.persistence.storageClassName }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.herald.persistence.size }}
+{{- end }}
