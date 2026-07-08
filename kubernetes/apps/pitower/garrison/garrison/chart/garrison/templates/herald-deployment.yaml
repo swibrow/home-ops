@@ -30,6 +30,22 @@ spec:
         fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
+      initContainers:
+        - name: wait-for-keep
+          image: {{ .Values.herald.initCheckImage }}
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              until wget -q -T 2 -O /dev/null http://garrison-keep.{{ .Release.Namespace }}.svc:{{ .Values.keep.port }}/healthz; do
+                echo "waiting for garrison-keep.{{ .Release.Namespace }}.svc:{{ .Values.keep.port }}..."
+                sleep 2
+              done
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
       containers:
         - name: herald
           image: {{ .Values.herald.image | default .Values.keep.image }}
