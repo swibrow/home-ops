@@ -32,6 +32,15 @@ runner:
   namespace: garrison-runs
   # Optional RuntimeClass for kernel isolation (gVisor/Kata) where available.
   runtimeClassName: ""
+  # Let raid agents install missing CLIs on demand via mise (unrestricted for
+  # now). Adds a writable mise emptyDir + a command-not-found hook to runner
+  # pods; off leaves the pod spec unchanged.
+  miseAutoInstall: false
+  # Optional read-only NFS bin-cache to seed common tools without a download.
+  # nfsServer empty = on-demand installs only.
+  binCache:
+    nfsServer: ""
+    nfsPath: /volume1/nfs
 
 # claude for real raids; fake runs the whole pipeline scripted at zero tokens.
 harness: claude
