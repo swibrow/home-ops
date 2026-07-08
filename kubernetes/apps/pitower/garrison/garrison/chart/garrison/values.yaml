@@ -21,6 +21,9 @@ herald:
   persistence:
     size: 1Gi
     storageClassName: ""
+  # Image for the initContainer that blocks herald's startup until
+  # garrison-keep's Service accepts a connection. Needs a shell + wget.
+  initCheckImage: busybox:1.36
 
 # dockerconfigjson secret for pulling private images (keep, herald, and
 # runner sandbox pods). Create it out-of-band in the release namespace, and

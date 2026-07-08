@@ -4,14 +4,14 @@
 # file on every push to main): spegel resolves mutable tags like :latest
 # from peer caches, serving stale images.
 keep:
-  image: ghcr.io/swibrow/garrison-keep:3988870ef599434f8119090166ac4600c5708b1d
+  image: ghcr.io/swibrow/garrison-keep:23e045c740c46b9f8850961a02e4b9b5c3896116
   imagePullPolicy: IfNotPresent
 # ghcr packages stay private (the repo is private); created out-of-band:
 #   kubectl -n garrison create secret docker-registry ghcr-pull-secret \
 #     --docker-server=ghcr.io --docker-username=swibrow --docker-password=<read:packages token>
 imagePullSecret: ghcr-pull-secret
 runner:
-  image: ghcr.io/swibrow/garrison-runner:3988870ef599434f8119090166ac4600c5708b1d
+  image: ghcr.io/swibrow/garrison-runner:23e045c740c46b9f8850961a02e4b9b5c3896116
   namespace: garrison
 harness: claude
 launcher: sandbox
