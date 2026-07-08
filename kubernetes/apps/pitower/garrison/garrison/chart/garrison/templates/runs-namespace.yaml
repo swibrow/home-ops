@@ -1,8 +1,0 @@
-{{- if ne .Values.runner.namespace .Release.Namespace }}
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: {{ .Values.runner.namespace }}
-  labels:
-    app.kubernetes.io/part-of: garrison
-{{- end }}
