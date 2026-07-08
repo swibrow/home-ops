@@ -58,6 +58,14 @@ spec:
               value: {{ .Values.runner.namespace }}
             - name: KEEP_RUNNER_ENV_SECRET
               value: {{ .Values.secrets.runnerEnv }}
+            - name: KEEP_RUNNER_MISE_AUTOINSTALL
+              value: {{ .Values.runner.miseAutoInstall | quote }}
+            {{- with .Values.runner.binCache.nfsServer }}
+            - name: KEEP_BIN_CACHE_NFS_SERVER
+              value: {{ . | quote }}
+            {{- end }}
+            - name: KEEP_BIN_CACHE_NFS_PATH
+              value: {{ .Values.runner.binCache.nfsPath | quote }}
             {{- with .Values.imagePullSecret }}
             - name: KEEP_RUNNER_PULL_SECRET
               value: {{ . }}
