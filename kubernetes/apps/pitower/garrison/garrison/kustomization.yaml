@@ -4,6 +4,6 @@ namespace: garrison
 helmCharts:
   - name: garrison
     repo: oci://ghcr.io/swibrow/charts
-    version: 0.3.0
+    version: 0.4.0
     releaseName: garrison
     valuesFile: values.yaml
