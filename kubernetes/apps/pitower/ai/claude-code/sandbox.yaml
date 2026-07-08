@@ -44,6 +44,13 @@ spec:
           ports:
             - name: http
               containerPort: 8080
+          # Fails loudly if the NFS bin-cache mount ever ends up noexec (see
+          # kubernetes/apps/pitower/ai/bin-cache/README.md) — binaries cached there
+          # couldn't run otherwise.
+          lifecycle:
+            postStart:
+              exec:
+                command: ["verify-exec-mount", "/mnt/nfs"]
           resources:
             requests:
               cpu: 250m
@@ -54,6 +61,29 @@ spec:
           volumeMounts:
             - name: home
               mountPath: /home/coder
+            # NFS bin-cache (kubernetes/apps/pitower/ai/bin-cache/) — read-only on both this
+            # mount and the pod's nfs volume source below; no PV/PVC, mirrors the same inline
+            # pod-level nfs pattern used by jellyfin/sonarr/etc against this same NFS server.
+            - name: bin-cache
+              mountPath: /mnt/nfs
+              readOnly: true
+            - name: mise-config
+              mountPath: /etc/mise
+              readOnly: true
+            - name: mise-tmp
+              mountPath: /tmp/mise
+      volumes:
+        - name: bin-cache
+          nfs:
+            server: data
+            path: /volume1/nfs
+            readOnly: true
+        - name: mise-config
+          configMap:
+            name: bin-cache-mise-config
+        - name: mise-tmp
+          emptyDir:
+            medium: Memory
 ---
 apiVersion: v1
 kind: Service
