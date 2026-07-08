@@ -15,6 +15,14 @@ spec:
   ttlSecondsAfterFinished: 600
   template:
     spec:
+      # pitower is entirely x86_64 (AMD Ryzen control planes, Intel workers) — no arm64
+      # hardware exists in this cluster today. mise.lock is already pinned for both
+      # linux-x64 and linux-arm64, and the NFS tree is arch-namespaced (linux-amd64/,
+      # linux-arm64/) so adding real arm64 population later (once arm64 compute reachable
+      # from the `data` NFS server exists) is a new Job/CronJob variant with this
+      # nodeSelector flipped, not a breaking migration of this one. See README.md.
+      nodeSelector:
+        kubernetes.io/arch: amd64
       restartPolicy: Never
       securityContext:
         runAsNonRoot: true
@@ -33,7 +41,7 @@ spec:
             - name: HOME
               value: /tmp
             - name: MISE_DATA_DIR
-              value: /mnt/nfs/bin-cache
+              value: /mnt/nfs/bin-cache/linux-amd64
             - name: MISE_CONFIG_FILE
               value: /etc/mise/mise.toml
             - name: MISE_CACHE_DIR
@@ -93,6 +101,8 @@ spec:
       ttlSecondsAfterFinished: 86400
       template:
         spec:
+          nodeSelector:
+            kubernetes.io/arch: amd64
           restartPolicy: Never
           securityContext:
             runAsNonRoot: true
@@ -111,7 +121,7 @@ spec:
                 - name: HOME
                   value: /tmp
                 - name: MISE_DATA_DIR
-                  value: /mnt/nfs/bin-cache
+                  value: /mnt/nfs/bin-cache/linux-amd64
                 - name: MISE_CONFIG_FILE
                   value: /etc/mise/mise.toml
                 - name: MISE_CACHE_DIR

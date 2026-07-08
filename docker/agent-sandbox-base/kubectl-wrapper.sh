@@ -31,7 +31,9 @@ if [ -z "$bootstrap_version" ]; then
     echo "kubectl-wrapper: no kubectl versions installed under $data_dir" >&2
     exit 1
 fi
-bootstrap_kubectl="$data_dir/$bootstrap_version/bin/kubectl"
+# mise's aqua-backend installs are flat: installs/<tool>/<version>/<tool>, no bin/ subdir
+# (verified directly against a real `mise install` — this differs from some docs/examples).
+bootstrap_kubectl="$data_dir/$bootstrap_version/kubectl"
 
 resolve_version() {
     context="$1"
@@ -70,4 +72,4 @@ resolve_version() {
 current_context="$("$bootstrap_kubectl" config current-context 2>/dev/null || true)"
 resolved_version="$(resolve_version "$current_context")"
 
-exec "$data_dir/$resolved_version/bin/kubectl" "$@"
+exec "$data_dir/$resolved_version/kubectl" "$@"

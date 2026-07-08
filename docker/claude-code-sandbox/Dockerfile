@@ -52,8 +52,12 @@ COPY verify-exec-mount.sh /usr/local/bin/verify-exec-mount
 RUN chmod +x /usr/local/bin/kubectl /usr/local/bin/verify-exec-mount
 
 # MISE_DATA_DIR is the read-only NFS mount — mise must only ever *select* an already-present
-# version there, never attempt to install/download into it.
-ENV MISE_DATA_DIR=/mnt/nfs/bin-cache \
+# version there, never attempt to install/download into it. The tree is arch-namespaced
+# (linux-amd64/, linux-arm64/) since a single mise installs/ dir can't hold two
+# architectures' binaries for the same tool@version; baking TARGETARCH here means this
+# image's per-platform variant automatically points at its own matching subtree. Only
+# linux-amd64 is actually populated today — pitower is entirely x86_64.
+ENV MISE_DATA_DIR=/mnt/nfs/bin-cache/linux-${TARGETARCH} \
     MISE_CACHE_DIR=/tmp/mise/cache \
     MISE_STATE_DIR=/tmp/mise/state \
     MISE_CONFIG_FILE=/etc/mise/mise.toml \
