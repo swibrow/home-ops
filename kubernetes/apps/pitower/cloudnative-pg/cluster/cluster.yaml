@@ -314,3 +314,24 @@ spec:
     storageClass: openebs-hostpath
   monitoring:
     enablePodMonitor: true
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/postgresql.cnpg.io/cluster_v1.json
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: garrison
+  namespace: cloudnative-pg
+spec:
+  instances: 2
+  imageName: ghcr.io/cloudnative-pg/postgresql:18
+  bootstrap:
+    initdb:
+      # One database, two schemas: the keep owns `keep`, the herald owns
+      # `herald` — the garrison services create them at boot.
+      database: garrison
+      owner: garrison
+  storage:
+    size: 2Gi
+    storageClass: openebs-hostpath
+  monitoring:
+    enablePodMonitor: true
