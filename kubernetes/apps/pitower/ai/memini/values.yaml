@@ -1,0 +1,75 @@
+controllers:
+  main:
+    type: deployment
+    replicas: 1
+    annotations:
+      reloader.stakater.com/auto: "true"
+    containers:
+      main:
+        env:
+          MEMINI_BACKEND: postgres
+          MEMINI_DEFAULT_NAMESPACE: default
+          MEMINI_POSTGRES_DSN:
+            valueFrom:
+              secretKeyRef:
+                name: memini-db-secret
+                key: DB_URL
+          MEMINI_EMBED_BASE_URL: http://litellm:4000/v1
+          MEMINI_EMBED_MODEL: memini-embed
+          MEMINI_EMBED_DIMS: "1536"
+          MEMINI_EMBED_API_KEY:
+            valueFrom:
+              secretKeyRef:
+                name: memini
+                key: MEMINI_LITELLM_API_KEY
+          MEMINI_REEMBED_ON_MODEL_CHANGE: "true"
+          MEMINI_LLM_BASE_URL: http://litellm:4000/v1
+          MEMINI_LLM_MODEL: claude-haiku
+          MEMINI_LLM_API_KEY:
+            valueFrom:
+              secretKeyRef:
+                name: memini
+                key: MEMINI_LITELLM_API_KEY
+          # Reuses the chat LLM above for recall reranking — no dedicated
+          # cross-encoder reranker deployed.
+          MEMINI_RERANK: llm
+          MEMINI_API_KEY:
+            valueFrom:
+              secretKeyRef:
+                name: memini
+                key: MEMINI_API_KEY
+          TZ: Europe/Zurich
+        resources:
+          requests:
+            cpu: 15m
+            memory: 128Mi
+          limits:
+            memory: 512Mi
+
+persistence:
+  data:
+    enabled: false
+
+route:
+  main:
+    enabled: true
+    hostnames: ["memini-api.wibrow.dev"]
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+  ui:
+    enabled: true
+    hostnames: ["memini.wibrow.dev"]
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+
+serviceMonitor:
+  main:
+    enabled: true
+
+grafanaDashboards:
+  enabled: true
+  folder: ai

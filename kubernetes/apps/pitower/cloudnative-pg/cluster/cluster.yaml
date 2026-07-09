@@ -335,3 +335,30 @@ spec:
     storageClass: openebs-hostpath
   monitoring:
     enablePodMonitor: true
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/postgresql.cnpg.io/cluster_v1.json
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: memini
+  namespace: cloudnative-pg
+spec:
+  instances: 2
+  # VectorChord-enabled Postgres build (not the stock CNPG image) — memini's
+  # postgres backend runs `CREATE EXTENSION IF NOT EXISTS vchord CASCADE`
+  # itself at startup and needs the extension binaries present.
+  imageName: ghcr.io/tensorchord/vchord-postgres:pg17-v0.5.1
+  enableSuperuserAccess: true
+  bootstrap:
+    initdb:
+      database: memini
+      owner: memini
+      # Runs as superuser against the new database during bootstrap, since
+      # the memini app user has no CREATE EXTENSION privilege on its own.
+      postInitApplicationSQL:
+        - CREATE EXTENSION IF NOT EXISTS vchord CASCADE
+  storage:
+    size: 1Gi
+    storageClass: openebs-hostpath
+  monitoring:
+    enablePodMonitor: true
