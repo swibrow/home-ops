@@ -366,6 +366,11 @@ spec:
     kind: ClusterImageCatalog
     name: vchord-postgres
     major: 17
+  # tensorchord/vchord-postgres is Debian-based (postgres user is 999:999),
+  # not CNPG's own UBI-style images which default to 26:26 — without this,
+  # initdb runs as a UID the image doesn't have and fails immediately.
+  postgresUID: 999
+  postgresGID: 999
   enableSuperuserAccess: true
   bootstrap:
     initdb:
