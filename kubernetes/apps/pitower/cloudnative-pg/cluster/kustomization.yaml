@@ -2,7 +2,9 @@
 # yaml-language-server: $schema=https://json.schemastore.org/kustomization
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: cloudnative-pg
+# No top-level `namespace:` — every Cluster in cluster.yaml already declares
+# its own `metadata.namespace: cloudnative-pg`, and the cluster-scoped
+# ClusterImageCatalog must NOT have one (the API server rejects it).
 resources:
   - cluster.yaml
 patches:
