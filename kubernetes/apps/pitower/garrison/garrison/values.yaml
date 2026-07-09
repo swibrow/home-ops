@@ -35,9 +35,7 @@ secrets:
     enabled: true
     store: infisical
     basePath: /garrison
-    # garrison-github-app was created manually (kubectl) — flip on if the
-    # creds move into Infisical at /garrison/github-app.
-    githubApp: false
+    githubApp: true
 persistence:
   size: 5Gi
 networkPolicy:
