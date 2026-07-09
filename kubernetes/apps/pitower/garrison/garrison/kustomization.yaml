@@ -1,6 +1,14 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: garrison
+components:
+  - ../../../../components/cnpg-db
+configMapGenerator:
+  - name: cnpg-db-config
+    literals:
+      - APP_NAME=garrison
+      - SECRET_NAME=garrison-db-secret
+      - CNPG_SECRET_KEY=garrison-app
 helmCharts:
   - name: garrison
     repo: oci://ghcr.io/swibrow/charts
