@@ -3,6 +3,15 @@
 # Pin images by release version (garrison's CI patches this file when it
 # cuts a release): spegel resolves mutable tags like :latest from peer
 # caches, serving stale images.
+#
+# database.enabled flips keep/herald to Postgres + HA (2 replicas each);
+# garrison-db-secret is the CNPG-generated app credential (see
+# cloudnative-pg/cluster/cluster.yaml + the cnpg-db kustomize component).
+# Cut over per garrison's docs/postgres.md runbook.
+database:
+  enabled: true
+  secret: garrison-db-secret
+  secretKey: DB_URL
 keep:
   image: ghcr.io/swibrow/garrison-keep:v0.13.0
   imagePullPolicy: IfNotPresent
