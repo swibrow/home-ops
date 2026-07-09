@@ -17,6 +17,12 @@ model_list:
       model: openrouter/anthropic/claude-haiku-4.5
       api_key: os.environ/OPENROUTER_API_KEY
 
+  # --- Embeddings (memini) ---
+  - model_name: memini-embed
+    litellm_params:
+      model: openai/text-embedding-3-small
+      api_key: os.environ/OPENAI_API_KEY
+
   # --- OpenRouter (named aliases, auto-curated from the live catalog) ---
   # Newest ~5 chat models per major provider so they show in the dropdown.
   # Any other OpenRouter model is still reachable by full id via the catch-all.
