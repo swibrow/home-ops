@@ -336,6 +336,20 @@ spec:
   monitoring:
     enablePodMonitor: true
 ---
+# CNPG's Cluster webhook parses spec.imageName's tag as a Postgres version
+# (e.g. "17.2") and rejects anything else, so tensorchord's "pg17-v0.5.1"
+# style tags can't be used directly there. A ClusterImageCatalog sidesteps
+# that: it maps the odd tag to an explicit major version, referenced from
+# the Cluster via imageCatalogRef instead of imageName.
+apiVersion: postgresql.cnpg.io/v1
+kind: ClusterImageCatalog
+metadata:
+  name: vchord-postgres
+spec:
+  images:
+    - image: ghcr.io/tensorchord/vchord-postgres:pg17-v0.5.1
+      major: 17
+---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/postgresql.cnpg.io/cluster_v1.json
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
@@ -347,7 +361,11 @@ spec:
   # VectorChord-enabled Postgres build (not the stock CNPG image) — memini's
   # postgres backend runs `CREATE EXTENSION IF NOT EXISTS vchord CASCADE`
   # itself at startup and needs the extension binaries present.
-  imageName: ghcr.io/tensorchord/vchord-postgres:pg17-v0.5.1
+  imageCatalogRef:
+    apiGroup: postgresql.cnpg.io
+    kind: ClusterImageCatalog
+    name: vchord-postgres
+    major: 17
   enableSuperuserAccess: true
   bootstrap:
     initdb:
