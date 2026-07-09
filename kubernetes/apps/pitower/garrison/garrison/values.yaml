@@ -47,3 +47,13 @@ httpRoute:
     name: envoy-internal
     namespace: networking
     sectionName: https
+  # GitHub can't reach envoy-internal (VPN-only) to deliver App webhooks —
+  # route just POST /webhooks/github through envoy-external instead. Update
+  # the GitHub App's webhook URL to https://garrison-hooks.wibrow.dev/webhooks/github.
+  webhookExternal:
+    enabled: true
+    hostname: garrison-hooks.wibrow.dev
+    gateway:
+      name: envoy-external
+      namespace: networking
+      sectionName: https
