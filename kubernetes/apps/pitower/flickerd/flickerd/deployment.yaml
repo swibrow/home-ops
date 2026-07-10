@@ -34,7 +34,7 @@ spec:
             - name: FLICKERD_API_URL
               value: https://flickerd.com
             - name: FLICKERD_NAMESPACE
-              value: ai
+              value: flickerd
             - name: FLICKERD_SANDBOX_TEMPLATE
               value: flickerd
             - name: FLICKERD_WARMPOOL

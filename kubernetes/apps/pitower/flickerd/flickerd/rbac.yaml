@@ -35,4 +35,4 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: flickerd-generator
-    namespace: ai
+    namespace: flickerd
