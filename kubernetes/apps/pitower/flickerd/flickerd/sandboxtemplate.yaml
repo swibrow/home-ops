@@ -36,7 +36,7 @@ spec:
         runAsNonRoot: true
       containers:
         - name: sandbox
-          image: ghcr.io/swibrow/flickerd-sandbox:0.2.0
+          image: ghcr.io/swibrow/flickerd-sandbox:0.2.1
           env:
             - name: TZ
               value: Europe/Zurich
