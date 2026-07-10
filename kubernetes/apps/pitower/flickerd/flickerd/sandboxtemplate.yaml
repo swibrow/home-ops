@@ -64,7 +64,7 @@ spec:
             - name: CLAUDE_CODE_OAUTH_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: agentmemory
+                  name: flickerd-sandbox
                   key: CLAUDE_CODE_OAUTH_TOKEN
           resources:
             requests:
