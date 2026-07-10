@@ -336,6 +336,25 @@ spec:
   monitoring:
     enablePodMonitor: true
 ---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/postgresql.cnpg.io/cluster_v1.json
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: goat
+  namespace: cloudnative-pg
+spec:
+  instances: 2
+  imageName: ghcr.io/cloudnative-pg/postgresql:18
+  bootstrap:
+    initdb:
+      database: goat
+      owner: goat
+  storage:
+    size: 2Gi
+    storageClass: openebs-hostpath
+  monitoring:
+    enablePodMonitor: true
+---
 # CNPG's Cluster webhook parses spec.imageName's tag as a Postgres version
 # (e.g. "17.2") and rejects anything else, so tensorchord's "pg17-v0.5.1"
 # style tags can't be used directly there. A ClusterImageCatalog sidesteps

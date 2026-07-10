@@ -1,0 +1,45 @@
+# Home cluster (admin@pitower): everything in the goat namespace, secrets
+# synced from Infisical via the external-secrets ClusterSecretStore. Pin the
+# image by release version: spegel resolves mutable tags like :latest from
+# peer caches, serving stale images.
+#
+# goat-db-secret is the CNPG-generated app credential (see
+# cloudnative-pg/cluster/cluster.yaml + the cnpg-db kustomize component).
+image:
+  tag: v0.1.0
+database:
+  enabled: true
+  secret: goat-db-secret
+  secretKey: DB_URL
+api:
+  persistence:
+    size: 10Gi
+# Dev-session pods (Claude Code in the goat namespace) — needs the
+# ghcr.io/swibrow/claude-code image and the egress NetworkPolicy below.
+devSessions:
+  enabled: true
+secrets:
+  externalSecrets:
+    enabled: true
+    store: infisical
+    basePath: /goat
+    githubApp: true
+networkPolicy:
+  enabled: true
+httpRoute:
+  enabled: true
+  hostname: goat.wibrow.dev
+  gateway:
+    name: envoy-internal
+    namespace: networking
+    sectionName: https
+  # GitHub can't reach envoy-internal (VPN-only) to deliver App webhooks —
+  # route just /webhooks/* through envoy-external instead. Point the GitHub
+  # App's webhook URL at https://goat-hooks.wibrow.dev/webhooks/github.
+  webhookExternal:
+    enabled: true
+    hostname: goat-hooks.wibrow.dev
+    gateway:
+      name: envoy-external
+      namespace: networking
+      sectionName: https
