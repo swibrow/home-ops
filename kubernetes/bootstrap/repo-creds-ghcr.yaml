@@ -1,0 +1,57 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/generators.external-secrets.io/githubaccesstoken_v1alpha1.json
+# Mints short-lived (60 min, non-configurable) installation tokens from the
+# same GitHub App already used for argocd-repo-creds-github-swibrow (git
+# repo-creds). Scoped down to Packages:read on the goat repo only — that App
+# must have the "Packages" (read) permission granted and the goat repo in its
+# installation's repository access list, or minting fails.
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: GithubAccessToken
+metadata:
+  name: argocd-ghcr
+  namespace: argocd
+spec:
+  appID: "1320850"
+  installID: "68309201"
+  permissions:
+    packages: read
+  repositories:
+    - goat
+  auth:
+    privateKey:
+      secretRef:
+        name: argocd-repo-creds-github-swibrow
+        key: githubAppPrivateKey
+---
+# ArgoCD's OCI Helm pull path only understands username/password repo-creds
+# (no GitHub-App-aware code path like the git type has), so the minted
+# installation token is fed in as a password with the GitHub-documented
+# x-access-token username.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/external-secrets.io/externalsecret_v1.json
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: argocd-repo-creds-ghcr
+  namespace: argocd
+spec:
+  refreshInterval: 20m
+  target:
+    name: argocd-repo-creds-ghcr
+    creationPolicy: Owner
+    template:
+      metadata:
+        labels:
+          argocd.argoproj.io/secret-type: repo-creds
+      data:
+        url: ghcr.io/swibrow
+        name: swibrow-ghcr
+        type: helm
+        enableOCI: "true"
+        username: x-access-token
+        password: "{{ .token }}"
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: GithubAccessToken
+          name: argocd-ghcr
