@@ -15,9 +15,8 @@ database:
 keep:
   image: ghcr.io/swibrow/garrison-keep:v0.14.1
   imagePullPolicy: IfNotPresent
-# ghcr packages stay private (the repo is private); created out-of-band:
-#   kubectl -n garrison create secret docker-registry ghcr-pull-secret \
-#     --docker-server=ghcr.io --docker-username=swibrow --docker-password=<read:packages token>
+# ghcr packages stay private (the repo is private); ghcr-pull-secret is
+# fanned out to every namespace by security/external-secrets/ghcr-pull-secret.
 imagePullSecret: ghcr-pull-secret
 runner:
   image: ghcr.io/swibrow/garrison-runner:v0.14.1

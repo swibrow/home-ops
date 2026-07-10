@@ -7,7 +7,6 @@ components:
   - ../../../../components/cnpg-db
 resources:
   - externalsecret.yaml
-  - pullsecret.yaml
 configMapGenerator:
   - name: cnpg-db-config
     literals:
