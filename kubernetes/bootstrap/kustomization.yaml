@@ -6,6 +6,7 @@ resources:
   - appproject.yaml
   - externalsecret.yaml
   - pitower-cluster-secret.yaml
+  - repo-creds-ghcr.yaml
 
 helmCharts:
   - name: argo-cd
