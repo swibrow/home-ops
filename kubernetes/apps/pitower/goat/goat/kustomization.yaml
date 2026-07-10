@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: goat
+components:
+  - ../../../../components/cnpg-db
+configMapGenerator:
+  - name: cnpg-db-config
+    literals:
+      - APP_NAME=goat
+      - SECRET_NAME=goat-db-secret
+      - CNPG_SECRET_KEY=goat-app
+helmCharts:
+  - name: goat
+    repo: oci://ghcr.io/swibrow/charts
+    version: 0.1.0
+    releaseName: goat
+    valuesFile: values.yaml
