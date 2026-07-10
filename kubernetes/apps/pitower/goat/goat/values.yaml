@@ -7,6 +7,7 @@
 # cloudnative-pg/cluster/cluster.yaml + the cnpg-db kustomize component).
 image:
   tag: v0.1.1
+imagePullSecret: ghcr-pull-secret
 database:
   enabled: true
   secret: goat-db-secret
