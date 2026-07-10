@@ -13,12 +13,12 @@ configMapGenerator:
       disableNameSuffixHash: true
     files:
       - config.yaml=config.yaml
-  - name: hermes-agentmemory-plugin
+  - name: hermes-memini-plugin
     options:
       disableNameSuffixHash: true
     files:
-      - __init__.py=plugin/__init__.py
-      - plugin.yaml=plugin/plugin.yaml
+      - __init__.py=plugin-memini/__init__.py
+      - plugin.yaml=plugin-memini/plugin.yaml
   - name: volsync-config
     options:
       disableNameSuffixHash: true
