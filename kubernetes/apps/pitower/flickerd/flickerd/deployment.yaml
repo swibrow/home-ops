@@ -31,6 +31,10 @@ spec:
           env:
             - name: TZ
               value: Europe/Zurich
+            # bun's bundled `ws` shim ignores the CA options @kubernetes/client-node
+            # passes to the exec WebSocket; trusting the cluster CA globally fixes it.
+            - name: NODE_EXTRA_CA_CERTS
+              value: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
             - name: FLICKERD_API_URL
               value: https://flickerd.com
             - name: FLICKERD_NAMESPACE
