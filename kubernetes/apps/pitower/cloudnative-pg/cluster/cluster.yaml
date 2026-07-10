@@ -372,6 +372,13 @@ spec:
   postgresUID: 999
   postgresGID: 999
   enableSuperuserAccess: true
+  postgresql:
+    # vchord is a background-worker extension, not a pure-SQL one — it must
+    # be loaded at postmaster start via shared_preload_libraries, or
+    # CREATE EXTENSION fails with "vchord must be loaded via
+    # shared_preload_libraries."
+    shared_preload_libraries:
+      - vchord
   bootstrap:
     initdb:
       database: memini
