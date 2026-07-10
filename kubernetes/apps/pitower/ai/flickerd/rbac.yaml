@@ -1,0 +1,38 @@
+---
+# The generator creates a throwaway SandboxClaim per generation job, execs the
+# generation script into the backing pod, and deletes the claim afterwards.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: flickerd-generator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: flickerd-generator
+rules:
+  - apiGroups: ["extensions.agents.x-k8s.io"]
+    resources: ["sandboxclaims"]
+    verbs: ["create", "get", "list", "delete"]
+  - apiGroups: ["agents.x-k8s.io"]
+    resources: ["sandboxes"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create", "get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flickerd-generator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: flickerd-generator
+subjects:
+  - kind: ServiceAccount
+    name: flickerd-generator
+    namespace: ai

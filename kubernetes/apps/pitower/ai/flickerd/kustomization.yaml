@@ -1,0 +1,11 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ai
+resources:
+  - externalsecret.yaml
+  - rbac.yaml
+  - deployment.yaml
+  - sandboxtemplate.yaml
+  - warmpool.yaml
