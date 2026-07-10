@@ -38,8 +38,16 @@ controllers:
           tag: v2026.7.7@sha256:ce3b39adf33fffae8cb19dcae74f971975b972efe91207f7d7539f80a0aae66a
         args: ["gateway", "run"]
         env:
-          AGENTMEMORY_URL: http://agentmemory.ai:3111
-          AGENTMEMORY_PROJECT: hermes
+          MEMINI_BASE_URL: http://memini.ai:8080
+          # Share this string across agents (e.g. this Claude Code session) to
+          # share one memory namespace, or give hermes its own to keep its
+          # captured turns separate.
+          MEMINI_NAMESPACE: hermes
+          MEMINI_API_KEY:
+            valueFrom:
+              secretKeyRef:
+                name: hermes
+                key: MEMINI_API_KEY
           HERMES_HOME: /opt/data
           HOME: /opt/data
           TZ: Europe/Zurich
@@ -161,9 +169,9 @@ persistence:
     globalMounts:
       - path: /tmp/config.yaml
         subPath: config.yaml
-  agentmemory-plugin:
+  memini-plugin:
     type: configMap
-    name: hermes-agentmemory-plugin
+    name: hermes-memini-plugin
     defaultMode: 0755
     globalMounts:
-      - path: /opt/data/plugins/agentmemory
+      - path: /opt/data/plugins/memini
