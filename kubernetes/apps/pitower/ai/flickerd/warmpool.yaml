@@ -1,0 +1,11 @@
+---
+# Keeps warm sandbox pods so a claim binds near-instantly instead of waiting on
+# image pull + scheduling (the sandbox image is large).
+apiVersion: extensions.agents.x-k8s.io/v1beta1
+kind: SandboxWarmPool
+metadata:
+  name: flickerd
+spec:
+  replicas: 2
+  sandboxTemplateRef:
+    name: flickerd

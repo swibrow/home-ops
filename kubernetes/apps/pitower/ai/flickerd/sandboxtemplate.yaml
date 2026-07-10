@@ -1,0 +1,75 @@
+---
+# Template for flickerd site-generation pods. Pods idle in the warm pool; the
+# generator execs /opt/flickerd/generate.sh into a claimed pod, which runs headless
+# claude, pushes the site to git (backend of record), and uploads it to R2.
+apiVersion: extensions.agents.x-k8s.io/v1beta1
+kind: SandboxTemplate
+metadata:
+  name: flickerd
+spec:
+  # Egress only: DNS + HTTPS (Anthropic API, GitHub, Cloudflare R2).
+  networkPolicy:
+    egress:
+      - to:
+          - namespaceSelector:
+              matchLabels:
+                kubernetes.io/metadata.name: kube-system
+        ports:
+          - port: 53
+            protocol: UDP
+          - port: 53
+            protocol: TCP
+      - ports:
+          - port: 443
+            protocol: TCP
+  podTemplate:
+    metadata:
+      labels:
+        app.kubernetes.io/name: flickerd-sandbox
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        runAsNonRoot: true
+      containers:
+        - name: sandbox
+          image: ghcr.io/swibrow/flickerd-sandbox:0.2.0
+          env:
+            - name: TZ
+              value: Europe/Zurich
+            - name: GIT_REPO
+              value: swibrow/flickerd-sites
+            - name: R2_ENDPOINT
+              value: https://933dcfec2619b1229e0c4407f23da188.r2.cloudflarestorage.com
+            - name: R2_BUCKET
+              value: flickerd-sites
+            - name: GIT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: flickerd-sandbox
+                  key: GIT_TOKEN
+            - name: R2_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: flickerd-sandbox
+                  key: R2_ACCESS_KEY_ID
+            - name: R2_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: flickerd-sandbox
+                  key: R2_SECRET_ACCESS_KEY
+            - name: CLAUDE_CODE_OAUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: agentmemory
+                  key: CLAUDE_CODE_OAUTH_TOKEN
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
