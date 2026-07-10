@@ -26,7 +26,7 @@ configMapGenerator:
 helmCharts:
   - name: forgejo
     repo: oci://code.forgejo.org/forgejo-helm
-    version: 17.1.1
+    version: 17.1.2
     releaseName: forgejo
     namespace: dev
     valuesFile: values.yaml
