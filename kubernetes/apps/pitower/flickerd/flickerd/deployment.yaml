@@ -45,6 +45,9 @@ spec:
               value: flickerd
             - name: FLICKERD_CONCURRENCY
               value: "4"
+            # A full site generation regularly exceeds 5 minutes.
+            - name: FLICKERD_GENERATE_TIMEOUT_MS
+              value: "900000"
             - name: FLICKERD_INTERNAL_TOKEN
               valueFrom:
                 secretKeyRef:
