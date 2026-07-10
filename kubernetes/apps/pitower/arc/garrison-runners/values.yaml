@@ -1,0 +1,36 @@
+# Per-repo runner scale set — ARC has no personal-account-wide scope, only
+# repo/org/enterprise, so a new repo means copying this directory and
+# changing githubConfigUrl, runnerScaleSetName, and releaseName/serviceAccountName.
+githubConfigUrl: https://github.com/swibrow/garrison
+githubConfigSecret: arc-github-app
+runnerScaleSetName: garrison
+
+controllerServiceAccount:
+  name: arc-gha-rs-controller
+  namespace: arc
+
+minRunners: 0
+maxRunners: 2
+
+containerMode:
+  type: dind
+
+template:
+  spec:
+    serviceAccountName: garrison-runners
+    automountServiceAccountToken: true
+    tolerations:
+      - key: dedicated
+        operator: Equal
+        value: storage
+        effect: NoSchedule
+    containers:
+      - name: runner
+        image: ghcr.io/actions/actions-runner:2.335.1
+        command: ["/home/runner/run.sh"]
+        resources:
+          requests:
+            cpu: 1
+            memory: 2Gi
+          limits:
+            memory: 4Gi
