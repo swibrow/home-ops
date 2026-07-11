@@ -1,0 +1,242 @@
+{
+  "core": {
+    "deviceid": "btn_03a5e4",
+    "location": "Basement Office",
+    "autobackup": true,
+    "brightness": 100,
+    "color": 16765791,
+    "wallledscolor": 0,
+    "statusbar": 0,
+    "topics": []
+  },
+  "buttons": [
+    {
+      "buttonid": "3-1",
+      "position": 3,
+      "page": 1,
+      "label": "",
+      "toplabel": "Light",
+      "svg": "<svg viewBox=\"0 0 24 24\"><path d=\"M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z\" fill=\"white\"/></svg>",
+      "longdelay": 40,
+      "longrepeat": 15,
+      "topics": [
+        {
+          "brokerid": "buttonplus",
+          "topic": "buttonplus/office/light/click",
+          "payload": "click",
+          "eventtype": 0
+        }
+      ],
+      "leds": [
+        {
+          "frontwall": "front",
+          "onrgb": 65280,
+          "topics": [
+            {
+              "brokerid": "buttonplus",
+              "topic": "buttonplus/office/light/led",
+              "payload": "on",
+              "eventtype": 14
+            }
+          ]
+        },
+        {
+          "frontwall": "wall",
+          "onrgb": 0,
+          "topics": []
+        }
+      ]
+    }
+  ],
+  "displayitems": [
+    {
+      "displayitemid": "0",
+      "x": 6,
+      "y": 3,
+      "boxtype": 0,
+      "fontsize": 2,
+      "align": 1,
+      "width": 50,
+      "round": 0,
+      "label": "",
+      "unit": "",
+      "page": 1,
+      "topics": [
+        {
+          "brokerid": "buttonplus",
+          "topic": "buttonplus/office/loc",
+          "payload": "",
+          "eventtype": 15
+        }
+      ]
+    },
+    {
+      "displayitemid": "1",
+      "x": 6,
+      "y": 9,
+      "boxtype": 0,
+      "fontsize": 5,
+      "align": 1,
+      "width": 54,
+      "round": 0,
+      "label": "",
+      "unit": "",
+      "page": 1,
+      "topics": [
+        {
+          "brokerid": "buttonplus",
+          "topic": "buttonplus/office/time",
+          "payload": "",
+          "eventtype": 15
+        }
+      ]
+    },
+    {
+      "displayitemid": "2",
+      "x": 60,
+      "y": 11,
+      "boxtype": 0,
+      "fontsize": 2,
+      "align": 1,
+      "width": 40,
+      "round": 0,
+      "label": "Inside",
+      "unit": "\u00b0C",
+      "page": 1,
+      "topics": [
+        {
+          "brokerid": "buttonplus",
+          "topic": "buttonplus/office/temp",
+          "payload": "",
+          "eventtype": 15
+        }
+      ]
+    },
+    {
+      "displayitemid": "3",
+      "x": 6,
+      "y": 38,
+      "boxtype": 0,
+      "fontsize": 2,
+      "align": 1,
+      "width": 50,
+      "round": 0,
+      "label": "",
+      "unit": "",
+      "page": 1,
+      "topics": [
+        {
+          "brokerid": "buttonplus",
+          "topic": "buttonplus/office/today",
+          "payload": "",
+          "eventtype": 15
+        }
+      ]
+    },
+    {
+      "displayitemid": "4",
+      "x": 10,
+      "y": 53,
+      "boxtype": 0,
+      "fontsize": 3,
+      "align": 1,
+      "width": 16,
+      "round": 0,
+      "label": "",
+      "unit": "",
+      "page": 1,
+      "topics": [
+        {
+          "brokerid": "buttonplus",
+          "topic": "buttonplus/office/icon/weather",
+          "payload": "",
+          "eventtype": 46
+        }
+      ]
+    },
+    {
+      "displayitemid": "5",
+      "x": 32,
+      "y": 53,
+      "boxtype": 0,
+      "fontsize": 4,
+      "align": 1,
+      "width": 40,
+      "round": 0,
+      "label": "",
+      "unit": "\u00b0C",
+      "page": 1,
+      "topics": [
+        {
+          "brokerid": "buttonplus",
+          "topic": "buttonplus/office/outdoor",
+          "payload": "",
+          "eventtype": 15
+        }
+      ]
+    },
+    {
+      "displayitemid": "6",
+      "x": 6,
+      "y": 80,
+      "boxtype": 0,
+      "fontsize": 2,
+      "align": 1,
+      "width": 46,
+      "round": 0,
+      "label": "Humidity",
+      "unit": "%",
+      "page": 1,
+      "topics": [
+        {
+          "brokerid": "buttonplus",
+          "topic": "buttonplus/office/humidity",
+          "payload": "",
+          "eventtype": 15
+        }
+      ]
+    },
+    {
+      "displayitemid": "7",
+      "x": 58,
+      "y": 80,
+      "boxtype": 0,
+      "fontsize": 2,
+      "align": 1,
+      "width": 40,
+      "round": 0,
+      "label": "Status",
+      "unit": "",
+      "page": 1,
+      "topics": [
+        {
+          "brokerid": "buttonplus",
+          "topic": "buttonplus/office/occ",
+          "payload": "",
+          "eventtype": 15
+        }
+      ]
+    }
+  ],
+  "brokers": [
+    {
+      "brokerid": "buttonplus",
+      "url": "mqtt://10.101.13.61",
+      "port": 1883,
+      "wsport": 0,
+      "username": "buttonplus",
+      "password": "<REDACTED \u2014 buttonplus HA user; see README>",
+      "defaultschema": false,
+      "defaultschemalocalstate": false,
+      "hassdiscovery": false
+    }
+  ],
+  "sensors": [
+    {
+      "sensorid": "sens1",
+      "type": 1,
+      "interval": 10,
+      "topics": []
+    }
+  ]
+}
