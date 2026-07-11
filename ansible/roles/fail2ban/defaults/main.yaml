@@ -1,0 +1,15 @@
+---
+fail2ban_bantime: 1h
+fail2ban_findtime: 10m
+fail2ban_maxretry: 5
+fail2ban_ignoreip:
+  - 127.0.0.1/8
+  - ::1
+
+fail2ban_jails:
+  - name: sshd
+    enabled: true
+    port: ssh
+    filter: sshd
+    logpath: "%(sshd_log)s"
+    backend: "%(sshd_backend)s"

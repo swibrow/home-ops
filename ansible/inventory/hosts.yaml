@@ -9,3 +9,11 @@ all:
           # from a host that can resolve the VLAN-20 (10.20.0.1) DNS.
           ansible_host: 10.20.85.197
           ansible_user: nut
+    ovh_vps:
+      hosts:
+        ovh-vps:
+          # OVH VPS, public internet.
+          # Key-only auth (PasswordAuthentication no); debian user has passwordless sudo.
+          # ansible_host is SOPS-encrypted in inventory/host_vars/ovh-vps.sops.yaml
+          # (public IP kept out of plaintext git history).
+          ansible_user: debian

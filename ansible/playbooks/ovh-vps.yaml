@@ -1,0 +1,7 @@
+---
+- name: ovh-vps node (fail2ban + oha)
+  hosts: ovh_vps
+  become: true
+  roles:
+    - fail2ban
+    - oha

@@ -1,0 +1,13 @@
+---
+- name: Determine oha release arch
+  ansible.builtin.set_fact:
+    oha_release_arch: "{{ oha_arch_map[ansible_facts['architecture']] }}"
+
+- name: Install oha {{ oha_version }}
+  ansible.builtin.get_url:
+    url: "https://github.com/hatoo/oha/releases/download/v{{ oha_version }}/oha-linux-{{ oha_release_arch }}"
+    dest: "{{ oha_install_path }}"
+    checksum: "{{ oha_checksums[oha_release_arch] }}"
+    owner: root
+    group: root
+    mode: "0755"

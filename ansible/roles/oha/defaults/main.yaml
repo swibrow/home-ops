@@ -1,0 +1,13 @@
+---
+oha_version: "1.14.0"
+oha_install_path: /usr/local/bin/oha
+
+# sha256 of the upstream oha-linux-<arch> release asset, pinned per architecture
+# since GitHub doesn't publish a checksums file for oha releases.
+oha_checksums:
+  amd64: sha256:6fc16b5f9901fd2266b1a2b49b1689f76f91ddc7c96f2d0d08b161a870f7ef18
+  arm64: sha256:e0497f3304b18350f4e64de557372fd48e06768c970abaa7904c0a590670221a
+
+oha_arch_map:
+  x86_64: amd64
+  aarch64: arm64

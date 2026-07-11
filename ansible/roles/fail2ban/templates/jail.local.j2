@@ -1,0 +1,27 @@
+# Managed by Ansible (roles/fail2ban) — changes here are overwritten on the next deploy.
+[DEFAULT]
+bantime = {{ fail2ban_bantime }}
+findtime = {{ fail2ban_findtime }}
+maxretry = {{ fail2ban_maxretry }}
+ignoreip = {{ fail2ban_ignoreip | join(' ') }}
+
+{% for jail in fail2ban_jails %}
+[{{ jail.name }}]
+enabled = {{ jail.enabled | default(true) | lower }}
+{% if jail.port is defined %}
+port = {{ jail.port }}
+{% endif %}
+{% if jail.filter is defined %}
+filter = {{ jail.filter }}
+{% endif %}
+{% if jail.logpath is defined %}
+logpath = {{ jail.logpath }}
+{% endif %}
+{% if jail.backend is defined %}
+backend = {{ jail.backend }}
+{% endif %}
+{% if jail.maxretry is defined %}
+maxretry = {{ jail.maxretry }}
+{% endif %}
+
+{% endfor %}

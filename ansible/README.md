@@ -2,7 +2,7 @@
 
 Configuration management for **plain (non-Talos) Linux hosts**. Everything else in this repo is
 Talos + Kubernetes; this tree exists for boxes that need a normal OS — e.g. the `nut` Raspberry Pi,
-which needs direct USB access to the UPSes.
+which needs direct USB access to the UPSes, and `ovh-vps`, a public OVH VPS outside the cluster.
 
 Secrets are **SOPS-encrypted** with the repo age key (no Ansible Vault). The root `justfile`
 exports `SOPS_AGE_KEY_FILE=age.key`; the `community.sops` collection decrypts `*.sops.yaml` at
@@ -17,20 +17,27 @@ ansible/
 ├── inventory/hosts.yaml   # hosts (set ansible_host / ansible_user)
 ├── playbooks/
 │   ├── site.yaml          # network + nut (what `just ansible deploy` runs)
-│   └── nut.yaml           # NUT role only
+│   ├── nut.yaml           # NUT role only
+│   └── ovh-vps.yaml       # fail2ban + oha (what `just ansible deploy-ovh-vps` runs)
 └── roles/
     ├── network/           # VLAN sub-interfaces as NetworkManager connections
-    └── nut/               # Network UPS Tools (netserver mode)
+    ├── nut/               # Network UPS Tools (netserver mode)
+    ├── fail2ban/          # SSH brute-force jail
+    └── oha/               # oha HTTP load-testing CLI (pinned GitHub release binary)
 ```
 
 ## Usage
 
 ```sh
 just ansible deps        # install collections (first time)
-just ansible ping        # SSH reachability
+just ansible ping        # SSH reachability (nut)
 just ansible check       # dry-run + diff (network + nut)
 just ansible deploy      # apply (network + nut)
 just ansible deploy-nut  # apply only the NUT role
+
+just ansible ping-ovh-vps    # SSH reachability (ovh-vps)
+just ansible check-ovh-vps   # dry-run + diff (fail2ban + oha)
+just ansible deploy-ovh-vps  # apply (fail2ban + oha)
 ```
 
 ## Networking (`network` role)
@@ -107,6 +114,37 @@ host = `nut.servers.local` (or the node IP), port 3493, username `monitor`, pass
 `roles/nut/vars/secrets.sops.yaml` (`sops -d` to read it). HA detects both UPS aliases.
 HA is on the IoT network and can't resolve bare `nut`; use the `nut.servers.local` FQDN or a
 UniFi DHCP reservation — see the DNS note above.
+
+## `ovh-vps` node runbook
+
+Public OVH VPS (Debian 13/trixie), not part of the pitower cluster. SSH is key-only
+(`PasswordAuthentication no`); the `debian` user has passwordless sudo. Its public IP (and rDNS,
+which resolves straight back to it) is SOPS-encrypted as `ansible_host` in
+`inventory/host_vars/ovh-vps.sops.yaml` (auto-decrypted at inventory-load time by the
+`community.sops` vars plugin — nothing that reveals the IP lives in plaintext git history);
+`sops -d inventory/host_vars/ovh-vps.sops.yaml` to view it. Managed roles so far:
+
+- **`fail2ban`** — jails `/etc/fail2ban/jail.local` from `roles/fail2ban/defaults/main.yaml`
+  (`fail2ban_jails`); ships with an `sshd` jail only.
+- **`oha`** — installs the [oha](https://github.com/hatoo/oha) HTTP load-testing CLI to
+  `/usr/local/bin/oha` from a pinned, checksum-verified GitHub release binary (no Debian package
+  exists). Bump `oha_version` and both arch checksums in `roles/oha/defaults/main.yaml` together —
+  GitHub doesn't publish a checksums file for oha releases, so checksums are captured by hand from
+  the release assets.
+
+### Deploy
+
+```sh
+just ansible check-ovh-vps && just ansible deploy-ovh-vps
+```
+
+### Verify on the node
+
+```sh
+systemctl status fail2ban
+sudo fail2ban-client status sshd
+oha --version
+```
 
 ## Secrets
 

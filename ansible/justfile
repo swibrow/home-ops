@@ -24,3 +24,19 @@ deploy-nut:
 # Gather and print facts for the nut host
 facts:
     ansible nut -m setup
+
+# Ping the ovh-vps host over SSH
+ping-ovh-vps:
+    ansible ovh_vps -m ping
+
+# Dry-run the ovh-vps playbook (fail2ban + oha) and show a diff
+check-ovh-vps:
+    ansible-playbook playbooks/ovh-vps.yaml --check --diff
+
+# Apply the ovh-vps playbook (fail2ban + oha)
+deploy-ovh-vps:
+    ansible-playbook playbooks/ovh-vps.yaml
+
+# Gather and print facts for the ovh-vps host
+facts-ovh-vps:
+    ansible ovh_vps -m setup
