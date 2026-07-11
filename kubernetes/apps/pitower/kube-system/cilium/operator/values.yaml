@@ -100,8 +100,10 @@ kubeProxyReplacementHealthzBindAddr: 0.0.0.0:10256
 l2announcements:
   enabled: true
 
+routingMode: native
 loadBalancer:
   algorithm: maglev
+  dsrDispatch: geneve
   mode: dsr
 
 localRedirectPolicy: true
@@ -122,5 +124,3 @@ dashboards:
     grafana_folder: Networking
 
 rollOutCiliumPods: true
-
-routingMode: native
