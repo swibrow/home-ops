@@ -103,9 +103,7 @@ l2announcements:
 routingMode: native
 loadBalancer:
   algorithm: maglev
-  dsrDispatch: geneve
-  mode: dsr
-tunnelProtocol: geneve
+  mode: snat
 
 localRedirectPolicy: true
 
