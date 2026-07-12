@@ -1,0 +1,25 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/gateway.envoyproxy.io/securitypolicy_v1alpha1.json
+# CORS for the blog: wibrow.dev (Cloudflare Pages) fetches kromgo badges
+# cross-origin from kromgo.wibrow.dev.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: kromgo-cors
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: kromgo
+  cors:
+    allowOrigins:
+      - "https://wibrow.dev"
+      - "https://samuel.wibrow.dev"
+      # Cloudflare Pages preview deployments
+      - "https://*.wibrow-blog.pages.dev"
+      # Local blog development
+      - "http://localhost:4321"
+    allowMethods:
+      - GET
+      - OPTIONS
+    maxAge: 24h

@@ -1,4 +1,8 @@
 ---
+# TODO(blog cutover): once wibrow.dev DNS points at Cloudflare Pages (the blog),
+# this apex landing page + HTTPRoute are unreachable — delete both resources in
+# this file. The blog fetches kromgo cross-origin at kromgo.wibrow.dev instead
+# of the same-origin /badges route below.
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: HTTPRouteFilter
 metadata:

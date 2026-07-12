@@ -45,6 +45,12 @@ config:
       title: uptime
       query: floor((time() - min(node_boot_time_seconds)) / 86400)
       valueExpr: string(int(result)) + "d"
+    - id: alerts
+      title: alerts
+      # Firing warning/critical alerts; drives the status pill on wibrow.dev.
+      query: count(ALERTS{alertstate="firing",severity=~"critical|warning"}) OR on() vector(0)
+      valueExpr: string(int(result))
+      colorExpr: 'result == 0.0 ? "green" : "red"'
 
   graphs:
     - id: cpu
@@ -72,6 +78,17 @@ config:
       width: 360
       height: 110
       valueExpr: string(int(result)) + "%"
+
+# Public endpoint for the wibrow.dev blog dashboard (cross-origin; CORS is
+# handled by the SecurityPolicy in securitypolicy.yaml).
+httpRoute:
+  enabled: true
+  parentRefs:
+    - name: envoy-external
+      namespace: networking
+      sectionName: https
+  hostnames:
+    - kromgo.wibrow.dev
 
 # krr: kromgo/kromgo
 resources:

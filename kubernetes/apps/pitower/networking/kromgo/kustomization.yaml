@@ -5,6 +5,7 @@ kind: Kustomization
 namespace: networking
 resources:
   - servicemonitor-argocd.yaml
+  - securitypolicy.yaml
 helmCharts:
   - name: kromgo
     repo: oci://ghcr.io/home-operations/charts
