@@ -39,6 +39,21 @@ persistence:
   size: 5Gi
 networkPolicy:
   enabled: true
+  # Narrow exception to the runner sandboxes' private-range egress fence:
+  # the toolhive MCP backend proxies in the ai namespace (see mcp.catalog
+  # below). The other half is the garrison-runner ingress allowance in
+  # ai/toolhive/toolhive-config/networkpolicy.yaml.
+  runnerExtraEgress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ai
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: mcpserver
+      ports:
+        - protocol: TCP
+          port: 8080
 httpRoute:
   enabled: true
   hostname: garrison.wibrow.dev
@@ -56,3 +71,41 @@ httpRoute:
       name: envoy-external
       namespace: networking
       sectionName: https
+# Remote MCP servers raid agents may use, selected per project (wartable
+# checkboxes / herald /mcp / PATCH projects API). URLs are the toolhive
+# backend proxies in the ai namespace — reachable from runner pods only via
+# the runnerExtraEgress exception below plus the garrison-runner ingress in
+# ai/toolhive/toolhive-config/networkpolicy.yaml. The github entry ships a
+# read-only default tool allowlist (enforced in the runner by a PreToolUse
+# deny hook); a project can widen it by overriding `tools` in its selection.
+# NOTE: requires chart >= the release carrying mcp support — until the
+# version above is bumped past it, these keys are inert.
+mcp:
+  catalog:
+    - name: github
+      url: http://mcp-github-proxy.ai.svc.cluster.local:8080/mcp
+      description: GitHub repos/issues/PRs/actions (read-only default toolset)
+      tools:
+        - get_issue
+        - get_issue_comments
+        - list_issues
+        - search_issues
+        - get_pull_request
+        - get_pull_request_files
+        - get_pull_request_comments
+        - list_pull_requests
+        - search_code
+        - get_file_contents
+        - list_workflow_runs
+        - get_workflow_run
+        - get_job_logs
+    - name: context7
+      url: http://mcp-context7-proxy.ai.svc.cluster.local:8080/mcp
+      description: Library documentation lookup (resolve-library-id, get-library-docs)
+    - name: grafana
+      url: http://mcp-grafana-proxy.ai.svc.cluster.local:8080/sse
+      transport: sse
+      description: Grafana dashboards, Prometheus/Loki queries
+    - name: terraform
+      url: http://mcp-terraform-proxy.ai.svc.cluster.local:8080/mcp
+      description: Terraform registry providers/modules docs

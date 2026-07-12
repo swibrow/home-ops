@@ -185,3 +185,41 @@ spec:
       ports:
         - protocol: TCP
           port: 4483
+---
+# Garrison raid agents (runner sandboxes in ns garrison) may call a curated
+# subset of the mcp-tools backend proxies directly — per-repo selection and
+# tool allowlists are enforced garrison-side, this is the network floor.
+# Deliberately excluded: kubernetes/argocd/aws-api/home-assistant/clickhouse
+# (privileged identities) and everything in mcp-secrets. NetworkPolicies are
+# additive, so this only widens ingress for the listed proxies; the
+# workload pods stay proxy-only. The egress half lives in the garrison
+# chart values (networkPolicy.runnerExtraEgress).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mcp-backend-proxy-from-garrison-runners
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: mcpserver
+    matchExpressions:
+      - key: toolhive-name
+        operator: In
+        values:
+          - github
+          - context7
+          - grafana
+          - terraform
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: garrison
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: garrison-runner
+      ports:
+        - protocol: TCP
+          port: 8080
