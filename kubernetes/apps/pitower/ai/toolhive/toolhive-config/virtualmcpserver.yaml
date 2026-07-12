@@ -30,33 +30,31 @@ spec:
     # Issuer = the public root URL of the aggregate. The AS advertises its
     # endpoints under it (…/oauth/authorize, …/token, …/register).
     issuer: https://mcp.wibrow.dev
-    # Scopes every DCR-registered client may request. Keep narrow — granted to
-    # ALL dynamically-registered clients; kanidm's toolhive-mcp advertises only
-    # openid/profile/email/groups (no offline_access), so just openid here.
+    # Scopes every DCR-registered client may request. Keep narrow — unioned into
+    # ALL dynamically-registered clients' scope sets (RFC 7591 §3.2.1), so each
+    # entry here is requestable at /oauth/authorize by every DCR client.
     #
-    # NOTE: offline_access CANNOT be added here on this operator version. The AS
-    # derives scopes_supported from the upstream provider but STRIPS
-    # offline_access (it's a token-issuance scope, not a discoverable OIDC
-    # scope), and there is no explicit scopesSupported override field in this
-    # CRD. The AS hard-fails to start: "baseline_client_scopes contains
-    # offline_access which is not in scopes_supported". Supporting offline_access
-    # would require a toolhive operator upgrade to a version exposing
-    # scopesSupported. Verified 2026-06-15.
+    # offline_access is what makes the AS mint refresh tokens (fosite only
+    # issues one when the granted scope includes it). Since operator v0.30 the
+    # AS no longer strips offline_access from scopes_supported — instead
+    # scopes_supported is derived verbatim from incomingAuth.oidcConfigRef
+    # scopes, so offline_access MUST also be listed there or the AS hard-fails
+    # to start ("baseline_client_scopes contains offline_access which is not in
+    # scopes_supported"). Verified against v0.34.0 source.
     baselineClientScopes:
       - openid
-    # Token lifetimes. Because offline_access can't be granted (see note above),
-    # MCP clients like Claude Code never get a usable refresh token — so the
-    # access-token lifespan IS the effective session length before re-auth. The
-    # default 1h forces near-constant re-auth.
+      - offline_access
+    # Token lifetimes. With offline_access grantable, clients get rotating
+    # refresh tokens: each /oauth/token refresh mints a new refresh token valid
+    # for refreshTokenLifespan, and the token endpoint also renews the DCR
+    # client-registration TTL on every exchange — so an actively-used client
+    # never re-auths. Re-auth only after 30 days of complete inactivity.
     #
-    # The operator HARD-CAPS the access token at 24h: a longer value fails
-    # validation and crashloops the vMCP on boot ("access token lifespan must be
-    # between 1m0s and 24h0m0s"). 720h (the earlier 30d attempt) is invalid — 24h
-    # is the ceiling, still 24× the 1h default. refresh kept equal (it's unusable
-    # anyway without offline_access). Defaults if unset: access 1h, refresh 7d.
+    # Operator caps (v0.34.0): access 1m–24h, refresh 1h–720h. Longer values
+    # fail validation and crashloop the vMCP on boot.
     tokenLifespans:
       accessTokenLifespan: 24h
-      refreshTokenLifespan: 24h
+      refreshTokenLifespan: 720h
     # Persistent signing (RS256) + HMAC material — shared with the per-server
     # ASes via externalsecret.yaml → Secret toolhive-authserver-secret. Without
     # these the AS auto-gens ephemeral keys and restarts invalidate tokens.
@@ -90,11 +88,19 @@ spec:
         oidcConfig:
           issuerUrl: https://idm.wibrow.dev/oauth2/openid/toolhive-mcp
           clientId: toolhive-mcp
+          # offline_access here gets the AS a kanidm REFRESH token at login.
+          # Without it, once the kanidm access token stored for the session
+          # expires, the incoming-auth upstream-token enrichment fails refresh
+          # and 401s EVERY request — even while the AS-issued token is still
+          # valid. Requires offline_access in the toolhive-mcp client's kanidm
+          # scope-map for the mcp-tools group (kanidm rejects unmapped scopes
+          # at authorize).
           scopes:
             - openid
             - profile
             - email
             - groups
+            - offline_access
   incomingAuth:
     type: oidc
     # Validate the tokens the embedded AS itself issues (issuer/audience match
@@ -113,11 +119,18 @@ spec:
       name: mcp-gateway-oidc
       audience: https://mcp.wibrow.dev/
       resourceUrl: https://mcp.wibrow.dev/
+      # These scopes are NOT enforced on incoming tokens — they feed two
+      # advertisements: the AS's scopes_supported (openid-configuration; the
+      # operator derives it from this list verbatim) and the RFC 9728
+      # protected-resource metadata clients read to decide what to request.
+      # offline_access must be listed here for DCR to accept it and for the
+      # baselineClientScopes subset check to pass at AS startup.
       scopes:
         - openid
         - profile
         - email
         - groups
+        - offline_access
     # Group gating happens at kanidm, NOT in Cedar: kanidm never emits group
     # claims in the access token Cedar evaluates, so THVGroup policies would
     # deny-all. The toolhive-mcp client's kanidm scope-map is restricted to the
