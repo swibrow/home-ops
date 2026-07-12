@@ -15,6 +15,11 @@ database:
 api:
   persistence:
     size: 10Gi
+  # Telegram allow-list and admins (numeric user IDs). The bot fails closed:
+  # an empty ALLOWED_USERS rejects every message.
+  env:
+    ALLOWED_USERS: "1053711635"
+    ADMIN_USERS: "1053711635"
 # Dev-session pods (Claude Code in the goat namespace) — needs the
 # ghcr.io/swibrow/claude-code image and the egress NetworkPolicy below.
 devSessions:
