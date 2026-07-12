@@ -47,12 +47,13 @@ spec:
       value: "false"
     - name: RENOVATE_REQUIRE_CONFIG
       value: "optional"
-  # Authenticate docker.io lookups so Docker Hub's anonymous pull-rate limit
-  # (429) doesn't abort the run with external-host-error. RENOVATE_HOST_RULES
-  # (JSON) is templated from the dockerhub PAT — see externalsecret.yaml.
+  # Authenticate docker.io (avoids Docker Hub's anonymous pull-rate limit) and
+  # ghcr.io (RENOVATE_TOKEN is a GitHub App token, which GitHub Packages
+  # rejects, so private ghcr.io/swibrow/* lookups need an explicit PAT host
+  # rule). RENOVATE_HOST_RULES (JSON) is templated in externalsecret.yaml.
   extraEnvFrom:
     - secretRef:
-        name: renovate-dockerhub
+        name: renovate-host-rules
   resources:
     requests:
       cpu: 100m
