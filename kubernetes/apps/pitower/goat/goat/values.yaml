@@ -25,13 +25,15 @@ api:
 devSessions:
   enabled: true
 # Web SPA auth via kanidm (OIDC). Client 'goat' bootstrapped with
-# scripts/bootstrap_kanidm.sh; gated on the shared app_access group used by
-# every other self-hosted app on this kanidm instance (see grafana/mealie/etc).
+# scripts/bootstrap_kanidm.sh. Access is gated at kanidm's own scope-map
+# (oauth2_rs_scope_map: app_access), same as every other self-hosted app on
+# this instance — not via requiredGroup, since kanidm only puts a "groups"
+# claim on the id_token (not the access_token GOAT validates) without an
+# explicit oauth2_rs_claim_map, so requiredGroup 401s every request.
 oidc:
   enabled: true
   issuer: https://idm.wibrow.dev/oauth2/openid/goat
   clientId: goat
-  requiredGroup: app_access
 secrets:
   externalSecrets:
     enabled: true
