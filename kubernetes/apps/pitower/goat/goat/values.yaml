@@ -24,6 +24,14 @@ api:
 # ghcr.io/swibrow/claude-code image and the egress NetworkPolicy below.
 devSessions:
   enabled: true
+# Web SPA auth via kanidm (OIDC). Client 'goat' bootstrapped with
+# scripts/bootstrap_kanidm.sh; gated on the shared app_access group used by
+# every other self-hosted app on this kanidm instance (see grafana/mealie/etc).
+oidc:
+  enabled: true
+  issuer: https://idm.wibrow.dev/oauth2/openid/goat
+  clientId: goat
+  requiredGroup: app_access
 secrets:
   externalSecrets:
     enabled: true
