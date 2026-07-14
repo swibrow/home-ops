@@ -1,0 +1,19 @@
+installCRDs: true
+replicaCount: 1
+leaderElect: true
+# controller has no kube-prometheus-stack / Grafana — leave ServiceMonitors and
+# the Grafana dashboard off so the chart doesn't emit monitoring.coreos.com
+# resources whose CRDs don't exist on this cluster.
+grafana:
+  enabled: false
+serviceMonitor:
+  enabled: false
+backgroundController:
+  serviceMonitor:
+    enabled: false
+cleanupController:
+  serviceMonitor:
+    enabled: false
+reportsController:
+  serviceMonitor:
+    enabled: false

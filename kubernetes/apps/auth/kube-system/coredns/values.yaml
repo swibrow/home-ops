@@ -1,0 +1,4 @@
+---
+# auth (single-node) overlay — only the diffs from _base/kube-system/coredns.
+# One replica, no hostname topologySpread (single node).
+replicaCount: 1
