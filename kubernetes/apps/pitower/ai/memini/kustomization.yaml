@@ -18,7 +18,7 @@ configMapGenerator:
 helmCharts:
   - name: memini
     repo: oci://registry.erwanleboucher.dev/eleboucher/charts
-    version: v0.7.1
+    version: v0.7.2
     releaseName: memini
     namespace: ai
     valuesFile: values.yaml
