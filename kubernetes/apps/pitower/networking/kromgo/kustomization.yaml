@@ -9,7 +9,7 @@ resources:
 helmCharts:
   - name: kromgo
     repo: oci://ghcr.io/home-operations/charts
-    version: 0.15.0
+    version: 0.15.1
     releaseName: kromgo
     namespace: networking
     valuesFile: values.yaml
