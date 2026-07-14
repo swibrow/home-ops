@@ -12,7 +12,7 @@ commonAnnotations:
 helmCharts:
   - name: toolhive-operator-crds
     repo: oci://ghcr.io/stacklok/toolhive
-    version: 0.34.0
+    version: 0.35.0
     releaseName: toolhive-operator-crds
     namespace: ai
   - name: toolhive-operator
