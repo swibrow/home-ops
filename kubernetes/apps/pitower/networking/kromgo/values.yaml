@@ -1,7 +1,7 @@
 config:
   prometheus: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
-  # Only /badges is routed publicly (via the apex HTTPRoute); the gallery landing
-  # page is not exposed.
+  # Exposed at kromgo.wibrow.dev (badge/metric endpoints only); the gallery
+  # landing page is not exposed.
   gallery:
     enabled: false
   cache:
