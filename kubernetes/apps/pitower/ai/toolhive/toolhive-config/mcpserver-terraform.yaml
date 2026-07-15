@@ -10,7 +10,7 @@ kind: MCPServer
 metadata:
   name: terraform
 spec:
-  image: docker.io/hashicorp/terraform-mcp-server:1.0.0
+  image: docker.io/hashicorp/terraform-mcp-server:1.1.0
   transport: stdio
   proxyPort: 8080
   groupRef:
