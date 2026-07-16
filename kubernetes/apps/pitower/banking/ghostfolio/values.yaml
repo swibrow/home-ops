@@ -6,7 +6,7 @@ controllers:
       app:
         image:
           repository: ghostfolio/ghostfolio
-          tag: 3.26.0
+          tag: 3.27.0
         env:
           NODE_ENV: production
           ROOT_URL: https://portfolio.wibrow.dev
