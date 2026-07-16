@@ -9,6 +9,15 @@ machine:
   # the static control-plane pods (system-node-critical) are evicted last.
   # Merges with the cluster-wide kubelet.extraConfig in all/01-general.yaml.
   kubelet:
+    # Expose the host etcd PKI to pods (e.g. the etcd-defrag CronJob) — kubelet
+    # runs in its own mount namespace and can't see /system by default.
+    extraMounts:
+      - destination: /system/secrets/etcd
+        type: bind
+        source: /system/secrets/etcd
+        options:
+          - bind
+          - ro
     extraConfig:
       systemReserved:
         cpu: 500m
