@@ -15,7 +15,7 @@ server:
     accessModes:
       - ReadWriteOnce
     storageClassName: ceph-block
-    size: 50Gi
+    size: 100Gi
   service:
     servicePort: 8428
     type: ClusterIP
@@ -25,7 +25,7 @@ server:
       cpu: 100m
       memory: 1001Mi
     limits:
-      memory: 2Gi
+      memory: 4Gi
   ingress:
     enabled: false
 
