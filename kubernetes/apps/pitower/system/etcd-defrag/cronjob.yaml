@@ -1,0 +1,64 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: etcd-defrag
+spec:
+  schedule: "0 3 * * 0" # Sundays 03:00
+  timeZone: Europe/Zurich
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      ttlSecondsAfterFinished: 86400
+      template:
+        spec:
+          restartPolicy: Never
+          # etcd is a Talos host service, not a pod — reach it on localhost and
+          # read its certs straight off the node.
+          hostNetwork: true
+          hostPID: true
+          nodeSelector:
+            node-role.kubernetes.io/control-plane: ""
+          tolerations:
+            - key: node-role.kubernetes.io/control-plane
+              operator: Exists
+              effect: NoSchedule
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+            runAsNonRoot: false
+          containers:
+            - name: etcd-defrag
+              image: ghcr.io/ahrtr/etcd-defrag:v0.42.0@sha256:5138a12eda39067dabcf1d420d66f54f29f1e9297109a6b36574e010b45d58cc
+              args:
+                - --endpoints=https://127.0.0.1:2379
+                - --cluster
+                - --cacert=/certs/ca.crt
+                - --cert=/certs/server.crt
+                - --key=/certs/server.key
+                # Defrag a member once its db is >50% of quota or has >100MiB reclaimable.
+                - --defrag-rule=dbQuotaUsage > 0.5 || dbSizeFree > 100*1024*1024
+                - --move-leader
+                - --wait-between-defrags=30s
+                - --auto-disalarm
+                - --disalarm-threshold=0.8
+              securityContext:
+                privileged: true
+              resources:
+                requests:
+                  cpu: 25m
+                  memory: 128Mi
+                limits:
+                  memory: 256Mi
+              volumeMounts:
+                - name: etcd-certs
+                  mountPath: /certs
+                  readOnly: true
+          volumes:
+            - name: etcd-certs
+              hostPath:
+                path: /system/secrets/etcd
+                type: Directory
