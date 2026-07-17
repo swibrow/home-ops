@@ -1,6 +1,8 @@
 crds:
   enabled: true
 cleanPrometheusOperatorObjectNames: true
+prometheusOperator:
+  logFormat: json
 alertmanager:
   enabled: true
   route:

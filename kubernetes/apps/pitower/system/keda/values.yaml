@@ -2,6 +2,10 @@
 crds:
   install: true
 
+logging:
+  operator:
+    format: json
+
 operator:
   replicaCount: 2
 

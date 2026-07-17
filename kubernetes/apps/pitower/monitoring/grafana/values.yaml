@@ -9,6 +9,8 @@ env:
   GF_SERVER_ROOT_URL: "https://grafana.wibrow.dev"
 envFromSecret: grafana-secrets
 grafana.ini:
+  log.console:
+    format: json
   analytics:
     check_for_updates: false
     check_for_plugin_updates: false
@@ -198,3 +200,5 @@ imageRenderer:
   # access), churning the Secret and making Reloader restart Grafana on every
   # reconcile. Pin it to an ESO-managed Secret so the token is deterministic.
   existingSecret: grafana-image-renderer
+  env:
+    LOG_FORMAT: json

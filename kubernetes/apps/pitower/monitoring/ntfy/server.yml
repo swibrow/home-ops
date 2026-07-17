@@ -17,3 +17,4 @@ attachment-total-size-limit: "1G"
 attachment-file-size-limit: "15M"
 
 log-level: info
+log-format: json

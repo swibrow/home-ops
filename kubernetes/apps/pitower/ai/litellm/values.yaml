@@ -31,6 +31,7 @@ controllers:
           STORE_MODEL_IN_DB: "true"
           LITELLM_MODE: PRODUCTION
           TZ: Europe/Zurich
+          JSON_LOGS: "true"
           # Admin UI SSO via Kanidm (generic OIDC). "Login with SSO" button;
           # master-key login stays as break-glass. PKCE (S256) is mandatory on
           # Kanidm clients — LiteLLM sends it via GENERIC_CLIENT_USE_PKCE.

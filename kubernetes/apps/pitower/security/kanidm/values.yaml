@@ -26,6 +26,10 @@ controllers:
           KANIDM_TLS_KEY: /certs/tls.key
           KANIDM_ADMIN_BIND_PATH: /var/run/kanidmd.sock
           KANIDM_TRUST_X_FORWARD_FOR: "true"
+          # Kanidm has no JSON log output, only its own tracing-tree text
+          # format — ship spans as OTLP traces instead of relying on
+          # unstructured stdout for observability.
+          KANIDM_OTEL_GRPC_URL: otel-collector.monitoring.svc.cluster.local:4317
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true

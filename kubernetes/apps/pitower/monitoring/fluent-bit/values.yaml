@@ -26,6 +26,12 @@ config:
       path /var/log/containers/*.log
       parser cri-log
       tag kubernetes.*
+      # Containerd splits any single log line over ~16KB into multiple CRI
+      # partial ("P") entries; without this they land as broken, non-JSON
+      # fragments (e.g. argocd-repo-server's long kustomize/helm command
+      # lines). The built-in `cri` multiline parser reassembles them into one
+      # line before `parser cri-log` (above) extracts time/stream/log.
+      multiline.parser cri
 
   ## Strip the CRI prefix ("<time> stdout F ") into discrete fields, leaving the
   ## bare application log line in `log` so the kubernetes filter's `merge_log`

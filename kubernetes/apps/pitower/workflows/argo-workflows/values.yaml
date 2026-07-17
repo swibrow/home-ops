@@ -13,12 +13,16 @@ controller:
     enabled: true
   serviceMonitor:
     enabled: true
+  logging:
+    format: json
 
 server:
   resources:
     requests:
       cpu: 10m
       memory: 64Mi
+  logging:
+    format: json
   authModes:
     - sso
   sso:
