@@ -7,7 +7,8 @@ kind: SandboxTemplate
 metadata:
   name: flickerd
 spec:
-  # Egress only: DNS + HTTPS (Anthropic API, GitHub, Cloudflare R2).
+  # Egress: DNS + HTTPS (Anthropic API, GitHub, Cloudflare R2) + the in-cluster
+  # otel-collector for traces/metrics.
   networkPolicy:
     egress:
       - to:
@@ -21,6 +22,18 @@ spec:
             protocol: TCP
       - ports:
           - port: 443
+            protocol: TCP
+      - to:
+          - namespaceSelector:
+              matchLabels:
+                kubernetes.io/metadata.name: monitoring
+            podSelector:
+              matchLabels:
+                app.kubernetes.io/managed-by: opentelemetry-operator
+                app.kubernetes.io/instance: monitoring.otel
+                app.kubernetes.io/component: opentelemetry-collector
+        ports:
+          - port: 4318
             protocol: TCP
   podTemplate:
     metadata:
@@ -36,10 +49,12 @@ spec:
         runAsNonRoot: true
       containers:
         - name: sandbox
-          image: ghcr.io/swibrow/flickerd-sandbox:0.4.0
+          image: ghcr.io/swibrow/flickerd-sandbox:0.6.0
           env:
             - name: TZ
               value: Europe/Zurich
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.monitoring.svc.cluster.local:4318"
             - name: GIT_REPO
               value: swibrow/flickerd-sites
             - name: R2_ENDPOINT
