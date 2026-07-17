@@ -12,6 +12,6 @@ configMapGenerator:
 helmCharts:
   - name: goat
     repo: oci://ghcr.io/swibrow/charts
-    version: 0.6.1
+    version: 0.7.0
     releaseName: goat
     valuesFile: values.yaml
