@@ -10,3 +10,6 @@ resources:
   - collector.yaml
   - servicemonitor.yaml
   - instrumentation.yaml
+  - httproute.yaml
+  - securitypolicy.yaml
+  - externalsecret.yaml

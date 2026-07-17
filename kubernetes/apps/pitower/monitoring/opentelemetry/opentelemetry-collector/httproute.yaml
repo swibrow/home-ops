@@ -1,0 +1,26 @@
+---
+# External OTLP/HTTP ingest for the collector, gated by the apiKeyAuth
+# SecurityPolicy in securitypolicy.yaml. Clients outside the cluster (e.g. the
+# ovh-vps host) send traces/metrics with:
+#   OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp.wibrow.dev
+#   OTEL_EXPORTER_OTLP_HEADERS=X-API-Key=<key>
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/gateway.networking.k8s.io/httproute_v1.json
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: otel-collector
+spec:
+  hostnames:
+    - otlp.wibrow.dev
+  parentRefs:
+    - name: envoy-external
+      namespace: networking
+      sectionName: https
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: otel-collector
+          port: 4318
