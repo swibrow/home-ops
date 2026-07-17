@@ -35,6 +35,8 @@ spec:
             # passes to the exec WebSocket; trusting the cluster CA globally fixes it.
             - name: NODE_EXTRA_CA_CERTS
               value: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.monitoring.svc.cluster.local:4318"
             - name: FLICKERD_API_URL
               value: https://flickerd.com
             - name: FLICKERD_NAMESPACE
