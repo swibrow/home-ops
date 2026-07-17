@@ -1,0 +1,17 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: monitoring
+# Wave 0: CRDs + operator install ahead of the OpenTelemetryCollector CR
+# (opentelemetry-collector, wave 1) in the single combined ArgoCD sync.
+commonAnnotations:
+  argocd.argoproj.io/sync-wave: "0"
+helmCharts:
+  - name: opentelemetry-operator
+    repo: https://open-telemetry.github.io/opentelemetry-helm-charts
+    version: 0.120.0
+    releaseName: opentelemetry-operator
+    includeCRDs: true
+    namespace: monitoring
+    valuesFile: values.yaml

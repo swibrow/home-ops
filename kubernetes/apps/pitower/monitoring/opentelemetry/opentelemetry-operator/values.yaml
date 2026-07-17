@@ -1,0 +1,14 @@
+---
+admissionWebhooks:
+  certManager:
+    enabled: true
+
+manager:
+  collectorImage:
+    repository: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-k8s
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      memory: 256Mi

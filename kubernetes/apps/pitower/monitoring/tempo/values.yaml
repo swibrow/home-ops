@@ -1,0 +1,22 @@
+---
+fullnameOverride: tempo
+
+tempo:
+  # Local disk backend, not S3 — keep retention short since it's on a 20Gi PVC.
+  retention: 72h
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      memory: 1Gi
+
+persistence:
+  enabled: true
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ceph-block
+  size: 20Gi
+
+serviceMonitor:
+  enabled: true

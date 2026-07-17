@@ -1,0 +1,27 @@
+---
+# Opt-in auto-instrumentation for apps that don't ship their own OTel SDK setup.
+# Annotate the pod template to inject it, e.g.:
+#   instrumentation.opentelemetry.io/inject-python: "monitoring/otel-instrumentation"
+#   instrumentation.opentelemetry.io/inject-java: "monitoring/otel-instrumentation"
+#   instrumentation.opentelemetry.io/inject-nodejs: "monitoring/otel-instrumentation"
+#   instrumentation.opentelemetry.io/inject-dotnet: "monitoring/otel-instrumentation"
+# Go requires manager.autoInstrumentation.go.enabled on the operator plus an
+# extra inject-go annotation; not turned on here.
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: otel-instrumentation
+  namespace: monitoring
+spec:
+  exporter:
+    endpoint: http://otel-collector.monitoring.svc.cluster.local:4318
+  propagators:
+    - tracecontext
+    - baggage
+  sampler:
+    type: parentbased_traceidratio
+    argument: "1"
+  java: {}
+  python: {}
+  nodejs: {}
+  dotnet: {}

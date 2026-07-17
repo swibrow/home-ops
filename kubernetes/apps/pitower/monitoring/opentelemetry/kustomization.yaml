@@ -1,0 +1,13 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Single ArgoCD app (pitower-monitoring-opentelemetry) — the cluster ApplicationSet
+# generator matches kubernetes/apps/{cluster}/*/* (category/app), so this parent
+# aggregates the nested operator/collector kustomizations rather than them being
+# two sibling apps. Sync ordering is via argocd.argoproj.io/sync-wave
+# commonAnnotations in each child (operator wave 0 → CRDs+operator first;
+# collector wave 1 → the OpenTelemetryCollector CR after).
+resources:
+  - opentelemetry-operator
+  - opentelemetry-collector

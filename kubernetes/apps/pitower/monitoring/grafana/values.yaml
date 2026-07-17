@@ -86,6 +86,19 @@ datasources:
         uid: victorialogs
         access: proxy
         url: http://victoria-logs.monitoring.svc.cluster.local:9428
+      - name: Tempo
+        type: tempo
+        uid: tempo
+        access: proxy
+        url: http://tempo.monitoring.svc.cluster.local:3200
+        jsonData:
+          tracesToLogsV2:
+            datasourceUid: victorialogs
+            filterByTraceID: true
+          tracesToMetrics:
+            datasourceUid: prometheus
+          serviceMap:
+            datasourceUid: prometheus
       - name: Alertmanager
         type: alertmanager
         access: proxy

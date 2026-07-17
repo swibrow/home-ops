@@ -1,0 +1,65 @@
+---
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: otel
+  namespace: monitoring
+spec:
+  mode: deployment
+  replicas: 1
+  observability:
+    metrics:
+      enableMetrics: true
+  # Named so the ServiceMonitor in servicemonitor.yaml can target the port by
+  # name regardless of how the operator orders auto-detected receiver/exporter
+  # ports.
+  ports:
+    - name: prom-metrics
+      port: 8889
+      targetPort: 8889
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 512Mi
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+    processors:
+      memory_limiter:
+        check_interval: 5s
+        limit_percentage: 80
+        spike_limit_percentage: 25
+      batch: {}
+    exporters:
+      otlp/tempo:
+        endpoint: tempo.monitoring.svc.cluster.local:4317
+        tls:
+          insecure: true
+      prometheus:
+        endpoint: 0.0.0.0:8889
+        resource_to_telemetry_conversion:
+          enabled: true
+    # Required — the operator wires livenessProbe/readinessProbe to this
+    # extension's endpoint; without it the probes have nothing to hit and the
+    # collector pod never goes Ready.
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+    service:
+      extensions: [health_check]
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [otlp/tempo]
+        metrics:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [prometheus]

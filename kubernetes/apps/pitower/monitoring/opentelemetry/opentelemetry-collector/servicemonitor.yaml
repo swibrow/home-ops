@@ -1,0 +1,15 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: otel-collector
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/managed-by: opentelemetry-operator
+      app.kubernetes.io/instance: monitoring.otel
+      app.kubernetes.io/component: opentelemetry-collector
+  endpoints:
+    - port: prom-metrics
+      interval: 30s
