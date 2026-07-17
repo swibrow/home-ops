@@ -1,0 +1,164 @@
+---
+# Primary trigger: PostSync hook fires on every ArgoCD sync, so editing mise.toml
+# and committing is the entire "add a tool/version" workflow — no manual job
+# trigger ever needed. This is the ONLY place in the app that writes to the NFS
+# share (RW mount) and has egress (fetching pinned, checksum-verified releases).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: bin-cache-populate-postsync
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      # pitower is entirely x86_64 (AMD Ryzen control planes, Intel workers) — no arm64
+      # hardware exists in this cluster today. mise.lock is already pinned for both
+      # linux-x64 and linux-arm64, and the NFS tree is arch-namespaced (linux-amd64/,
+      # linux-arm64/) so adding real arm64 population later (once arm64 compute reachable
+      # from the `data` NFS server exists) is a new Job/CronJob variant with this
+      # nodeSelector flipped, not a breaking migration of this one. See README.md.
+      nodeSelector:
+        kubernetes.io/arch: amd64
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 2000
+        runAsGroup: 2000
+        fsGroup: 2000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: populate
+          image: ghcr.io/swibrow/bin-cache-populate:0.1.0
+          command: ["sh", "-c"]
+          args:
+            - mkdir -p "$MISE_DATA_DIR" && mise install
+          env:
+            - name: HOME
+              value: /tmp
+            - name: MISE_DATA_DIR
+              value: /mnt/nfs/bin-cache/linux-amd64
+            - name: MISE_CONFIG_FILE
+              value: /etc/mise/mise.toml
+            - name: MISE_CACHE_DIR
+              value: /tmp/mise-cache
+            - name: MISE_STATE_DIR
+              value: /tmp/mise-state
+            - name: MISE_TRUSTED_CONFIG_PATHS
+              value: /etc/mise
+            - name: MISE_YES
+              value: "true"
+            - name: MISE_LOCKFILE
+              value: "false" # verify checksums against the mounted mise.lock, never write back (RO mount)
+          volumeMounts:
+            - name: nfs-bin-cache
+              mountPath: /mnt/nfs
+            - name: mise-config
+              mountPath: /etc/mise
+            - name: tmp
+              mountPath: /tmp
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+      volumes:
+        - name: nfs-bin-cache
+          nfs:
+            server: data
+            path: /volume1/nfs
+            readOnly: false
+        - name: mise-config
+          configMap:
+            name: bin-cache-mise-config
+        - name: tmp
+          emptyDir: {}
+---
+# Redundant self-heal: same populate logic, run weekly in case the NFS share is
+# lost/re-provisioned without a corresponding git change to trigger the hook above.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: bin-cache-populate
+spec:
+  schedule: "0 5 * * 0" # Sundays 05:00
+  timeZone: Europe/Zurich
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      ttlSecondsAfterFinished: 86400
+      template:
+        spec:
+          nodeSelector:
+            kubernetes.io/arch: amd64
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 2000
+            runAsGroup: 2000
+            fsGroup: 2000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: populate
+              image: ghcr.io/swibrow/bin-cache-populate:0.1.0
+              command: ["sh", "-c"]
+              args:
+                - mkdir -p "$MISE_DATA_DIR" && mise install
+              env:
+                - name: HOME
+                  value: /tmp
+                - name: MISE_DATA_DIR
+                  value: /mnt/nfs/bin-cache/linux-amd64
+                - name: MISE_CONFIG_FILE
+                  value: /etc/mise/mise.toml
+                - name: MISE_CACHE_DIR
+                  value: /tmp/mise-cache
+                - name: MISE_STATE_DIR
+                  value: /tmp/mise-state
+                - name: MISE_TRUSTED_CONFIG_PATHS
+                  value: /etc/mise
+                - name: MISE_YES
+                  value: "true"
+                - name: MISE_LOCKFILE
+                  value: "false"
+              volumeMounts:
+                - name: nfs-bin-cache
+                  mountPath: /mnt/nfs
+                - name: mise-config
+                  mountPath: /etc/mise
+                - name: tmp
+                  mountPath: /tmp
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop: ["ALL"]
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  memory: 512Mi
+          volumes:
+            - name: nfs-bin-cache
+              nfs:
+                server: data
+                path: /volume1/nfs
+                readOnly: false
+            - name: mise-config
+              configMap:
+                name: bin-cache-mise-config
+            - name: tmp
+              emptyDir: {}
