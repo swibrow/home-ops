@@ -2,7 +2,7 @@
 # The first ARG *_VERSION drives the published image tag (see build-docker-images.yaml).
 ARG CLAUDE_CODE_VERSION=2.1.167
 
-FROM codercom/code-server:4.128.0
+FROM codercom/code-server:4.129.0
 
 ARG CLAUDE_CODE_VERSION
 ARG NODE_MAJOR=22
