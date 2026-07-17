@@ -1,0 +1,31 @@
+---
+# Narrow exception to the runner sandboxes' private-range egress fence
+# (runs-networkpolicy.yaml, vendored in the chart — private ranges are
+# blocked so a prompt-injected agent can't reach the cluster/LAN): allow
+# OTLP export straight to the in-cluster collector instead of routing
+# through the external otlp.wibrow.dev + API key. Additive — NetworkPolicies
+# selecting the same pods are unioned, so this doesn't touch the chart's
+# own policy. Mirrors flickerd's sandboxtemplate.yaml egress rule.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/networking.k8s.io/networkpolicy_v1.json
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: garrison-runner-otel-egress
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: garrison-runner
+  policyTypes: ["Egress"]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/managed-by: opentelemetry-operator
+              app.kubernetes.io/instance: monitoring.otel
+              app.kubernetes.io/component: opentelemetry-collector
+      ports:
+        - port: 4318
+          protocol: TCP

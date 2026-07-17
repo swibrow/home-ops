@@ -20,6 +20,11 @@ api:
   env:
     ALLOWED_USERS: "1053711635"
     ADMIN_USERS: "1053711635"
+    # goat-api has no egress restrictions, so it reaches the collector
+    # directly — no auth needed. Dev-session pods are built with an explicit
+    # V1EnvVar list (no envFrom) and don't currently forward this; wiring
+    # them needs a code change in goat's dev_sessions/manager.py.
+    OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector.monitoring.svc.cluster.local:4318
 # Dev-session pods (Claude Code in the goat namespace) — needs the
 # ghcr.io/swibrow/claude-code image and the egress NetworkPolicy below.
 devSessions:
