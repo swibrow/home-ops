@@ -1,0 +1,23 @@
+# Home cluster (admin@pitower). Pin the image by release version: spegel
+# resolves mutable tags like :latest from peer caches, serving stale images.
+image:
+  tag: v0.1.0
+imagePullSecret: ghcr-pull-secret
+oidc:
+  enabled: true
+  issuer: https://idm.wibrow.dev/oauth2/openid/webterm
+  clientId: webterm
+  group: webterm_users
+secrets:
+  name: webterm-secrets
+  externalSecrets:
+    enabled: true
+    store: infisical
+    basePath: /webterm
+httpRoute:
+  enabled: true
+  hostname: term.wibrow.dev
+  gateway:
+    name: envoy-internal
+    namespace: networking
+    sectionName: https

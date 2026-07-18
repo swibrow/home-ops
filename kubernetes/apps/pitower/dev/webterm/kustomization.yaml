@@ -1,0 +1,14 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: dev
+helmCharts:
+  # Bootstrap placeholder — webterm's CI hasn't published a chart yet.
+  # Overwritten by the first successful deploy-pitower run.
+  - name: webterm
+    repo: oci://ghcr.io/swibrow/charts
+    version: 0.1.0
+    releaseName: webterm
+    namespace: dev
+    valuesFile: values.yaml
