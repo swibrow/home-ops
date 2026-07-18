@@ -13,7 +13,9 @@ secrets:
   externalSecrets:
     enabled: true
     store: infisical
-    basePath: /webterm
+    # dev namespace convention: /dev/<app>/<KEY> (see dev/forgejo,
+    # dev/propagit), not the app-owns-its-namespace /<app> default.
+    basePath: /dev/webterm
 httpRoute:
   enabled: true
   hostname: term.wibrow.dev
