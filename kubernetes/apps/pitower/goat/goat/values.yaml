@@ -20,10 +20,13 @@ api:
   env:
     ALLOWED_USERS: "1053711635"
     ADMIN_USERS: "1053711635"
-    # Discord allow-list (numeric Discord user IDs) — same fail-closed rule.
-    # Token synced from Infisical /goat/DISCORD_BOT_TOKEN via
+    # Discord auth: "*" admits any member of the guilds listed below
+    # (DMs still need an explicit user ID). Fill in the guild ID before
+    # merging — "*" with an empty guild list opens the bot to every server
+    # it is in. Token synced from Infisical /goat/DISCORD_BOT_TOKEN via
     # externalSecrets.discord below.
-    DISCORD_ALLOWED_USERS: ""
+    DISCORD_ALLOWED_USERS: "*"
+    DISCORD_ALLOWED_GUILDS: ""
     # goat-api has no egress restrictions, so it reaches the collector
     # directly — no auth needed. Dev-session pods are built with an explicit
     # V1EnvVar list (no envFrom) and don't currently forward this; wiring
