@@ -10,7 +10,8 @@ kind: CronWorkflow
 metadata:
   name: litellm-model-sync
 spec:
-  schedule: "0 6 * * *"
+  schedules:
+    - "0 6 * * *"
   timezone: Europe/Zurich
   concurrencyPolicy: Forbid
   startingDeadlineSeconds: 600
