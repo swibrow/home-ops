@@ -1,0 +1,59 @@
+---
+# Daily: pull OpenRouter's model catalog, find new releases from providers
+# already tracked in ai/litellm/config.yaml, and open a PR adding them. On
+# merge, ArgoCD updates the litellm-config ConfigMap and Reloader restarts
+# litellm to pick it up — open-webui lists models by calling litellm's live
+# /v1/models, so no separate open-webui change is needed.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/argoproj.io/cronworkflow_v1alpha1.json
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: litellm-model-sync
+spec:
+  schedule: "0 6 * * *"
+  timezone: Europe/Zurich
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  workflowSpec:
+    entrypoint: sync
+    serviceAccountName: argo-workflow
+    podGC:
+      strategy: OnPodCompletion
+    ttlStrategy:
+      secondsAfterCompletion: 86400
+    templates:
+      - name: sync
+        volumes:
+          - name: scripts
+            configMap:
+              name: litellm-model-sync-scripts
+        script:
+          image: python:3.12-slim
+          command:
+            - bash
+          source: |
+            set -euo pipefail
+            apt-get update -qq
+            apt-get install -y -qq --no-install-recommends git ca-certificates >/dev/null
+            pip install --quiet --no-cache-dir requests pyyaml
+            python /scripts/sync-models.py
+          env:
+            - name: LOOKBACK_DAYS
+              value: "14"
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: litellm-model-sync-github
+                  key: token
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+              readOnly: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
