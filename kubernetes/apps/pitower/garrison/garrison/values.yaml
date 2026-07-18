@@ -26,6 +26,14 @@ launcher: sandbox
 herald:
   enabled: true
   allowedChatIds: "1053711635,-5540433154"
+# Discord surface. Bot token, application id, and the guild allowlist all
+# sync from Infisical (/garrison/WARHORN_*) via external-secrets — nothing
+# warhorn-specific to pin here. stt stays off until a transcription
+# endpoint is picked; the bot is text-only and /join says so.
+# NOTE: requires chart >= the release carrying the warhorn — until the
+# version above is bumped past it, these keys are inert.
+warhorn:
+  enabled: true
 secrets:
   authEnabled: true
   # wartable is VPN-only (envoy-internal); /internal stays token-gated.
