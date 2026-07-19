@@ -1,7 +1,7 @@
 # Home cluster (admin@pitower). Pin the image by release version: spegel
 # resolves mutable tags like :latest from peer caches, serving stale images.
 image:
-  tag: v0.1.0
+  tag: v1.0.0
 imagePullSecret: ghcr-pull-secret
 oidc:
   enabled: true
