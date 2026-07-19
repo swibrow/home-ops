@@ -8,7 +8,7 @@ helmCharts:
   # Overwritten by the first successful deploy-pitower run.
   - name: webterm
     repo: oci://ghcr.io/swibrow/charts
-    version: 0.1.0
+    version: 1.0.0
     releaseName: webterm
     namespace: dev
     valuesFile: values.yaml
