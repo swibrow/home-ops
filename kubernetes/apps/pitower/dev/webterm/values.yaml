@@ -3,11 +3,15 @@
 image:
   tag: v1.0.0
 imagePullSecret: ghcr-pull-secret
+# Every self-hosted app on this instance gates access via kanidm's
+# app_access scope-map, not a per-app group (see goat's values.yaml).
+# Unlike goat, webterm validates groups off the id_token, so this
+# enforcement actually works here (goat's is disabled — see its notes).
 oidc:
   enabled: true
   issuer: https://idm.wibrow.dev/oauth2/openid/webterm
   clientId: webterm
-  group: webterm_users
+  group: app_access
 secrets:
   name: webterm-secrets
   externalSecrets:
