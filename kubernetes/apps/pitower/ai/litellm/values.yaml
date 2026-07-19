@@ -21,7 +21,7 @@ controllers:
         # "Installing Prisma CLI" reinstall + NotConnectedError under non-root).
         image:
           repository: ghcr.io/berriai/litellm-non_root
-          tag: v1.92.0
+          tag: v1.93.0
         args:
           - --config
           - /config/config.yaml
