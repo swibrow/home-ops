@@ -27,7 +27,7 @@ spec:
         runAsNonRoot: true
       containers:
         - name: generator
-          image: ghcr.io/swibrow/flickerd:v0.4.0
+          image: ghcr.io/swibrow/flickerd:v0.6.0
           env:
             - name: TZ
               value: Europe/Zurich
