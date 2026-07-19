@@ -43,6 +43,13 @@ secrets:
     store: infisical
     basePath: /garrison
     githubApp: true
+    # OTLP collector endpoint for runner sortie pods and the keep itself —
+    # synced by the chart's own garrison-runner-env/garrison-keep-env
+    # ExternalSecrets (requires chart >= 0.25.0). Replaces the standalone
+    # garrison-runner-otel/garrison-keep-otel ExternalSecrets, which raced
+    # the chart's own ExternalSecrets for ownership of the same Secret.
+    runnerOtel: true
+    keepOtel: true
 persistence:
   size: 5Gi
 networkPolicy:
