@@ -14,6 +14,6 @@ configMapGenerator:
 helmCharts:
   - name: garrison
     repo: oci://ghcr.io/swibrow/charts
-    version: 0.26.1
+    version: 0.27.0
     releaseName: garrison
     valuesFile: values.yaml
