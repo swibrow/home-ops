@@ -5,6 +5,8 @@ kind: Kustomization
 namespace: networking
 resources:
   - externalsecret.yaml
+  - dnsendpoint.yaml
+  - hpa.yaml
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm

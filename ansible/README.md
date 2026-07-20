@@ -165,9 +165,15 @@ The hub is one half of the towonel tunnel (see GitHub issue
 [swibrow/home-ops#1325](https://github.com/swibrow/home-ops/issues/1325)): it runs on this VPS
 (`tunnel.wibrow.dev`) and an agent in the `pitower` cluster
 (`kubernetes/apps/pitower/networking/towonel-agent/`) dials out to it, publishing `*.wibrow.dev`
-routes. The image shares one process for two roles on port 443 — the **edge** (SNI passthrough for
-tenant traffic) and, embedded in the same binary, the **hub** control API on `:8443` (agent
-bootstrap/registration).
+routes. Since 2026-07-21 this is the **primary path** for `external.wibrow.dev` / `*.wibrow.dev`
+(DNS CNAMEs to `tunnel.wibrow.dev`, non-proxied) — `cloudflared` still runs alongside it but only
+owns the bare `wibrow.dev` apex (see `kubernetes/apps/pitower/networking/cloudflared/`).
+
+The image (`towonel-hub-caddy`, not the plain `towonel-node`) runs two processes on this host:
+Caddy, fronting the privileged ports, and the towonel binary itself, doing the actual work — the
+**edge** (SNI passthrough for tenant traffic) and, embedded in the same binary, the **hub** control
+API (agent bootstrap/registration). Caddy is there specifically to solve the ACME chicken-and-egg
+bug described below — see that section for why.
 
 ### Key material — never regenerate
 
@@ -185,68 +191,76 @@ ever change.
   base URL embedded in every invite token. Confirmed from the agent's actual source
   (`crates/towonel-agent/src/stateless.rs`): every hub API call is
   `format!("{}/v1/...", token.hub_url.trim_end_matches('/'))` — there is **no automatic port
-  inference**. Upstream's docs example omits the port (`https://hub.example.eu`), but that only
-  works behind a reverse proxy that multiplexes port 443 by path/protocol (see
-  `/docs/self-hosted/reverse-proxy/`). This deployment binds edge (`:443`) and hub (`:8443`)
-  directly with no proxy in front, so the URL **must** include `:8443` — otherwise every hub API
-  call lands on the edge instead, which SNI-passthroughs and resets the connection.
-- `TOWONEL_HUB_TLS_ACME_EMAIL` — Let's Encrypt registration email for the hub's own cert on
-  `:8443`. This is a **real, publicly-trusted cert**, not self-signed: the agent validates it with
-  standard webpki roots and does not pin via the invite token.
+  inference**. Since the Caddy fix below, this is plain `https://tunnel.wibrow.dev` (no port) —
+  see "The ACME chicken-and-egg bug" for why it used to need `:8443` and no longer does.
+- `TOWONEL_HUB_ACME_EMAIL` (role var, → Caddyfile `email` directive) — Let's Encrypt registration
+  email for **Caddy's own** automatic HTTPS cert on `towonel_hub_domain`. This is a real,
+  publicly-trusted cert, not self-signed — the agent validates it with standard webpki roots and
+  does not pin via the invite token. towonel's own ACME (`TOWONEL_HUB_TLS_*`) is unused now; the
+  hub runs with no TLS config of its own and speaks plain HTTP on a loopback port.
 
-### The ACME chicken-and-egg bug (confirmed in source, not just observed)
+### The ACME chicken-and-egg bug (confirmed in source, not just observed) — fixed via Caddy L4 SNI routing
 
 Issuance uses TLS-ALPN-01 only (hardcoded upstream, no DNS-01, no static-cert file), and TLS-ALPN-01
 validation always connects to port 443 — never a custom port. Read straight from
 `crates/towonel-node/src/lib.rs`'s `run_node()`: in combined mode (hub+edge on one host, our setup)
 `hub.run()` and `edge.run()` are **two fully independent tasks**, linked only by an in-process route
 channel for tenant hostnames. The hub's ACME manager (`hub/acme.rs`) builds a correctly-wired
-`CertResolver` + `EdgeAlpnSolver` (ALPN `acme-tls/1` support) — but wires it only into the hub's own
-`axum_server` listener on `TOWONEL_HUB_LISTEN_ADDR` (`:8443`), never into the edge's `:443` listener.
-Since Let's Encrypt's TLS-ALPN-01 validator only ever dials port 443, and port 443 is exclusively the
-edge's (which has zero ACME awareness), **the hub's own cert can never be issued while both run
-combined on one host** — confirmed identical on `towonel-node:1.0.1` and `1.2.0`, and reproduced with
-a direct external TLS probe (`openssl s_client -alpn acme-tls/1`) timed against a live ACME challenge
-window: every connection resets, in-window or not.
+`CertResolver` + `EdgeAlpnSolver` (ALPN `acme-tls/1` support) — but previously it was wired only into
+the hub's own `axum_server` listener on `TOWONEL_HUB_LISTEN_ADDR` (`:8443`), never into the edge's
+`:443` listener. Since Let's Encrypt's TLS-ALPN-01 validator only ever dials port 443, and port 443
+was exclusively the edge's (zero ACME awareness), **the hub's own cert could never be issued while
+both ran combined on one host** — confirmed identical on `towonel-node:1.0.1` and `1.2.0`, and
+reproduced with a direct external TLS probe (`openssl s_client -alpn acme-tls/1`) timed against a
+live ACME challenge window: every connection reset, in-window or not. This was an upstream bug, not
+a config mistake, and the old fix was a manual re-bootstrap dance repeated every ~60-90 days (see
+git history on this file if you need the old workaround).
 
-**Workaround (already applied on the live VPS, needed again at renewal in ~60-90 days):**
-1. `systemctl stop towonel-hub`
-2. Run a one-off container reusing the same `towonel-data` volume, with edge disabled so the hub can
-   bind :443 directly and receive the real ACME challenge itself:
-   ```sh
-   docker run -d --name towonel-cert-bootstrap -p 443:443 -v towonel-data:/data \
-     -e TOWONEL_EDGE_ENABLED=false \
-     -e TOWONEL_HUB_LISTEN_ADDR=0.0.0.0:443 \
-     -e TOWONEL_HUB_PUBLIC_URL=https://tunnel.wibrow.dev:8443 \
-     -e TOWONEL_HUB_TLS_ACME_EMAIL=sam.wibrow@gmail.com \
-     -e TOWONEL_DATA_DIR=/data \
-     codeberg.org/towonel/towonel-node:1.2.0
-   ```
-3. Watch `docker logs -f towonel-cert-bootstrap` for `certificate issued successfully` (~30s).
-4. `docker stop towonel-cert-bootstrap && docker rm towonel-cert-bootstrap`
-5. `systemctl start towonel-hub` — the cert is already cached in the shared volume, so combined mode
-   just serves it; no further validation needed until the cached cert nears expiry.
+**The real fix: stop using towonel's own ACME for the hub, and put a tiny SNI router in front of
+`:443`.** The image is `towonel-hub-caddy` (bundles the `towonel` binary with Caddy + the
+`caddy-l4` plugin — upstream's own supported "reverse proxy multiplexing 443" pattern, though their
+bundled Caddyfile only handles the edge side). `roles/towonel-hub/templates/Caddyfile.j2` adds a
+second route:
 
-This is an upstream bug, not a config mistake — worth reporting to the towonel maintainers. Until
-fixed upstream, this dance has to be repeated once per renewal window (cert validity is 90 days from
-issuance; check expiry with `openssl s_client -connect tunnel.wibrow.dev:8443 ... | openssl x509
--noout -enddate`).
+- `layer4` listens on the public `:443` and peeks the TLS ClientHello SNI (no decryption, so this
+  works for *any* connection including the ACME validator's, which presents
+  `SNI=tunnel.wibrow.dev` same as a real client would):
+  - `SNI == tunnel.wibrow.dev` → forwarded to Caddy's own loopback TLS listener
+    (`towonel_hub_caddy_tls_port`). This is what makes ACME issuance possible at all now: the
+    validator's connection lands on a listener that actually understands ACME, instead of the
+    edge's dumb passthrough.
+  - everything else (tenant hostnames) → forwarded to the edge's loopback listener
+    (`127.0.0.1:4443`, image default) with PROXY v2, unchanged from upstream's default behavior.
+- Caddy terminates real TLS for `tunnel.wibrow.dev` there using its own mature, independent
+  automatic-HTTPS implementation (not towonel's `certon`-based one) and reverse-proxies plaintext
+  HTTP to the hub's actual listener (`TOWONEL_HUB_LISTEN_ADDR=127.0.0.1:{{ towonel_hub_internal_port
+  }}`, no TLS config on the towonel side at all — `build_hub_tls()` returns `None` and it just
+  serves HTTP, which is what the image's own baked-in healthcheck already assumes).
+- `disable_http_challenge` on Caddy's issuer because `:80` isn't published — the L4 router above
+  already delivers everything TLS-ALPN-01 needs.
+
+Net effect: no more manual renewal dance, `:8443` is no longer published at all (smaller attack
+surface too), and the hub's `TOWONEL_HUB_PUBLIC_URL` is a normal port-443 HTTPS URL exactly like
+upstream's own quick-start example assumes.
 
 ### Reissuing the invite token
 
-Because the invite token embeds `TOWONEL_HUB_PUBLIC_URL`, changing that value (or fixing hub cert
-issuance for the first time) means the *existing* token the agent uses is stale and must be
-reissued from the hub, then updated in Infisical at
-`/networking/towonel-agent/TOWONEL_INVITE_TOKEN`, then the agent pod restarted. Confirm the hub's
-own cert is actually issuing successfully first — reissuing against a hub that still can't present
-a valid cert just reproduces the same failure differently.
+Because the invite token embeds `TOWONEL_HUB_PUBLIC_URL`, changing that value (as this fix did —
+dropping `:8443`) means the *existing* token the agent uses is stale and must be reissued from the
+hub, then updated in Infisical at `/networking/towonel-agent/TOWONEL_INVITE_TOKEN`, then the agent
+pod restarted. Confirm the hub's own cert is actually issuing successfully first (`curl -v
+https://tunnel.wibrow.dev/v1/health` from off-VPS) — reissuing against a hub that still can't
+present a valid cert just reproduces the same failure differently. Each invite is a new tenant
+identity (`towonel invite create` doesn't reissue in place), so the old tenant is orphaned once the
+agent switches — clean it up with `towonel tenant remove` once the new one is confirmed working.
 
 ### Verify
 
 ```sh
 systemctl status towonel-hub
-docker logs -f towonel                                    # ACME issuance / bootstrap attempts
-docker exec towonel curl -fsSk https://localhost:8443/v1/health
+docker logs -f towonel                                    # caddy ACME issuance / bootstrap attempts
+docker exec towonel curl -fsS http://127.0.0.1:8443/v1/health   # hub, plain HTTP inside the netns
+curl -v https://tunnel.wibrow.dev/v1/health                     # from off-VPS: Caddy's real cert + SNI routing
 kubectl --context=admin@pitower -n networking logs -l app.kubernetes.io/instance=towonel-agent
 ```
 

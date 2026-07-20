@@ -39,6 +39,25 @@
     - { name: operator.key, content: "{{ towonel_hub_operator_key }}" }
   no_log: true
 
+- name: Ensure towonel config directory exists
+  ansible.builtin.file:
+    path: "{{ towonel_hub_caddyfile_path | dirname }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+# SNI-routes :443 between the hub's own Caddy-terminated TLS (towonel_hub_domain)
+# and the edge's raw passthrough (everything else) -- see README.md.
+- name: Install Caddyfile
+  ansible.builtin.template:
+    src: Caddyfile.j2
+    dest: "{{ towonel_hub_caddyfile_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart towonel-hub
+
 - name: Install towonel-hub systemd unit
   ansible.builtin.template:
     src: towonel-hub.service.j2

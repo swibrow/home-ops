@@ -1,0 +1,46 @@
+{
+	admin off
+	email {{ towonel_hub_acme_email }}
+
+	# L4 SNI demux on :443 -- this is what makes the hub's own TLS-ALPN-01
+	# issuance possible at all. towonel's TLS-ALPN-01 validator only ever
+	# dials :443, and previously that port belonged exclusively to the edge
+	# (no ACME awareness), so the hub's own :8443 cert could never issue.
+	# Routing by SNI here means the *same* validator connection lands on the
+	# right internal listener: towonel_hub_domain -> Caddy's own TLS
+	# listener below, everything else (tenant hostnames) -> the edge,
+	# unchanged from upstream's default passthrough Caddyfile.
+	layer4 {
+		:443 {
+			@hub tls sni {{ towonel_hub_domain }}
+			route @hub {
+				proxy {
+					upstream 127.0.0.1:{{ towonel_hub_caddy_tls_port }}
+				}
+			}
+
+			@edge tls
+			route @edge {
+				proxy {
+					upstream 127.0.0.1:4443
+					proxy_protocol v2
+				}
+			}
+		}
+	}
+}
+
+# Caddy owns the real cert for towonel_hub_domain via its own mature
+# automatic HTTPS (not towonel's ACME) and reverse-proxies plaintext to the
+# hub, which runs with no TLS config of its own (TOWONEL_HUB_LISTEN_ADDR is
+# plain HTTP). disable_http_challenge because :80 isn't published -- the L4
+# router above already delivers the TLS-ALPN-01 validator connection here.
+{{ towonel_hub_domain }}:{{ towonel_hub_caddy_tls_port }} {
+	bind 127.0.0.1
+	tls {
+		issuer acme {
+			disable_http_challenge
+		}
+	}
+	reverse_proxy 127.0.0.1:{{ towonel_hub_internal_port }}
+}

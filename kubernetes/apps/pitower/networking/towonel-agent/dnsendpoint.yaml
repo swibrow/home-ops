@@ -1,0 +1,22 @@
+---
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: towonel-agent
+  namespace: networking
+spec:
+  endpoints:
+    - dnsName: "external.wibrow.dev"
+      recordType: CNAME
+      targets: ["tunnel.wibrow.dev"]
+      providerSpecific:
+        - name: external-dns.alpha.kubernetes.io/cloudflare-proxied
+          value: "false"
+    # Wildcard so any unmatched subdomain resolves to the towonel hub edge and
+    # hits the envoy-external fallback 404 route instead of returning NXDOMAIN.
+    - dnsName: "*.wibrow.dev"
+      recordType: CNAME
+      targets: ["tunnel.wibrow.dev"]
+      providerSpecific:
+        - name: external-dns.alpha.kubernetes.io/cloudflare-proxied
+          value: "false"
