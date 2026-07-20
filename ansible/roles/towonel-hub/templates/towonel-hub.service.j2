@@ -1,0 +1,27 @@
+[Unit]
+Description=Towonel hub (tunnel control plane + edge)
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5
+ExecStartPre=-/usr/bin/docker rm -f {{ towonel_hub_container_name }}
+ExecStartPre=/usr/bin/docker pull {{ towonel_hub_image }}:{{ towonel_hub_version }}
+ExecStart=/usr/bin/docker run --rm --name {{ towonel_hub_container_name }} \
+  -p 443:443 \
+  -p 8443:8443 \
+  -p 51820:51820/udp \
+  -v {{ towonel_hub_volume }}:/data \
+  -e TOWONEL_HUB_PUBLIC_URL={{ towonel_hub_public_url }} \
+  -e TOWONEL_EDGE_ADVERTISED_ADDRESSES={{ towonel_hub_edge_advertised_addresses }} \
+  -e TOWONEL_HUB_TLS_ACME_EMAIL={{ towonel_hub_acme_email }} \
+  -e TOWONEL_DATA_DIR=/data \
+  --health-cmd "curl --max-time 2 -fsSk --resolve {{ towonel_hub_domain }}:8443:127.0.0.1 https://{{ towonel_hub_domain }}:8443/v1/health || exit 1" \
+  {{ towonel_hub_image }}:{{ towonel_hub_version }}
+ExecStop=/usr/bin/docker stop -t 10 {{ towonel_hub_container_name }}
+
+[Install]
+WantedBy=multi-user.target

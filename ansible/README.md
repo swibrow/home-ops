@@ -18,12 +18,13 @@ ansible/
 ├── playbooks/
 │   ├── site.yaml          # network + nut (what `just ansible deploy` runs)
 │   ├── nut.yaml           # NUT role only
-│   └── ovh-vps.yaml       # fail2ban + oha (what `just ansible deploy-ovh-vps` runs)
+│   └── ovh-vps.yaml       # fail2ban + oha + towonel-hub (what `just ansible deploy-ovh-vps` runs)
 └── roles/
     ├── network/           # VLAN sub-interfaces as NetworkManager connections
     ├── nut/               # Network UPS Tools (netserver mode)
     ├── fail2ban/          # SSH brute-force jail
-    └── oha/               # oha HTTP load-testing CLI (pinned GitHub release binary)
+    ├── oha/               # oha HTTP load-testing CLI (pinned GitHub release binary)
+    └── towonel-hub/       # towonel tunnel hub (systemd-managed docker run)
 ```
 
 ## Usage
@@ -131,6 +132,10 @@ which resolves straight back to it) is SOPS-encrypted as `ansible_host` in
   exists). Bump `oha_version` and both arch checksums in `roles/oha/defaults/main.yaml` together —
   GitHub doesn't publish a checksums file for oha releases, so checksums are captured by hand from
   the release assets.
+- **`towonel-hub`** — runs the [towonel](https://codeberg.org/towonel/towonel) tunnel hub (a
+  self-hosted alternative to `cloudflared`) as a systemd-managed `docker run` (no Docker Compose,
+  no `community.docker` — the module needs a Docker SDK that isn't installed on this host, so the
+  role wraps the CLI directly in a unit). See the runbook below.
 
 ### Deploy
 
@@ -144,6 +149,99 @@ just ansible check-ovh-vps && just ansible deploy-ovh-vps
 systemctl status fail2ban
 sudo fail2ban-client status sshd
 oha --version
+systemctl status towonel-hub
+docker logs -f towonel
+```
+
+## `towonel-hub` runbook
+
+The hub is one half of the towonel tunnel (see GitHub issue
+[swibrow/home-ops#1325](https://github.com/swibrow/home-ops/issues/1325)): it runs on this VPS
+(`tunnel.wibrow.dev`) and an agent in the `pitower` cluster
+(`kubernetes/apps/pitower/networking/towonel-agent/`) dials out to it, publishing `*.wibrow.dev`
+routes. The image shares one process for two roles on port 443 — the **edge** (SNI passthrough for
+tenant traffic) and, embedded in the same binary, the **hub** control API on `:8443` (agent
+bootstrap/registration).
+
+### Key material — never regenerate
+
+`roles/towonel-hub/vars/secrets.sops.yaml` holds `node.key`, `hub_kek.key`, `invite_hash.key`, and
+`operator.key`, base64-encoded and SOPS-encrypted. These identify the hub's tenant and back every
+invite ever issued — regenerating them breaks the agent's existing invite token and any others in
+circulation. The role's copy task uses `force: false`, so it only *seeds* a missing volume (e.g. a
+rebuilt VPS); it never overwrites keys already on disk. A second, independent backup lives at
+`infra/towonel-hub/keys-backup.tar.gz.age` (age-encrypted, not SOPS) — keep both in sync if the keys
+ever change.
+
+### Config
+
+- `TOWONEL_HUB_PUBLIC_URL` (`roles/towonel-hub/defaults/main.yaml: towonel_hub_public_url`) — the
+  base URL embedded in every invite token. Confirmed from the agent's actual source
+  (`crates/towonel-agent/src/stateless.rs`): every hub API call is
+  `format!("{}/v1/...", token.hub_url.trim_end_matches('/'))` — there is **no automatic port
+  inference**. Upstream's docs example omits the port (`https://hub.example.eu`), but that only
+  works behind a reverse proxy that multiplexes port 443 by path/protocol (see
+  `/docs/self-hosted/reverse-proxy/`). This deployment binds edge (`:443`) and hub (`:8443`)
+  directly with no proxy in front, so the URL **must** include `:8443` — otherwise every hub API
+  call lands on the edge instead, which SNI-passthroughs and resets the connection.
+- `TOWONEL_HUB_TLS_ACME_EMAIL` — Let's Encrypt registration email for the hub's own cert on
+  `:8443`. This is a **real, publicly-trusted cert**, not self-signed: the agent validates it with
+  standard webpki roots and does not pin via the invite token.
+
+### The ACME chicken-and-egg bug (confirmed in source, not just observed)
+
+Issuance uses TLS-ALPN-01 only (hardcoded upstream, no DNS-01, no static-cert file), and TLS-ALPN-01
+validation always connects to port 443 — never a custom port. Read straight from
+`crates/towonel-node/src/lib.rs`'s `run_node()`: in combined mode (hub+edge on one host, our setup)
+`hub.run()` and `edge.run()` are **two fully independent tasks**, linked only by an in-process route
+channel for tenant hostnames. The hub's ACME manager (`hub/acme.rs`) builds a correctly-wired
+`CertResolver` + `EdgeAlpnSolver` (ALPN `acme-tls/1` support) — but wires it only into the hub's own
+`axum_server` listener on `TOWONEL_HUB_LISTEN_ADDR` (`:8443`), never into the edge's `:443` listener.
+Since Let's Encrypt's TLS-ALPN-01 validator only ever dials port 443, and port 443 is exclusively the
+edge's (which has zero ACME awareness), **the hub's own cert can never be issued while both run
+combined on one host** — confirmed identical on `towonel-node:1.0.1` and `1.2.0`, and reproduced with
+a direct external TLS probe (`openssl s_client -alpn acme-tls/1`) timed against a live ACME challenge
+window: every connection resets, in-window or not.
+
+**Workaround (already applied on the live VPS, needed again at renewal in ~60-90 days):**
+1. `systemctl stop towonel-hub`
+2. Run a one-off container reusing the same `towonel-data` volume, with edge disabled so the hub can
+   bind :443 directly and receive the real ACME challenge itself:
+   ```sh
+   docker run -d --name towonel-cert-bootstrap -p 443:443 -v towonel-data:/data \
+     -e TOWONEL_EDGE_ENABLED=false \
+     -e TOWONEL_HUB_LISTEN_ADDR=0.0.0.0:443 \
+     -e TOWONEL_HUB_PUBLIC_URL=https://tunnel.wibrow.dev:8443 \
+     -e TOWONEL_HUB_TLS_ACME_EMAIL=sam.wibrow@gmail.com \
+     -e TOWONEL_DATA_DIR=/data \
+     codeberg.org/towonel/towonel-node:1.2.0
+   ```
+3. Watch `docker logs -f towonel-cert-bootstrap` for `certificate issued successfully` (~30s).
+4. `docker stop towonel-cert-bootstrap && docker rm towonel-cert-bootstrap`
+5. `systemctl start towonel-hub` — the cert is already cached in the shared volume, so combined mode
+   just serves it; no further validation needed until the cached cert nears expiry.
+
+This is an upstream bug, not a config mistake — worth reporting to the towonel maintainers. Until
+fixed upstream, this dance has to be repeated once per renewal window (cert validity is 90 days from
+issuance; check expiry with `openssl s_client -connect tunnel.wibrow.dev:8443 ... | openssl x509
+-noout -enddate`).
+
+### Reissuing the invite token
+
+Because the invite token embeds `TOWONEL_HUB_PUBLIC_URL`, changing that value (or fixing hub cert
+issuance for the first time) means the *existing* token the agent uses is stale and must be
+reissued from the hub, then updated in Infisical at
+`/networking/towonel-agent/TOWONEL_INVITE_TOKEN`, then the agent pod restarted. Confirm the hub's
+own cert is actually issuing successfully first — reissuing against a hub that still can't present
+a valid cert just reproduces the same failure differently.
+
+### Verify
+
+```sh
+systemctl status towonel-hub
+docker logs -f towonel                                    # ACME issuance / bootstrap attempts
+docker exec towonel curl -fsSk https://localhost:8443/v1/health
+kubectl --context=admin@pitower -n networking logs -l app.kubernetes.io/instance=towonel-agent
 ```
 
 ## Secrets

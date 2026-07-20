@@ -29,11 +29,11 @@ facts:
 ping-ovh-vps:
     ansible ovh_vps -m ping
 
-# Dry-run the ovh-vps playbook (fail2ban + oha) and show a diff
+# Dry-run the ovh-vps playbook (fail2ban + oha + towonel-hub) and show a diff
 check-ovh-vps:
     ansible-playbook playbooks/ovh-vps.yaml --check --diff
 
-# Apply the ovh-vps playbook (fail2ban + oha)
+# Apply the ovh-vps playbook (fail2ban + oha + towonel-hub)
 deploy-ovh-vps:
     ansible-playbook playbooks/ovh-vps.yaml
 

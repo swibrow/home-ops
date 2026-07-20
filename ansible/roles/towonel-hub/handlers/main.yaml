@@ -1,0 +1,6 @@
+---
+- name: Restart towonel-hub
+  ansible.builtin.systemd_service:
+    name: towonel-hub
+    daemon_reload: true
+    state: restarted
