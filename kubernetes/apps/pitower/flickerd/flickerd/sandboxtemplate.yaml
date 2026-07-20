@@ -47,6 +47,8 @@ spec:
         runAsGroup: 1000
         fsGroup: 1000
         runAsNonRoot: true
+      nodeSelector:
+        wibrow.dev/compute: "true"
       containers:
         - name: sandbox
           image: ghcr.io/swibrow/flickerd-sandbox:v0.8.0
