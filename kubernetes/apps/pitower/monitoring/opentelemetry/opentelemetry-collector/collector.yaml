@@ -46,6 +46,10 @@ spec:
         endpoint: 0.0.0.0:8889
         resource_to_telemetry_conversion:
           enabled: true
+      otlphttp/victorialogs:
+        logs_endpoint: http://victoria-logs.monitoring.svc.cluster.local:9428/insert/opentelemetry/v1/logs
+        tls:
+          insecure: true
     # Required — the operator wires livenessProbe/readinessProbe to this
     # extension's endpoint; without it the probes have nothing to hit and the
     # collector pod never goes Ready.
@@ -63,3 +67,7 @@ spec:
           receivers: [otlp]
           processors: [memory_limiter, batch]
           exporters: [prometheus]
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [otlphttp/victorialogs]
