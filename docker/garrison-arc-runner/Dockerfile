@@ -12,7 +12,7 @@
 # image's contents change without the base runner version moving, so the scale
 # set pulls a fresh tag instead of a cached one (default pull policy is IfNotPresent).
 ARG IMAGE_VERSION=2.335.1-2
-ARG RUNNER_VERSION=2.335.1
+ARG RUNNER_VERSION=2.336.0
 
 FROM ghcr.io/actions/actions-runner:${RUNNER_VERSION}
 
