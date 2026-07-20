@@ -12,7 +12,7 @@ env:
 
 jobs:
   discover:
-    runs-on: ubuntu-latest
+    runs-on: home-ops
     outputs:
       images: ${{ steps.set-matrix.outputs.images }}
     steps:
@@ -39,7 +39,7 @@ jobs:
   build:
     needs: discover
     if: needs.discover.outputs.images != '[]'
-    runs-on: ubuntu-latest
+    runs-on: home-ops
     permissions:
       contents: read
       packages: write
