@@ -22,7 +22,7 @@ template:
         effect: NoSchedule
     containers:
       - name: runner
-        image: ghcr.io/actions/actions-runner:2.335.1
+        image: ghcr.io/actions/actions-runner:2.336.0
         command: ["/home/runner/run.sh"]
         resources:
           requests:
