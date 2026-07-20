@@ -11,7 +11,7 @@ spec:
   # completes, so it can trail actual state by up to ~24h between runs; the
   # webhook gives instant response to dashboard checkbox clicks on top.
   schedule: "0 6 * * *"
-  parallelism: 1
+  parallelism: 4
   nodeSelector:
     wibrow.dev/compute: "true"
   provider:
