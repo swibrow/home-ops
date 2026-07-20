@@ -1,0 +1,14 @@
+---
+towonel_hub_version: "1.2.0"
+towonel_hub_image: codeberg.org/towonel/towonel-node
+towonel_hub_container_name: towonel
+towonel_hub_volume: towonel-data
+
+towonel_hub_domain: tunnel.wibrow.dev
+towonel_hub_public_url: "https://{{ towonel_hub_domain }}:8443"
+towonel_hub_edge_advertised_addresses: "{{ towonel_hub_domain }}:443"
+towonel_hub_acme_email: sam.wibrow@gmail.com
+
+towonel_hub_data_dir: "/var/lib/docker/volumes/{{ towonel_hub_volume }}/_data"
+towonel_hub_uid: 10001
+towonel_hub_gid: 10001

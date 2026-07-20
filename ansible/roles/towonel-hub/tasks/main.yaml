@@ -1,0 +1,56 @@
+---
+- name: Load SOPS-encrypted towonel-hub key material
+  community.sops.load_vars:
+    file: "{{ role_path }}/vars/secrets.sops.yaml"
+
+- name: Check if towonel-data docker volume exists
+  ansible.builtin.command: docker volume inspect {{ towonel_hub_volume }}
+  register: towonel_hub_volume_check
+  changed_when: false
+  failed_when: false
+
+- name: Create towonel-data docker volume
+  ansible.builtin.command: docker volume create {{ towonel_hub_volume }}
+  when: towonel_hub_volume_check.rc != 0
+
+- name: Ensure towonel-hub data directory is owned by the container's non-root user
+  ansible.builtin.file:
+    path: "{{ towonel_hub_data_dir }}"
+    state: directory
+    owner: "{{ towonel_hub_uid }}"
+    group: "{{ towonel_hub_gid }}"
+    mode: "0755"
+
+# force: false so an already-seeded volume (or a live one) is never overwritten —
+# this key material must not be regenerated, it identifies the tenant and every
+# invite issued against it.
+- name: Seed towonel-hub key material (never overwrites existing keys)
+  ansible.builtin.copy:
+    content: "{{ item.content | b64decode }}"
+    dest: "{{ towonel_hub_data_dir }}/{{ item.name }}"
+    owner: "{{ towonel_hub_uid }}"
+    group: "{{ towonel_hub_gid }}"
+    mode: "0600"
+    force: false
+  loop:
+    - { name: node.key, content: "{{ towonel_hub_node_key }}" }
+    - { name: hub_kek.key, content: "{{ towonel_hub_kek_key }}" }
+    - { name: invite_hash.key, content: "{{ towonel_hub_invite_hash_key }}" }
+    - { name: operator.key, content: "{{ towonel_hub_operator_key }}" }
+  no_log: true
+
+- name: Install towonel-hub systemd unit
+  ansible.builtin.template:
+    src: towonel-hub.service.j2
+    dest: /etc/systemd/system/towonel-hub.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart towonel-hub
+
+- name: Ensure towonel-hub is enabled and running
+  ansible.builtin.systemd_service:
+    name: towonel-hub
+    daemon_reload: true
+    enabled: true
+    state: started
