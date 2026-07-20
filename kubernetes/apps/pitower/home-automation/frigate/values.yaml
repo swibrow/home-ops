@@ -57,7 +57,7 @@ controllers:
           requests:
             cpu: 922m
             gpu.intel.com/i915: 1
-            memory: 2033Mi
+            memory: 3313Mi
           limits:
             gpu.intel.com/i915: 1
             memory: 4Gi

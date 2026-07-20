@@ -16,5 +16,5 @@ monitoring:
 resources:
   requests:
     memory: 74Mi
-    cpu: 35m
+    cpu: 78m
   limits: {}
