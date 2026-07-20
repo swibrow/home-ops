@@ -1,6 +1,6 @@
-githubConfigUrl: https://github.com/swibrow/home-ops
+githubConfigUrl: https://github.com/swibrow/tidy-k8s
 githubConfigSecret: arc-github-app
-runnerScaleSetName: home-ops
+runnerScaleSetName: tidy-k8s
 
 controllerServiceAccount:
   name: arc-gha-rs-controller
@@ -14,7 +14,7 @@ containerMode:
 
 template:
   spec:
-    serviceAccountName: home-ops-runners
+    serviceAccountName: tidy-k8s-runners
     automountServiceAccountToken: true
     nodeSelector:
       wibrow.dev/compute: "true"

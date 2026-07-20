@@ -1,6 +1,6 @@
-githubConfigUrl: https://github.com/swibrow/home-ops
+githubConfigUrl: https://github.com/swibrow/resume
 githubConfigSecret: arc-github-app
-runnerScaleSetName: home-ops
+runnerScaleSetName: resume
 
 controllerServiceAccount:
   name: arc-gha-rs-controller
@@ -14,7 +14,7 @@ containerMode:
 
 template:
   spec:
-    serviceAccountName: home-ops-runners
+    serviceAccountName: resume-runners
     automountServiceAccountToken: true
     nodeSelector:
       wibrow.dev/compute: "true"

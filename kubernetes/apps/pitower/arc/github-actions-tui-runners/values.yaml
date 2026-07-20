@@ -1,6 +1,6 @@
-githubConfigUrl: https://github.com/swibrow/home-ops
+githubConfigUrl: https://github.com/swibrow/github-actions-tui
 githubConfigSecret: arc-github-app
-runnerScaleSetName: home-ops
+runnerScaleSetName: github-actions-tui
 
 controllerServiceAccount:
   name: arc-gha-rs-controller
@@ -14,7 +14,7 @@ containerMode:
 
 template:
   spec:
-    serviceAccountName: home-ops-runners
+    serviceAccountName: github-actions-tui-runners
     automountServiceAccountToken: true
     nodeSelector:
       wibrow.dev/compute: "true"

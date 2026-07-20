@@ -5,18 +5,16 @@ kind: Kustomization
 namespace: arc
 components:
   - ../../../../components/arc-runner
-resources:
-  - rbac.yaml
 configMapGenerator:
   - name: arc-runner-config
     literals:
-      - SERVICE_ACCOUNT=home-ops-runners
+      - SERVICE_ACCOUNT=github-actions-tui-runners
 generatorOptions:
   disableNameSuffixHash: true
 helmCharts:
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
-    releaseName: home-ops-runners
+    releaseName: github-actions-tui-runners
     namespace: arc
     valuesFile: values.yaml
