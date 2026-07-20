@@ -84,7 +84,7 @@ controllers:
               name: hermes
         resources:
           requests:
-            cpu: 50m
+            cpu: 10m
             memory: 216Mi
           limits:
             memory: 1Gi
