@@ -12,13 +12,8 @@ spec:
   # webhook gives instant response to dashboard checkbox clicks on top.
   schedule: "0 6 * * *"
   parallelism: 1
-  affinity:
-    nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-          - matchExpressions:
-              - key: node-role.kubernetes.io/control-plane
-                operator: DoesNotExist
+  nodeSelector:
+    wibrow.dev/compute: "true"
   provider:
     name: github
   githubAppReference:
