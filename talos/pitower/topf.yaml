@@ -45,3 +45,9 @@ nodes:
     schematicId: "@extensions/intel.yaml"
     data:
       mac: "50:7b:9d:31:ae:cd"
+  - host: worker-07
+    ip: 10.20.10.7
+    role: worker
+    schematicId: "@extensions/proxmox.yaml"
+    data:
+      mac: "bc:24:11:e8:10:19"

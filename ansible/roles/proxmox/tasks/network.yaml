@@ -1,0 +1,27 @@
+---
+- name: Render /etc/network/interfaces for VLAN{{ proxmox_network_vlan }}
+  ansible.builtin.template:
+    src: interfaces.j2
+    dest: /etc/network/interfaces
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  register: proxmox_network_interfaces
+
+- name: Apply the new network config
+  ansible.builtin.command: ifreload -a
+  when: proxmox_network_interfaces.changed
+  ignore_unreachable: true
+  ignore_errors: true
+  register: proxmox_network_reload
+
+- name: Applied
+  ansible.builtin.debug:
+    msg: >-
+      Applied (a "connection lost"/unreachable result on the previous task is EXPECTED - the
+      interface just moved networks out from under this SSH session, it doesn't mean it failed).
+      No automatic rollback this time - if it's broken, restore manually from
+      {{ proxmox_network_interfaces.backup_file | default('the .XXXXXXXX~ backup template left next to /etc/network/interfaces') }}
+      via the iDRAC console: cp <backup> /etc/network/interfaces && ifreload -a
+  when: proxmox_network_interfaces.changed

@@ -40,3 +40,24 @@ deploy-ovh-vps:
 # Gather and print facts for the ovh-vps host
 facts-ovh-vps:
     ansible ovh_vps -m setup
+
+# Ping the proxmox-01 host over SSH
+ping-proxmox-01:
+    ansible proxmox_01 -m ping
+
+# Dry-run the proxmox-01 playbook (fail2ban + repo config) and show a diff
+check-proxmox-01:
+    ansible-playbook playbooks/proxmox-01.yaml --check --diff
+
+# Apply the proxmox-01 playbook (fail2ban + repo config)
+deploy-proxmox-01:
+    ansible-playbook playbooks/proxmox-01.yaml
+
+# Gather and print facts for the proxmox-01 host
+facts-proxmox-01:
+    ansible proxmox_01 -m setup
+
+# Migrate proxmox-01 host networking to VLAN20 (no automatic rollback - fix via
+# iDRAC console if it breaks. A "connection lost" result on apply is expected.)
+apply-network-proxmox-01:
+    ansible-playbook playbooks/proxmox-01-network.yaml

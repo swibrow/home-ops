@@ -1,0 +1,9 @@
+---
+- name: proxmox-01 network migration to VLAN20
+  hosts: proxmox_01
+  become: true
+  tasks:
+    - name: Apply VLAN20 network config with automatic rollback safety net
+      ansible.builtin.include_role:
+        name: proxmox
+        tasks_from: network

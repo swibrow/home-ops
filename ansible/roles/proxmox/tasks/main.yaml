@@ -1,0 +1,25 @@
+---
+- name: Disable Proxmox enterprise repo
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/pve-enterprise.list
+    content: "# managed by ansible - enterprise repo disabled (no subscription)\n"
+    owner: root
+    group: root
+    mode: "0644"
+  when: proxmox_disable_enterprise_repo
+  register: pve_enterprise_repo
+
+- name: Enable Proxmox no-subscription repo
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/pve-no-subscription.list
+    content: "deb http://download.proxmox.com/debian/pve {{ ansible_distribution_release }} pve-no-subscription\n"
+    owner: root
+    group: root
+    mode: "0644"
+  when: proxmox_enable_no_subscription_repo
+  register: pve_no_subscription_repo
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+  when: pve_enterprise_repo.changed or pve_no_subscription_repo.changed

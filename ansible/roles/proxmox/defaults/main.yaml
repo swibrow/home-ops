@@ -1,0 +1,14 @@
+---
+proxmox_disable_enterprise_repo: true
+proxmox_enable_no_subscription_repo: true
+
+proxmox_network_iface: nic1
+proxmox_network_vlan: 20
+proxmox_network_bridge: vmbr0
+proxmox_network_unused_ifaces:
+  - nic0
+  - nic2
+  - nic3
+  - nic4
+  - nic5
+  - nic6
