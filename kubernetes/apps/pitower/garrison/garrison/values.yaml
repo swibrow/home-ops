@@ -13,13 +13,13 @@ database:
   secret: garrison-db-secret
   secretKey: DB_URL
 keep:
-  image: ghcr.io/swibrow/garrison-keep:v0.27.0
+  image: ghcr.io/swibrow/garrison-keep:v0.28.0
   imagePullPolicy: IfNotPresent
 # ghcr packages stay private (the repo is private); ghcr-pull-secret is
 # fanned out to every namespace by security/external-secrets/ghcr-pull-secret.
 imagePullSecret: ghcr-pull-secret
 runner:
-  image: ghcr.io/swibrow/garrison-runner:v0.27.0
+  image: ghcr.io/swibrow/garrison-runner:v0.28.0
   namespace: garrison
 harness: claude
 launcher: sandbox
