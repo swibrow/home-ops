@@ -13,6 +13,8 @@ template:
   spec:
     serviceAccountName: home-ops-runners
     automountServiceAccountToken: true
+    nodeSelector:
+      wibrow.dev/compute: "true"
     tolerations:
       - key: dedicated
         operator: Equal

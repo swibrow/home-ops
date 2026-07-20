@@ -17,3 +17,13 @@ all:
           # ansible_host is SOPS-encrypted in inventory/host_vars/ovh-vps.sops.yaml
           # (public IP kept out of plaintext git history).
           ansible_user: debian
+    proxmox_01:
+      hosts:
+        proxmox-01:
+          # New Proxmox VE hypervisor host, on VLAN 20 (10.20.0.0/16) via a
+          # tagged nic1.20 -> vmbr0 (see the proxmox role's network.yaml task).
+          # DHCP-assigned - set a UniFi reservation to pin it, same as `nut`.
+          # ansible_user is root: Proxmox VE ships no non-root sudo user by default,
+          # so add your SSH pubkey to root's authorized_keys before running this.
+          ansible_host: proxmox-01.servers.local
+          ansible_user: root
