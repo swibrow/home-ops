@@ -3,6 +3,8 @@ fullnameOverride: victoria-metrics
 server:
   enabled: true
   replicaCount: 1
+  nodeSelector:
+    wibrow.dev/compute: "true"
   retentionPeriod: 2y
   extraArgs:
     envflag.enable: "true"

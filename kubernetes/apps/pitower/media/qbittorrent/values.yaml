@@ -1,6 +1,8 @@
 controllers:
   qbittorrent:
     pod:
+      nodeSelector:
+        wibrow.dev/compute: "true"
       securityContext:
         fsGroup: 2000
         fsGroupChangePolicy: "OnRootMismatch"

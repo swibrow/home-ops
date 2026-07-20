@@ -1,6 +1,9 @@
 ---
 fullnameOverride: tempo
 
+nodeSelector:
+  wibrow.dev/compute: "true"
+
 tempo:
   # Local disk backend, not S3 — keep retention short since it's on a 20Gi PVC.
   retention: 72h

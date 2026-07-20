@@ -191,6 +191,8 @@ prometheus:
           namespace: networking
           sectionName: https
   prometheusSpec:
+    nodeSelector:
+      wibrow.dev/compute: "true"
     # Public URL so alert generatorURL (Alertmanager "Source" links) points at
     # the external host instead of the internal service address.
     externalUrl: https://prometheus.wibrow.dev
