@@ -1,0 +1,21 @@
+[Unit]
+Description=OpenTelemetry Collector (host metrics/logs/traces -> pitower)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ otel_agent_user }}
+Group={{ otel_agent_group }}
+EnvironmentFile={{ otel_agent_env_path }}
+ExecStart={{ otel_agent_install_path }} --config={{ otel_agent_config_path }}
+Restart=always
+RestartSec=5
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,32 @@
+---
+otel_agent_version: "0.156.0"
+otel_agent_install_path: /usr/local/bin/otelcol-contrib
+otel_agent_user: otel-agent
+otel_agent_group: otel-agent
+otel_agent_config_dir: /etc/otel-agent
+otel_agent_config_path: "{{ otel_agent_config_dir }}/config.yaml"
+otel_agent_env_path: "{{ otel_agent_config_dir }}/otel-agent.env"
+
+# sha256 of the upstream otelcol-contrib_<version>_linux_<arch>.tar.gz release
+# asset, taken from that release's own
+# opentelemetry-collector-releases_otelcol-contrib_checksums.txt.
+otel_agent_checksums:
+  amd64: sha256:ee70d7b1221be8a9cc4700f48bf985c04b1ab8aaeef24409fe79623849e2f9f2
+  arm64: sha256:1f9afe1d245b4babbb4bcb7d6b57ba2836b3b23c5f61b38abc00ab461f049288
+
+otel_agent_arch_map:
+  x86_64: amd64
+  aarch64: arm64
+
+# The external OTLP/HTTP ingest exposed by pitower's otel-collector (see
+# kubernetes/apps/pitower/monitoring/opentelemetry/opentelemetry-collector/).
+otel_agent_otlp_endpoint: https://otlp.wibrow.dev
+
+# Kept scoped to the services worth watching on this host rather than
+# capturing the full journal firehose. towonel-hub.service runs `docker run
+# --rm` in the foreground (no -d), so towonel + Caddy's own stdout/stderr
+# already land here too -- no separate docker-log plumbing needed.
+otel_agent_journald_units:
+  - towonel-hub.service
+  - fail2ban.service
+  - sshd.service

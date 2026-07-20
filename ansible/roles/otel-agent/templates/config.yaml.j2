@@ -1,0 +1,62 @@
+---
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+    scrapers:
+      cpu: {}
+      memory: {}
+      disk: {}
+      filesystem: {}
+      network: {}
+      load: {}
+  journald:
+    directory: /var/log/journal
+    units:
+{% for unit in otel_agent_journald_units %}
+      - {{ unit }}
+{% endfor %}
+  # Loopback-only -- lets any future local process emit spans without running
+  # its own collector.
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 127.0.0.1:4317
+      http:
+        endpoint: 127.0.0.1:4318
+
+processors:
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 128
+  batch: {}
+  resource:
+    attributes:
+      - key: host.name
+        value: "{{ inventory_hostname }}"
+        action: upsert
+
+exporters:
+  otlphttp:
+    endpoint: {{ otel_agent_otlp_endpoint }}
+    headers:
+      X-API-Key: "${env:OTLP_API_KEY}"
+
+extensions:
+  health_check:
+    endpoint: 127.0.0.1:13133
+
+service:
+  extensions: [health_check]
+  pipelines:
+    metrics:
+      receivers: [hostmetrics]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlphttp]
+    logs:
+      receivers: [journald]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlphttp]
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlphttp]

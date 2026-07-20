@@ -1,0 +1,6 @@
+---
+- name: Restart otel-agent
+  ansible.builtin.systemd_service:
+    name: otel-agent
+    daemon_reload: true
+    state: restarted

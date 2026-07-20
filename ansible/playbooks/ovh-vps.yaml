@@ -1,8 +1,9 @@
 ---
-- name: ovh-vps node (fail2ban + oha + towonel-hub)
+- name: ovh-vps node (fail2ban + oha + towonel-hub + otel-agent)
   hosts: ovh_vps
   become: true
   roles:
     - fail2ban
     - oha
     - towonel-hub
+    - otel-agent

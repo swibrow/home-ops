@@ -18,7 +18,7 @@ ansible/
 ├── playbooks/
 │   ├── site.yaml          # network + nut (what `just ansible deploy` runs)
 │   ├── nut.yaml           # NUT role only
-│   ├── ovh-vps.yaml       # fail2ban + oha + towonel-hub (what `just ansible deploy-ovh-vps` runs)
+│   ├── ovh-vps.yaml       # fail2ban + oha + towonel-hub + otel-agent (what `just ansible deploy-ovh-vps` runs)
 │   └── proxmox-01.yaml    # fail2ban + proxmox (what `just ansible deploy-proxmox-01` runs)
 └── roles/
     ├── network/           # VLAN sub-interfaces as NetworkManager connections
@@ -26,6 +26,7 @@ ansible/
     ├── fail2ban/          # SSH brute-force jail
     ├── oha/               # oha HTTP load-testing CLI (pinned GitHub release binary)
     ├── towonel-hub/       # towonel tunnel hub (systemd-managed docker run)
+    ├── otel-agent/        # host metrics/logs/traces -> pitower's otel-collector (pinned binary)
     └── proxmox/           # Proxmox VE repo config (no-subscription, no enterprise)
 ```
 
@@ -142,6 +143,7 @@ which resolves straight back to it) is SOPS-encrypted as `ansible_host` in
   self-hosted alternative to `cloudflared`) as a systemd-managed `docker run` (no Docker Compose,
   no `community.docker` — the module needs a Docker SDK that isn't installed on this host, so the
   role wraps the CLI directly in a unit). See the runbook below.
+- **`otel-agent`** — ships host metrics/logs/traces to pitower. See the runbook below.
 
 ### Deploy
 
@@ -157,6 +159,7 @@ sudo fail2ban-client status sshd
 oha --version
 systemctl status towonel-hub
 docker logs -f towonel
+systemctl status otel-agent
 ```
 
 ## `towonel-hub` runbook
@@ -263,6 +266,44 @@ docker exec towonel curl -fsS http://127.0.0.1:8443/v1/health   # hub, plain HTT
 curl -v https://tunnel.wibrow.dev/v1/health                     # from off-VPS: Caddy's real cert + SNI routing
 kubectl --context=admin@pitower -n networking logs -l app.kubernetes.io/instance=towonel-agent
 ```
+
+## `otel-agent` runbook
+
+Ships this host's metrics, logs, and traces to pitower over the external OTLP/HTTP ingest already
+exposed by `kubernetes/apps/pitower/monitoring/opentelemetry/opentelemetry-collector/`
+(`https://otlp.wibrow.dev`, gated by the `X-API-Key` header). Runs `otelcol-contrib` as a **native
+systemd service** (a pinned, checksum-verified GitHub release binary, same pattern as `oha` —
+not another `docker run`, since the `journald` receiver needs the host's real journal and
+`hostmetrics` needs no containerization).
+
+- **Metrics** — the `hostmetrics` receiver (cpu/memory/disk/filesystem/network/load), scraped
+  every 60s.
+- **Logs** — the `journald` receiver, scoped to `otel_agent_journald_units`
+  (`roles/otel-agent/defaults/main.yaml`) rather than the whole journal firehose. Because
+  `towonel-hub.service`'s unit runs `docker run --rm` in the foreground (no `-d`), towonel + Caddy's
+  own stdout/stderr already land in the journal under that unit — no separate docker-log plumbing
+  needed.
+- **Traces** — a loopback-only `otlp` receiver (`127.0.0.1:4317`/`4318`) so any future local
+  process can emit spans without running its own collector. Nothing on this host is instrumented
+  yet, so this pipeline is currently a no-op by design, not a bug.
+
+The service runs as a dedicated `otel-agent` system user (no shell, no home dir), added only to the
+`systemd-journal` group for journal read access — never as root.
+
+Uses the **same shared `OTLP_API_KEY`** as pitower's other OTLP clients (Infisical
+`/monitoring/opentelemetry-collector/OTLP_API_KEY`), SOPS-encrypted at
+`roles/otel-agent/vars/secrets.sops.yaml`. If that key is ever rotated, update both places.
+
+### Verify
+
+```sh
+systemctl status otel-agent
+journalctl -u otel-agent -f     # scrape/export cycles; watch for 401s or journald exec errors
+```
+
+Then in pitower: query VictoriaMetrics for `host_name="ovh-vps"` series, and VictoriaLogs
+(`vm.wibrow.dev` / Grafana Explore) for `host.name:ovh-vps` to confirm `towonel-hub.service` /
+`fail2ban` lines are arriving.
 
 ## `proxmox-01` node runbook
 
