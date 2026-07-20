@@ -1,0 +1,7 @@
+---
+- name: proxmox-01 node (fail2ban + repo config)
+  hosts: proxmox_01
+  become: true
+  roles:
+    - fail2ban
+    - proxmox

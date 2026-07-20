@@ -33,3 +33,15 @@ environment environment:
     for dir in $(find "${TERRAFORM_WORKING_DIR}" -mindepth 1 -maxdepth 1 -type d -name "{{ environment }}"); do
         echo "Working on {{ environment }} in ${dir}"
     done
+
+# Init the proxmox stack (Proxmox API credentials come from mise.toml's [env] - PROXMOX_VE_*)
+init-proxmox:
+    terraform -chdir={{ justfile_directory() }}/{{ TERRAFORM_WORKING_DIR }}/proxmox init
+
+# Plan the proxmox stack
+plan-proxmox:
+    terraform -chdir={{ justfile_directory() }}/{{ TERRAFORM_WORKING_DIR }}/proxmox plan
+
+# Apply the proxmox stack
+apply-proxmox:
+    terraform -chdir={{ justfile_directory() }}/{{ TERRAFORM_WORKING_DIR }}/proxmox apply

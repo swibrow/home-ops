@@ -19,6 +19,8 @@ template:
   spec:
     serviceAccountName: garrison-runners
     automountServiceAccountToken: true
+    nodeSelector:
+      wibrow.dev/compute: "true"
     tolerations:
       - key: dedicated
         operator: Equal

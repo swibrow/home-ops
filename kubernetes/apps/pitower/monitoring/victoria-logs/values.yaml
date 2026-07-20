@@ -4,6 +4,8 @@ server:
   enabled: true
   fullnameOverride: victoria-logs
   replicaCount: 1
+  nodeSelector:
+    wibrow.dev/compute: "true"
   retentionPeriod: 14d
   extraArgs:
     envflag.enable: "true"

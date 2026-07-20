@@ -1,0 +1,16 @@
+auto lo
+iface lo inet loopback
+
+{% for iface in proxmox_network_unused_ifaces | sort %}
+iface {{ iface }} inet manual
+
+{% endfor %}
+iface {{ proxmox_network_iface }} inet manual
+
+iface {{ proxmox_network_iface }}.{{ proxmox_network_vlan }} inet manual
+
+auto {{ proxmox_network_bridge }}
+iface {{ proxmox_network_bridge }} inet dhcp
+        bridge-ports {{ proxmox_network_iface }}.{{ proxmox_network_vlan }}
+        bridge-stp off
+        bridge-fd 0

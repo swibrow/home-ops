@@ -18,13 +18,15 @@ ansible/
 ├── playbooks/
 │   ├── site.yaml          # network + nut (what `just ansible deploy` runs)
 │   ├── nut.yaml           # NUT role only
-│   └── ovh-vps.yaml       # fail2ban + oha + towonel-hub (what `just ansible deploy-ovh-vps` runs)
+│   ├── ovh-vps.yaml       # fail2ban + oha + towonel-hub (what `just ansible deploy-ovh-vps` runs)
+│   └── proxmox-01.yaml    # fail2ban + proxmox (what `just ansible deploy-proxmox-01` runs)
 └── roles/
     ├── network/           # VLAN sub-interfaces as NetworkManager connections
     ├── nut/               # Network UPS Tools (netserver mode)
     ├── fail2ban/          # SSH brute-force jail
     ├── oha/               # oha HTTP load-testing CLI (pinned GitHub release binary)
-    └── towonel-hub/       # towonel tunnel hub (systemd-managed docker run)
+    ├── towonel-hub/       # towonel tunnel hub (systemd-managed docker run)
+    └── proxmox/           # Proxmox VE repo config (no-subscription, no enterprise)
 ```
 
 ## Usage
@@ -37,8 +39,12 @@ just ansible deploy      # apply (network + nut)
 just ansible deploy-nut  # apply only the NUT role
 
 just ansible ping-ovh-vps    # SSH reachability (ovh-vps)
-just ansible check-ovh-vps   # dry-run + diff (fail2ban + oha)
-just ansible deploy-ovh-vps  # apply (fail2ban + oha)
+just ansible check-ovh-vps   # dry-run + diff (fail2ban + oha + towonel-hub)
+just ansible deploy-ovh-vps  # apply (fail2ban + oha + towonel-hub)
+
+just ansible ping-proxmox-01    # SSH reachability (proxmox-01)
+just ansible check-proxmox-01   # dry-run + diff (fail2ban + proxmox repo config)
+just ansible deploy-proxmox-01  # apply (fail2ban + proxmox repo config)
 ```
 
 ## Networking (`network` role)
@@ -243,6 +249,47 @@ docker logs -f towonel                                    # ACME issuance / boot
 docker exec towonel curl -fsSk https://localhost:8443/v1/health
 kubectl --context=admin@pitower -n networking logs -l app.kubernetes.io/instance=towonel-agent
 ```
+
+## `proxmox-01` node runbook
+
+New Proxmox VE hypervisor host, VLAN 20 only, DHCP-assigned address (`proxmox-01.servers.local` —
+set a UniFi DHCP reservation to pin it). Root SSH only (Proxmox ships no non-root sudo user); add
+your pubkey to root's `authorized_keys` before the first run. Managed roles:
+
+- **`fail2ban`** — same SSH brute-force jail as `ovh-vps`.
+- **`proxmox`** — disables the enterprise repo (needs a paid subscription) and enables the
+  `pve-no-subscription` repo so `apt` keeps working without one.
+
+### Deploy
+
+```sh
+just ansible check-proxmox-01 && just ansible deploy-proxmox-01
+```
+
+This only covers host-level package repos. VM lifecycle (the Talos worker VM) is managed by
+Terraform — see `terraform/proxmox/`.
+
+### Network migration to VLAN20
+
+`proxmox-01` currently sits on the default/native VLAN (`192.168.0.0/24`, untagged). To move it
+onto VLAN20 (the pitower network, trunked/tagged on the switch port `nic1` connects to):
+
+```sh
+just ansible apply-network-proxmox-01
+```
+
+This tags `nic1` with VLAN20 (`nic1.20` → `vmbr0`, DHCP). Since the change reconfigures the exact
+interface the SSH session is running over, the `ifreload -a` task losing its connection
+("unreachable"/"connection lost") is **expected**, not a failure signal.
+
+**No automatic rollback** - the template task keeps a timestamped backup of the previous
+`/etc/network/interfaces` next to it (Ansible's `backup: true`), but nothing restores it
+automatically. After applying, find the new address (UniFi client list or DHCP leases for MAC
+`f8:bc:12:1d:46:30`) and confirm SSH works there. If it's broken, fix it manually via the iDRAC
+console: `cp /etc/network/interfaces.<timestamp>~ /etc/network/interfaces && ifreload -a`.
+
+Once confirmed, update `ansible/inventory/hosts.yaml`'s `proxmox-01` entry and `mise.toml`'s
+`PROXMOX_VE_ENDPOINT` to the new address, and consider a DHCP reservation to keep it stable.
 
 ## Secrets
 

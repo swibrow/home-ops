@@ -1,0 +1,5 @@
+machine:
+  nodeLabels:
+    wibrow.dev/compute: "true"
+  install:
+    disk: /dev/sda
