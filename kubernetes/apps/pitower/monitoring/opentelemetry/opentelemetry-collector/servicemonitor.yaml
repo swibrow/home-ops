@@ -1,8 +1,21 @@
 ---
+# Named otel-collector-app-metrics, NOT otel-collector -- the OpenTelemetry
+# Operator's own reconciler adopts (ownerReferences + overwrites) any
+# ServiceMonitor named "<collector-name>-collector" (here "otel-collector") to
+# manage the collector's self-telemetry, clobbering a same-named object with
+# its own spec (which targets a "prometheus"-named port that doesn't exist on
+# any of our services, so it silently scrapes nothing). Confirmed live: the
+# operator had rewritten a same-named ServiceMonitor to select
+# collector-service-type=base with `port: prometheus`, producing zero targets
+# -- the base service's port is actually named "prom-metrics" (see
+# collector.yaml). A distinct name avoids the collision entirely; the
+# `collector-service-type: base` selector still pins it to the one Service
+# that carries this port name (the headless Service also exposes it, so
+# without this label both would match and double-scrape the same pod).
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: otel-collector
+  name: otel-collector-app-metrics
   namespace: monitoring
 spec:
   selector:
@@ -10,6 +23,7 @@ spec:
       app.kubernetes.io/managed-by: opentelemetry-operator
       app.kubernetes.io/instance: monitoring.otel
       app.kubernetes.io/component: opentelemetry-collector
+      operator.opentelemetry.io/collector-service-type: base
   endpoints:
     - port: prom-metrics
       interval: 30s
