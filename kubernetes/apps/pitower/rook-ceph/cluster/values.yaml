@@ -121,7 +121,7 @@ cephClusterSpec:
           - name: "/dev/disk/by-id/nvme-AirDisk_512GB_SSD_NFQ0044006866P70GX"
       - name: "worker-02"
         devices:
-          - name: "/dev/disk/by-id/nvme-AirDisk_512GB_SSD_NFQ0044007344P70GX"
+          - name: "/dev/disk/by-id/ata-SAMSUNG_MZ7PC128HAFU-000L5_S11VNSAD307242"
       - name: "worker-03"
         devices:
           - name: "/dev/disk/by-id/nvme-AirDisk_512GB_SSD_NFQ0044010702P70GX"
