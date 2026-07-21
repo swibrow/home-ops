@@ -4,12 +4,22 @@
 # reinstalls hands-off: topf reset --full=true -> PXE -> maintenance mode ->
 # topf apply. Unknown machines default to local boot.
 #
-# Talos kernel/initramfs are chained from the image factory, nothing is
-# hosted locally. Keep talos_version in sync with topf.yaml, and the
-# schematic ids with talos/pitower/extensions/*.yaml.
+# Talos kernel/initramfs are fetched from the image factory's /image asset
+# endpoint, nothing is hosted locally. The /pxe script endpoint would hand
+# us these exact commands, but it has proven flaky (minutes-long hangs)
+# while /image stays healthy, so the boot script is assembled here instead.
+# The cmdline below is verbatim from a /pxe response for v1.13.3 - re-check
+# it when bumping talos_version (curl the /pxe URL once and compare).
+# Keep talos_version in sync with topf.yaml, and the schematic ids with
+# talos/pitower/extensions/*.yaml.
+#
+# @@NETBOOT_IP@@ is replaced with the pod's LAN address by start.sh -
+# ${next-server} can't be trusted here, in proxyDHCP it points at the
+# main DHCP server (the router), not this proxy.
 
-set factory https://pxe.factory.talos.dev/pxe
+set assets https://factory.talos.dev/image
 set talos_version v1.13.3
+set cmdline talos.platform=metal console=tty0 init_on_alloc=1 slab_nomerge pti=on consoleblank=0 nvme_core.io_timeout=4294967295 printk.devkmsg=on selinux=1 module.sig_enforce=1 proc_mem.force_override=never
 set sch_amd 86e7fd87fc2c25ce2adb947bbf084f78d473e206487a2eb7df5fc157539bc999
 set sch_intel 17520144ed95834c4c02727cd52a8528557fc222b200f89df40bf8aa50045a9e
 set sch_proxmox ce4c980550dd2ab1b17bbf2b08801c7eb59418eafe8f279833297925d67c7515
@@ -36,27 +46,36 @@ item local          Boot from local disk
 choose --timeout 15000 --default ${default} target && goto ${target} || goto local
 
 :talos-amd
-chain --autofree ${factory}/${sch_amd}/${talos_version}/metal-amd64 || goto tls-fallback
+set schematic ${sch_amd}
+goto talos-boot
 
 :talos-intel
-chain --autofree ${factory}/${sch_intel}/${talos_version}/metal-amd64 || goto tls-fallback
+set schematic ${sch_intel}
+goto talos-boot
 
 :talos-proxmox
-chain --autofree ${factory}/${sch_proxmox}/${talos_version}/metal-amd64 || goto tls-fallback
+set schematic ${sch_proxmox}
+goto talos-boot
 
-:tls-fallback
-# NIC ROM iPXE builds (e.g. QEMU/Proxmox VMs) lack HTTPS, so the factory
-# chain fails before download. Reload the TLS-capable boot.ipxe.org build
-# from TFTP; it re-DHCPs, lands back in this menu, and https then works.
-# Also loops (via re-DHCP) if the factory is down, which is what we want in
-# a recovery context.
-echo Chain failed - reloading TLS-capable iPXE from ${next-server}
-sleep 3
-iseq ${platform} efi && chain --autofree tftp://${next-server}/chain.efi || chain --autofree tftp://${next-server}/undionly.kpxe
-goto failed
+:talos-boot
+imgfree
+kernel ${assets}/${schematic}/${talos_version}/kernel-amd64 ${cmdline} || goto tls-fallback
+initrd ${assets}/${schematic}/${talos_version}/initramfs-amd64.xz || goto tls-fallback
+boot || goto failed
 
 :nbxyz
 iseq ${platform} efi && chain --autofree http://boot.netboot.xyz/ipxe/netboot.xyz.efi || chain --autofree http://boot.netboot.xyz/ipxe/netboot.xyz.lkrn
+goto failed
+
+:tls-fallback
+# NIC ROM iPXE builds (e.g. some bare-metal firmware) lack HTTPS, so the
+# fetch fails before download. Reload the TLS-capable boot.ipxe.org build
+# from TFTP; it re-DHCPs, lands back in this menu, and https then works.
+# Also loops (via re-DHCP) if the factory is down, which is what we want in
+# a recovery context.
+echo Fetch failed - reloading TLS-capable iPXE from @@NETBOOT_IP@@
+sleep 3
+iseq ${platform} efi && chain --autofree tftp://@@NETBOOT_IP@@/chain.efi || chain --autofree tftp://@@NETBOOT_IP@@/undionly.kpxe
 goto failed
 
 :shell

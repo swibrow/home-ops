@@ -9,13 +9,16 @@
 set -eu
 
 IFACE=$(ip -4 -o addr show | awk '$4 ~ /^192\.168\.0\./ {print $2; exit}')
+ADDR=$(ip -4 -o addr show | awk '$4 ~ /^192\.168\.0\./ {split($4, a, "/"); print a[1]; exit}')
 if [ -z "${IFACE}" ]; then
   echo "no interface with a 192.168.0.0/24 address on this node" >&2
   exit 1
 fi
-echo "serving proxyDHCP + TFTP on ${IFACE}"
+echo "serving proxyDHCP + TFTP on ${IFACE} (${ADDR})"
 
-cp /config/menu.ipxe /var/lib/tftpboot/menu.ipxe
+# The menu can't rely on ${next-server} (in proxyDHCP it points at the main
+# DHCP server, i.e. the router), so bake our own address in.
+sed "s/@@NETBOOT_IP@@/${ADDR}/g" /config/menu.ipxe > /var/lib/tftpboot/menu.ipxe
 
 # EFI clients get snponly.efi (drives the NIC via the firmware's SNP
 # protocol) - the bundled ipxe.efi uses iPXE-native drivers, which fail to
