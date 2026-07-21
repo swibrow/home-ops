@@ -59,6 +59,7 @@ The monitoring stack follows a pull-based model for metrics and a push-based mod
 | [Loki](loki.md) | `grafana/loki` | 6.51.0 | Log aggregation and storage |
 | [Fluent Bit](fluent-bit.md) | `fluent/fluent-bit` | 0.55.0 | Log collection from all nodes |
 | Gatus | `app-template` (bjw-s) | v5.17.0 | Uptime monitoring and status page |
+| [OpenTelemetry Collector](otel-collector.md) | `open-telemetry/opentelemetry-operator` | -- | External OTLP ingest (traces/metrics/logs) for hosts outside the cluster |
 
 ## Namespace Configuration
 

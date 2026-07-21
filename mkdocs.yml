@@ -137,6 +137,7 @@ nav:
       - Grafana: monitoring/grafana.md
       - Loki: monitoring/loki.md
       - Fluent Bit: monitoring/fluent-bit.md
+      - OpenTelemetry Collector: monitoring/otel-collector.md
   - Applications:
       - applications/index.md
       - Media Stack:
