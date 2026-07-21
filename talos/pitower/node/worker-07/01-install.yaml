@@ -3,3 +3,6 @@ machine:
     wibrow.dev/compute: "true"
   install:
     disk: /dev/sda
+  kubelet:
+    extraConfig:
+      maxPods: 250

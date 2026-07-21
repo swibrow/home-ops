@@ -14,6 +14,10 @@
 _endpoint := replace(nodes, " ", ",")
 _talos := "TALOSCONFIG=" + talosconfig + " talosctl --endpoints " + _endpoint
 
+# topf's apply/upgrade/reset prompt for confirmation on a TTY; non-interactive
+# runs (CI, this justfile) hang forever on empty stdin without this.
+export TOPF_CONFIRM := "false"
+
 # --- lifecycle (topf) ---
 
 # Show all nodes and their current state
