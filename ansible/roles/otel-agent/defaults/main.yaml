@@ -26,7 +26,10 @@ otel_agent_otlp_endpoint: https://otlp.wibrow.dev
 # capturing the full journal firehose. towonel-hub.service runs `docker run
 # --rm` in the foreground (no -d), so towonel + Caddy's own stdout/stderr
 # already land here too -- no separate docker-log plumbing needed.
+# Note: Debian's socket-activated OpenSSH unit is ssh.service, not sshd.service
+# (per-connection handling shows up as sshd-session[pid] inside it) -- confirmed
+# on ovh-vps (Debian 13/trixie) via `systemctl list-units --all`.
 otel_agent_journald_units:
   - towonel-hub.service
   - fail2ban.service
-  - sshd.service
+  - ssh.service
