@@ -23,6 +23,11 @@ controllers:
         command:
           - /bin/sh
           - /config/start.sh
+        env:
+          TALOS_VERSION: v1.13.3
+          SCHEMATIC_AMD: 86e7fd87fc2c25ce2adb947bbf084f78d473e206487a2eb7df5fc157539bc999
+          SCHEMATIC_INTEL: 17520144ed95834c4c02727cd52a8528557fc222b200f89df40bf8aa50045a9e
+          SCHEMATIC_PROXMOX: ce4c980550dd2ab1b17bbf2b08801c7eb59418eafe8f279833297925d67c7515
         securityContext:
           runAsUser: 0
           runAsGroup: 0
@@ -43,7 +48,7 @@ controllers:
             cpu: 10m
             memory: 16Mi
           limits:
-            memory: 64Mi
+            memory: 256Mi
 
 persistence:
   config:
