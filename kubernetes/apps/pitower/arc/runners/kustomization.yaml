@@ -185,6 +185,16 @@ helmCharts:
       template:
         spec:
           serviceAccountName: homb-runners
+          containers:
+            - name: runner
+              image: ghcr.io/actions/actions-runner:2.336.0
+              command: ["/home/runner/run.sh"]
+              resources:
+                requests:
+                  cpu: 500m
+                  memory: 2Gi
+                limits:
+                  memory: 8Gi
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
