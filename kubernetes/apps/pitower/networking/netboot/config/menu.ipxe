@@ -8,7 +8,7 @@
 # hosted locally. Keep talos_version in sync with topf.yaml, and the
 # schematic ids with talos/pitower/extensions/*.yaml.
 
-set factory http://pxe.factory.talos.dev/pxe
+set factory https://pxe.factory.talos.dev/pxe
 set talos_version v1.13.3
 set sch_amd 86e7fd87fc2c25ce2adb947bbf084f78d473e206487a2eb7df5fc157539bc999
 set sch_intel 17520144ed95834c4c02727cd52a8528557fc222b200f89df40bf8aa50045a9e
