@@ -2,6 +2,11 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 
 export TERRAFORM_WORKING_DIR := "terraform"
 
+# The shared S3 state backend needs the wibrow-tf profile (wraps wibrow's
+# login session via credential_process - see terraform/proxmox/README.md).
+# An explicitly set AWS_PROFILE still wins.
+export AWS_PROFILE := env_var_or_default("AWS_PROFILE", "wibrow-tf")
+
 # Run Terraform init and plan for all modules
 all:
     #!/usr/bin/env bash
