@@ -112,13 +112,6 @@ controllers:
         fsGroupChangePolicy: OnRootMismatch
     statefulset:
       serviceName: rybbit-clickhouse
-      volumeClaimTemplates:
-        - name: data
-          accessMode: ReadWriteOnce
-          size: 10Gi
-          storageClass: openebs-hostpath
-          globalMounts:
-            - path: /var/lib/clickhouse
     containers:
       app:
         image:
@@ -198,6 +191,12 @@ route:
             port: *clport
 
 persistence:
+  clickhouse-data:
+    existingClaim: rybbit-clickhouse
+    advancedMounts:
+      clickhouse:
+        app:
+          - path: /var/lib/clickhouse
   clickhouse-config:
     type: configMap
     name: rybbit-clickhouse-config

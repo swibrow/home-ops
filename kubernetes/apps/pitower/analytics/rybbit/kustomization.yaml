@@ -8,12 +8,22 @@ resources:
   - clickhouse-configmap.yaml
 components:
   - ../../../../components/cnpg-db
+  - ../../../../components/volsync
 configMapGenerator:
   - name: cnpg-db-config
     literals:
       - APP_NAME=rybbit
       - SECRET_NAME=rybbit-db-secret
       - CNPG_SECRET_KEY=rybbit-app
+  - name: volsync-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=rybbit-clickhouse
+      - CLAIM_NAME=rybbit-clickhouse
+      - SECRET_NAME=rybbit-clickhouse-volsync
+      - STORAGE_SIZE=10Gi
+      - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/analytics/rybbit-clickhouse
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm
