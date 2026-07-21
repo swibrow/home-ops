@@ -5,9 +5,10 @@
 # options.
 #
 # Talos kernel/initramfs are mirrored from the image factory at startup and
-# served over plain local HTTP: iPXE's https (cross-signed cert validation)
-# proved unreliable and the factory's /pxe endpoint hangs for minutes at a
-# time, so the factory is only needed here, at pod start, over real TLS.
+# served over plain local HTTP (the web sidecar): iPXE's https (cross-signed
+# cert validation) proved unreliable and the factory's /pxe endpoint hangs
+# for minutes at a time, so the factory is only needed here, at pod start,
+# over real TLS.
 #
 # The host interface is found by its 192.168.0.x address (static, from
 # talos/pitower/node/worker-0[56]/03-netboot-lan.yaml.tpl), so this works
@@ -60,8 +61,6 @@ if ! curl -fsSL -o /var/lib/tftpboot/chain.efi https://boot.ipxe.org/x86_64-efi/
   echo "snponly.efi download failed, falling back to bundled ipxe.efi" >&2
   cp /var/lib/tftpboot/ipxe.efi /var/lib/tftpboot/chain.efi
 fi
-
-busybox httpd -p 8080 -h /var/lib/tftpboot
 
 # PXE firmware first chainloads iPXE (undionly.kpxe / chain.efi); iPXE then
 # re-DHCPs with user-class iPXE and gets menu.ipxe.

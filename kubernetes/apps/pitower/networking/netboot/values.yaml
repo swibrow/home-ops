@@ -49,6 +49,30 @@ controllers:
             memory: 16Mi
           limits:
             memory: 256Mi
+      web:
+        image:
+          repository: docker.io/library/busybox
+          tag: "1.37.0"
+        command:
+          - httpd
+          - -f
+          - -p
+          - "8080"
+          - -h
+          - /var/lib/tftpboot
+        probes:
+          liveness:
+            enabled: false
+          readiness:
+            enabled: false
+          startup:
+            enabled: false
+        resources:
+          requests:
+            cpu: 5m
+            memory: 8Mi
+          limits:
+            memory: 64Mi
 
 persistence:
   config:
@@ -56,3 +80,7 @@ persistence:
     name: netboot-config
     globalMounts:
       - path: /config
+  assets:
+    type: emptyDir
+    globalMounts:
+      - path: /var/lib/tftpboot/talos
