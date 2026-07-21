@@ -14,3 +14,13 @@ iface {{ proxmox_network_bridge }} inet dhcp
         bridge-ports {{ proxmox_network_iface }}.{{ proxmox_network_vlan }}
         bridge-stp off
         bridge-fd 0
+
+# Untagged LAN (192.168.0.0/24) for VMs that need the trunk's native VLAN,
+# e.g. PXE-booting against the netboot server. The {{ proxmox_network_iface }}.{{ proxmox_network_vlan }}
+# subinterface keeps feeding {{ proxmox_network_bridge }} even with {{ proxmox_network_iface }} enslaved here -
+# the kernel demuxes VLAN tags before bridge processing. No host IP on purpose.
+auto {{ proxmox_network_untagged_bridge }}
+iface {{ proxmox_network_untagged_bridge }} inet manual
+        bridge-ports {{ proxmox_network_iface }}
+        bridge-stp off
+        bridge-fd 0

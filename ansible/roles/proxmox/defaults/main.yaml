@@ -5,6 +5,7 @@ proxmox_enable_no_subscription_repo: true
 proxmox_network_iface: nic1
 proxmox_network_vlan: 20
 proxmox_network_bridge: vmbr0
+proxmox_network_untagged_bridge: vmbr1
 proxmox_network_unused_ifaces:
   - nic0
   - nic2

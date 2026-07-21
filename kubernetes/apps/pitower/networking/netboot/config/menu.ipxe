@@ -23,6 +23,7 @@ iseq ${net0/mac} 10:02:b5:86:00:fb && set node worker-04 && set default talos-in
 iseq ${net0/mac} 28:d2:44:6d:64:bf && set node worker-05 && set default talos-intel ||
 iseq ${net0/mac} 50:7b:9d:31:ae:cd && set node worker-06 && set default talos-intel ||
 iseq ${net0/mac} bc:24:11:e8:10:19 && set node worker-07 && set default talos-proxmox ||
+iseq ${net0/mac} bc:24:11:0e:b0:07 && set node netboot-test && set default talos-proxmox ||
 
 :menu
 menu netboot - ${node} (${net0/mac}) - default ${default} in 15s
@@ -35,13 +36,24 @@ item local          Boot from local disk
 choose --timeout 15000 --default ${default} target && goto ${target} || goto local
 
 :talos-amd
-chain --autofree ${factory}/${sch_amd}/${talos_version}/metal-amd64 || goto failed
+chain --autofree ${factory}/${sch_amd}/${talos_version}/metal-amd64 || goto tls-fallback
 
 :talos-intel
-chain --autofree ${factory}/${sch_intel}/${talos_version}/metal-amd64 || goto failed
+chain --autofree ${factory}/${sch_intel}/${talos_version}/metal-amd64 || goto tls-fallback
 
 :talos-proxmox
-chain --autofree ${factory}/${sch_proxmox}/${talos_version}/metal-amd64 || goto failed
+chain --autofree ${factory}/${sch_proxmox}/${talos_version}/metal-amd64 || goto tls-fallback
+
+:tls-fallback
+# NIC ROM iPXE builds (e.g. QEMU/Proxmox VMs) lack HTTPS, so the factory
+# chain fails before download. Reload the TLS-capable boot.ipxe.org build
+# from TFTP; it re-DHCPs, lands back in this menu, and https then works.
+# Also loops (via re-DHCP) if the factory is down, which is what we want in
+# a recovery context.
+echo Chain failed - reloading TLS-capable iPXE from ${next-server}
+sleep 3
+iseq ${platform} efi && chain --autofree tftp://${next-server}/ipxe.efi || chain --autofree tftp://${next-server}/undionly.kpxe
+goto failed
 
 :nbxyz
 iseq ${platform} efi && chain --autofree http://boot.netboot.xyz/ipxe/netboot.xyz.efi || chain --autofree http://boot.netboot.xyz/ipxe/netboot.xyz.lkrn
