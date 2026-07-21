@@ -1,0 +1,51 @@
+controllers:
+  pve-exporter:
+    strategy: RollingUpdate
+    annotations:
+      reloader.stakater.com/auto: "true"
+    containers:
+      app:
+        image:
+          repository: prompve/prometheus-pve-exporter
+          tag: 3.9.0
+        env:
+          TZ: Europe/Zurich
+          PVE_USER: pve-exporter@pve
+          PVE_TOKEN_NAME: monitoring
+          PVE_VERIFY_SSL: "false"
+          PVE_TOKEN_VALUE:
+            valueFrom:
+              secretKeyRef:
+                name: pve-exporter-secret
+                key: PVE_TOKEN_VALUE
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32M
+          limits:
+            memory: 128M
+
+service:
+  app:
+    controller: pve-exporter
+    ports:
+      http:
+        port: 9221
+
+serviceMonitor:
+  app:
+    serviceName: pve-exporter
+    endpoints:
+      - port: http
+        scheme: http
+        path: /pve
+        interval: 1m
+        scrapeTimeout: 30s
+        params:
+          module: [default]
+          cluster: ["1"]
+          node: ["1"]
+          target: [proxmox-01.servers.local]
+        relabelings:
+          - sourceLabels: [__param_target]
+            targetLabel: instance
