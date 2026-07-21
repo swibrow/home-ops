@@ -1,0 +1,369 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: arc
+resources:
+  - rbac.yaml
+helmCharts:
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.14.2
+    releaseName: action-summary-runners
+    namespace: arc
+    valuesFile: values.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/swibrow/action-summary
+      runnerScaleSetName: action-summary
+      template:
+        spec:
+          serviceAccountName: action-summary-runners
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.14.2
+    releaseName: actions-playground-runners
+    namespace: arc
+    valuesFile: values.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/swibrow/actions-playground
+      runnerScaleSetName: actions-playground
+      template:
+        spec:
+          serviceAccountName: actions-playground-runners
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.14.2
+    releaseName: agent-ops-runners
+    namespace: arc
+    valuesFile: values.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/swibrow/agent-ops
+      runnerScaleSetName: agent-ops
+      template:
+        spec:
+          serviceAccountName: agent-ops-runners
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.14.2
+    releaseName: autobuild-runners
+    namespace: arc
+    valuesFile: values.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/swibrow/autobuild
+      runnerScaleSetName: autobuild
+      template:
+        spec:
+          serviceAccountName: autobuild-runners
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.14.2
+    releaseName: blog-runners
+    namespace: arc
+    valuesFile: values.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/swibrow/blog
+      runnerScaleSetName: blog
+      template:
+        spec:
+          serviceAccountName: blog-runners
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.14.2
+    releaseName: dotfiles-runners
+    namespace: arc
+    valuesFile: values.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/swibrow/dotfiles
+      runnerScaleSetName: dotfiles
+      template:
+        spec:
+          serviceAccountName: dotfiles-runners
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.14.2
+    releaseName: findtherighttools-runners
+    namespace: arc
+    valuesFile: values.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/swibrow/findtherighttools
+      runnerScaleSetName: findtherighttools
+      template:
+        spec:
+          serviceAccountName: findtherighttools-runners
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.14.2
+    releaseName: flickerd-runners
+    namespace: arc
+    valuesFile: values.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/swibrow/flickerd
+      runnerScaleSetName: flickerd
+      template:
+        spec:
+          serviceAccountName: flickerd-runners
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.14.2
+    releaseName: flickerd-sites-runners
+    namespace: arc
+    valuesFile: values.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/swibrow/flickerd-sites
+      runnerScaleSetName: flickerd-sites
+      template:
+        spec:
+          serviceAccountName: flickerd-sites-runners
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.14.2
+    releaseName: garrison-runners
+    namespace: arc
+    valuesFile: values.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/swibrow/garrison
+      runnerScaleSetName: garrison
+      template:
+        spec:
+          serviceAccountName: garrison-runners
+          containers:
+            - name: runner
+              image: ghcr.io/swibrow/garrison-arc-runner:2.335.1-2
+              command: ["/home/runner/run.sh"]
+              resources:
+                requests:
+                  cpu: 1
+                  memory: 4Gi
+                limits:
+                  memory: 8Gi
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.14.2
+    releaseName: github-actions-tui-runners
+    namespace: arc
+    valuesFile: values.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/swibrow/github-actions-tui
+      runnerScaleSetName: github-actions-tui
+      template:
+        spec:
+          serviceAccountName: github-actions-tui-runners
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.14.2
+    releaseName: goat-runners
+    namespace: arc
+    valuesFile: values.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/swibrow/goat
+      runnerScaleSetName: goat
+      template:
+        spec:
+          serviceAccountName: goat-runners
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.14.2
+    releaseName: homb-runners
+    namespace: arc
+    valuesFile: values.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/swibrow/homb
+      runnerScaleSetName: homb
+      template:
+        spec:
+          serviceAccountName: homb-runners
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.14.2
+    releaseName: hombview-runners
+    namespace: arc
+    valuesFile: values.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/swibrow/hombview
+      runnerScaleSetName: hombview
+      template:
+        spec:
+          serviceAccountName: hombview-runners
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.14.2
+    releaseName: home-ops-runners
+    namespace: arc
+    valuesFile: values.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/swibrow/home-ops
+      runnerScaleSetName: home-ops
+      template:
+        spec:
+          serviceAccountName: home-ops-runners
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.14.2
+    releaseName: homebrew-tap-runners
+    namespace: arc
+    valuesFile: values.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/swibrow/homebrew-tap
+      runnerScaleSetName: homebrew-tap
+      template:
+        spec:
+          serviceAccountName: homebrew-tap-runners
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.14.2
+    releaseName: hops-runners
+    namespace: arc
+    valuesFile: values.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/swibrow/hops
+      runnerScaleSetName: hops
+      template:
+        spec:
+          serviceAccountName: hops-runners
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.14.2
+    releaseName: househunter-runners
+    namespace: arc
+    valuesFile: values.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/swibrow/househunter
+      runnerScaleSetName: househunter
+      template:
+        spec:
+          serviceAccountName: househunter-runners
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.14.2
+    releaseName: how-runners
+    namespace: arc
+    valuesFile: values.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/swibrow/how
+      runnerScaleSetName: how
+      template:
+        spec:
+          serviceAccountName: how-runners
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.14.2
+    releaseName: money-runners
+    namespace: arc
+    valuesFile: values.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/swibrow/money
+      runnerScaleSetName: money
+      template:
+        spec:
+          serviceAccountName: money-runners
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.14.2
+    releaseName: resume-runners
+    namespace: arc
+    valuesFile: values.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/swibrow/resume
+      runnerScaleSetName: resume
+      template:
+        spec:
+          serviceAccountName: resume-runners
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.14.2
+    releaseName: second-brain-runners
+    namespace: arc
+    valuesFile: values.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/swibrow/second-brain
+      runnerScaleSetName: second-brain
+      template:
+        spec:
+          serviceAccountName: second-brain-runners
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.14.2
+    releaseName: tidy-k8s-runners
+    namespace: arc
+    valuesFile: values.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/swibrow/tidy-k8s
+      runnerScaleSetName: tidy-k8s
+      template:
+        spec:
+          serviceAccountName: tidy-k8s-runners
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.14.2
+    releaseName: trade-ops-runners
+    namespace: arc
+    valuesFile: values.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/swibrow/trade-ops
+      runnerScaleSetName: trade-ops
+      template:
+        spec:
+          serviceAccountName: trade-ops-runners
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.14.2
+    releaseName: webterm-runners
+    namespace: arc
+    valuesFile: values.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/swibrow/webterm
+      runnerScaleSetName: webterm
+      template:
+        spec:
+          serviceAccountName: webterm-runners
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.14.2
+    releaseName: wibrow-infra-shared-runners
+    namespace: arc
+    valuesFile: values.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/swibrow/wibrow-infra-shared
+      runnerScaleSetName: wibrow-infra-shared
+      template:
+        spec:
+          serviceAccountName: wibrow-infra-shared-runners
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.14.2
+    releaseName: wibrow-net-runners
+    namespace: arc
+    valuesFile: values.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/swibrow/wibrow.net
+      runnerScaleSetName: wibrow-net
+      template:
+        spec:
+          serviceAccountName: wibrow-net-runners

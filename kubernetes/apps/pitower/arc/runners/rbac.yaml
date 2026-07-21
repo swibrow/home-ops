@@ -1,0 +1,175 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: action-summary-runners
+  namespace: arc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: actions-playground-runners
+  namespace: arc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: agent-ops-runners
+  namespace: arc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: autobuild-runners
+  namespace: arc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: blog-runners
+  namespace: arc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dotfiles-runners
+  namespace: arc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: findtherighttools-runners
+  namespace: arc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: flickerd-runners
+  namespace: arc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: flickerd-sites-runners
+  namespace: arc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: garrison-runners
+  namespace: arc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: github-actions-tui-runners
+  namespace: arc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: goat-runners
+  namespace: arc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: homb-runners
+  namespace: arc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: hombview-runners
+  namespace: arc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: home-ops-runners
+  namespace: arc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: homebrew-tap-runners
+  namespace: arc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: hops-runners
+  namespace: arc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: househunter-runners
+  namespace: arc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: how-runners
+  namespace: arc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: money-runners
+  namespace: arc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: resume-runners
+  namespace: arc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: second-brain-runners
+  namespace: arc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tidy-k8s-runners
+  namespace: arc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: trade-ops-runners
+  namespace: arc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: webterm-runners
+  namespace: arc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: wibrow-infra-shared-runners
+  namespace: arc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: wibrow-net-runners
+  namespace: arc
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: home-ops-runners-view
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+  - kind: ServiceAccount
+    name: home-ops-runners
+    namespace: arc

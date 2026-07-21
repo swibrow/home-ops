@@ -1,6 +1,8 @@
-githubConfigUrl: https://github.com/swibrow/homebrew-tap
+# Common values for every runner scale set. ARC has no personal-account-wide
+# scope, only repo/org/enterprise, so each repo needs its own scale set — add a
+# helmCharts entry in kustomization.yaml (githubConfigUrl, runnerScaleSetName,
+# serviceAccountName) plus a ServiceAccount in rbac.yaml.
 githubConfigSecret: arc-github-app
-runnerScaleSetName: homebrew-tap
 
 controllerServiceAccount:
   name: arc-gha-rs-controller
@@ -14,7 +16,6 @@ containerMode:
 
 template:
   spec:
-    serviceAccountName: homebrew-tap-runners
     automountServiceAccountToken: true
     nodeSelector:
       wibrow.dev/compute: "true"
