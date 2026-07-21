@@ -15,7 +15,7 @@ server:
     enabled: true
     accessModes:
       - ReadWriteOnce
-    storageClassName: ceph-block
+    storageClassName: openebs-hostpath
     size: 20Gi
   service:
     servicePort: 9428
