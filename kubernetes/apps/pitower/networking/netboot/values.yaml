@@ -1,0 +1,53 @@
+controllers:
+  netboot:
+    annotations:
+      reloader.stakater.com/auto: "true"
+    pod:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - worker-05
+                      - worker-06
+    containers:
+      app:
+        image:
+          repository: quay.io/poseidon/dnsmasq
+          tag: v0.5.0-51-gc8a9de4
+        command:
+          - /bin/sh
+          - /config/start.sh
+        securityContext:
+          runAsUser: 0
+          runAsGroup: 0
+          capabilities:
+            add:
+              - NET_ADMIN
+              - NET_RAW
+              - NET_BIND_SERVICE
+        probes:
+          liveness:
+            enabled: false
+          readiness:
+            enabled: false
+          startup:
+            enabled: false
+        resources:
+          requests:
+            cpu: 10m
+            memory: 16Mi
+          limits:
+            memory: 64Mi
+
+persistence:
+  config:
+    type: configMap
+    name: netboot-config
+    globalMounts:
+      - path: /config

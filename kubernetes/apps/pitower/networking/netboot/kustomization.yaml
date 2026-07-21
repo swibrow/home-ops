@@ -1,0 +1,19 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: networking
+configMapGenerator:
+  - name: netboot-config
+    options:
+      disableNameSuffixHash: true
+    files:
+      - config/start.sh
+      - config/menu.ipxe
+helmCharts:
+  - name: app-template
+    repo: oci://ghcr.io/bjw-s-labs/helm
+    version: 5.0.1
+    releaseName: netboot
+    namespace: networking
+    valuesFile: values.yaml

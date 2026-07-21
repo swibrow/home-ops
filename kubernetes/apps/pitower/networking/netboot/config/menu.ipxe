@@ -1,0 +1,60 @@
+#!ipxe
+# Boot menu for the untagged LAN. Known MACs (from talos/pitower/topf.yaml)
+# default to their node's Talos schematic after the timeout, so a wiped node
+# reinstalls hands-off: topf reset --full=true -> PXE -> maintenance mode ->
+# topf apply. Unknown machines default to local boot.
+#
+# Talos kernel/initramfs are chained from the image factory, nothing is
+# hosted locally. Keep talos_version in sync with topf.yaml, and the
+# schematic ids with talos/pitower/extensions/*.yaml.
+
+set factory http://pxe.factory.talos.dev/pxe
+set talos_version v1.13.3
+set sch_amd 86e7fd87fc2c25ce2adb947bbf084f78d473e206487a2eb7df5fc157539bc999
+set sch_intel 17520144ed95834c4c02727cd52a8528557fc222b200f89df40bf8aa50045a9e
+set sch_proxmox ce4c980550dd2ab1b17bbf2b08801c7eb59418eafe8f279833297925d67c7515
+
+set node unknown
+set default local
+iseq ${net0/mac} 1c:83:41:40:88:41 && set node worker-01 && set default talos-amd ||
+iseq ${net0/mac} 1c:83:41:40:66:25 && set node worker-02 && set default talos-amd ||
+iseq ${net0/mac} 1c:83:41:40:65:13 && set node worker-03 && set default talos-amd ||
+iseq ${net0/mac} 10:02:b5:86:00:fb && set node worker-04 && set default talos-intel ||
+iseq ${net0/mac} 28:d2:44:6d:64:bf && set node worker-05 && set default talos-intel ||
+iseq ${net0/mac} 50:7b:9d:31:ae:cd && set node worker-06 && set default talos-intel ||
+iseq ${net0/mac} bc:24:11:e8:10:19 && set node worker-07 && set default talos-proxmox ||
+
+:menu
+menu netboot - ${node} (${net0/mac}) - default ${default} in 15s
+item talos-amd      Talos ${talos_version} amd schematic (worker-01/02/03)
+item talos-intel    Talos ${talos_version} intel schematic (worker-04/05/06)
+item talos-proxmox  Talos ${talos_version} proxmox schematic (worker-07)
+item nbxyz          netboot.xyz (Linux ISOs, tools, installers)
+item shell          iPXE shell
+item local          Boot from local disk
+choose --timeout 15000 --default ${default} target && goto ${target} || goto local
+
+:talos-amd
+chain --autofree ${factory}/${sch_amd}/${talos_version}/metal-amd64 || goto failed
+
+:talos-intel
+chain --autofree ${factory}/${sch_intel}/${talos_version}/metal-amd64 || goto failed
+
+:talos-proxmox
+chain --autofree ${factory}/${sch_proxmox}/${talos_version}/metal-amd64 || goto failed
+
+:nbxyz
+iseq ${platform} efi && chain --autofree http://boot.netboot.xyz/ipxe/netboot.xyz.efi || chain --autofree http://boot.netboot.xyz/ipxe/netboot.xyz.lkrn
+goto failed
+
+:shell
+shell
+goto menu
+
+:failed
+echo Boot failed, dropping to menu in 10s
+sleep 10
+goto menu
+
+:local
+exit
