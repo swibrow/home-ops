@@ -22,7 +22,7 @@ cp /config/menu.ipxe /var/lib/tftpboot/menu.ipxe
 # claim the NIC on OVMF/virtio VMs and some real firmware. Best-effort
 # download with fallback to the bundled binary; chain.efi is the stable
 # name both dnsmasq and menu.ipxe reference.
-if ! curl -fsSL -o /var/lib/tftpboot/chain.efi https://boot.ipxe.org/snponly.efi; then
+if ! curl -fsSL -o /var/lib/tftpboot/chain.efi https://boot.ipxe.org/x86_64-efi/snponly.efi; then
   echo "snponly.efi download failed, falling back to bundled ipxe.efi" >&2
   cp /var/lib/tftpboot/ipxe.efi /var/lib/tftpboot/chain.efi
 fi
