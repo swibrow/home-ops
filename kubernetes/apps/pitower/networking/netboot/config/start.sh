@@ -17,6 +17,16 @@ echo "serving proxyDHCP + TFTP on ${IFACE}"
 
 cp /config/menu.ipxe /var/lib/tftpboot/menu.ipxe
 
+# EFI clients get snponly.efi (drives the NIC via the firmware's SNP
+# protocol) - the bundled ipxe.efi uses iPXE-native drivers, which fail to
+# claim the NIC on OVMF/virtio VMs and some real firmware. Best-effort
+# download with fallback to the bundled binary; chain.efi is the stable
+# name both dnsmasq and menu.ipxe reference.
+if ! curl -fsSL -o /var/lib/tftpboot/chain.efi https://boot.ipxe.org/snponly.efi; then
+  echo "snponly.efi download failed, falling back to bundled ipxe.efi" >&2
+  cp /var/lib/tftpboot/ipxe.efi /var/lib/tftpboot/chain.efi
+fi
+
 # PXE firmware first chainloads iPXE (undionly.kpxe / ipxe.efi, bundled in
 # the image); iPXE then re-DHCPs with user-class iPXE and gets menu.ipxe.
 exec dnsmasq -d -q \
@@ -29,8 +39,8 @@ exec dnsmasq -d -q \
   --dhcp-userclass=set:ipxe,iPXE \
   --pxe-prompt="netboot",1 \
   --pxe-service=tag:!ipxe,x86PC,"Chainload iPXE",undionly.kpxe \
-  --pxe-service=tag:!ipxe,BC_EFI,"Chainload iPXE",ipxe.efi \
-  --pxe-service=tag:!ipxe,X86-64_EFI,"Chainload iPXE",ipxe.efi \
+  --pxe-service=tag:!ipxe,BC_EFI,"Chainload iPXE",chain.efi \
+  --pxe-service=tag:!ipxe,X86-64_EFI,"Chainload iPXE",chain.efi \
   --pxe-service=tag:ipxe,x86PC,"boot menu",menu.ipxe \
   --pxe-service=tag:ipxe,BC_EFI,"boot menu",menu.ipxe \
   --pxe-service=tag:ipxe,X86-64_EFI,"boot menu",menu.ipxe \

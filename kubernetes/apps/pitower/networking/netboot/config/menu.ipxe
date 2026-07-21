@@ -52,7 +52,7 @@ chain --autofree ${factory}/${sch_proxmox}/${talos_version}/metal-amd64 || goto 
 # a recovery context.
 echo Chain failed - reloading TLS-capable iPXE from ${next-server}
 sleep 3
-iseq ${platform} efi && chain --autofree tftp://${next-server}/ipxe.efi || chain --autofree tftp://${next-server}/undionly.kpxe
+iseq ${platform} efi && chain --autofree tftp://${next-server}/chain.efi || chain --autofree tftp://${next-server}/undionly.kpxe
 goto failed
 
 :nbxyz
