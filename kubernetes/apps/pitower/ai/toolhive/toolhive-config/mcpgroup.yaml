@@ -11,14 +11,3 @@ metadata:
   name: mcp-tools
 spec:
   description: MCP tool backends aggregated by the vMCP gateways
----
-# Isolated group for sensitive (secrets-manager) backends. Aggregated ONLY by the
-# OAuth-protected mcp-gateway-secrets vMCP (virtualmcpserver-secrets.yaml) — never by
-# the anonymous mcp-gateway-direct. Currently: infisical.
-# yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpgroup_v1beta1.json
-apiVersion: toolhive.stacklok.dev/v1beta1
-kind: MCPGroup
-metadata:
-  name: mcp-secrets
-spec:
-  description: Sensitive MCP backends exposed only via the OAuth gateway

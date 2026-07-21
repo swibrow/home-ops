@@ -1,8 +1,2 @@
 operator:
   replicaCount: 1
-# Pin a registry-api newer than the chart default (v1.3.0). Skills support and
-# skills-only registry files (data.servers: []) landed in v1.4.0; v1.3.0 404s on
-# /skills and rejects our skills-only file source with "must contain at least one
-# server". The operator passes this image to the registry-api Deployment it manages.
-registryAPI:
-  image: "ghcr.io/stacklok/thv-registry-api:v1.5.0"

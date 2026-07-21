@@ -131,16 +131,12 @@ spec:
         - email
         - groups
         - offline_access
-    # Group gating happens at kanidm, NOT in Cedar: kanidm never emits group
-    # claims in the access token Cedar evaluates, so THVGroup policies would
-    # deny-all. The toolhive-mcp client's kanidm scope-map is restricted to the
-    # mcp-tools group — non-members get access_denied at the IdP — so any valid
-    # token already belongs to an authorized member; Cedar just allows it.
-    authzConfig:
-      type: inline
-      inline:
-        policies:
-          - 'permit(principal, action, resource);'
+    # No authzConfig: since operator 0.40.x, Cedar authz and the optimizer
+    # (embeddingServerRef → find_tool/call_tool) are mutually exclusive — the
+    # vMCP refuses to start with both. The old policy here was an allow-all
+    # no-op anyway; group gating happens at kanidm, whose toolhive-mcp
+    # scope-map is restricted to the mcp-tools group, so non-members get
+    # access_denied at the IdP and any valid token is already authorized.
   # The mcp-agg backends declare no externalAuthConfigRef, so discovery resolves
   # them as unauthenticated — exactly what the agg tier is. (The CRD enum for
   # outgoingAuth.default.type is only [discovered, externalAuthConfigRef]; there

@@ -21,19 +21,3 @@ spec:
     issuer: https://mcp.wibrow.dev
     jwksAllowPrivateIP: true
     protectedResourceAllowPrivateIP: true
----
-# Resource-server validation for the mcp-gateway-secrets vMCP (its own embedded AS).
-# Issuer MUST match that vMCP's authServerConfig.issuer. mcp-secrets.wibrow.dev hairpins
-# to the envoy-external LB (private) in-cluster, so JWKS/discovery need the private-IP
-# allowances — same as mcp-gateway-oidc above.
-# yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpoidcconfig_v1beta1.json
-apiVersion: toolhive.stacklok.dev/v1beta1
-kind: MCPOIDCConfig
-metadata:
-  name: mcp-gateway-secrets-oidc
-spec:
-  type: inline
-  inline:
-    issuer: https://mcp-secrets.wibrow.dev
-    jwksAllowPrivateIP: true
-    protectedResourceAllowPrivateIP: true
