@@ -30,6 +30,13 @@ api:
     # V1EnvVar list (no envFrom) and don't currently forward this; wiring
     # them needs a code change in goat's dev_sessions/manager.py.
     OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector.monitoring.svc.cluster.local:4318
+    # Changelog scanning (goat >= 0.10): hourly REST sweep of every repo the
+    # PAT can read — the fallback for orgs without the GitHub App/webhooks.
+    # Backfill 0 = full history on the first sweep; GITHUB_LOGIN scopes
+    # /v1/stats/shipping to my own shipped changes by default.
+    GITHUB_SCAN_TARGETS: "user:swibrow"
+    GITHUB_SCAN_BACKFILL_DAYS: "0"
+    GITHUB_LOGIN: swibrow
 # Dev-session pods (Claude Code in the goat namespace) — needs the
 # ghcr.io/swibrow/claude-code image and the egress NetworkPolicy below.
 devSessions:
