@@ -45,7 +45,7 @@ spec:
                   drop: ["ALL"]
           containers:
             - name: gc
-              image: amazon/aws-cli:2.36.5
+              image: amazon/aws-cli:2.36.6
               command: ["/bin/bash", "/scripts/gc.sh"]
               env:
                 - name: BUCKET
