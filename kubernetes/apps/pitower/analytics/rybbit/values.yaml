@@ -116,7 +116,7 @@ controllers:
       app:
         image:
           repository: clickhouse/clickhouse-server
-          tag: 26.6.2
+          tag: 26.7.1
         env:
           CLICKHOUSE_DB: analytics
           CLICKHOUSE_USER: default
