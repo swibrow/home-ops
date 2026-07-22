@@ -34,7 +34,7 @@ api:
     # PAT can read — the fallback for orgs without the GitHub App/webhooks.
     # Backfill 0 = full history on the first sweep; GITHUB_LOGIN scopes
     # /v1/stats/shipping to my own shipped changes by default.
-    GITHUB_SCAN_TARGETS: "user:swibrow"
+    GITHUB_SCAN_TARGETS: "user:swibrow,DND-IT,tx-pts-dai,20minuten"
     GITHUB_SCAN_BACKFILL_DAYS: "0"
     GITHUB_LOGIN: swibrow
 # Dev-session pods (Claude Code in the goat namespace) — needs the
