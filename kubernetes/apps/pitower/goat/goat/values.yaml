@@ -41,6 +41,10 @@ api:
 # ghcr.io/swibrow/claude-code image and the egress NetworkPolicy below.
 devSessions:
   enabled: true
+# Cluster-wide read-only RBAC for the cluster-sentinel job (pods, nodes,
+# PVCs, Rook-Ceph health). Without this the job 403s every 15 minutes.
+sentinel:
+  enabled: true
 # Web SPA auth via kanidm (OIDC). Client 'goat' bootstrapped with
 # scripts/bootstrap_kanidm.sh. Access is gated at kanidm's own scope-map
 # (oauth2_rs_scope_map: app_access), same as every other self-hosted app on
