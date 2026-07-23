@@ -28,6 +28,12 @@ resource "proxmox_virtual_environment_container" "garage" {
     type             = "debian"
   }
 
+  # Debian 13 ships systemd 257, which wants user namespaces inside the guest
+  # (pct warns "Systemd 257 detected. You may need to enable nesting").
+  features {
+    nesting = true
+  }
+
   cpu {
     cores = var.garage.cores
   }
