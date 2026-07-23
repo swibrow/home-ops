@@ -1,0 +1,119 @@
+name: Terraform Proxmox
+
+# Split out from terraform-{plan,apply}.yaml because this stack can only run on
+# the in-cluster `home-ops` runner: the bpg/proxmox provider talks to
+# proxmox-01 on VLAN 20, which a GitHub-hosted runner cannot reach.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - terraform/proxmox/**
+      - .github/workflows/terraform-proxmox.yaml
+  push:
+    branches: [main]
+    paths:
+      - terraform/proxmox/**
+      - .github/workflows/terraform-proxmox.yaml
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Run a plan or an apply
+        type: choice
+        default: plan
+        options: [plan, apply]
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+# Plan and apply share one S3 state lock, so serialise them. Applies must not be
+# cancelled mid-flight.
+concurrency:
+  group: terraform-proxmox
+  cancel-in-progress: false
+
+jobs:
+  terraform:
+    name: Proxmox
+    runs-on: home-ops
+    timeout-minutes: 30
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install mise
+        env:
+          # renovate: datasource=github-releases depName=jdx/mise
+          MISE_VERSION: v2026.7.12
+        run: |
+          set -euo pipefail
+          curl -fsSL https://mise.run | MISE_INSTALL_PATH="$HOME/.local/bin/mise" sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/mise" --version
+
+      - name: Decrypt Proxmox credentials
+        env:
+          AGE_SECRET_KEY: ${{ secrets.AGE_SECRET_KEY }}
+          # mise reads the age identity from this path by default; the repo age
+          # key is the x25519 recipient on mise.toml's encrypted values.
+          MISE_EXPERIMENTAL: "1"
+          # `mise env` would otherwise install the whole [tools] block (talosctl,
+          # kubectl, helm, ...) just to print the [env] block.
+          MISE_AUTO_INSTALL: "0"
+        run: |
+          set -euo pipefail
+          umask 077
+          install -d "$HOME/.config/mise"
+          printf '%s\n' "$AGE_SECRET_KEY" > "$HOME/.config/mise/age.txt"
+
+          # mise auto-trusts configs in detected CI, but be explicit: an
+          # untrusted mise.toml is silently skipped and the loop below would
+          # then fail on an empty endpoint rather than a missing key.
+          mise trust "${GITHUB_WORKSPACE}/mise.toml"
+
+          eval "$(mise env -s bash)"
+          for key in PROXMOX_VE_ENDPOINT PROXMOX_VE_INSECURE PROXMOX_VE_API_TOKEN; do
+            value="${!key:-}"
+            if [ -z "$value" ]; then
+              echo "::error::${key} missing from mise env — age decryption likely failed"
+              exit 1
+            fi
+            echo "::add-mask::${value}"
+            echo "${key}=${value}" >> "$GITHUB_ENV"
+          done
+
+      - name: Check Proxmox API reachability
+        run: |
+          set -euo pipefail
+          # Unauthenticated probe: 401 means we reached the API. A connection or
+          # DNS failure here means the runner cannot resolve/route to
+          # proxmox-01.servers.local on VLAN 20 — fix that before blaming the plan.
+          code=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 15 \
+            "${PROXMOX_VE_ENDPOINT}/api2/json/version" || echo "000")
+          echo "HTTP ${code}"
+          if [ "$code" = "000" ]; then
+            echo "::error::Proxmox API unreachable from this runner (DNS or VLAN 20 routing)"
+            exit 1
+          fi
+
+      - uses: aws-actions/configure-aws-credentials@517a711dbcd0e402f90c77e7e2f81e849156e31d # v6.2.2
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          aws-region: eu-central-2
+
+      - name: Plan
+        if: github.event_name == 'pull_request' || inputs.action == 'plan'
+        uses: dflook/terraform-plan@7878bff63e2099cdc9be9a6f33cbbbf687f8f0fe # v2.2.3
+        with:
+          path: terraform/proxmox
+          label: proxmox
+
+      - name: Apply
+        if: github.event_name == 'push' || inputs.action == 'apply'
+        uses: dflook/terraform-apply@5489b988934a50bf1489d5b7c5253b46520a7dca # v2.2.3
+        with:
+          path: terraform/proxmox
+          label: proxmox
+          auto_approve: true

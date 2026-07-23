@@ -4,7 +4,11 @@ on:
   push:
     branches: [main]
     paths:
-      - "terraform/**"
+      # Only the stacks in this workflow's matrix. terraform/proxmox has its own
+      # workflow — it needs the self-hosted runner for VLAN 20 access.
+      - "terraform/alexa/**"
+      - "terraform/bootstrap/**"
+      - "terraform/general/**"
 
 permissions:
   contents: read

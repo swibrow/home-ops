@@ -2,15 +2,17 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: arc
+namespace: arc-runners
 resources:
+  - namespace.yaml
+  - externalsecret.yaml
   - rbac.yaml
 helmCharts:
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
     releaseName: action-summary-runners
-    namespace: arc
+    namespace: arc-runners
     valuesFile: values.yaml
     valuesMerge: override
     valuesInline:
@@ -23,7 +25,7 @@ helmCharts:
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
     releaseName: actions-playground-runners
-    namespace: arc
+    namespace: arc-runners
     valuesFile: values.yaml
     valuesMerge: override
     valuesInline:
@@ -36,7 +38,7 @@ helmCharts:
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
     releaseName: agent-ops-runners
-    namespace: arc
+    namespace: arc-runners
     valuesFile: values.yaml
     valuesMerge: override
     valuesInline:
@@ -49,7 +51,7 @@ helmCharts:
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
     releaseName: autobuild-runners
-    namespace: arc
+    namespace: arc-runners
     valuesFile: values.yaml
     valuesMerge: override
     valuesInline:
@@ -62,7 +64,7 @@ helmCharts:
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
     releaseName: blog-runners
-    namespace: arc
+    namespace: arc-runners
     valuesFile: values.yaml
     valuesMerge: override
     valuesInline:
@@ -75,7 +77,7 @@ helmCharts:
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
     releaseName: dotfiles-runners
-    namespace: arc
+    namespace: arc-runners
     valuesFile: values.yaml
     valuesMerge: override
     valuesInline:
@@ -88,7 +90,7 @@ helmCharts:
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
     releaseName: findtherighttools-runners
-    namespace: arc
+    namespace: arc-runners
     valuesFile: values.yaml
     valuesMerge: override
     valuesInline:
@@ -101,7 +103,7 @@ helmCharts:
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
     releaseName: flickerd-runners
-    namespace: arc
+    namespace: arc-runners
     valuesFile: values.yaml
     valuesMerge: override
     valuesInline:
@@ -114,7 +116,7 @@ helmCharts:
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
     releaseName: flickerd-sites-runners
-    namespace: arc
+    namespace: arc-runners
     valuesFile: values.yaml
     valuesMerge: override
     valuesInline:
@@ -127,7 +129,7 @@ helmCharts:
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
     releaseName: garrison-runners
-    namespace: arc
+    namespace: arc-runners
     valuesFile: values.yaml
     valuesMerge: override
     valuesInline:
@@ -150,7 +152,7 @@ helmCharts:
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
     releaseName: github-actions-tui-runners
-    namespace: arc
+    namespace: arc-runners
     valuesFile: values.yaml
     valuesMerge: override
     valuesInline:
@@ -163,7 +165,7 @@ helmCharts:
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
     releaseName: goat-runners
-    namespace: arc
+    namespace: arc-runners
     valuesFile: values.yaml
     valuesMerge: override
     valuesInline:
@@ -176,7 +178,7 @@ helmCharts:
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
     releaseName: homb-runners
-    namespace: arc
+    namespace: arc-runners
     valuesFile: values.yaml
     valuesMerge: override
     valuesInline:
@@ -199,7 +201,7 @@ helmCharts:
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
     releaseName: hombview-runners
-    namespace: arc
+    namespace: arc-runners
     valuesFile: values.yaml
     valuesMerge: override
     valuesInline:
@@ -212,7 +214,7 @@ helmCharts:
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
     releaseName: home-ops-runners
-    namespace: arc
+    namespace: arc-runners
     valuesFile: values.yaml
     valuesMerge: override
     valuesInline:
@@ -225,7 +227,7 @@ helmCharts:
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
     releaseName: homebrew-tap-runners
-    namespace: arc
+    namespace: arc-runners
     valuesFile: values.yaml
     valuesMerge: override
     valuesInline:
@@ -238,7 +240,7 @@ helmCharts:
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
     releaseName: hops-runners
-    namespace: arc
+    namespace: arc-runners
     valuesFile: values.yaml
     valuesMerge: override
     valuesInline:
@@ -251,7 +253,7 @@ helmCharts:
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
     releaseName: househunter-runners
-    namespace: arc
+    namespace: arc-runners
     valuesFile: values.yaml
     valuesMerge: override
     valuesInline:
@@ -264,7 +266,7 @@ helmCharts:
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
     releaseName: how-runners
-    namespace: arc
+    namespace: arc-runners
     valuesFile: values.yaml
     valuesMerge: override
     valuesInline:
@@ -277,7 +279,7 @@ helmCharts:
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
     releaseName: money-runners
-    namespace: arc
+    namespace: arc-runners
     valuesFile: values.yaml
     valuesMerge: override
     valuesInline:
@@ -290,7 +292,7 @@ helmCharts:
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
     releaseName: resume-runners
-    namespace: arc
+    namespace: arc-runners
     valuesFile: values.yaml
     valuesMerge: override
     valuesInline:
@@ -303,7 +305,7 @@ helmCharts:
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
     releaseName: second-brain-runners
-    namespace: arc
+    namespace: arc-runners
     valuesFile: values.yaml
     valuesMerge: override
     valuesInline:
@@ -316,7 +318,7 @@ helmCharts:
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
     releaseName: tidy-k8s-runners
-    namespace: arc
+    namespace: arc-runners
     valuesFile: values.yaml
     valuesMerge: override
     valuesInline:
@@ -329,7 +331,7 @@ helmCharts:
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
     releaseName: trade-ops-runners
-    namespace: arc
+    namespace: arc-runners
     valuesFile: values.yaml
     valuesMerge: override
     valuesInline:
@@ -342,7 +344,7 @@ helmCharts:
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
     releaseName: webterm-runners
-    namespace: arc
+    namespace: arc-runners
     valuesFile: values.yaml
     valuesMerge: override
     valuesInline:
@@ -355,7 +357,7 @@ helmCharts:
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
     releaseName: wibrow-infra-shared-runners
-    namespace: arc
+    namespace: arc-runners
     valuesFile: values.yaml
     valuesMerge: override
     valuesInline:
@@ -368,7 +370,7 @@ helmCharts:
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
     releaseName: wibrow-net-runners
-    namespace: arc
+    namespace: arc-runners
     valuesFile: values.yaml
     valuesMerge: override
     valuesInline:

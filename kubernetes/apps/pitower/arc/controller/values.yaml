@@ -7,4 +7,4 @@ resources:
     memory: 64Mi
 
 flags:
-  watchSingleNamespace: arc
+  watchSingleNamespace: arc-runners

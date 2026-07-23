@@ -6,7 +6,7 @@
 # goat-db-secret is the CNPG-generated app credential (see
 # cloudnative-pg/cluster/cluster.yaml + the cnpg-db kustomize component).
 image:
-  tag: v0.12.2
+  tag: v0.12.3
 imagePullSecret: ghcr-pull-secret
 database:
   enabled: true
@@ -40,6 +40,10 @@ api:
 # Dev-session pods (Claude Code in the goat namespace) — needs the
 # ghcr.io/swibrow/claude-code image and the egress NetworkPolicy below.
 devSessions:
+  enabled: true
+# Cluster-wide read-only RBAC for the cluster-sentinel job (pods, nodes,
+# PVCs, Rook-Ceph health). Without this the job 403s every 15 minutes.
+sentinel:
   enabled: true
 # Web SPA auth via kanidm (OIDC). Client 'goat' bootstrapped with
 # scripts/bootstrap_kanidm.sh. Access is gated at kanidm's own scope-map
