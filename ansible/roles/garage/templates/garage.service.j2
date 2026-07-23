@@ -1,0 +1,21 @@
+[Unit]
+Description=Garage S3 storage node
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User={{ garage_user }}
+Group={{ garage_group }}
+ExecStart={{ garage_install_path }} -c {{ garage_config_path }} server
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65536
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths={{ garage_data_root }}
+
+[Install]
+WantedBy=multi-user.target

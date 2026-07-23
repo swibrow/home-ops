@@ -17,6 +17,15 @@ all:
           # ansible_host is SOPS-encrypted in inventory/host_vars/ovh-vps.sops.yaml
           # (public IP kept out of plaintext git history).
           ansible_user: debian
+    garage:
+      hosts:
+        garage-01:
+          # Garage S3 LXC on proxmox-01 (vmid 210), on VLAN 20 only. DHCP-assigned
+          # under servers.local - set a UniFi reservation to pin it (use
+          # `terraform output garage_mac_address`). Debian LXC has no non-root sudo
+          # user, so ansible_user is root (SSH key injected by terraform/proxmox).
+          ansible_host: garage-01.servers.local
+          ansible_user: root
     proxmox_01:
       hosts:
         proxmox-01:

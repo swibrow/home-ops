@@ -1,0 +1,26 @@
+metadata_dir = "{{ garage_meta_dir }}"
+data_dir = "{{ garage_data_dir }}"
+db_engine = "lmdb"
+
+metadata_auto_snapshot_interval = "6h"
+
+replication_factor = {{ garage_replication_factor }}
+
+rpc_bind_addr = "{{ garage_rpc_bind_addr }}"
+rpc_public_addr = "{{ garage_rpc_public_addr }}"
+rpc_secret = "{{ garage_rpc_secret }}"
+
+[s3_api]
+s3_region = "{{ garage_s3_region }}"
+api_bind_addr = "{{ garage_s3_api_bind_addr }}"
+root_domain = "{{ garage_s3_root_domain }}"
+
+[s3_web]
+bind_addr = "{{ garage_s3_web_bind_addr }}"
+root_domain = "{{ garage_s3_web_root_domain }}"
+index = "index.html"
+
+[admin]
+api_bind_addr = "{{ garage_admin_bind_addr }}"
+admin_token = "{{ garage_admin_token }}"
+metrics_token = "{{ garage_metrics_token | default(garage_admin_token) }}"

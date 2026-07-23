@@ -19,7 +19,8 @@ the container can be rebuilt without touching data, and the dataset snapshots/re
 Sizing lives in the `garage` variable.
 
 Same scope boundary as the VMs: Terraform creates the container + data volume and injects your SSH
-key; installing and configuring Garage is Ansible's job. Networking is DHCP on VLAN 20 (via
+key; installing and configuring Garage is Ansible's job (`ansible/roles/garage`, run with
+`just ansible deploy-garage`). Networking is DHCP on VLAN 20 (via
 `vmbr0`, untagged from the guest's perspective) - pin the lease with a UniFi reservation using
 `terraform output garage_mac_address`, same as `nut` and `proxmox-01`.
 

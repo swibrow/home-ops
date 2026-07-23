@@ -1,0 +1,61 @@
+---
+garage_version: "2.3.0"
+
+# Static musl binary from the Garage release CDN (not GitHub). checksum is the
+# sha256 of that exact release asset - bump both together when upgrading.
+garage_checksums:
+  x86_64-unknown-linux-musl: "sha256:f98d317942bb341151a2775162016bb50cf86b865d0108de03eb5db16e2120cd"
+
+garage_arch_map:
+  x86_64: x86_64-unknown-linux-musl
+  aarch64: aarch64-unknown-linux-musl
+
+garage_user: garage
+garage_group: garage
+garage_install_path: /usr/local/bin/garage
+garage_config_path: /etc/garage.toml
+
+# /var/lib/garage is the dedicated ZFS mount point created by terraform/proxmox
+# (ct_garage.tf) - keep meta and data under it so both ride that dataset.
+garage_data_root: /var/lib/garage
+garage_meta_dir: "{{ garage_data_root }}/meta"
+garage_data_dir: "{{ garage_data_root }}/data"
+
+# Single node for now. A second replica on the Synology NAS is planned (see
+# terraform/proxmox/README.md); raising this to 3 is a MAJOR change that needs
+# the extra nodes joined first.
+garage_replication_factor: 1
+
+garage_rpc_bind_addr: "[::]:3901"
+# Single-node cluster only talks to itself, so loopback is enough and avoids
+# depending on the DHCP address. When the second node joins, set this to the
+# node's real VLAN-20 IP:3901 so peers can dial it.
+garage_rpc_public_addr: "127.0.0.1:3901"
+
+garage_s3_api_bind_addr: "[::]:3900"
+garage_s3_region: garage
+garage_s3_root_domain: ".s3.garage.wibrow.dev"
+
+garage_s3_web_bind_addr: "[::]:3902"
+garage_s3_web_root_domain: ".web.garage.wibrow.dev"
+
+garage_admin_bind_addr: "127.0.0.1:3903"
+
+# Cluster layout, applied once on a fresh node (guarded on an empty layout).
+garage_zone: dc1
+# Advertised capacity - below the 500G dataset to leave metadata/LMDB and ZFS
+# headroom.
+garage_capacity: "450G"
+
+# Buckets to ensure exist. "Just bootstrap it" - one bucket, wire real
+# consumers later by extending this list.
+garage_buckets:
+  - garage
+
+# API keys to ensure exist, each granted read+write+owner on the listed
+# buckets. Garage stores the key + secret durably itself; read the secret back
+# any time with `garage key info --show-secret <name>` on the host.
+garage_keys:
+  - name: garage-admin
+    buckets:
+      - garage

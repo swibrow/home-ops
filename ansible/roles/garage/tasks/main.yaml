@@ -1,0 +1,140 @@
+---
+- name: Load SOPS-encrypted Garage secrets
+  community.sops.load_vars:
+    file: "{{ role_path }}/vars/secrets.sops.yaml"
+
+- name: Determine Garage release arch
+  ansible.builtin.set_fact:
+    garage_release_arch: "{{ garage_arch_map[ansible_facts['architecture']] }}"
+
+- name: Create garage group
+  ansible.builtin.group:
+    name: "{{ garage_group }}"
+    system: true
+
+- name: Create garage user
+  ansible.builtin.user:
+    name: "{{ garage_user }}"
+    group: "{{ garage_group }}"
+    system: true
+    shell: /usr/sbin/nologin
+    home: "{{ garage_data_root }}"
+    create_home: false
+
+- name: Download garage {{ garage_version }} binary
+  ansible.builtin.get_url:
+    url: "https://garagehq.deuxfleurs.fr/_releases/v{{ garage_version }}/{{ garage_release_arch }}/garage"
+    dest: "{{ garage_install_path }}"
+    checksum: "{{ garage_checksums[garage_release_arch] }}"
+    owner: root
+    group: root
+    mode: "0755"
+  notify: Restart garage
+
+- name: Ensure garage data directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ garage_user }}"
+    group: "{{ garage_group }}"
+    mode: "0700"
+  loop:
+    - "{{ garage_meta_dir }}"
+    - "{{ garage_data_dir }}"
+
+- name: Install garage config
+  ansible.builtin.template:
+    src: garage.toml.j2
+    dest: "{{ garage_config_path }}"
+    owner: root
+    group: "{{ garage_group }}"
+    mode: "0640"
+  no_log: true
+  notify: Restart garage
+
+- name: Install garage systemd unit
+  ansible.builtin.template:
+    src: garage.service.j2
+    dest: /etc/systemd/system/garage.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart garage
+
+- name: Enable and start garage
+  ansible.builtin.systemd_service:
+    name: garage
+    daemon_reload: true
+    enabled: true
+    state: started
+
+- name: Flush handlers so garage restarts before layout/bucket steps
+  ansible.builtin.meta: flush_handlers
+
+# The `garage` CLI reaches the local node over RPC using the config's rpc_secret,
+# so every management command below just needs GARAGE_CONFIG_FILE set.
+- name: Wait for garage to be reachable
+  ansible.builtin.command: garage layout show
+  environment:
+    GARAGE_CONFIG_FILE: "{{ garage_config_path }}"
+  register: garage_layout
+  changed_when: false
+  retries: 15
+  delay: 3
+  until: garage_layout.rc == 0
+
+# Fresh cluster reports "No nodes currently have a role in the cluster." Only
+# then assign this node a role and apply layout version 1. Re-runs skip this.
+- name: Bootstrap single-node cluster layout
+  ansible.builtin.shell: |
+    set -euo pipefail
+    node_id=$(garage node id -q | cut -d '@' -f1)
+    garage layout assign -z "{{ garage_zone }}" -c "{{ garage_capacity }}" "$node_id"
+    garage layout apply --version 1
+  environment:
+    GARAGE_CONFIG_FILE: "{{ garage_config_path }}"
+  register: garage_layout_bootstrap
+  changed_when: true
+  when: "'No nodes currently have a role' in garage_layout.stdout"
+
+- name: List existing buckets
+  ansible.builtin.command: garage bucket list
+  environment:
+    GARAGE_CONFIG_FILE: "{{ garage_config_path }}"
+  register: garage_bucket_list
+  changed_when: false
+
+- name: Create buckets
+  ansible.builtin.command: "garage bucket create {{ item }}"
+  environment:
+    GARAGE_CONFIG_FILE: "{{ garage_config_path }}"
+  loop: "{{ garage_buckets }}"
+  when: item not in garage_bucket_list.stdout
+  changed_when: true
+
+- name: List existing keys
+  ansible.builtin.command: garage key list
+  environment:
+    GARAGE_CONFIG_FILE: "{{ garage_config_path }}"
+  register: garage_key_list
+  changed_when: false
+
+- name: Create API keys
+  ansible.builtin.command: "garage key create {{ item.name }}"
+  environment:
+    GARAGE_CONFIG_FILE: "{{ garage_config_path }}"
+  loop: "{{ garage_keys }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.name not in garage_key_list.stdout
+  changed_when: true
+
+- name: Grant keys read/write/owner on their buckets
+  ansible.builtin.command: >-
+    garage bucket allow --read --write --owner {{ item.1 }} --key {{ item.0.name }}
+  environment:
+    GARAGE_CONFIG_FILE: "{{ garage_config_path }}"
+  loop: "{{ garage_keys | subelements('buckets') }}"
+  loop_control:
+    label: "{{ item.0.name }} -> {{ item.1 }}"
+  changed_when: false

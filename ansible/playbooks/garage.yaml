@@ -1,0 +1,6 @@
+---
+- name: Configure Garage S3 on the garage node
+  hosts: garage
+  become: true
+  roles:
+    - garage

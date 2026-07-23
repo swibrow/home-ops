@@ -41,6 +41,22 @@ deploy-ovh-vps:
 facts-ovh-vps:
     ansible ovh_vps -m setup
 
+# Ping the garage host over SSH
+ping-garage:
+    ansible garage -m ping
+
+# Dry-run the garage playbook (install + config + layout/bucket/key) and show a diff
+check-garage:
+    ansible-playbook playbooks/garage.yaml --check --diff
+
+# Apply the garage playbook (install + config + layout/bucket/key)
+deploy-garage:
+    ansible-playbook playbooks/garage.yaml
+
+# Gather and print facts for the garage host
+facts-garage:
+    ansible garage -m setup
+
 # Ping the proxmox-01 host over SSH
 ping-proxmox-01:
     ansible proxmox_01 -m ping
