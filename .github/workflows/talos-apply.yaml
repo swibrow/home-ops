@@ -105,7 +105,7 @@ jobs:
       - name: Install sops
         env:
           # renovate: datasource=github-releases depName=getsops/sops
-          SOPS_VERSION: v3.13.2
+          SOPS_VERSION: v3.13.3
         run: |
           set -euo pipefail
           # topf shells out to sops for secrets decryption; without it the
