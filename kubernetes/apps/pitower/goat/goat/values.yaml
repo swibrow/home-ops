@@ -37,6 +37,9 @@ api:
     GITHUB_SCAN_TARGETS: "user:swibrow,DND-IT,tx-pts-dai,20minuten"
     GITHUB_SCAN_BACKFILL_DAYS: "0"
     GITHUB_LOGIN: swibrow
+    # Renovate concierge (weekday morning digest of bot PRs). owner/* expands
+    # to every repo of that org or user (goat >= 0.13).
+    RENOVATE_REPOS: "swibrow/*,cloudsnacks/*,propagit-dev/*"
 # Dev-session pods (Claude Code in the goat namespace) — needs the
 # ghcr.io/swibrow/claude-code image and the egress NetworkPolicy below.
 devSessions:
