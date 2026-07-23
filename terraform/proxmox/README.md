@@ -1,6 +1,6 @@
 # terraform/proxmox
 
-Manages VM lifecycle on the `proxmox-01` hypervisor via the
+Manages VM and LXC container lifecycle on the `proxmox-01` hypervisor via the
 [`bpg/proxmox`](https://registry.terraform.io/providers/bpg/proxmox/latest/docs) provider.
 Host-level config (repos, fail2ban) is handled separately by Ansible - see `ansible/README.md`'s
 `proxmox-01` runbook.
@@ -9,6 +9,27 @@ Scope boundary: this stack creates the VM shell (CPU/memory/disk/NIC) and attach
 installer ISO. It does **not** configure Talos itself - the VM boots into Talos maintenance mode,
 and from there it's `talosctl apply-config` + a `talos/pitower/node/<host>/` topf layer, same as
 the bare-metal workers.
+
+## Garage S3 (`ct_garage.tf`)
+
+An LXC container, not a VM: Garage is a single static binary with no kernel requirements, so a VM
+would only add a guest kernel and a virtual disk layer between it and the ZFS pool. The 500G data
+volume is a mount point at `/var/lib/garage` (a plain ZFS dataset), separate from the 16G rootfs -
+the container can be rebuilt without touching data, and the dataset snapshots/replicates on its own.
+Sizing lives in the `garage` variable.
+
+Same scope boundary as the VMs: Terraform creates the container + data volume and injects your SSH
+key; installing and configuring Garage is Ansible's job. Networking is DHCP on VLAN 20 (via
+`vmbr0`, untagged from the guest's perspective) - pin the lease with a UniFi reservation using
+`terraform output garage_mac_address`, same as `nut` and `proxmox-01`.
+
+Before applying, verify `lxc_template_url` still resolves - Proxmox rolls the Debian template's
+point release and drops old ones. Check with `pveam available --section system` on the host and bump
+the variable if the exact filename has moved on.
+
+This node is intended as one replica of a multi-node Garage layout; a second replica is planned on
+the Synology NAS. Garage wants an odd number of nodes for quorum on metadata, so plan for a third
+(or a lightweight tiebreaker) before relying on it for anything that can't be re-derived.
 
 ## Credentials
 

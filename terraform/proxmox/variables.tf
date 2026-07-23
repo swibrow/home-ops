@@ -51,3 +51,42 @@ variable "talos_worker" {
     disk   = 1000
   }
 }
+
+variable "lxc_template_url" {
+  description = "Debian LXC template to base containers on - verify the exact filename exists with `pveam available --section system` on the host before applying"
+  type        = string
+  default     = "http://download.proxmox.com/images/system/debian-13-standard_13.1-2_amd64.tar.zst"
+}
+
+variable "ssh_public_keys" {
+  description = "SSH public keys injected into container root accounts. Defaults to the operator's local ~/.ssh/id_ed25519.pub"
+  type        = list(string)
+  default     = null
+}
+
+variable "garage" {
+  description = "Garage S3 LXC sizing. data_disk is the /var/lib/garage mount point (metadata + blocks); root_disk is just the Debian rootfs"
+  type = object({
+    vmid      = number
+    name      = string
+    cores     = number
+    memory    = number # MiB
+    root_disk = number # GiB
+    data_disk = number # GiB
+  })
+  default = {
+    vmid      = 210
+    name      = "garage-01"
+    cores     = 4
+    memory    = 4096
+    root_disk = 16
+    data_disk = 500
+  }
+}
+
+locals {
+  ssh_public_keys = coalesce(
+    var.ssh_public_keys,
+    compact([trimspace(try(file(pathexpand("~/.ssh/id_ed25519.pub")), ""))]),
+  )
+}
