@@ -37,6 +37,22 @@ the Synology NAS. Garage wants an odd number of nodes for quorum on metadata, so
 The provider reads `PROXMOX_VE_ENDPOINT` / `PROXMOX_VE_API_TOKEN` / `PROXMOX_VE_INSECURE` from the
 environment (deliberately not set in `main.tf`, so the token never lives in a `.tf`/tfvars file).
 
+`var.ssh_public_keys` (the keys injected into container root accounts) is likewise supplied from the
+environment as `TF_VAR_ssh_public_keys`, age-encrypted in the root `mise.toml` alongside the API
+token. It holds a **JSON list** because the variable is `list(string)` - Terraform parses
+`TF_VAR_*` values for non-string types as HCL. Without it the `locals` block falls back to whichever
+operator's `~/.ssh/id_ed25519.pub` runs the apply, which on the self-hosted runner means CI's key
+rather than yours. Update it with:
+
+```sh
+mise set --age-encrypt --file mise.toml 'TF_VAR_ssh_public_keys=["ssh-ed25519 AAAA... you@host"]'
+```
+
+Note that `ct_garage.tf` ignores changes to `initialization[0].user_account`, so changing this var
+does **not** re-key an already-created container - it only applies to one created from scratch. To
+add a key to a running container, append it to `/root/.ssh/authorized_keys` via
+`pct exec <vmid>` on the host.
+
 These come from the repo root `mise.toml`'s `[env]` block: `PROXMOX_VE_ENDPOINT` and
 `PROXMOX_VE_INSECURE` are plain, `PROXMOX_VE_API_TOKEN` is age-encrypted (same pattern as
 `AGENTMEMORY_SECRET` - see `reference_mise_age_secrets`). mise injects `[env]` automatically via
