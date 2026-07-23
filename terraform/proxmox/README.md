@@ -56,6 +56,25 @@ AWS_PROFILE=wibrow-tf just tf::plan-proxmox
 AWS_PROFILE=wibrow-tf just tf::apply-proxmox
 ```
 
+## CI
+
+`.github/workflows/terraform-proxmox.yaml` plans on PRs touching `terraform/proxmox/**` and
+applies on merge to `main`. It is a separate workflow from `terraform-{plan,apply}.yaml` because
+this stack must run on the self-hosted `home-ops` runner — the Proxmox API lives on VLAN 20 and a
+GitHub-hosted runner cannot reach it. That means a PR-triggered workflow executing on the cluster
+in a public repo, the same tradeoff `talos-diff.yaml` already makes for the same reason.
+
+Credentials are not duplicated as repo secrets: the job installs mise, writes the
+`AGE_SECRET_KEY` repo secret to `~/.config/mise/age.txt`, and reads `PROXMOX_VE_*` straight out of
+the root `mise.toml` — so rotating the token with `mise set PROXMOX_VE_API_TOKEN --encrypt` updates
+local and CI together. `MISE_AUTO_INSTALL=0` keeps `mise env` from installing the whole `[tools]`
+block just to print `[env]`. State backend credentials still come from AWS OIDC, as with the other
+stacks.
+
+A preflight step probes `${PROXMOX_VE_ENDPOINT}/api2/json/version` before Terraform runs — a
+failure there means the runner can't resolve `proxmox-01.servers.local` or route to VLAN 20, not
+that the plan is broken.
+
 ## Before applying
 
 The `terraform` API token (`root@pam!terraform`) needs `privsep 0` for `proxmox_download_file`'s
