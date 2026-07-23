@@ -14,6 +14,13 @@ on:
     paths:
       - terraform/proxmox/**
       - .github/workflows/terraform-proxmox.yaml
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Run a plan or an apply
+        type: choice
+        default: plan
+        options: [plan, apply]
 
 permissions:
   contents: read
@@ -97,14 +104,14 @@ jobs:
           aws-region: eu-central-2
 
       - name: Plan
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' || inputs.action == 'plan'
         uses: dflook/terraform-plan@7878bff63e2099cdc9be9a6f33cbbbf687f8f0fe # v2.2.3
         with:
           path: terraform/proxmox
           label: proxmox
 
       - name: Apply
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || inputs.action == 'apply'
         uses: dflook/terraform-apply@5489b988934a50bf1489d5b7c5253b46520a7dca # v2.2.3
         with:
           path: terraform/proxmox
