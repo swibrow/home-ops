@@ -13,7 +13,7 @@ flowchart LR
     subgraph Applications
         App1[Cilium / Hubble]
         App2[external-dns]
-        App3[cloudflared]
+        App3[towonel-agent]
         App4[Authelia]
         App5[Other Apps]
     end

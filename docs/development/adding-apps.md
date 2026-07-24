@@ -29,7 +29,7 @@ Applications are organized by category under `pitower/kubernetes/apps/`. Choose 
 | `home-automation` | Smart home | home-assistant, zigbee2mqtt |
 | `media` | Media management | jellyfin, sonarr, radarr |
 | `monitoring` | Observability | grafana, loki |
-| `networking` | Network infrastructure | cloudflared, external-dns |
+| `networking` | Network infrastructure | towonel-agent, external-dns |
 | `security` | Auth and secrets | authelia, lldap |
 | `selfhosted` | General self-hosted apps | miniflux, n8n, tandoor |
 | `system` | System utilities | reloader, node-feature-discovery |

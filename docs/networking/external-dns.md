@@ -146,24 +146,28 @@ spec:
 
 ## CRD Source: DNSEndpoint
 
-The `crd` source allows creating DNS records that are not tied to any Ingress or HTTPRoute. This is used for the Cloudflare tunnel CNAME:
+The `crd` source allows creating DNS records that are not tied to any Ingress or HTTPRoute. This is used for the towonel tunnel CNAMEs:
 
-```yaml title="pitower/kubernetes/apps/networking/cloudflared/dnsendpoint.yaml"
+```yaml title="pitower/kubernetes/apps/networking/towonel-agent/dnsendpoint.yaml"
 apiVersion: externaldns.k8s.io/v1alpha1
 kind: DNSEndpoint
 metadata:
-  name: cloudflared
+  name: towonel-agent
   namespace: networking
 spec:
   endpoints:
     - dnsName: "external.example.com"
       recordType: CNAME
-      targets: ["7ee9277a-e2f3-45ae-a0ac-4e85d39fc334.cfargotunnel.com"]
+      targets: ["tunnel.example.com"]
+      providerSpecific:
+        - name: external-dns.alpha.kubernetes.io/cloudflare-proxied
+          value: "false"
 ```
 
-This creates a CNAME record: `external.example.com` -> `<tunnel-id>.cfargotunnel.com`.
+This creates a CNAME record: `external.example.com` -> `tunnel.example.com` (the towonel hub).
 
-Without this, Cloudflare would not know how to route traffic for `external.example.com` to the tunnel.
+The `cloudflare-proxied: "false"` override is required. `--cloudflare-proxied` is set globally, but
+the towonel edge does SNI passthrough -- proxying these records through Cloudflare would break it.
 
 ## Record Creation Flow
 
@@ -279,8 +283,8 @@ kubectl get gateway -n networking envoy-external -o jsonpath='{.metadata.labels}
 # List all DNSEndpoint CRDs
 kubectl get dnsendpoints -A
 
-# Inspect the cloudflared tunnel CNAME
-kubectl describe dnsendpoint cloudflared -n networking
+# Inspect the towonel tunnel CNAMEs
+kubectl describe dnsendpoint towonel-agent -n networking
 ```
 
 ### Verify Records in Cloudflare via DoH

@@ -23,7 +23,7 @@ List all app directories under `kubernetes/apps/pitower/` across all categories.
 - The service port
 - The container image name (for icon matching)
 
-Skip infrastructure/system apps that don't have user-facing UIs (e.g., external-secrets, external-dns, cilium, cert-manager, cloudflared, tailscale, aws-identity-webhook, fluent-bit, loki, openebs, envoy-gateway, kguardian operators, CNPG operator).
+Skip infrastructure/system apps that don't have user-facing UIs (e.g., external-secrets, external-dns, cilium, cert-manager, towonel-agent, tailscale, aws-identity-webhook, fluent-bit, loki, openebs, envoy-gateway, kguardian operators, CNPG operator).
 
 Apps with web UIs that should be on the homepage include things like dashboards, media servers, automation tools, monitoring dashboards, etc.
 

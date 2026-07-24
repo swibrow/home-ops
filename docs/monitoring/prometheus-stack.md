@@ -93,7 +93,7 @@ The following applications across the cluster expose ServiceMonitors:
 | Hubble | `kube-system` | DNS, TCP, HTTP, ICMP, flow, drop, port-distribution |
 | Hubble Relay | `kube-system` | Relay connection and forwarding metrics |
 | external-dns | `networking` | DNS record sync metrics |
-| cloudflared | `networking` | Tunnel connection metrics |
+| towonel-agent | `networking` | Tunnel agent health |
 | nginx (external) | `networking` | HTTP request metrics |
 | nginx (internal) | `networking` | HTTP request metrics |
 | Authelia | `security` | Authentication and authorization metrics |

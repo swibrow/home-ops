@@ -107,7 +107,7 @@ Multiple Infisical ClusterSecretStores provide scoped access to different secret
 |:-----------|:-------------|:--------|
 | `infisical` | `/` (root, recursive) | General application secrets |
 | `infisical-cert-manager` | `/cert-manager` | Cloudflare API token for DNS-01 challenges |
-| `infisical-networking-cloudflared` | `/networking/cloudflared` | Cloudflare tunnel credentials |
+| `infisical-networking-towonel-agent` | `/networking/towonel-agent` | Towonel tunnel invite token |
 | `infisical-networking-external-dns` | `/networking/external-dns` | External DNS Cloudflare token |
 | `infisical-networking-tailscale` | `/networking/tailscale` | Tailscale auth key |
 

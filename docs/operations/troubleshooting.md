@@ -240,8 +240,8 @@ kubectl get ciliumbgppeeringpolicies
 For externally exposed services:
 
 ```bash
-kubectl get pods -n networking -l app.kubernetes.io/name=cloudflared
-kubectl logs -n networking -l app.kubernetes.io/name=cloudflared --tail=50
+kubectl get pods -n networking -l app.kubernetes.io/name=towonel-agent
+kubectl logs -n networking -l app.kubernetes.io/name=towonel-agent --tail=50
 ```
 
 ### Check nginx Reverse Proxy
@@ -256,7 +256,7 @@ kubectl get svc -n networking | grep nginx
 ```mermaid
 flowchart LR
     Client --> CF[Cloudflare]
-    CF --> Tunnel[cloudflared]
+    CF --> Tunnel[towonel-agent]
     Tunnel --> Nginx[nginx]
     Nginx --> EE[envoy-external<br/>192.168.0.239]
     EE --> Route[HTTPRoute]

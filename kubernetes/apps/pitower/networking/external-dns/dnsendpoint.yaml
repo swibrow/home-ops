@@ -1,0 +1,20 @@
+---
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: apex
+  namespace: networking
+spec:
+  endpoints:
+    # The blog is served entirely by a Cloudflare Worker route bound to the apex,
+    # so there is no origin behind this record — but a Worker route only fires on
+    # proxied traffic, which requires a proxied DNS record to exist for the name.
+    # 100:: is the IPv6 discard prefix, Cloudflare's placeholder for Worker-only
+    # hostnames: anything the Worker does not handle fails at the edge instead of
+    # reaching a real origin. Proxied comes from external-dns --cloudflare-proxied.
+    #
+    # Subdomains (external.wibrow.dev, *.wibrow.dev) go to the towonel hub — see
+    # kubernetes/apps/pitower/networking/towonel-agent/dnsendpoint.yaml.
+    - dnsName: "wibrow.dev"
+      recordType: AAAA
+      targets: ["100::"]

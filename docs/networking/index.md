@@ -4,25 +4,21 @@ title: Networking
 
 # Networking
 
-The cluster implements a multi-gateway networking architecture built on **Cilium** as the CNI, **Envoy Gateway** for ingress, **Cloudflare** for DNS and tunnel-based external access, and **Tailscale** for VPN connectivity. This design separates traffic into two distinct paths -- external (proxied through Cloudflare) and internal (LAN/VPN only).
+The cluster implements a multi-gateway networking architecture built on **Cilium** as the CNI, **Envoy Gateway** for ingress, **towonel** for tunnel-based external access, **Cloudflare** for DNS, and **Tailscale** for VPN connectivity. This design separates traffic into two distinct paths -- external (proxied through Cloudflare) and internal (LAN/VPN only).
 
 ## Network Topology
 
 ```mermaid
 flowchart TB
     Internet((Internet))
-    CF[Cloudflare Edge<br/>*.example.com]
+    CF[towonel hub + edge<br/>tunnel.wibrow.dev]
     TSCloud[Tailscale<br/>Coordination Server]
 
     subgraph Cluster["Cluster"]
         direction TB
 
-        subgraph Tunnel["Cloudflare Tunnel"]
-            CFD[cloudflared<br/>QUIC + Post-Quantum<br/>2 replicas]
-        end
-
-        subgraph Nginx["Reverse Proxy"]
-            NE[nginx-external<br/>192.168.0.231]
+        subgraph Tunnel["Towonel Tunnel"]
+            TA[towonel-agent<br/>outbound tunnel<br/>2-4 replicas]
         end
 
         subgraph Gateways["Envoy Gateways"]
@@ -43,10 +39,9 @@ flowchart TB
     User((User))
 
     %% External path
-    Internet -->|"HTTPS proxied"| CF
-    CF -->|"Tunnel (QUIC)"| CFD
-    CFD -->|"HTTPS"| NE
-    NE --> EE
+    Internet -->|"HTTPS *.wibrow.dev"| CF
+    CF <-.->|"outbound tunnel"| TA
+    TA -->|"HTTPS"| EE
     EE --> Apps
 
     %% VPN path
@@ -66,18 +61,18 @@ flowchart TB
     classDef tunnel fill:#f59e0b,stroke:#d97706,color:#000
     classDef cilium fill:#00b894,stroke:#00a381,color:#fff
     class EE,EI gateway
-    class CFD,NE tunnel
+    class CF,TA tunnel
     class L2,LBIPAM cilium
 ```
 
 ## Traffic Paths
 
-### External (Cloudflare-Proxied)
+### External (Towonel Tunnel)
 
-Most public-facing services use this path. Traffic flows through Cloudflare's CDN and WAF, through a QUIC tunnel to the cluster, then via nginx to the `envoy-external` gateway.
+Most public-facing services use this path. DNS is an unproxied CNAME to the hub on the VPS, which SNI-routes into the tunnel the in-cluster agent dialled out to, and the agent proxies to the `envoy-external` gateway.
 
 ```
-User --> Cloudflare CDN --> cloudflared tunnel --> nginx-external --> envoy-external --> App
+User --> towonel hub/edge (VPS) --> towonel-agent --> envoy-external --> App
 ```
 
 ### Internal (LAN / VPN)
@@ -96,7 +91,7 @@ User --> LAN/Tailscale --> envoy-internal --> App
 | [Envoy Gateway](envoy-gateway.md) | Two-gateway ingress architecture | HTTP/3, TLS 1.2+, Brotli + Gzip compression |
 | [DNS Management](dns-management.md) | DNS resolution and the port 53 interception problem | Talos hostDNS, DoH sidecar workaround |
 | [External DNS](external-dns.md) | Automated Cloudflare DNS record management | Gateway label filter pattern |
-| [Cloudflare Tunnel](cloudflare-tunnel.md) | Secure external access without port forwarding | QUIC transport, post-quantum encryption |
+| [Towonel Tunnel](towonel-tunnel.md) | Secure external access without port forwarding | Self-hosted hub on a VPS, SNI passthrough |
 | [Tailscale](tailscale.md) | VPN access to internal services | Subnet router, exit node, API server proxy |
 | [Load Balancers](load-balancers.md) | IP allocation and Cilium LBIPAM | 20-IP pool: 192.168.0.220-239 |
 

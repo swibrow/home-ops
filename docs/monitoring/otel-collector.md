@@ -65,7 +65,7 @@ The same OTLP/HTTP port serves all three signals (`/v1/traces`, `/v1/metrics`, `
 
 ## ovh-vps: `otel-agent`
 
-`ovh-vps` is a public OVH VPS running [towonel-hub](../networking/cloudflare-tunnel.md), outside the cluster and outside the home VLAN. It ships its own telemetry in via the external OTLP ingest above, using the `otel-agent` Ansible role (`ansible/roles/otel-agent/`, applied by `just ansible deploy-ovh-vps`).
+`ovh-vps` is a public OVH VPS running [towonel-hub](../networking/towonel-tunnel.md), outside the cluster and outside the home VLAN. It ships its own telemetry in via the external OTLP ingest above, using the `otel-agent` Ansible role (`ansible/roles/otel-agent/`, applied by `just ansible deploy-ovh-vps`).
 
 `otel-agent` runs `otelcol-contrib` as a **native systemd service** -- a pinned, checksum-verified GitHub release binary (same pattern as the `oha` role), not another `docker run`. Two receivers need the real host, not a container:
 

@@ -11,7 +11,7 @@ The cluster follows a defense-in-depth approach, layering multiple security cont
 ```mermaid
 flowchart LR
     User((User)) -->|HTTPS| CF[Cloudflare\nWAF + DDoS Protection]
-    CF -->|Tunnel| CFL[cloudflared]
+    CF -->|Tunnel| CFL[towonel-agent]
     CFL --> EE[Envoy External\nGateway]
     EE -->|Auth check| AUTH[Authelia\nSSO Portal]
     AUTH -->|LDAP lookup| LLDAP[LLDAP\nUser Directory]

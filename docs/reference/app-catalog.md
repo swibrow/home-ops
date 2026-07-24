@@ -114,7 +114,7 @@ Complete catalog of all applications deployed in the cluster, organized by categ
 
 | Name | Chart/Image | Gateway | URL | Description |
 |:-----|:------------|:--------|:----|:------------|
-| cloudflared | app-template | -- | -- | Cloudflare tunnel for secure external access |
+| towonel-agent | app-template | -- | -- | Self-hosted towonel tunnel for external access |
 | envoy-gateway | envoy-gateway (Helm) | -- | -- | Gateway API implementation (2 gateways) |
 | external-dns | external-dns (Helm) | -- | -- | Automated DNS record management |
 | nginx | nginx (Helm) | -- | -- | Reverse proxy (external + internal) |

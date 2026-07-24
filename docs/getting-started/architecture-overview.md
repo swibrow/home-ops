@@ -91,7 +91,7 @@ Applications are organized into 14 categories:
 | `kube-system` | Cilium, CoreDNS, metrics-server |
 | `media` | Jellyfin, Sonarr, Radarr, Prowlarr, qBittorrent, SABnzbd, Autobrr |
 | `monitoring` | kube-prometheus-stack, Grafana, Loki, Fluent Bit |
-| `networking` | Envoy Gateway, external-dns, cloudflared, nginx, Tailscale |
+| `networking` | Envoy Gateway, external-dns, towonel-agent, Tailscale |
 | `openebs` | OpenEBS local volumes |
 | `rook-ceph` | Rook Ceph distributed storage |
 | `security` | Authelia, LLDAP, External Secrets, 1Password Connect |
@@ -110,7 +110,7 @@ flowchart TB
         direction LR
         Internet1((Internet))
         CF["Cloudflare\nDNS + Proxy"]
-        Tunnel["cloudflared\nTunnel Pod"]
+        Tunnel["towonel-agent\nTunnel Pod"]
         Nginx["nginx\nReverse Proxy\n192.168.0.231"]
         EnvoyExt["Envoy External\nGateway\n192.168.0.239"]
     end
@@ -140,7 +140,7 @@ flowchart TB
 
 ### External Traffic (Cloudflare Tunnel)
 
-Public-facing services are exposed through Cloudflare's proxy network. DNS records for `*.example.com` point to Cloudflare, which routes traffic through a `cloudflared` tunnel pod running in the cluster. The tunnel terminates at an nginx reverse proxy, which forwards to the `envoy-external` gateway at `192.168.0.239`. This path provides DDoS protection, caching, and hides the origin IP.
+Public-facing services are exposed through a self-hosted [towonel](../networking/towonel-tunnel.md) tunnel. DNS records for `*.example.com` are unproxied CNAMEs to the towonel hub on a VPS, which SNI-routes the connection over an outbound tunnel to the `towonel-agent` pods in the cluster; those proxy to the `envoy-external` gateway. This keeps the home IP unpublished with no inbound port forwards, and TLS is terminated in-cluster rather than at a third-party edge.
 
 !!! info "No port forwarding required"
     The Cloudflare Tunnel creates an outbound connection from the cluster to Cloudflare's edge, so no inbound firewall rules or port forwarding is needed on the home router.

@@ -190,8 +190,8 @@ which resolves straight back to it) is SOPS-encrypted as `ansible_host` in
   exists). Bump `oha_version` and both arch checksums in `roles/oha/defaults/main.yaml` together —
   GitHub doesn't publish a checksums file for oha releases, so checksums are captured by hand from
   the release assets.
-- **`towonel-hub`** — runs the [towonel](https://codeberg.org/towonel/towonel) tunnel hub (a
-  self-hosted alternative to `cloudflared`) as a systemd-managed `docker run` (no Docker Compose,
+- **`towonel-hub`** — runs the [towonel](https://codeberg.org/towonel/towonel) tunnel hub (the
+  self-hosted replacement for `cloudflared`) as a systemd-managed `docker run` (no Docker Compose,
   no `community.docker` — the module needs a Docker SDK that isn't installed on this host, so the
   role wraps the CLI directly in a unit). See the runbook below.
 - **`otel-agent`** — ships host metrics/logs/traces to pitower. See the runbook below.
@@ -220,8 +220,10 @@ The hub is one half of the towonel tunnel (see GitHub issue
 (`tunnel.wibrow.dev`) and an agent in the `pitower` cluster
 (`kubernetes/apps/pitower/networking/towonel-agent/`) dials out to it, publishing `*.wibrow.dev`
 routes. Since 2026-07-21 this is the **primary path** for `external.wibrow.dev` / `*.wibrow.dev`
-(DNS CNAMEs to `tunnel.wibrow.dev`, non-proxied) — `cloudflared` still runs alongside it but only
-owns the bare `wibrow.dev` apex (see `kubernetes/apps/pitower/networking/cloudflared/`).
+(DNS CNAMEs to `tunnel.wibrow.dev`, non-proxied), and since 2026-07-24 the **only** path —
+`cloudflared` is gone. The bare `wibrow.dev` apex never used the tunnel: it is served entirely by a
+Cloudflare Worker route at the edge, and now keeps only a proxied `AAAA 100::` placeholder so that
+route stays attached (`kubernetes/apps/pitower/networking/external-dns/dnsendpoint.yaml`).
 
 The image (`towonel-hub-caddy`, not the plain `towonel-node`) runs two processes on this host:
 Caddy, fronting the privileged ports, and the towonel binary itself, doing the actual work — the

@@ -55,7 +55,7 @@ A Cloudflare API token is required for:
 
 - **external-dns** -- automated DNS record management for `example.com`
 - **cert-manager** -- DNS-01 challenge solving for TLS certificates
-- **cloudflared** -- tunnel authentication for external access
+- **towonel** -- self-hosted tunnel for external access (hub on `ovh-vps`, agent in-cluster)
 
 !!! warning "Token scope"
     The token must have `Zone:DNS:Edit` permissions for the `example.com` zone. Store it as an encrypted secret in the repository using SOPS.

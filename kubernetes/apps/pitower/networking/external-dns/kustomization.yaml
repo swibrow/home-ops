@@ -5,6 +5,7 @@ kind: Kustomization
 namespace: networking
 resources:
   - externalsecret.yaml
+  - dnsendpoint.yaml
 
 helmCharts:
   - name: external-dns

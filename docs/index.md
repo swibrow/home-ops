@@ -13,7 +13,7 @@ Welcome to the documentation for the cluster, a Kubernetes home lab built on [Ta
 flowchart LR
     Internet((Internet))
     CF[Cloudflare]
-    Tunnel[cloudflared\nTunnel]
+    Tunnel[towonel\nTunnel]
     Nginx[nginx\nReverse Proxy]
     EE[Envoy External\n192.168.0.239]
     EI[Envoy Internal\n192.168.0.238]
@@ -100,7 +100,7 @@ flowchart LR
 | CNI | Cilium | eBPF networking with L2 announcements, DSR, Maglev |
 | Ingress | Envoy Gateway | Two-gateway architecture (external, internal) |
 | DNS | Cloudflare + external-dns | Automated DNS record management |
-| Tunnel | cloudflared | Secure external access without port forwarding |
+| Tunnel | towonel | Secure external access without port forwarding |
 | VPN | Tailscale | Remote access to internal services |
 | Storage | Rook Ceph + OpenEBS | Distributed and local persistent storage |
 | Secrets | SOPS + age + 1Password Connect | Encrypted secrets in Git, synced via External Secrets |

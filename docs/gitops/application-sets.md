@@ -27,7 +27,7 @@ The ApplicationSet uses the **Git directory generator**, which scans a specific 
 ```mermaid
 flowchart LR
     subgraph "Repository Structure"
-        dir1["apps/pitower/networking/cloudflared/"]
+        dir1["apps/pitower/networking/towonel-agent/"]
         dir2["apps/pitower/networking/envoy-gateway/"]
         dir3["apps/pitower/networking/external-dns/"]
         dir4["apps/pitower/networking/tailscale/"]
@@ -36,7 +36,7 @@ flowchart LR
     AS[ApplicationSet\npitower]
 
     subgraph "Generated Applications"
-        app1["pitower-networking-cloudflared"]
+        app1["pitower-networking-towonel-agent"]
         app2["pitower-networking-envoy-gateway"]
         app3["pitower-networking-external-dns"]
         app4["pitower-networking-tailscale"]

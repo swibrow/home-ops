@@ -109,11 +109,6 @@ datasources:
           implementation: prometheus
 dashboards:
   default:
-    cloudflared:
-      gnetId: 17457 # https://grafana.com/grafana/dashboards/17457?tab=revisions
-      revision: 6
-      datasource:
-        - { name: DS_PROMETHEUS, value: Prometheus }
     # external-dns: vendored + patched at dashboards/external-dns.json
     # (gnetId 15038 rev3 predates the per-record-type metric split; queries now
     #  use record_type label on external_dns_*_records). Shipped via kustomization

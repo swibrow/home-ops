@@ -97,7 +97,7 @@ Dashboards can also be defined directly in the Grafana Helm values. These are or
 
 | Provider | Folder | Dashboards |
 |:---------|:-------|:-----------|
-| `default` | (root) | Authelia, cloudflared, external-dns, external-secrets, cert-manager, node-exporter, CloudNativePG |
+| `default` | (root) | Authelia, external-dns, external-secrets, cert-manager, node-exporter, CloudNativePG |
 | `flux` | Flux | Flux cluster overview, control plane |
 | `kubernetes` | Kubernetes | API server, CoreDNS, global views, namespaces, nodes, pods |
 | `nginx` | Nginx | Request metrics, handling performance |
