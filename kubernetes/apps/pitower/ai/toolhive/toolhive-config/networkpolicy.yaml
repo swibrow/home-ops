@@ -127,14 +127,18 @@ spec:
         - protocol: TCP
           port: 4483
 ---
-# Garrison raid agents (runner sandboxes in ns garrison) may call a curated
-# subset of the mcp-tools backend proxies directly — per-repo selection and
-# tool allowlists are enforced garrison-side, this is the network floor.
-# Deliberately excluded: kubernetes/argocd/aws-api/home-assistant
-# (privileged identities). NetworkPolicies are additive, so this only widens
-# ingress for the listed proxies; the workload pods stay proxy-only. The
+# Garrison raid agents (runner sandboxes in ns garrison) may call the mcp-tools
+# backend proxies directly — per-repo selection and tool allowlists are enforced
+# garrison-side, this is the network floor. Every backend is now listed: the
+# privileged three are read-only at the identity (kubernetes = cluster-view RBAC,
+# argocd = MCP_READ_ONLY, aws-api = READ_OPERATIONS_ONLY), and the two that can
+# write — database-toolbox's execute_sql and home-assistant's actuators — are
+# held to read-only tool allowlists in the garrison catalog
+# (apps/pitower/garrison/garrison/values.yaml, mcp.catalog), enforced in the
+# runner by a PreToolUse deny hook. NetworkPolicies are additive, so this only
+# widens ingress for the listed proxies; the workload pods stay proxy-only. The
 # egress half lives in the garrison chart values
-# (networkPolicy.runnerExtraEgress).
+# (networkPolicy.runnerExtraEgress), which already covers every mcpserver proxy.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -151,6 +155,11 @@ spec:
           - context7
           - grafana
           - terraform
+          - kubernetes
+          - argocd
+          - aws-api
+          - database-toolbox
+          - home-assistant
   policyTypes:
     - Ingress
   ingress:
