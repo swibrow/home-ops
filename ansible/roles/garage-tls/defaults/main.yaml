@@ -16,7 +16,6 @@ garage_tls_acme_email: sam.wibrow.wa@gmail.com
 garage_tls_cert_dir: "/etc/letsencrypt/live/{{ garage_tls_hostname }}"
 garage_tls_cloudflare_credentials: /etc/letsencrypt/cloudflare.ini
 
-# Uploads to an object store are large and slow; the defaults are far too
-# small for multi-GB objects.
-garage_tls_max_body: 0        # 0 = unlimited request body
+# Uploads to an object store are large and slow; bump the proxy timeouts well
+# past Caddy's defaults for multi-GB objects.
 garage_tls_transport_timeout: "1h"

@@ -46,23 +46,39 @@
   changed_when: true
   notify: Reload caddy
 
-# Caddy runs as the `caddy` user and cannot read certbot's root-only
-# directories without this.
+# Caddy runs as the `caddy` user, but certbot writes the private key as
+# 0600 root:root. Give the `caddy` group read across both trees. `g+rX` adds
+# read to files and search to directories only, so it never makes a key
+# world- or group-executable.
 - name: Allow caddy to read the certificate material
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: directory
-    owner: root
-    group: caddy
-    mode: "0750"
-  loop:
-    - /etc/letsencrypt/live
-    - /etc/letsencrypt/archive
+  ansible.builtin.command:
+    argv:
+      - chgrp
+      - -R
+      - caddy
+      - /etc/letsencrypt/live
+      - /etc/letsencrypt/archive
+  changed_when: false
 
-- name: Reload caddy after each renewal
+- name: Grant the caddy group read on the certificate material
+  ansible.builtin.command:
+    argv:
+      - chmod
+      - -R
+      - g+rX
+      - /etc/letsencrypt/live
+      - /etc/letsencrypt/archive
+  changed_when: false
+  notify: Reload caddy
+
+# certbot writes a fresh 0600 root:root key on every renewal, so the deploy
+# hook must re-grant group read before reloading Caddy.
+- name: Re-grant perms and reload caddy after each renewal
   ansible.builtin.copy:
     content: |
       #!/bin/sh
+      chgrp -R caddy /etc/letsencrypt/live /etc/letsencrypt/archive
+      chmod -R g+rX /etc/letsencrypt/live /etc/letsencrypt/archive
       systemctl reload caddy
     dest: /etc/letsencrypt/renewal-hooks/deploy/reload-caddy
     owner: root

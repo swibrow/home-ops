@@ -1,5 +1,6 @@
 {
-	admin off
+	# Admin API stays on its default localhost:2019 so `caddy reload` works -
+	# turning it off wedges the systemd ExecReload.
 	email {{ garage_tls_acme_email }}
 }
 
@@ -9,14 +10,12 @@
 	# not reachable for HTTP-01.
 	tls {{ garage_tls_cert_dir }}/fullchain.pem {{ garage_tls_cert_dir }}/privkey.pem
 
+	# No request_body max_size: Caddy defaults to unlimited, which is what an
+	# object store wants. A limit here would cap object uploads.
 	reverse_proxy {{ garage_tls_backend }} {
 		transport http {
 			read_timeout {{ garage_tls_transport_timeout }}
 			write_timeout {{ garage_tls_transport_timeout }}
 		}
-	}
-
-	request_body {
-		max_size {{ garage_tls_max_body }}
 	}
 }
