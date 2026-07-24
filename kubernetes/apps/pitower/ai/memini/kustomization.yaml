@@ -5,6 +5,7 @@ kind: Kustomization
 namespace: ai
 resources:
   - externalsecret.yaml
+  - grafanadashboard.yaml
 components:
   - ../../../../components/cnpg-db
 configMapGenerator:

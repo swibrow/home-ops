@@ -1,0 +1,78 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/grafana.integreatly.org/grafana_v1beta1.json
+apiVersion: grafana.integreatly.org/v1beta1
+kind: Grafana
+metadata:
+  name: grafana
+  namespace: monitoring
+  labels:
+    dashboards: grafana
+spec:
+  config:
+    log.console:
+      format: json
+    analytics:
+      check_for_updates: "false"
+      check_for_plugin_updates: "false"
+      reporting_enabled: "false"
+    news:
+      news_feed_enabled: "false"
+    metrics:
+      enabled: "true"
+    explore:
+      enabled: "true"
+    server:
+      root_url: https://grafana.wibrow.dev
+    auth:
+      oauth_auto_login: "true"
+      oauth_allow_insecure_email_lookup: "true"
+    auth.generic_oauth:
+      enabled: "true"
+      name: Kanidm
+      icon: signin
+      scopes: openid profile email groups
+      client_id: grafana
+      empty_scopes: "false"
+      auth_url: https://idm.wibrow.dev/ui/oauth2
+      token_url: https://idm.wibrow.dev/oauth2/token
+      api_url: https://idm.wibrow.dev/oauth2/openid/grafana/userinfo
+      login_attribute_path: preferred_username
+      groups_attribute_path: groups
+      name_attribute_path: name
+      use_pkce: "true"
+      role_attribute_path: contains(groups[*], 'admins@idm.wibrow.dev') && 'Admin' || contains(groups[*], 'people@idm.wibrow.dev') && 'Viewer'
+  deployment:
+    spec:
+      strategy:
+        type: Recreate
+      template:
+        spec:
+          containers:
+            - name: grafana
+              env:
+                - name: GF_INSTALL_PLUGINS
+                  value: grafana-clock-panel,victoriametrics-logs-datasource
+                - name: GF_SECURITY_ADMIN_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: grafana-admin-secret
+                      key: admin-user
+                - name: GF_SECURITY_ADMIN_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: grafana-admin-secret
+                      key: admin-password
+                - name: GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: grafana-secrets
+                      key: GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET
+                - name: GF_RENDERING_SERVER_URL
+                  value: http://grafana-operator-image-renderer.monitoring.svc.cluster.local:8081/render
+                - name: GF_RENDERING_CALLBACK_URL
+                  value: http://grafana-service.monitoring.svc.cluster.local:3000/
+                - name: GF_RENDERING_RENDERER_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: grafana-image-renderer
+                      key: token

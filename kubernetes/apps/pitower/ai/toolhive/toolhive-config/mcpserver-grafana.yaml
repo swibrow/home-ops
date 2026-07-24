@@ -17,7 +17,7 @@ spec:
     name: mcp-tools
   env:
     - name: GRAFANA_URL
-      value: http://grafana.monitoring.svc.cluster.local
+      value: http://grafana-service.monitoring.svc.cluster.local:3000
   # Reuses the ExternalSecret-managed Secrets from externalsecret.yaml.
   secrets:
     - name: toolhive-grafana-user

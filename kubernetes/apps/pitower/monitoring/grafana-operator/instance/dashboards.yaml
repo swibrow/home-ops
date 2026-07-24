@@ -1,0 +1,324 @@
+---
+# Home Assistant folder --------------------------------------------------------
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: home-assistant-overview
+  namespace: monitoring
+spec:
+  folder: Home Assistant
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  configMapRef:
+    name: grafana-dashboards-home-assistant
+    key: home-assistant-overview.json
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: home-assistant-sensors
+  namespace: monitoring
+spec:
+  folder: Home Assistant
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  configMapRef:
+    name: grafana-dashboards-home-assistant
+    key: home-assistant-sensors.json
+---
+# Infrastructure folder (vendored) ---------------------------------------------
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: worker-01-fabric-watch
+  namespace: monitoring
+spec:
+  folder: Infrastructure
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  configMapRef:
+    name: grafana-dashboards-infrastructure
+    key: worker-01-fabric-watch.json
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: spegel
+  namespace: monitoring
+spec:
+  folder: Infrastructure
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  configMapRef:
+    name: grafana-dashboards-infrastructure
+    key: spegel.json
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: proxmox
+  namespace: monitoring
+spec:
+  folder: Infrastructure
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  configMapRef:
+    name: grafana-dashboards-infrastructure
+    key: proxmox.json
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: towonel
+  namespace: monitoring
+spec:
+  folder: Infrastructure
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  configMapRef:
+    name: grafana-dashboards-infrastructure
+    key: towonel.json
+---
+# Infrastructure folder (downloaded) -------------------------------------------
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: node-exporter-full
+  namespace: monitoring
+spec:
+  folder: Infrastructure
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  datasources:
+    - datasourceName: Prometheus
+      inputName: DS_PROMETHEUS
+  grafanaCom:
+    id: 1860
+    revision: 45
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: cert-manager
+  namespace: monitoring
+spec:
+  folder: Infrastructure
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  datasources:
+    - datasourceName: Prometheus
+      inputName: DS_PROMETHEUS
+  grafanaCom:
+    id: 20842
+    revision: 3
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: external-secrets
+  namespace: monitoring
+spec:
+  folder: Infrastructure
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  url: https://raw.githubusercontent.com/external-secrets/external-secrets/main/docs/snippets/dashboard.json
+---
+# Networking folder ------------------------------------------------------------
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: external-dns
+  namespace: monitoring
+spec:
+  folder: Networking
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  configMapRef:
+    name: grafana-dashboards-networking
+    key: external-dns.json
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: cilium-operator
+  namespace: monitoring
+spec:
+  folder: Networking
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  configMapRef:
+    name: grafana-dashboards-networking
+    key: cilium-operator.json
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: envoy-gateway-global
+  namespace: monitoring
+spec:
+  folder: Networking
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  configMapRef:
+    name: grafana-dashboards-networking
+    key: envoy-gateway-global.json
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: envoy-proxy-global
+  namespace: monitoring
+spec:
+  folder: Networking
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  configMapRef:
+    name: grafana-dashboards-networking
+    key: envoy-proxy-global.json
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: envoy-clusters
+  namespace: monitoring
+spec:
+  folder: Networking
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  configMapRef:
+    name: grafana-dashboards-networking
+    key: envoy-clusters.json
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: envoy-access-logs
+  namespace: monitoring
+spec:
+  folder: Networking
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  configMapRef:
+    name: grafana-dashboards-networking
+    key: envoy-access-logs.json
+---
+# Observability folder ---------------------------------------------------------
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: tempo
+  namespace: monitoring
+spec:
+  folder: Observability
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  configMapRef:
+    name: grafana-dashboards-observability
+    key: tempo.json
+---
+# Kubernetes folder (dotdc) ----------------------------------------------------
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: kubernetes-api-server
+  namespace: monitoring
+spec:
+  folder: Kubernetes
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  datasources:
+    - datasourceName: Prometheus
+      inputName: DS_PROMETHEUS
+  url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-system-api-server.json
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: kubernetes-coredns
+  namespace: monitoring
+spec:
+  folder: Kubernetes
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  datasources:
+    - datasourceName: Prometheus
+      inputName: DS_PROMETHEUS
+  url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-system-coredns.json
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: kubernetes-global
+  namespace: monitoring
+spec:
+  folder: Kubernetes
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  datasources:
+    - datasourceName: Prometheus
+      inputName: DS_PROMETHEUS
+  url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-global.json
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: kubernetes-namespaces
+  namespace: monitoring
+spec:
+  folder: Kubernetes
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  datasources:
+    - datasourceName: Prometheus
+      inputName: DS_PROMETHEUS
+  url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-namespaces.json
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: kubernetes-nodes
+  namespace: monitoring
+spec:
+  folder: Kubernetes
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  datasources:
+    - datasourceName: Prometheus
+      inputName: DS_PROMETHEUS
+  url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-nodes.json
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: kubernetes-pods
+  namespace: monitoring
+spec:
+  folder: Kubernetes
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  datasources:
+    - datasourceName: Prometheus
+      inputName: DS_PROMETHEUS
+  url: https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-pods.json

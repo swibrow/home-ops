@@ -253,6 +253,14 @@ prometheus-node-exporter:
 grafana:
   enabled: false
   forceDeployDashboards: true
+  # Emit one GrafanaDashboard CR per bundled dashboard (configMapRef to the
+  # chart's own configmap) for the grafana-operator instead of the removed
+  # sidecar. folder here replaces the old grafana_folder kustomize patch.
+  operator:
+    dashboardsConfigMapRefEnabled: true
+    folder: Kubernetes
+    matchLabels:
+      dashboards: grafana
   sidecar:
     dashboards:
       multicluster:

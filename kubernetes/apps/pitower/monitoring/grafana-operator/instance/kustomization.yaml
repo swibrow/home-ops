@@ -3,9 +3,21 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: monitoring
+# Wave 1: Grafana instance + datasources + dashboards, after the operator + CRDs
+# (grafana-operator, wave 0).
+commonAnnotations:
+  argocd.argoproj.io/sync-wave: "1"
 resources:
   - externalsecret.yaml
-
+  - grafana.yaml
+  - datasources.yaml
+  - dashboards.yaml
+  - httproute.yaml
+  - image-renderer.yaml
+  - servicemonitor.yaml
+# Local dashboard JSON referenced by the GrafanaDashboard CRs (configMapRef).
+# No grafana_dashboard label — these are consumed by the operator, not the old
+# Grafana's configmap sidecar.
 configMapGenerator:
   - name: grafana-dashboards-home-assistant
     files:
@@ -13,11 +25,7 @@ configMapGenerator:
       - dashboards/home-assistant-sensors.json
     options:
       disableNameSuffixHash: true
-      labels:
-        grafana_dashboard: "1"
-      annotations:
-        grafana_folder: Home Assistant
-  - name: grafana-dashboards-nodes
+  - name: grafana-dashboards-infrastructure
     files:
       - dashboards/worker-01-fabric-watch.json
       - dashboards/spegel.json
@@ -25,10 +33,6 @@ configMapGenerator:
       - dashboards/towonel.json
     options:
       disableNameSuffixHash: true
-      labels:
-        grafana_dashboard: "1"
-      annotations:
-        grafana_folder: Infrastructure
   - name: grafana-dashboards-networking
     files:
       - dashboards/external-dns.json
@@ -39,24 +43,8 @@ configMapGenerator:
       - dashboards/envoy-access-logs.json
     options:
       disableNameSuffixHash: true
-      labels:
-        grafana_dashboard: "1"
-      annotations:
-        grafana_folder: Networking
   - name: grafana-dashboards-observability
     files:
       - dashboards/tempo.json
     options:
       disableNameSuffixHash: true
-      labels:
-        grafana_dashboard: "1"
-      annotations:
-        grafana_folder: Observability
-
-helmCharts:
-  - name: grafana
-    repo: https://grafana-community.github.io/helm-charts
-    version: 12.8.0
-    releaseName: grafana
-    namespace: monitoring
-    valuesFile: values.yaml

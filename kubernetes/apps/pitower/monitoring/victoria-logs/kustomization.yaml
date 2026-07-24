@@ -5,6 +5,7 @@ kind: Kustomization
 namespace: monitoring
 resources:
   - dashboard-logs-overview.yaml
+  - grafanadashboard.yaml
 helmCharts:
   - name: victoria-logs-single
     repo: https://victoriametrics.github.io/helm-charts
