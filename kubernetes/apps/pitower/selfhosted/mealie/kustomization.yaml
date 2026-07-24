@@ -7,6 +7,7 @@ resources:
   - externalsecret.yaml
 components:
   - ../../../../components/volsync
+  - ../../../../components/kopiur
 configMapGenerator:
   - name: volsync-config
     options:
@@ -17,6 +18,24 @@ configMapGenerator:
       - SECRET_NAME=mealie-volsync
       - STORAGE_SIZE=1Gi
       - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/selfhosted/mealie
+  - name: kopiur-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=mealie-kopiur
+      - CLAIM_NAME=mealie-data
+patches:
+  # mealie writes its data as uid 911; the kopiur mover must match to read it.
+  - target:
+      kind: SnapshotPolicy
+      name: mealie-kopiur
+    patch: |
+      - op: replace
+        path: /spec/mover/securityContext/runAsUser
+        value: 911
+      - op: replace
+        path: /spec/mover/securityContext/runAsGroup
+        value: 911
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm

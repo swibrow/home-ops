@@ -7,6 +7,7 @@ resources:
   - pvc.yaml
 components:
   - ../../../../components/volsync
+  - ../../../../components/kopiur
 configMapGenerator:
   - name: volsync-config
     options:
@@ -17,6 +18,24 @@ configMapGenerator:
       - SECRET_NAME=sabnzbd-volsync
       - STORAGE_SIZE=1Gi
       - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/media/sabnzbd
+  - name: kopiur-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=sabnzbd-kopiur
+      - CLAIM_NAME=sabnzbd-config
+patches:
+  # sabnzbd runs as uid 2000; the kopiur mover must match to read it.
+  - target:
+      kind: SnapshotPolicy
+      name: sabnzbd-kopiur
+    patch: |
+      - op: replace
+        path: /spec/mover/securityContext/runAsUser
+        value: 2000
+      - op: replace
+        path: /spec/mover/securityContext/runAsGroup
+        value: 2000
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm

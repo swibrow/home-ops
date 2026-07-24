@@ -9,6 +9,7 @@ resources:
 components:
   - ../../../../components/cnpg-db
   - ../../../../components/volsync
+  - ../../../../components/kopiur
 configMapGenerator:
   - name: cnpg-db-config
     literals:
@@ -24,6 +25,24 @@ configMapGenerator:
       - SECRET_NAME=rybbit-clickhouse-volsync
       - STORAGE_SIZE=10Gi
       - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/analytics/rybbit-clickhouse
+  - name: kopiur-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=rybbit-clickhouse-kopiur
+      - CLAIM_NAME=rybbit-clickhouse
+patches:
+  # clickhouse writes its data as uid 101 (store/ dirs are drwxr-s---); the kopiur mover must match to read it.
+  - target:
+      kind: SnapshotPolicy
+      name: rybbit-clickhouse-kopiur
+    patch: |
+      - op: replace
+        path: /spec/mover/securityContext/runAsUser
+        value: 101
+      - op: replace
+        path: /spec/mover/securityContext/runAsGroup
+        value: 101
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm

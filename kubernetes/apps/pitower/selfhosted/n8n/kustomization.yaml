@@ -4,6 +4,7 @@ kind: Kustomization
 namespace: selfhosted
 components:
   - ../../../../components/volsync
+  - ../../../../components/kopiur
 configMapGenerator:
   - name: volsync-config
     options:
@@ -14,6 +15,12 @@ configMapGenerator:
       - SECRET_NAME=n8n-volsync
       - STORAGE_SIZE=1Gi
       - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/selfhosted/n8n
+  - name: kopiur-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=n8n-kopiur
+      - CLAIM_NAME=n8n
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm

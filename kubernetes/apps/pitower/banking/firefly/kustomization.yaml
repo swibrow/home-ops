@@ -7,6 +7,7 @@ resources:
   - ./externalsecret.yaml
 components:
   - ../../../../components/volsync
+  - ../../../../components/kopiur
   - ../../../../components/cnpg-db
 configMapGenerator:
   - name: cnpg-db-config
@@ -23,6 +24,24 @@ configMapGenerator:
       - SECRET_NAME=firefly-volsync
       - STORAGE_SIZE=1Gi
       - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/banking/firefly
+  - name: kopiur-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=firefly-kopiur
+      - CLAIM_NAME=firefly-data
+patches:
+  # firefly runs as www-data (uid 33); the kopiur mover must match to read it.
+  - target:
+      kind: SnapshotPolicy
+      name: firefly-kopiur
+    patch: |
+      - op: replace
+        path: /spec/mover/securityContext/runAsUser
+        value: 33
+      - op: replace
+        path: /spec/mover/securityContext/runAsGroup
+        value: 33
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm

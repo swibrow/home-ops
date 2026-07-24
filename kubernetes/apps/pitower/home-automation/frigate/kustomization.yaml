@@ -8,6 +8,7 @@ resources:
   - externalsecret.yaml
 components:
   - ../../../../components/volsync
+  - ../../../../components/kopiur
 configMapGenerator:
   - name: volsync-config
     options:
@@ -18,6 +19,24 @@ configMapGenerator:
       - SECRET_NAME=frigate-volsync
       - STORAGE_SIZE=5Gi
       - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/home-automation/frigate
+  - name: kopiur-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=frigate-kopiur
+      - CLAIM_NAME=frigate
+patches:
+  # frigate runs as root and its .jwt_secret is 0600 root-owned; the kopiur mover must match to read it.
+  - target:
+      kind: SnapshotPolicy
+      name: frigate-kopiur
+    patch: |
+      - op: replace
+        path: /spec/mover/securityContext/runAsUser
+        value: 0
+      - op: replace
+        path: /spec/mover/securityContext/runAsGroup
+        value: 0
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm

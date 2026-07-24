@@ -7,6 +7,7 @@ resources:
   - ./externalsecret.yaml
 components:
   - ../../../../components/volsync
+  - ../../../../components/kopiur
   - ../../../../components/cnpg-db
 configMapGenerator:
   - name: cnpg-db-config
@@ -23,6 +24,12 @@ configMapGenerator:
       - SECRET_NAME=open-webui-volsync
       - STORAGE_SIZE=10Gi
       - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/ai/open-webui
+  - name: kopiur-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=open-webui-kopiur
+      - CLAIM_NAME=open-webui-data
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm

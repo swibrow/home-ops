@@ -10,6 +10,7 @@ resources:
 components:
   - ../../../../components/cnpg-db
   - ../../../../components/volsync
+  - ../../../../components/kopiur
 configMapGenerator:
   - name: cnpg-db-config
     literals:
@@ -23,6 +24,12 @@ configMapGenerator:
       - SECRET_NAME=forgejo-volsync
       - STORAGE_SIZE=10Gi
       - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/dev/forgejo
+  - name: kopiur-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=forgejo-kopiur
+      - CLAIM_NAME=forgejo
 helmCharts:
   - name: forgejo
     repo: oci://code.forgejo.org/forgejo-helm

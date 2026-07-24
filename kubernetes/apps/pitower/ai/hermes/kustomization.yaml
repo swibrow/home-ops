@@ -7,6 +7,7 @@ resources:
   - externalsecret.yaml
 components:
   - ../../../../components/volsync
+  - ../../../../components/kopiur
 configMapGenerator:
   - name: hermes-config
     options:
@@ -28,6 +29,24 @@ configMapGenerator:
       - SECRET_NAME=hermes-volsync
       - STORAGE_SIZE=5Gi
       - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/ai/hermes
+  - name: kopiur-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=hermes-kopiur
+      - CLAIM_NAME=hermes
+patches:
+  # hermes writes its data as uid 10000 (top-level dir is 0700); the kopiur mover must match to read it.
+  - target:
+      kind: SnapshotPolicy
+      name: hermes-kopiur
+    patch: |
+      - op: replace
+        path: /spec/mover/securityContext/runAsUser
+        value: 10000
+      - op: replace
+        path: /spec/mover/securityContext/runAsGroup
+        value: 10000
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm
