@@ -54,10 +54,15 @@ sentinel:
 # this instance — not via requiredGroup, since kanidm only puts a "groups"
 # claim on the id_token (not the access_token GOAT validates) without an
 # explicit oauth2_rs_claim_map, so requiredGroup 401s every request.
+# offline_access makes kanidm mint a refresh token so the SPA renews the
+# short-lived access token silently instead of bouncing through login. Set
+# explicitly here so it applies before the chart default (>=0.14) rolls out.
+# Session length is the kanidm auth-expiry on app_access (24h).
 oidc:
   enabled: true
   issuer: https://idm.wibrow.dev/oauth2/openid/goat
   clientId: goat
+  scopes: "openid email profile groups offline_access"
 secrets:
   externalSecrets:
     enabled: true
