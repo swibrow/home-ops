@@ -34,6 +34,17 @@ herald:
 # version above is bumped past it, these keys are inert.
 warhorn:
   enabled: true
+# Post-mortem log source. Kubernetes drops a raid pod's logs when the pod goes,
+# so `garrison keep logs`, the wartable panel, and the emissary pod_logs tool
+# used to go blind on exactly the raids worth investigating. VictoriaLogs keeps
+# 14d (monitoring/victoria-logs), and the keep falls back to it whenever the
+# live pod read fails. Namespace defaults to runner.namespace (garrison), which
+# is where the sortie pods log from. The keep has no egress NetworkPolicy, so
+# nothing else is needed to reach the monitoring namespace.
+# NOTE: requires chart >= the release carrying logArchive — until the version
+# above is bumped past it, these keys are inert.
+logArchive:
+  url: http://victoria-logs.monitoring.svc.cluster.local:9428
 secrets:
   authEnabled: true
   # wartable is VPN-only (envoy-internal); /internal stays token-gated.
@@ -124,3 +135,67 @@ mcp:
     - name: terraform
       url: http://mcp-terraform-proxy.ai.svc.cluster.local:8080/mcp
       description: Terraform registry providers/modules docs
+    # The cluster-facing half of the catalog. These were held back originally
+    # because their backends carry privileged identities, but each is read-only
+    # at the identity itself, not merely by allowlist: kubernetes runs under the
+    # cluster-**view** ClusterRole, argocd sets MCP_READ_ONLY, aws-api sets
+    # READ_OPERATIONS_ONLY. That makes them safe to hand a raid agent debugging
+    # a live deployment, which is most of what raids on this fleet do.
+    - name: kubernetes
+      url: http://mcp-kubernetes-proxy.ai.svc.cluster.local:8080/mcp
+      description: Live cluster state — resources, pod logs, events (cluster-view RBAC, read-only)
+    - name: argocd
+      url: http://mcp-argocd-proxy.ai.svc.cluster.local:8080/mcp
+      description: ArgoCD applications, sync status, and history (MCP_READ_ONLY)
+    - name: aws-api
+      url: http://mcp-aws-api-proxy.ai.svc.cluster.local:8080/mcp
+      description: AWS API reads via the toolhive-aws-ro IRSA role (READ_OPERATIONS_ONLY)
+    # database-toolbox exposes a per-cluster `*_execute_sql` alongside its
+    # read tools, and home-assistant can actuate devices — neither backend is
+    # read-only on its own, so both are held to a listing/read allowlist here
+    # (enforced in the runner by the PreToolUse deny hook, not by the server).
+    # The toolbox exposes one pair of tools per cloudnative-pg cluster,
+    # `<cluster>_list_tables` and `<cluster>_execute_sql`, and it connects as
+    # each database's app user — so execute_sql is a live write vector on prod
+    # data. Only the schema-listing half is granted. A new cluster's entry has
+    # to be added here explicitly; that is the point.
+    - name: database-toolbox
+      url: http://mcp-database-toolbox-proxy.ai.svc.cluster.local:8080/mcp
+      description: Postgres schema inspection across the cloudnative-pg clusters (list_tables only)
+      tools:
+        - autobrr_list_tables
+        - backstage_list_tables
+        - firefly_list_tables
+        - forgejo_list_tables
+        - garrison_list_tables
+        - gatus_list_tables
+        - ghostfolio_list_tables
+        - house-hunter_list_tables
+        - litellm_list_tables
+        - mattermost_list_tables
+        - memini_list_tables
+        - miniflux_list_tables
+        - open-webui_list_tables
+        - paperless_list_tables
+        - propagit_list_tables
+        - rybbit_list_tables
+        - temporal_list_tables
+    # hass-mcp can actuate the house: entity_action, call_service_tool and
+    # restart_ha are omitted, everything granted below only reads state.
+    - name: home-assistant
+      url: http://mcp-home-assistant-proxy.ai.svc.cluster.local:8080/mcp
+      description: Home Assistant entity/automation state and history (read-only subset)
+      tools:
+        - get_version
+        - get_entity
+        - list_entities
+        - get_entities_by_area
+        - search_entities_tool
+        - domain_summary_tool
+        - system_overview
+        - list_automations
+        - get_error_log
+        - get_history
+        - get_history_range
+        - get_statistics
+        - get_statistics_range
