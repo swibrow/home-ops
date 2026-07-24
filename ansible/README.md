@@ -57,8 +57,9 @@ just ansible deploy-garage-tls  # apply (Caddy + Let's Encrypt in front of the S
 
 ## Cloudflare token (`cloudflare_api_token`)
 
-The `garage-tls` role and the `proxmox` role's ACME tasks both need a Cloudflare API token scoped to
-**Zone → DNS → Edit** on `wibrow.dev`, for the Let's Encrypt DNS-01 challenge. It lives once in
+The `garage-tls`, `cloudflare-ddns`, and the `proxmox` role's ACME tasks all need a Cloudflare API
+token scoped to **Zone → Read** and **Zone → DNS → Edit** on `wibrow.dev`, for the Let's Encrypt
+DNS-01 challenge and the dynamic DNS records. It lives once in
 `inventory/group_vars/all.sops.yaml` (auto-decrypted by the `community.sops` vars plugin configured in
 `ansible.cfg`), so rotating it touches a single file:
 

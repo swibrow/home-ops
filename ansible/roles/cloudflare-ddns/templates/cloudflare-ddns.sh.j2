@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Upsert Cloudflare A records to this host's current interface IP.
+# Managed by ansible (roles/cloudflare-ddns) - edit the role, not this file.
+set -euo pipefail
+
+: "${CF_API_TOKEN:?}"
+: "${CF_ZONE:?}"
+: "${CF_RECORDS:?}"
+: "${CF_IFACE:=eth0}"
+: "${CF_PROXIED:=false}"
+: "${CF_TTL:=60}"
+
+api="https://api.cloudflare.com/client/v4"
+auth=(-H "Authorization: Bearer ${CF_API_TOKEN}" -H "Content-Type: application/json")
+
+ip=$(ip -4 -o addr show dev "$CF_IFACE" scope global | awk '{print $4}' | cut -d/ -f1 | head -n1)
+if [ -z "$ip" ]; then
+	echo "no global IPv4 on $CF_IFACE" >&2
+	exit 1
+fi
+
+zone_id=$(curl -fsS "${auth[@]}" "$api/zones?name=$CF_ZONE" | jq -r '.result[0].id // empty')
+if [ -z "$zone_id" ]; then
+	echo "zone $CF_ZONE not found (token needs Zone:Read)" >&2
+	exit 1
+fi
+
+for rec in $CF_RECORDS; do
+	resp=$(curl -fsS "${auth[@]}" "$api/zones/$zone_id/dns_records?type=A&name=$rec")
+	rec_id=$(echo "$resp" | jq -r '.result[0].id // empty')
+	cur_ip=$(echo "$resp" | jq -r '.result[0].content // empty')
+	payload=$(jq -nc \
+		--arg name "$rec" --arg ip "$ip" \
+		--argjson proxied "$CF_PROXIED" --argjson ttl "$CF_TTL" \
+		'{type:"A",name:$name,content:$ip,proxied:$proxied,ttl:$ttl}')
+
+	if [ -z "$rec_id" ]; then
+		curl -fsS -X POST "${auth[@]}" "$api/zones/$zone_id/dns_records" --data "$payload" >/dev/null
+		echo "created $rec -> $ip"
+	elif [ "$cur_ip" != "$ip" ]; then
+		curl -fsS -X PUT "${auth[@]}" "$api/zones/$zone_id/dns_records/$rec_id" --data "$payload" >/dev/null
+		echo "updated $rec: $cur_ip -> $ip"
+	else
+		echo "$rec already $ip"
+	fi
+done

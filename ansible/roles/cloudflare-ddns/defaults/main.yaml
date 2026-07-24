@@ -1,0 +1,20 @@
+---
+# Cloudflare zone the records live in.
+cloudflare_ddns_zone: wibrow.dev
+
+# A records to keep pointed at this host's current IP. DHCP leases on VLAN 20
+# can move, so this reconciles them on a timer.
+cloudflare_ddns_records:
+  - s3.wibrow.dev
+
+# Interface whose global IPv4 is published. eth0 is the container's only NIC
+# and carries the VLAN-20 address.
+cloudflare_ddns_interface: eth0
+
+# These are private VLAN-20 addresses - never proxy them (Cloudflare cannot
+# reach RFC1918, and this endpoint is internal-only).
+cloudflare_ddns_proxied: false
+cloudflare_ddns_ttl: 60
+
+# How often the timer reconciles the record.
+cloudflare_ddns_interval: 5min

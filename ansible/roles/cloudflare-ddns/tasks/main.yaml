@@ -1,0 +1,73 @@
+---
+- name: Install curl and jq
+  ansible.builtin.apt:
+    name:
+      - curl
+      - jq
+    state: present
+    update_cache: true
+
+- name: Create config directory
+  ansible.builtin.file:
+    path: /etc/cloudflare-ddns
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Install environment file
+  ansible.builtin.copy:
+    content: |
+      CF_API_TOKEN={{ cloudflare_api_token }}
+      CF_ZONE={{ cloudflare_ddns_zone }}
+      CF_RECORDS={{ cloudflare_ddns_records | join(' ') }}
+      CF_IFACE={{ cloudflare_ddns_interface }}
+      CF_PROXIED={{ cloudflare_ddns_proxied | string | lower }}
+      CF_TTL={{ cloudflare_ddns_ttl }}
+    dest: /etc/cloudflare-ddns/env
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  notify: Reload systemd
+
+- name: Install update script
+  ansible.builtin.template:
+    src: cloudflare-ddns.sh.j2
+    dest: /usr/local/bin/cloudflare-ddns
+    owner: root
+    group: root
+    mode: "0755"
+    validate: "bash -n %s"
+
+- name: Install systemd service
+  ansible.builtin.template:
+    src: cloudflare-ddns.service.j2
+    dest: /etc/systemd/system/cloudflare-ddns.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Install systemd timer
+  ansible.builtin.template:
+    src: cloudflare-ddns.timer.j2
+    dest: /etc/systemd/system/cloudflare-ddns.timer
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Flush handlers so the units are reloaded before use
+  ansible.builtin.meta: flush_handlers
+
+- name: Reconcile the records now
+  ansible.builtin.systemd_service:
+    name: cloudflare-ddns.service
+    state: started
+
+- name: Enable and start the timer
+  ansible.builtin.systemd_service:
+    name: cloudflare-ddns.timer
+    enabled: true
+    state: started

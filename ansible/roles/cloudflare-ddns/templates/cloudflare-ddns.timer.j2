@@ -1,0 +1,10 @@
+[Unit]
+Description=Cloudflare DDNS update timer
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec={{ cloudflare_ddns_interval }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

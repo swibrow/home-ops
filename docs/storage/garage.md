@@ -182,8 +182,9 @@ Plain HTTP on `:3900` is intentionally left listening for in-VLAN clients that d
 
 ### Prerequisites
 
-DNS-01 needs a Cloudflare API token on the host, scoped to **Zone → DNS → Edit** for `wibrow.dev`.
-Store it once, SOPS-encrypted, where the `community.sops` vars plugin picks it up for every host:
+Both the certificate challenge and the DNS record need a Cloudflare API token on the host, scoped to
+**Zone → Read** and **Zone → DNS → Edit** for `wibrow.dev`. Store it once, SOPS-encrypted, where the
+`community.sops` vars plugin picks it up for every host:
 
 ```sh
 cat <<'EOF' > ansible/inventory/group_vars/all.sops.yaml
@@ -192,8 +193,16 @@ EOF
 sops -e -i ansible/inventory/group_vars/all.sops.yaml
 ```
 
-An `A` record for `s3.wibrow.dev` must point at the container's VLAN-20 address, **unproxied**
-(grey cloud) -- this endpoint is internal-only, and Cloudflare cannot proxy to a private address.
+### DNS record (automatic)
+
+The `cloudflare-ddns` role (deployed by the same `garage-tls` playbook) keeps an **unproxied**
+`s3.wibrow.dev` `A` record pointed at the container's current VLAN-20 address. A systemd timer
+reconciles it every 5 minutes, so a changed DHCP lease self-heals -- no manual record and no UniFi
+reservation required. The record must be unproxied because it is an RFC1918 address: Cloudflare
+cannot proxy to it, and the endpoint is internal-only.
+
+Records, interface, and interval are configurable in `roles/cloudflare-ddns/defaults/main.yaml`. The
+role is host-agnostic and can publish records for any DHCP host.
 
 ### Using the TLS endpoint
 

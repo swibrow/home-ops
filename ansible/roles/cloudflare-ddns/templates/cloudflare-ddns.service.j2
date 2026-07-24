@@ -1,0 +1,9 @@
+[Unit]
+Description=Cloudflare DDNS update
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/cloudflare-ddns/env
+ExecStart=/usr/local/bin/cloudflare-ddns

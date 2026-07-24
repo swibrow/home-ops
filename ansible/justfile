@@ -53,11 +53,11 @@ check-garage:
 deploy-garage:
     ansible-playbook playbooks/garage.yaml
 
-# Dry-run the garage TLS playbook (Caddy + Let's Encrypt) and show a diff
+# Dry-run the garage endpoint playbook (Cloudflare DDNS + Caddy/Let's Encrypt) and show a diff
 check-garage-tls:
     ansible-playbook playbooks/garage-tls.yaml --check --diff
 
-# Apply the garage TLS playbook (Caddy + Let's Encrypt DNS-01)
+# Apply the garage endpoint playbook (Cloudflare DDNS + Caddy/Let's Encrypt DNS-01)
 deploy-garage-tls:
     ansible-playbook playbooks/garage-tls.yaml
 
