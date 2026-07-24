@@ -6,7 +6,7 @@
 # goat-db-secret is the CNPG-generated app credential (see
 # cloudnative-pg/cluster/cluster.yaml + the cnpg-db kustomize component).
 image:
-  tag: v0.13.1
+  tag: v0.14.0
 imagePullSecret: ghcr-pull-secret
 database:
   enabled: true
