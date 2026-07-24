@@ -22,6 +22,18 @@ configMapGenerator:
     literals:
       - APP_NAME=bambuddy-kopiur
       - CLAIM_NAME=bambuddy
+patches:
+  # bambuddy runs as uid/gid 2000; the kopiur mover must match to read its data.
+  - target:
+      kind: SnapshotPolicy
+      name: bambuddy-kopiur
+    patch: |
+      - op: replace
+        path: /spec/mover/securityContext/runAsUser
+        value: 2000
+      - op: replace
+        path: /spec/mover/securityContext/runAsGroup
+        value: 2000
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm

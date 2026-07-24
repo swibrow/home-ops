@@ -6,6 +6,8 @@
 #              name — use "<app>-kopiur" (the volsync component already claims
 #              "<app>" for its own ConfigMap).
 #   CLAIM_NAME the source PVC to snapshot.
+# The mover defaults to uid/gid 1000; apps running as another uid override
+# spec.mover.securityContext.{runAsUser,runAsGroup} with a patch (see bambuddy).
 apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
 resources:

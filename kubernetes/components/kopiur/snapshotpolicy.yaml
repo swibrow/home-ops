@@ -15,11 +15,21 @@ spec:
   groupBy: None
   credentialProjection:
     enabled: true
-  # Run the mover with the same security context as the pod that consumes the
-  # source PVC, so it can read files the app wrote 0600 as its own uid/gid.
+  compression:
+    compressor: zstd
   mover:
-    inheritSecurityContextFrom:
-      pvcConsumer: {}
+    cache:
+      capacity: 5Gi
+      mode: Persistent
+      storageClassName: ceph-block
+    # Run the mover as the uid/gid that owns the app's data so kopia can read
+    # files the app wrote 0600. Defaults to 1000; apps running as another uid
+    # override it with a patch in their kustomization (see workshop/bambuddy).
+    securityContext:
+      runAsUser: 1000
+      runAsGroup: 1000
   retention:
+    keepLatest: 3
     keepHourly: 24
     keepDaily: 7
+    keepWeekly: 4

@@ -7,6 +7,5 @@ spec:
   policyRef:
     name: app
   schedule:
-    cron: "0 * * * *"
-    jitter: 5m
+    cron: "H * * * *"
     runOnCreate: false
