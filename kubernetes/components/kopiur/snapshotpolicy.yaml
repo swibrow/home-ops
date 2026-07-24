@@ -15,6 +15,11 @@ spec:
   groupBy: None
   credentialProjection:
     enabled: true
+  # Run the mover with the same security context as the pod that consumes the
+  # source PVC, so it can read files the app wrote 0600 as its own uid/gid.
+  mover:
+    inheritSecurityContextFrom:
+      pvcConsumer: {}
   retention:
     keepHourly: 24
     keepDaily: 7
