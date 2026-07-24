@@ -110,7 +110,7 @@ nav:
       - Envoy Gateway: networking/envoy-gateway.md
       - DNS Management: networking/dns-management.md
       - External DNS: networking/external-dns.md
-      - Cloudflare Tunnel: networking/cloudflare-tunnel.md
+      - Towonel Tunnel: networking/towonel-tunnel.md
       - Tailscale: networking/tailscale.md
       - Load Balancers: networking/load-balancers.md
   - GitOps:
@@ -123,6 +123,7 @@ nav:
       - storage/index.md
       - Rook Ceph: storage/rook-ceph.md
       - OpenEBS: storage/openebs.md
+      - Garage S3: storage/garage.md
       - Backup & Restore: storage/backup-restore.md
   - Security:
       - security/index.md

@@ -2,6 +2,16 @@
 proxmox_disable_enterprise_repo: true
 proxmox_enable_no_subscription_repo: true
 
+# Opt-in: needs `cloudflare_api_token` in group_vars and a public A record for
+# proxmox_acme_domain. Let's Encrypt cannot issue for .servers.local, so the
+# host needs a name in a real zone pointing at its VLAN-20 address.
+proxmox_acme_enabled: false
+proxmox_acme_domain: proxmox-01.wibrow.dev
+proxmox_acme_account: default
+proxmox_acme_email: sam.wibrow.wa@gmail.com
+proxmox_acme_plugin: cloudflare
+proxmox_acme_directory: https://acme-v02.api.letsencrypt.org/directory
+
 proxmox_network_iface: nic1
 proxmox_network_vlan: 20
 proxmox_network_bridge: vmbr0

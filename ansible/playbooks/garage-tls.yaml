@@ -1,0 +1,6 @@
+---
+- name: Terminate TLS for Garage S3 (Caddy + Let's Encrypt DNS-01)
+  hosts: garage
+  become: true
+  roles:
+    - garage-tls

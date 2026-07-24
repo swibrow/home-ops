@@ -1,0 +1,86 @@
+---
+- name: Install caddy and certbot
+  ansible.builtin.apt:
+    name:
+      - caddy
+      - certbot
+      - python3-certbot-dns-cloudflare
+    state: present
+    update_cache: true
+
+- name: Install Cloudflare credentials for the DNS-01 challenge
+  ansible.builtin.copy:
+    content: "dns_cloudflare_api_token = {{ cloudflare_api_token }}\n"
+    dest: "{{ garage_tls_cloudflare_credentials }}"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+
+- name: Check whether a certificate already exists
+  ansible.builtin.stat:
+    path: "{{ garage_tls_cert_dir }}/fullchain.pem"
+  register: garage_tls_cert
+
+# certbot installs its own renewal timer, so this only ever runs for the
+# initial issuance.
+- name: Issue the certificate via DNS-01
+  ansible.builtin.command:
+    argv:
+      - certbot
+      - certonly
+      - --non-interactive
+      - --agree-tos
+      - --email
+      - "{{ garage_tls_acme_email }}"
+      - --dns-cloudflare
+      - --dns-cloudflare-credentials
+      - "{{ garage_tls_cloudflare_credentials }}"
+      # Cloudflare needs a moment to publish the TXT record before the ACME
+      # server checks for it.
+      - --dns-cloudflare-propagation-seconds
+      - "30"
+      - -d
+      - "{{ garage_tls_hostname }}"
+  when: not garage_tls_cert.stat.exists
+  changed_when: true
+  notify: Reload caddy
+
+# Caddy runs as the `caddy` user and cannot read certbot's root-only
+# directories without this.
+- name: Allow caddy to read the certificate material
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: caddy
+    mode: "0750"
+  loop:
+    - /etc/letsencrypt/live
+    - /etc/letsencrypt/archive
+
+- name: Reload caddy after each renewal
+  ansible.builtin.copy:
+    content: |
+      #!/bin/sh
+      systemctl reload caddy
+    dest: /etc/letsencrypt/renewal-hooks/deploy/reload-caddy
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install Caddyfile
+  ansible.builtin.template:
+    src: Caddyfile.j2
+    dest: /etc/caddy/Caddyfile
+    owner: root
+    group: root
+    mode: "0644"
+    validate: "caddy validate --adapter caddyfile --config %s"
+  notify: Reload caddy
+
+- name: Enable and start caddy
+  ansible.builtin.systemd_service:
+    name: caddy
+    enabled: true
+    state: started

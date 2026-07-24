@@ -1,0 +1,22 @@
+---
+# Public hostname clients use for the S3 endpoint. The A record points at the
+# container's VLAN-20 address and is deliberately NOT proxied through
+# Cloudflare - this endpoint is internal-only.
+garage_tls_hostname: s3.wibrow.dev
+
+# Backend Garage listens on. Left as-is by this role: plain HTTP on :3900
+# stays reachable in-VLAN for clients that don't want TLS.
+garage_tls_backend: "127.0.0.1:3900"
+
+# Let's Encrypt account address (same as the cluster's ClusterIssuer).
+garage_tls_acme_email: sam.wibrow.wa@gmail.com
+
+# DNS-01 is required: the hostname resolves to an RFC1918 address, so the
+# HTTP-01 challenge can never reach this host from the internet.
+garage_tls_cert_dir: "/etc/letsencrypt/live/{{ garage_tls_hostname }}"
+garage_tls_cloudflare_credentials: /etc/letsencrypt/cloudflare.ini
+
+# Uploads to an object store are large and slow; the defaults are far too
+# small for multi-GB objects.
+garage_tls_max_body: 0        # 0 = unlimited request body
+garage_tls_transport_timeout: "1h"

@@ -1,0 +1,22 @@
+{
+	admin off
+	email {{ garage_tls_acme_email }}
+}
+
+{{ garage_tls_hostname }} {
+	# Certificates come from certbot's DNS-01 renewal, not Caddy's own ACME:
+	# Debian's packaged Caddy has no Cloudflare DNS module, and this host is
+	# not reachable for HTTP-01.
+	tls {{ garage_tls_cert_dir }}/fullchain.pem {{ garage_tls_cert_dir }}/privkey.pem
+
+	reverse_proxy {{ garage_tls_backend }} {
+		transport http {
+			read_timeout {{ garage_tls_transport_timeout }}
+			write_timeout {{ garage_tls_transport_timeout }}
+		}
+	}
+
+	request_body {
+		max_size {{ garage_tls_max_body }}
+	}
+}

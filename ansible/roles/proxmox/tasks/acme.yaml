@@ -1,0 +1,56 @@
+---
+# Proxmox VE has a built-in ACME client. DNS-01 is required because the host
+# is on VLAN 20 and unreachable from the internet for HTTP-01. Renewal is
+# handled by PVE's own daily timer, so this file only does first issuance.
+
+- name: Check for an existing ACME account
+  ansible.builtin.command: pvenode acme account list
+  register: pve_acme_accounts
+  changed_when: false
+  failed_when: false
+
+- name: Register the ACME account
+  ansible.builtin.shell: >-
+    echo y | pvenode acme account register {{ proxmox_acme_account }}
+    {{ proxmox_acme_email }} --directory {{ proxmox_acme_directory }}
+  when: proxmox_acme_account not in (pve_acme_accounts.stdout | default(''))
+  changed_when: true
+
+- name: Write the Cloudflare API data for the DNS plugin
+  ansible.builtin.copy:
+    content: "CF_Token={{ cloudflare_api_token }}\n"
+    dest: /etc/pve/priv/acme-cloudflare.env
+    owner: root
+    group: www-data
+    mode: "0640"
+  no_log: true
+
+- name: Check for an existing ACME DNS plugin
+  ansible.builtin.command: pvenode acme plugin list
+  register: pve_acme_plugins
+  changed_when: false
+  failed_when: false
+
+- name: Add the Cloudflare DNS-01 plugin
+  ansible.builtin.command: >-
+    pvenode acme plugin add dns {{ proxmox_acme_plugin }} --api cf
+    --data /etc/pve/priv/acme-cloudflare.env
+  when: proxmox_acme_plugin not in (pve_acme_plugins.stdout | default(''))
+  changed_when: true
+
+- name: Point the node at its ACME domain
+  ansible.builtin.command: >-
+    pvenode config set --acme account={{ proxmox_acme_account }}
+    --acmedomain0 {{ proxmox_acme_domain }},plugin={{ proxmox_acme_plugin }}
+  register: pve_acme_config
+  changed_when: true
+
+- name: Check for an existing certificate
+  ansible.builtin.stat:
+    path: /etc/pve/local/pveproxy-ssl.pem
+  register: pve_acme_cert
+
+- name: Order the certificate
+  ansible.builtin.command: pvenode acme cert order
+  when: not pve_acme_cert.stat.exists
+  changed_when: true

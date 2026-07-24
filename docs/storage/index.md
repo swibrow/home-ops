@@ -52,6 +52,7 @@ flowchart TD
 | [OpenEBS](openebs.md) | `openebs` | Local PV provisioner for node-local storage |
 | [VolSync](backup-restore.md#volsync) | `system` | PVC backup and replication |
 | [Snapshot Controller](backup-restore.md#snapshot-controller) | `system` | CSI volume snapshots |
+| [Garage S3](garage.md) | _external_ | S3-compatible object store on an LXC outside the cluster |
 
 ## Sections
 
@@ -59,4 +60,5 @@ flowchart TD
 |:-----|:------------|
 | [Rook Ceph](rook-ceph.md) | Distributed Ceph cluster on NVMe -- operator, cluster config, storage classes |
 | [OpenEBS](openebs.md) | Local PV provisioner for node-local volumes |
+| [Garage S3](garage.md) | S3-compatible object store on `proxmox-01` -- setup, usage, and operations |
 | [Backup & Restore](backup-restore.md) | VolSync replication, CSI snapshots, Synology backup targets, restore procedures |

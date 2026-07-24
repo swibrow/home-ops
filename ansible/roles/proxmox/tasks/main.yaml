@@ -23,3 +23,7 @@
   ansible.builtin.apt:
     update_cache: true
   when: pve_enterprise_repo.changed or pve_no_subscription_repo.changed
+
+- name: Configure Let's Encrypt for the web UI
+  ansible.builtin.include_tasks: acme.yaml
+  when: proxmox_acme_enabled

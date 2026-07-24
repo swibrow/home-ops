@@ -52,7 +52,22 @@ just ansible deploy-proxmox-01  # apply (fail2ban + proxmox repo config)
 just ansible ping-garage        # SSH reachability (garage-01)
 just ansible check-garage       # dry-run + diff (Garage S3)
 just ansible deploy-garage      # apply (Garage S3: install + config + layout/bucket/key)
+just ansible deploy-garage-tls  # apply (Caddy + Let's Encrypt in front of the S3 API)
 ```
+
+## Cloudflare token (`cloudflare_api_token`)
+
+The `garage-tls` role and the `proxmox` role's ACME tasks both need a Cloudflare API token scoped to
+**Zone → DNS → Edit** on `wibrow.dev`, for the Let's Encrypt DNS-01 challenge. It lives once in
+`inventory/group_vars/all.sops.yaml` (auto-decrypted by the `community.sops` vars plugin configured in
+`ansible.cfg`), so rotating it touches a single file:
+
+```sh
+sops inventory/group_vars/all.sops.yaml
+```
+
+This is separate from the cluster's cert-manager token, which lives in Infisical and is not reachable
+from a non-Kubernetes host.
 
 ## Garage S3 (`garage` role)
 
