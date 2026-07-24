@@ -5,23 +5,24 @@ ARG CLAUDE_CODE_VERSION=2.1.167
 FROM codercom/code-server:4.129.0
 
 ARG CLAUDE_CODE_VERSION
-ARG NODE_MAJOR=22
 
 USER root
 
-# git + node (for the claude CLI) + everyday agent tooling
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      ca-certificates curl gnupg git openssh-client jq ripgrep less \
-    && mkdir -p /etc/apt/keyrings \
-    && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
-       | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
-    && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_${NODE_MAJOR}.x nodistro main" \
-       > /etc/apt/sources.list.d/nodesource.list \
-    && apt-get update && apt-get install -y --no-install-recommends nodejs \
+      ca-certificates curl gnupg git openssh-client less \
     && rm -rf /var/lib/apt/lists/*
 
-# Claude Code, baked into the image so sandbox resume is instant (no npm reinstall).
-RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} \
+# mise manages every CLI tool from here on (see mise.toml), installed system-wide
+# under /opt+/etc so it's baked into the image and survives the /home/coder PVC mount.
+ENV MISE_DATA_DIR=/opt/mise \
+    MISE_CONFIG_DIR=/etc/mise \
+    PATH="/opt/mise/shims:${PATH}"
+
+RUN curl -fsSL https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh
+
+COPY mise.toml /etc/mise/config.toml
+RUN mise install \
+    && mise use --global claude-code@${CLAUDE_CODE_VERSION} \
     && claude --version
 
 USER coder
