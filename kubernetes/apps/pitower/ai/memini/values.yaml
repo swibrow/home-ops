@@ -70,6 +70,8 @@ serviceMonitor:
   main:
     enabled: true
 
+# Dashboard is vendored + datasource-fixed via a configMapGenerator in
+# kustomization.yaml (folder: AI). The chart's own dashboard ships a broken
+# datasource binding and an annotation this cluster's sidecar ignores.
 grafanaDashboards:
-  enabled: true
-  folder: ai
+  enabled: false

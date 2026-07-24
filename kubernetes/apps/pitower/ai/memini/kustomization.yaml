@@ -15,6 +15,21 @@ configMapGenerator:
       - APP_NAME=memini
       - SECRET_NAME=memini-db-secret
       - CNPG_SECRET_KEY=memini-app
+  # Vendored from the chart's bundled dashboard with the datasource variable
+  # fixed (shipped current.value was the datasource name "Prometheus", but
+  # panels bind uid ${DS_PROMETHEUS} and the real uid is "prometheus" -> no
+  # data). Also carries grafana_folder (the sidecar's folderAnnotation); the
+  # chart only sets grafana_dashboard_folder, which this cluster's sidecar
+  # ignores. Chart's grafanaDashboards is disabled in values.yaml.
+  - name: memini-dashboard
+    files:
+      - dashboards/memini.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: AI
 helmCharts:
   - name: memini
     repo: oci://registry.erwanleboucher.dev/eleboucher/charts
