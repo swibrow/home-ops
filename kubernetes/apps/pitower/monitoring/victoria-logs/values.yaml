@@ -35,4 +35,4 @@ dashboards:
   labels:
     grafana_dashboard: "true"
   annotations:
-    grafana_folder: VictoriaLogs
+    grafana_folder: Observability

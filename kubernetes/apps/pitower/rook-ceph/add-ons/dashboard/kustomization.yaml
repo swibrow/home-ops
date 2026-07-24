@@ -17,6 +17,6 @@ configMapGenerator:
 generatorOptions:
   disableNameSuffixHash: true
   annotations:
-    grafana_folder: Rook CEPH
+    grafana_folder: Storage
   labels:
     grafana_dashboard: "true"

@@ -7,7 +7,7 @@ metadata:
   labels:
     grafana_dashboard: "true"
   annotations:
-    grafana_folder: VictoriaLogs
+    grafana_folder: Observability
 data:
   victoria-logs-overview.json: |
     {

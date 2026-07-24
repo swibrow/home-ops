@@ -16,24 +16,13 @@ configMapGenerator:
       labels:
         grafana_dashboard: "1"
       annotations:
-        grafana_folder: HomeAssistant
-  - name: grafana-dashboards-envoy
-    files:
-      - dashboards/envoy-gateway-global.json
-      - dashboards/envoy-proxy-global.json
-      - dashboards/envoy-clusters.json
-      - dashboards/envoy-access-logs.json
-    options:
-      disableNameSuffixHash: true
-      labels:
-        grafana_dashboard: "1"
-      annotations:
-        grafana_folder: Envoy
+        grafana_folder: Home Assistant
   - name: grafana-dashboards-nodes
     files:
       - dashboards/worker-01-fabric-watch.json
       - dashboards/spegel.json
       - dashboards/proxmox.json
+      - dashboards/towonel.json
     options:
       disableNameSuffixHash: true
       labels:
@@ -44,12 +33,25 @@ configMapGenerator:
     files:
       - dashboards/external-dns.json
       - dashboards/cilium-operator.json
+      - dashboards/envoy-gateway-global.json
+      - dashboards/envoy-proxy-global.json
+      - dashboards/envoy-clusters.json
+      - dashboards/envoy-access-logs.json
     options:
       disableNameSuffixHash: true
       labels:
         grafana_dashboard: "1"
       annotations:
         grafana_folder: Networking
+  - name: grafana-dashboards-observability
+    files:
+      - dashboards/tempo.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: Observability
 
 helmCharts:
   - name: grafana
