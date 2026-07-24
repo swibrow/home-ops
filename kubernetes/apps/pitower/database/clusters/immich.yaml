@@ -1,0 +1,30 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/postgresql.cnpg.io/cluster_v1.json
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: immich
+  namespace: database
+spec:
+  instances: 2
+  imageName: ghcr.io/tensorchord/cloudnative-vectorchord:16-1.1.1
+  postgresql:
+    shared_preload_libraries:
+      - vchord.so
+  bootstrap:
+    initdb:
+      database: immich
+      owner: immich
+      postInitSQL:
+        # Immich creates cube/earthdistance/vchord extensions during migration,
+        # all of which require superuser. Single-tenant DB, so grant it.
+        - ALTER ROLE immich WITH SUPERUSER
+      postInitApplicationSQL:
+        - CREATE EXTENSION IF NOT EXISTS cube
+        - CREATE EXTENSION IF NOT EXISTS earthdistance
+        - CREATE EXTENSION IF NOT EXISTS vchord CASCADE
+  storage:
+    size: 10Gi
+    storageClass: openebs-hostpath
+  monitoring:
+    enablePodMonitor: true

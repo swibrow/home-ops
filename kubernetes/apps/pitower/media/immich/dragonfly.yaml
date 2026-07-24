@@ -1,0 +1,16 @@
+---
+apiVersion: dragonflydb.io/v1alpha1
+kind: Dragonfly
+metadata:
+  name: immich-dragonfly
+  namespace: media
+spec:
+  replicas: 1
+  args:
+    - "--proactor_threads=1"
+  resources:
+    requests:
+      cpu: 16m
+      memory: 14Mi
+    limits:
+      memory: 512Mi

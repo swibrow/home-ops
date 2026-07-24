@@ -1,0 +1,152 @@
+controllers:
+  server:
+    annotations:
+      reloader.stakater.com/auto: "true"
+    pod:
+      nodeSelector:
+        kubernetes.io/hostname: worker-07
+    containers:
+      app:
+        image:
+          repository: ghcr.io/immich-app/immich-server
+          tag: v3.0.3
+        env:
+          TZ: Europe/Zurich
+          IMMICH_PORT: &serverPort 2283
+          IMMICH_MEDIA_LOCATION: /data
+          IMMICH_MACHINE_LEARNING_URL: http://immich-machine-learning.media.svc.cluster.local:3003
+          DB_VECTOR_EXTENSION: vectorchord
+          REDIS_HOSTNAME: immich-dragonfly.media.svc.cluster.local
+          DB_URL:
+            valueFrom:
+              secretKeyRef:
+                name: immich-db-secret
+                key: DB_URL
+        probes:
+          liveness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /api/server/ping
+                port: *serverPort
+              initialDelaySeconds: 0
+              periodSeconds: 10
+              failureThreshold: 5
+          readiness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /api/server/ping
+                port: *serverPort
+              initialDelaySeconds: 0
+              periodSeconds: 10
+              failureThreshold: 5
+          startup:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /api/server/ping
+                port: *serverPort
+              failureThreshold: 30
+              periodSeconds: 10
+        resources:
+          requests:
+            cpu: 100m
+            memory: 512Mi
+          limits:
+            memory: 2Gi
+  machine-learning:
+    annotations:
+      reloader.stakater.com/auto: "true"
+    pod:
+      nodeSelector:
+        kubernetes.io/hostname: worker-07
+    containers:
+      app:
+        image:
+          repository: ghcr.io/immich-app/immich-machine-learning
+          tag: v3.0.3
+        env:
+          TZ: Europe/Zurich
+          MACHINE_LEARNING_CACHE_FOLDER: /cache
+          MPLCONFIGDIR: /cache/matplotlib
+        probes:
+          liveness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /ping
+                port: 3003
+              periodSeconds: 10
+              failureThreshold: 5
+          readiness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /ping
+                port: 3003
+              periodSeconds: 10
+              failureThreshold: 5
+          startup:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /ping
+                port: 3003
+              failureThreshold: 60
+              periodSeconds: 10
+        resources:
+          requests:
+            cpu: 100m
+            memory: 1Gi
+          limits:
+            memory: 4Gi
+
+service:
+  server:
+    controller: server
+    ports:
+      http:
+        port: *serverPort
+  machine-learning:
+    controller: machine-learning
+    ports:
+      http:
+        port: 3003
+
+route:
+  server:
+    hostnames:
+      - photos.wibrow.dev
+    parentRefs:
+      - name: envoy-external
+        namespace: networking
+        sectionName: https
+    rules:
+      - backendRefs:
+          - identifier: server
+            port: *serverPort
+
+persistence:
+  library:
+    accessMode: ReadWriteOnce
+    size: 100Gi
+    storageClass: openebs-hostpath
+    advancedMounts:
+      server:
+        app:
+          - path: /data
+  model-cache:
+    accessMode: ReadWriteOnce
+    size: 10Gi
+    storageClass: openebs-hostpath
+    advancedMounts:
+      machine-learning:
+        app:
+          - path: /cache
