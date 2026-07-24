@@ -1,5 +1,11 @@
 crds:
   create: true
+# Cluster-wide RBAC/CRDs/webhooks stay owned here, but reconciliation is
+# narrowed to this namespace so the scoped operator in `database` can own that
+# one without both fighting over the same Clusters.
+config:
+  data:
+    WATCH_NAMESPACE: cloudnative-pg
 monitoring:
   podMonitorEnabled: true
   grafanaDashboard:

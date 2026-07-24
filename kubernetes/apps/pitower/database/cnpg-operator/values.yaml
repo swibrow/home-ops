@@ -1,0 +1,22 @@
+# Second CNPG operator, scoped to the `database` namespace only.
+# The cluster-wide operator in `cloudnative-pg` owns the singletons that must
+# not be duplicated: the CRDs and the (cluster-scoped, no namespaceSelector)
+# admission webhooks. It also validates database-ns Clusters — webhook serving
+# is stateless and version-based, independent of watch scope. So this operator
+# reuses those and only reconciles Clusters in `database`.
+# The two operators MUST stay on the same chart/image version.
+crds:
+  create: false
+config:
+  clusterWide: false
+  data:
+    WATCH_NAMESPACE: database
+webhook:
+  mutating:
+    create: false
+  validating:
+    create: false
+monitoring:
+  podMonitorEnabled: true
+  grafanaDashboard:
+    create: false

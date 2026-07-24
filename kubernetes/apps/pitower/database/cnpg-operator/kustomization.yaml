@@ -1,0 +1,13 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: database
+helmCharts:
+  - name: cloudnative-pg
+    repo: https://cloudnative-pg.io/charts/
+    version: 0.29.0
+    releaseName: cloudnative-pg-database
+    includeCRDs: false
+    valuesFile: values.yaml
+    namespace: database
