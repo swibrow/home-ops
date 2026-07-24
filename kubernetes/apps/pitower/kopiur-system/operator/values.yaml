@@ -1,0 +1,19 @@
+# Cluster-scoped install so the operator can reconcile the ClusterRepository.
+installScope: cluster
+
+# The ClusterRepository's credential Secret lives in kopiur-system; mover Jobs
+# run in each backed-up app's namespace, so the operator must project those
+# credentials across namespaces. This grants the RBAC that makes it work.
+features:
+  credentialProjection:
+    enabled: true
+
+monitoring:
+  serviceMonitor:
+    enabled: true
+  prometheusRule:
+    enabled: true
+  dashboards:
+    enabled: true
+    folderAnnotation: grafana_folder
+    folder: Storage

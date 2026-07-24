@@ -53,6 +53,15 @@ check-garage:
 deploy-garage:
     ansible-playbook playbooks/garage.yaml
 
+# List garage buckets and keys
+garage-info:
+    ansible garage -b -a 'garage bucket list'
+    ansible garage -b -a 'garage key list'
+
+# Print a garage S3 key's ID + secret (default: kopiur). Usage: just ansible::garage-key [name]
+garage-key name='kopiur':
+    ansible garage -b -a 'garage key info --show-secret {{ name }}'
+
 # Dry-run the garage endpoint playbook (Cloudflare DDNS + Caddy/Let's Encrypt) and show a diff
 check-garage-tls:
     ansible-playbook playbooks/garage-tls.yaml --check --diff

@@ -5,6 +5,7 @@ kind: Kustomization
 namespace: workshop
 components:
   - ../../../../components/volsync
+  - ../../../../components/kopiur
 configMapGenerator:
   - name: volsync-config
     options:
@@ -15,6 +16,12 @@ configMapGenerator:
       - SECRET_NAME=bambuddy-volsync
       - STORAGE_SIZE=1Gi
       - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/workshop/bambuddy
+  - name: kopiur-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=bambuddy-kopiur
+      - CLAIM_NAME=bambuddy
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm

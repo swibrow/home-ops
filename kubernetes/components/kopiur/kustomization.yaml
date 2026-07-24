@@ -1,0 +1,53 @@
+---
+# Per-app kopiur backups. Consumers add this component plus a kopiur-config
+# ConfigMap with two literals:
+#   APP_NAME   names the SnapshotPolicy/SnapshotSchedule/ConfigMap. Must be
+#              unique within the namespace AND distinct from the volsync-config
+#              name — use "<app>-kopiur" (the volsync component already claims
+#              "<app>" for its own ConfigMap).
+#   CLAIM_NAME the source PVC to snapshot.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+resources:
+  - snapshotpolicy.yaml
+  - snapshotschedule.yaml
+replacements:
+  # Source PVC to snapshot (must be before name replacement)
+  - source:
+      kind: ConfigMap
+      name: kopiur-config
+      fieldPath: data.CLAIM_NAME
+    targets:
+      - select:
+          kind: SnapshotPolicy
+          name: app
+        fieldPaths:
+          - spec.sources.0.pvc.name
+  # SnapshotPolicy name + the schedule's reference to it
+  - source:
+      kind: ConfigMap
+      name: kopiur-config
+      fieldPath: data.APP_NAME
+    targets:
+      - select:
+          kind: SnapshotPolicy
+          name: app
+        fieldPaths:
+          - metadata.name
+      - select:
+          kind: SnapshotSchedule
+          name: app
+        fieldPaths:
+          - metadata.name
+          - spec.policyRef.name
+  # ConfigMap name (last - makes name unique per app to avoid namespace conflicts)
+  - source:
+      kind: ConfigMap
+      name: kopiur-config
+      fieldPath: data.APP_NAME
+    targets:
+      - select:
+          kind: ConfigMap
+          name: kopiur-config
+        fieldPaths:
+          - metadata.name

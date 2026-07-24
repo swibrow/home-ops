@@ -1,0 +1,20 @@
+---
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: SnapshotPolicy
+metadata:
+  name: app
+spec:
+  repository:
+    kind: ClusterRepository
+    name: garage
+  sources:
+    - pvc:
+        name: app
+  copyMethod: Snapshot
+  volumeSnapshotClassName: csi-ceph-blockpool
+  groupBy: None
+  credentialProjection:
+    enabled: true
+  retention:
+    keepHourly: 24
+    keepDaily: 7

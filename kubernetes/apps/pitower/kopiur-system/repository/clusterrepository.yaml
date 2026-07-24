@@ -1,0 +1,28 @@
+---
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: ClusterRepository
+metadata:
+  name: garage
+spec:
+  allowedNamespaces:
+    all: true
+  backend:
+    s3:
+      bucket: kopiur
+      endpoint: s3.wibrow.dev
+      region: garage
+      auth:
+        secretRef:
+          name: kopiur-repository-secret
+          namespace: kopiur-system
+  encryption:
+    passwordSecretRef:
+      name: kopiur-repository-secret
+      namespace: kopiur-system
+      key: KOPIA_PASSWORD
+  create:
+    enabled: true
+  credentialProjection:
+    allowed: true
+  scheduleDefaults:
+    timezone: Europe/Zurich
