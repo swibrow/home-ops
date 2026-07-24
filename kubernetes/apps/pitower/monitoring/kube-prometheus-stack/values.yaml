@@ -20,6 +20,9 @@ alertmanager:
     # Config lives in the ESO-templated alertmanager-config secret (see
     # externalsecret.yaml) so the discord webhook URL can be injected inline.
     configSecret: alertmanager-config
+    # Mounted at /etc/alertmanager/configmaps/alertmanager-templates/
+    configMaps:
+      - alertmanager-templates
 kube-state-metrics:
   metricLabelsAllowlist:
     - "deployments=[*]"

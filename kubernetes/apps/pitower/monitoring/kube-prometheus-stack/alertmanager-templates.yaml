@@ -1,0 +1,31 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-templates
+data:
+  discord.tmpl: |
+    {{- define "wibrow.discord.title" -}}
+    {{ if eq .Status "firing" }}{{ if eq .CommonLabels.severity "critical" }}🔴{{ else if eq .CommonLabels.severity "warning" }}🟠{{ else }}🔵{{ end }} FIRING{{ if gt (len .Alerts.Firing) 1 }} ×{{ len .Alerts.Firing }}{{ end }}{{ else }}✅ RESOLVED{{ end }} · {{ .CommonLabels.alertname }}{{ with .CommonLabels.namespace }} · {{ . }}{{ end }}
+    {{- end }}
+
+    {{- define "wibrow.discord.labels" -}}
+    {{ range .SortedPairs }}{{ if not (match "^(alertname|severity|cluster|prometheus|endpoint|instance|job|service|container|otel_scope_name|__.*)$" .Name) }}`{{ .Name }}={{ .Value }}` {{ end }}{{ end }}
+    {{- end }}
+
+    {{- define "wibrow.discord.alert" -}}
+    {{ with .Annotations.summary }}**{{ . }}**
+    {{ end }}{{ with .Annotations.description }}{{ . }}
+    {{ end }}{{ template "wibrow.discord.labels" .Labels }}
+    {{ with .Annotations.runbook_url }}[runbook]({{ . }}) · {{ end }}[source]({{ .GeneratorURL }})
+    {{- end }}
+
+    {{- define "wibrow.discord.message" -}}
+    {{ range $i, $a := .Alerts.Firing }}{{ if lt $i 8 }}{{ template "wibrow.discord.alert" $a }}
+
+    {{ end }}{{ end }}{{ range $i, $a := .Alerts.Resolved }}{{ if lt $i 8 }}{{ template "wibrow.discord.alert" $a }}
+
+    {{ end }}{{ end }}{{ if gt (len .Alerts) 8 }}_showing 8 of {{ len .Alerts }} alerts in this group_
+
+    {{ end }}[alerts]({{ .ExternalURL }}/#/alerts?filter=%7Balertname%3D%22{{ .CommonLabels.alertname }}%22%7D) · [silence]({{ .ExternalURL }}/#/silences/new?filter=%7Balertname%3D%22{{ .CommonLabels.alertname }}%22%7D)
+    {{- end }}
