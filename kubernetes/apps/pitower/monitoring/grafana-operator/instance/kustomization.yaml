@@ -52,5 +52,6 @@ configMapGenerator:
     files:
       - dashboards/github-actions.json
       - dashboards/github-actions-timing.json
+      - dashboards/arc-runners.json
     options:
       disableNameSuffixHash: true

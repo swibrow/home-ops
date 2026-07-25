@@ -26,10 +26,21 @@ spec:
   selector:
     matchLabels:
       app.kubernetes.io/component: runner-scale-set-listener
+  # ARC's own dashboard filters on these two as metric labels, so promote them
+  # off the pod. The operator sanitises the dots to underscores
+  # (actions_github_com_scale_set_name).
+  podTargetLabels:
+    - actions.github.com/scale-set-name
+    - actions.github.com/scale-set-namespace
   podMetricsEndpoints:
     - targetPort: 8080
       path: /metrics
       interval: 30s
+      # Without this the operator's `namespace` (the listener's own, "arc") masks
+      # the one the exporter emits, and the scale set's namespace lands in
+      # exported_namespace instead. ARC's dashboard assumes namespace is the
+      # runner namespace, which only holds when the exposed label wins.
+      honorLabels: true
       metricRelabelings:
         # job_workflow_ref carries the branch (…/lint.yaml@refs/heads/<branch>), so
         # across 27 repos with renovate/* branches it multiplies series without
