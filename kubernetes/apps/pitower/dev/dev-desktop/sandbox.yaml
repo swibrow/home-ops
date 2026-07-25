@@ -69,6 +69,11 @@ spec:
                 if [[ -e /seed/.config/hypr/hyprland.lua ]]; then
                   mv /seed/.config/hypr/hyprland.lua /seed/.config/hypr/hyprland.lua.generated
                 fi
+                # Sunshine's CSRF check only trusts localhost by default, so the
+                # web UI rejects every request that comes in over the LB VIP.
+                mkdir -p /seed/.config/sunshine
+                echo 'csrf_allowed_origins = https://10.20.10.231:47990' \
+                  > /seed/.config/sunshine/sunshine.conf
               fi
           volumeMounts:
             - name: home
