@@ -5,7 +5,7 @@ image:
   repository: forgejo/forgejo
   tag: 16.0.1-rootless
 
-# Use the volsync-managed PVC (created by the volsync component as "forgejo")
+# Use the PVC created by components/pvc as "forgejo"
 persistence:
   enabled: true
   create: false

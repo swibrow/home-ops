@@ -2,9 +2,8 @@
 # Per-app kopiur backups. Consumers add this component plus a kopiur-config
 # ConfigMap with two literals:
 #   APP_NAME   names the SnapshotPolicy/SnapshotSchedule/ConfigMap. Must be
-#              unique within the namespace AND distinct from the volsync-config
-#              name — use "<app>-kopiur" (the volsync component already claims
-#              "<app>" for its own ConfigMap).
+#              unique within the namespace and distinct from the other
+#              components' ConfigMap names - use "<app>-kopiur".
 #   CLAIM_NAME the source PVC to snapshot.
 # The mover defaults to uid/gid 1000; apps running as another uid override
 # spec.mover.securityContext.{runAsUser,runAsGroup} with a patch (see bambuddy).
