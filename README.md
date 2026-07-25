@@ -71,9 +71,9 @@ The environment is split across several clusters. The main workload cluster (`pi
 |:-------|:--------|
 | Ubiquiti (UniFi) | Router + switching, VLANs, DNS interception |
 | Ubiquiti U7-Pro & U6-Lite | Wireless APs |
-| Cloudflare Tunnel | Public ingress (`*.wibrow.dev` → `envoy-external`) |
+| towonel tunnel | Public ingress (`*.wibrow.dev` → `envoy-external`) |
 
-Cilium L2 announcements serve LoadBalancer IPs from the pool `10.20.10.128-255`. The three Envoy gateways: `envoy-external` (`10.20.10.239`, Cloudflare tunnel), `envoy-internal` (`10.20.10.238`), `envoy-direct` (`10.20.10.237`, non-proxied public).
+Cilium L2 announcements serve LoadBalancer IPs from the pool `10.20.10.128-255`. The two Envoy gateways: `envoy-external` (`10.20.10.239`, towonel tunnel), `envoy-internal` (`10.20.10.238`).
 
 ### Storage
 
