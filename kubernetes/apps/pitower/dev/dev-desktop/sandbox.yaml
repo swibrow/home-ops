@@ -115,9 +115,14 @@ spec:
                 if [[ -S /run/seatd.sock ]]; then break; fi
                 sleep 0.1
               done
+              # waybar and mako are exec-once in the config but both die without a
+              # session bus, leaving a bare black screen: waybar can't even spawn
+              # one ("Cannot spawn a message bus without a machine-id") because
+              # the image ships no /etc/machine-id.
+              [[ -s /etc/machine-id ]] || dbus-uuidgen > /etc/machine-id
               exec setpriv --reuid=1001 --regid=1001 --init-groups \
                 env HOME=/home/dev XDG_RUNTIME_DIR=/run/user/1001 \
-                /usr/local/bin/start-desktop
+                dbus-run-session -- /usr/local/bin/start-desktop
           env:
             - name: TZ
               value: Europe/Zurich
