@@ -13,6 +13,7 @@ configMapGenerator:
       - APP_NAME=propagit
       - SECRET_NAME=propagit-db-secret
       - CNPG_SECRET_KEY=propagit-app
+      - DB_SCHEME=postgresql
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm

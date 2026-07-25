@@ -11,6 +11,7 @@ configMapGenerator:
       - APP_NAME=garrison
       - SECRET_NAME=garrison-db-secret
       - CNPG_SECRET_KEY=garrison-app
+      - DB_SCHEME=postgresql
 helmCharts:
   - name: garrison
     repo: oci://ghcr.io/swibrow/charts

@@ -18,6 +18,7 @@ configMapGenerator:
       - APP_NAME=litellm
       - SECRET_NAME=litellm-db-secret
       - CNPG_SECRET_KEY=litellm-app
+      - DB_SCHEME=postgresql
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm
