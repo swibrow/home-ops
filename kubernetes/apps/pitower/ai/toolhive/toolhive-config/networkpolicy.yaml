@@ -32,6 +32,7 @@ spec:
           - terraform
           - context7
           - database-toolbox
+          - victorialogs
   policyTypes:
     - Ingress
   ingress:
@@ -72,6 +73,7 @@ spec:
           - terraform
           - context7
           - database-toolbox
+          - victorialogs
   policyTypes:
     - Ingress
   ingress:
@@ -92,6 +94,7 @@ spec:
                   - terraform
                   - context7
                   - database-toolbox
+                  - victorialogs
 ---
 # The anonymous vMCP (mcp-gateway-direct) has no auth of its own, so restrict its
 # ingress to the only legitimate callers: the Envoy proxy pods (which terminate the
