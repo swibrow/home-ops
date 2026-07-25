@@ -329,6 +329,28 @@ spec:
   monitoring:
     enablePodMonitor: true
 ---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/postgresql.cnpg.io/cluster_v1.json
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: rackrat
+  namespace: cloudnative-pg
+spec:
+  instances: 2
+  # Stock Postgres, no extensions. listing_history is append-only and grows by a
+  # few rows per tracked listing per hour — nowhere near the scale where
+  # Timescale's hypertables would earn a non-standard image.
+  imageName: ghcr.io/cloudnative-pg/postgresql:18
+  bootstrap:
+    initdb:
+      database: rackrat
+      owner: rackrat
+  storage:
+    size: 5Gi
+    storageClass: openebs-hostpath
+  monitoring:
+    enablePodMonitor: true
+---
 # CNPG's Cluster webhook parses spec.imageName's tag as a Postgres version
 # (e.g. "17.2") and rejects anything else, so tensorchord's "pg17-v0.5.1"
 # style tags can't be used directly there. A ClusterImageCatalog sidesteps
