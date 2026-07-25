@@ -63,6 +63,9 @@ spec:
                 # finds a real 1920x1080 output and Sunshine picks that over the
                 # headless one — Moonlight would stream the node's console view.
                 echo 'monitor = HDMI-A-1, disable' >> /seed/.config/hypr/hyprland.conf
+                # Sunshine is launched from the container entrypoint instead, so
+                # that its input devices exist before the compositor enumerates.
+                sed -i '/exec-once *= *\/usr\/bin\/sunshine/d' /seed/.config/hypr/hyprland.conf
                 # Hyprland prefers hyprland.lua over hyprland.conf, and the .lua
                 # on the PVC is the default it wrote while it was failing to
                 # start. Keep it, but stop it shadowing the real config.
@@ -107,9 +110,25 @@ spec:
                 if [[ -S /run/seatd.sock ]]; then break; fi
                 sleep 0.1
               done
+              # Sunshine must create its virtual input devices BEFORE the
+              # compositor starts. libinput only enumerates at startup and
+              # hotplug uevents never cross into this network namespace, so
+              # devices that appear later are invisible to Hyprland — the client
+              # connects to a frozen mouse and a dead keyboard. Hence also
+              # --socket below: sunshine resolves WAYLAND_DISPLAY when a stream
+              # starts, so the name has to be fixed rather than whatever
+              # Hyprland happens to pick.
+              setpriv --reuid=1001 --regid=1001 --init-groups \
+                env HOME=/home/dev XDG_RUNTIME_DIR=/run/user/1001 \
+                    WAYLAND_DISPLAY=wayland-1 \
+                sunshine &
+              for _ in $(seq 100); do
+                if grep -q "Mouse passthrough" /proc/bus/input/devices; then break; fi
+                sleep 0.1
+              done
               exec setpriv --reuid=1001 --regid=1001 --init-groups \
                 env HOME=/home/dev XDG_RUNTIME_DIR=/run/user/1001 \
-                /usr/local/bin/start-desktop
+                /usr/local/bin/start-desktop --socket wayland-1
           env:
             - name: TZ
               value: Europe/Zurich
