@@ -1,4 +1,4 @@
-# 86e7fd87fc2c25ce2adb947bbf084f78d473e206487a2eb7df5fc157539bc999
+# 1be3f9d3a9e719976e7488507ecbd05f371c5325562bd95d707e4b3718c24589
 # curl -X POST --data-binary @amd.yaml https://factory.talos.dev/schematics
 customization:
   systemExtensions:
@@ -7,3 +7,7 @@ customization:
       - siderolabs/amd-ucode
       - siderolabs/amdgpu-firmware
       - siderolabs/amdgpu
+      # Virtual input devices for Sunshine: Moonlight clients have no input
+      # without /dev/uinput. Not in the stock Talos kernel (neither builtin
+      # nor a shipped module), so it has to come from this extension.
+      - siderolabs/uinput
