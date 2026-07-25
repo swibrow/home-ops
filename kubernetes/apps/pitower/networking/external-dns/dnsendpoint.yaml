@@ -11,10 +11,15 @@ spec:
     # proxied traffic, which requires a proxied DNS record to exist for the name.
     # 100:: is the IPv6 discard prefix, Cloudflare's placeholder for Worker-only
     # hostnames: anything the Worker does not handle fails at the edge instead of
-    # reaching a real origin. Proxied comes from external-dns --cloudflare-proxied.
+    # reaching a real origin. This is the one record in the zone that must stay
+    # proxied — unproxied, 100:: is an unroutable black hole and the Worker route
+    # never fires, so proxied is set explicitly here rather than inherited.
     #
     # Subdomains (external.wibrow.dev, *.wibrow.dev) go to the towonel hub — see
     # kubernetes/apps/pitower/networking/towonel-agent/dnsendpoint.yaml.
     - dnsName: "wibrow.dev"
       recordType: AAAA
       targets: ["100::"]
+      providerSpecific:
+        - name: external-dns.alpha.kubernetes.io/cloudflare-proxied
+          value: "true"
