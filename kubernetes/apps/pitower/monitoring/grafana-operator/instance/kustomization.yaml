@@ -51,5 +51,6 @@ configMapGenerator:
   - name: grafana-dashboards-ci
     files:
       - dashboards/github-actions.json
+      - dashboards/github-actions-timing.json
     options:
       disableNameSuffixHash: true

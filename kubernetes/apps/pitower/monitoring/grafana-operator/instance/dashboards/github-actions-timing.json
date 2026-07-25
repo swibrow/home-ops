@@ -1,0 +1,482 @@
+{
+  "uid": "github-actions-timing",
+  "title": "GitHub Actions / Workflow Timing",
+  "tags": ["github", "ci", "actions"],
+  "editable": true,
+  "timezone": "browser",
+  "refresh": "",
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "annotations": {
+    "list": []
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "owner",
+        "label": "Owner",
+        "type": "textbox",
+        "query": "swibrow",
+        "current": { "text": "swibrow", "value": "swibrow" },
+        "options": [],
+        "hide": 0,
+        "skipUrlSync": false
+      },
+      {
+        "name": "repo",
+        "label": "Repository",
+        "type": "query",
+        "datasource": { "type": "grafana-github-datasource", "uid": "github" },
+        "query": {
+          "queryType": "Repositories",
+          "owner": "$owner",
+          "key": "name",
+          "field": "name"
+        },
+        "refresh": 1,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": { "text": "home-ops", "value": "home-ops" },
+        "options": [],
+        "hide": 0,
+        "skipUrlSync": false
+      },
+      {
+        "name": "workflow",
+        "label": "Workflow",
+        "type": "query",
+        "datasource": { "type": "grafana-github-datasource", "uid": "github" },
+        "query": {
+          "queryType": "Workflows",
+          "owner": "$owner",
+          "repository": "$repo",
+          "key": "id",
+          "field": "name",
+          "options": { "timeField": 0 }
+        },
+        "refresh": 1,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": {},
+        "options": [],
+        "hide": 0,
+        "skipUrlSync": false
+      },
+      {
+        "name": "branch",
+        "label": "Branch",
+        "type": "textbox",
+        "query": "",
+        "current": { "text": "", "value": "" },
+        "options": [],
+        "hide": 0,
+        "skipUrlSync": false
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Run duration - $workflow",
+      "description": "updated_at minus run_started_at per run. The GitHub API reports no explicit duration, so this is the wall-clock span of the run record.",
+      "datasource": { "type": "grafana-github-datasource", "uid": "github" },
+      "gridPos": { "h": 10, "w": 17, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Workflow_Runs",
+          "owner": "$owner",
+          "repository": "$repo",
+          "options": { "workflow": "$workflow", "branch": "$branch" }
+        }
+      ],
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": { "matcher": { "id": "byName", "options": "updated_at" } },
+              "operator": "-",
+              "right": { "matcher": { "id": "byName", "options": "run_started_at" } }
+            },
+            "alias": "duration",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "id": true,
+              "name": true,
+              "head_sha": true,
+              "head_branch": true,
+              "created_at": true,
+              "updated_at": true,
+              "html_url": true,
+              "url": true,
+              "status": true,
+              "event": true,
+              "workflow_id": true,
+              "run_number": true,
+              "conclusion": true
+            },
+            "indexByName": { "run_started_at": 0, "duration": 1 },
+            "renameByName": { "run_started_at": "Started" }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "drawStyle": "points",
+            "pointSize": 5,
+            "showPoints": "always",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "axisSoftMin": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": false },
+        "tooltip": { "mode": "single", "sort": "none" }
+      }
+    },
+    {
+      "id": 2,
+      "type": "bargauge",
+      "title": "Runs by weekday",
+      "datasource": { "type": "grafana-github-datasource", "uid": "github" },
+      "gridPos": { "h": 10, "w": 7, "x": 17, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Workflow_Usage",
+          "owner": "$owner",
+          "repository": "$repo",
+          "options": { "workflow": "$workflow" }
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "name": true,
+              "unique triggering actors": true,
+              "runs": true,
+              "current billing cycle cost (approx.)": true,
+              "skipped": true,
+              "successes": true,
+              "failures": true,
+              "cancelled": true,
+              "total run duration (approx.)": true,
+              "longest run duration (approx.)": true,
+              "average run duration (approx.)": true,
+              "p95 run duration (approx.)": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "runs on Monday": "Mon",
+              "runs on Tuesday": "Tue",
+              "runs on Wednesday": "Wed",
+              "runs on Thursday": "Thu",
+              "runs on Friday": "Fri",
+              "runs on Saturday": "Sat",
+              "runs on Sunday": "Sun"
+            }
+          }
+        }
+      ],
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "minVizWidth": 8,
+        "minVizHeight": 10
+      },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "continuous-BlPu" }, "unit": "short" },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Total duration",
+      "datasource": { "type": "grafana-github-datasource", "uid": "github" },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 10 },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Workflow_Usage",
+          "owner": "$owner",
+          "repository": "$repo",
+          "options": { "workflow": "$workflow" }
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": "/^total run duration \\(approx\\.\\)$/"
+        },
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "fixed", "fixedColor": "text" } },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Longest run",
+      "datasource": { "type": "grafana-github-datasource", "uid": "github" },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 10 },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Workflow_Usage",
+          "owner": "$owner",
+          "repository": "$repo",
+          "options": { "workflow": "$workflow" }
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": "/^longest run duration \\(approx\\.\\)$/"
+        },
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "fixed", "fixedColor": "orange" } },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Average run",
+      "datasource": { "type": "grafana-github-datasource", "uid": "github" },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 10 },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Workflow_Usage",
+          "owner": "$owner",
+          "repository": "$repo",
+          "options": { "workflow": "$workflow" }
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": "/^average run duration \\(approx\\.\\)$/"
+        },
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "fixed", "fixedColor": "text" } },
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "P95 run",
+      "datasource": { "type": "grafana-github-datasource", "uid": "github" },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 10 },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Workflow_Usage",
+          "owner": "$owner",
+          "repository": "$repo",
+          "options": { "workflow": "$workflow" }
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": "/^p95 run duration \\(approx\\.\\)$/"
+        },
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "fixed", "fixedColor": "text" } },
+        "overrides": []
+      }
+    },
+    {
+      "id": 7,
+      "type": "histogram",
+      "title": "Duration distribution - $workflow",
+      "datasource": { "type": "grafana-github-datasource", "uid": "github" },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 14 },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Workflow_Runs",
+          "owner": "$owner",
+          "repository": "$repo",
+          "options": { "workflow": "$workflow", "branch": "$branch" }
+        }
+      ],
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": { "matcher": { "id": "byName", "options": "updated_at" } },
+              "operator": "-",
+              "right": { "matcher": { "id": "byName", "options": "run_started_at" } }
+            },
+            "alias": "duration",
+            "replaceFields": true
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "custom": { "fillOpacity": 70, "lineWidth": 1 } },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": false },
+        "combine": false
+      }
+    },
+    {
+      "id": 8,
+      "type": "table",
+      "title": "Slowest runs - $workflow",
+      "datasource": { "type": "grafana-github-datasource", "uid": "github" },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 14 },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Workflow_Runs",
+          "owner": "$owner",
+          "repository": "$repo",
+          "options": { "workflow": "$workflow", "branch": "$branch" }
+        }
+      ],
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": { "matcher": { "id": "byName", "options": "updated_at" } },
+              "operator": "-",
+              "right": { "matcher": { "id": "byName", "options": "run_started_at" } }
+            },
+            "alias": "duration",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "id": true,
+              "name": true,
+              "head_sha": true,
+              "created_at": true,
+              "updated_at": true,
+              "url": true,
+              "status": true,
+              "workflow_id": true
+            },
+            "indexByName": {
+              "run_number": 0,
+              "duration": 1,
+              "run_started_at": 2,
+              "head_branch": 3,
+              "event": 4,
+              "conclusion": 5,
+              "html_url": 6
+            },
+            "renameByName": {
+              "run_number": "#",
+              "duration": "Duration",
+              "run_started_at": "Started",
+              "head_branch": "Branch",
+              "event": "Event",
+              "conclusion": "Conclusion"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": { "fields": {}, "sort": [{ "field": "Duration", "desc": true }] }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "filterable": true }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "html_url" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Duration" },
+            "properties": [
+              { "id": "unit", "value": "ms" },
+              { "id": "custom.cellOptions", "value": { "type": "color-text" } },
+              { "id": "custom.width", "value": 110 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Started" },
+            "properties": [{ "id": "custom.width", "value": 170 }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "#" },
+            "properties": [
+              { "id": "custom.width", "value": 80 },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open run on GitHub",
+                    "url": "${__data.fields.html_url}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": { "showHeader": true }
+    }
+  ]
+}
