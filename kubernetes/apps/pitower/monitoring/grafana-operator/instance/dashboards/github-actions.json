@@ -32,8 +32,21 @@
       {
         "name": "repo",
         "label": "Repository",
-        "type": "textbox",
-        "query": "home-ops",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-github-datasource",
+          "uid": "github"
+        },
+        "query": {
+          "queryType": "Repositories",
+          "owner": "$owner",
+          "key": "name",
+          "field": "name"
+        },
+        "refresh": 1,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
         "current": {
           "text": "home-ops",
           "value": "home-ops"
