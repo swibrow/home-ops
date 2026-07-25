@@ -40,6 +40,17 @@ api:
     # Renovate concierge (weekday morning digest of bot PRs). owner/* expands
     # to every repo of that org or user (goat >= 0.13).
     RENOVATE_REPOS: "swibrow/*,cloudsnacks/*,propagit-dev/*"
+    # The ToolHive vMCP aggregate (ns ai) — one endpoint fronting kubernetes,
+    # argocd, grafana, victorialogs, github, terraform, aws, database-toolbox
+    # and home-assistant. The -direct service is the anonymous tier meant for
+    # in-cluster agents; ingress is granted to goat-api by the toolhive-config
+    # networkpolicy. Unset = the cluster plugin loads without its server, so
+    # personas still work, they just cannot reach the cluster.
+    CLUSTER_MCP_URL: http://vmcp-mcp-gateway-direct.ai:4483
+    # Repos an agent may clone on demand into /data/workspace/checkouts via
+    # mcp__sre__checkout_repo. This allowlist is the whole gate — anything not
+    # matched here is refused.
+    REPO_CHECKOUT_ALLOWLIST: "swibrow/*,DND-IT/*,tx-pts-dai/*,20minuten/*"
 # Dev-session pods (Claude Code in the goat namespace) — needs the
 # ghcr.io/swibrow/claude-code image and the egress NetworkPolicy below.
 devSessions:
