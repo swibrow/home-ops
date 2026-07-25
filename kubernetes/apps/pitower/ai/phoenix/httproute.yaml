@@ -1,0 +1,24 @@
+---
+# Port 6006 serves both the UI and the OTLP/HTTP trace ingest endpoint
+# (/v1/traces), which is what the Claude Code tracing hook posts to. Phoenix's
+# own auth guards it, so no SecurityPolicy on top.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/gateway.networking.k8s.io/httproute_v1.json
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: phoenix
+spec:
+  hostnames:
+    - phoenix.wibrow.dev
+  parentRefs:
+    - name: envoy-external
+      namespace: networking
+      sectionName: https
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: phoenix-svc
+          port: 6006

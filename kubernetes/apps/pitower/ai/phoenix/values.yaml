@@ -1,0 +1,74 @@
+# Routing is a Gateway API HTTPRoute (httproute.yaml), not the chart's Ingress.
+ingress:
+  enabled: false
+
+# Strategy 3 from the chart docs: external database. Both the bundled postgres
+# subchart and the SQLite PVC stay off; state lives in the CNPG `phoenix` cluster
+# in the `database` namespace.
+postgresql:
+  enabled: false
+persistence:
+  enabled: false
+
+database:
+  postgres:
+    host: phoenix-rw.database.svc.cluster.local
+    port: 5432
+    db: phoenix
+    user: phoenix
+  # Spans are rows in postgres here, not a columnar store — without a retention
+  # window the volume only ever grows.
+  defaultRetentionPolicyDays: 30
+
+server:
+  rootUrl: https://phoenix.wibrow.dev
+  enablePrometheus: true
+  # No outbound Google Fonts fetch from the UI.
+  allowExternalResources: false
+  telemetryEnabled: false
+
+service:
+  type: ClusterIP
+
+auth:
+  useSecureCookies: true
+  csrfTrustedOrigins:
+    - https://phoenix.wibrow.dev
+  # Every key is sourced from an ExternalSecret, so the chart must not mint its
+  # own: its template calls randAlphaNum on empty values, which would rotate
+  # PHOENIX_SECRET on every render and invalidate all sessions.
+  createSecret: false
+  secret:
+    - key: PHOENIX_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: phoenix-secret
+          key: PHOENIX_SECRET
+    - key: PHOENIX_ADMIN_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: phoenix-secret
+          key: PHOENIX_ADMIN_SECRET
+    - key: PHOENIX_DEFAULT_ADMIN_INITIAL_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: phoenix-secret
+          key: PHOENIX_DEFAULT_ADMIN_INITIAL_PASSWORD
+    - key: PHOENIX_POSTGRES_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: phoenix-db-secret
+          key: PHOENIX_POSTGRES_PASSWORD
+
+securityContext:
+  pod:
+    enabled: true
+  container:
+    enabled: true
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 512Mi
+  limits:
+    memory: 2Gi
