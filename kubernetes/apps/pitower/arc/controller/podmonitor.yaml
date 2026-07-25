@@ -1,0 +1,41 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/monitoring.coreos.com/podmonitor_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: arc-controller
+  namespace: arc
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: gha-rs-controller
+  podMetricsEndpoints:
+    - targetPort: 8080
+      path: /metrics
+      interval: 30s
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/monitoring.coreos.com/podmonitor_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: arc-listeners
+  namespace: arc
+spec:
+  # Listener pods are created by the controller, not the chart, so they are only
+  # reachable by label — there is no Service to hang a ServiceMonitor off.
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: runner-scale-set-listener
+  podMetricsEndpoints:
+    - targetPort: 8080
+      path: /metrics
+      interval: 30s
+      metricRelabelings:
+        # job_workflow_ref carries the branch (…/lint.yaml@refs/heads/<branch>), so
+        # across 27 repos with renovate/* branches it multiplies series without
+        # adding signal. job_workflow_name identifies the workflow on its own.
+        - action: labeldrop
+          regex: job_workflow_ref
+        # Always empty on a non-enterprise account.
+        - action: labeldrop
+          regex: enterprise

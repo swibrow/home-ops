@@ -8,3 +8,11 @@ resources:
 
 flags:
   watchSingleNamespace: arc-runners
+
+# Omitting this block makes the chart pass --metrics-addr=0 --listener-metrics-addr=0,
+# which disables metrics entirely. Scraped via the PodMonitors in podmonitor.yaml —
+# the chart ships no Service for either the controller or the listener pods.
+metrics:
+  controllerManagerAddr: ":8080"
+  listenerAddr: ":8080"
+  listenerEndpoint: "/metrics"
