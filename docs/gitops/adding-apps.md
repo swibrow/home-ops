@@ -135,9 +135,8 @@ Most applications in the cluster use the [bjw-s app-template](https://github.com
 
     | Gateway | Use Case |
     |:--------|:---------|
-    | `envoy-external` | Accessible via Cloudflare tunnel (`*.wibrow.dev` proxied) |
+    | `envoy-external` | Public access via the towonel tunnel (`external.wibrow.dev`) |
     | `envoy-internal` | Internal-only access (VPN/LAN via `internal.wibrow.dev`) |
-    | `envoy-direct` | Direct public IP access (non-proxied, via `ip.wibrow.dev`) |
 
 ### 4. Push and Verify
 

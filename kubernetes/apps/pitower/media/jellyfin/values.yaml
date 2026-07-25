@@ -47,12 +47,10 @@ service:
 
 route:
   app:
-    annotations:
-      external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     hostnames:
       - jellyfin.wibrow.dev
     parentRefs:
-      - name: envoy-direct
+      - name: envoy-external
         namespace: networking
         sectionName: https
 
