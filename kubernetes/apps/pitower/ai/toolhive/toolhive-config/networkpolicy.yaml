@@ -99,9 +99,10 @@ spec:
 # The anonymous vMCP (mcp-gateway-direct) has no auth of its own, so restrict its
 # ingress to the only legitimate callers: the Envoy proxy pods (which terminate the
 # api-key external route and the no-auth internal route — auth/exposure is decided
-# there) and the in-cluster Hermes agent. Other in-cluster pods must use the OAuth
-# vMCP at mcp.wibrow.dev. vMCP listens on 4483. The OAuth vMCP (mcp-gateway) is left
-# unselected (open) because it enforces OAuth itself.
+# there) and the in-cluster agents that cannot run a browser OAuth flow (Hermes,
+# GOAT). Other in-cluster pods must use the OAuth vMCP at mcp.wibrow.dev. vMCP
+# listens on 4483. The OAuth vMCP (mcp-gateway) is left unselected (open) because it
+# enforces OAuth itself.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -126,6 +127,16 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: hermes
+        # GOAT's agent runtime (ns goat) — the api service runs every persona,
+        # which reach the whole mcp-tools group through this aggregate
+        # (CLUSTER_MCP_URL in the goat values). goat-hooks is not selected: it
+        # only receives webhooks and runs no agent.
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: goat
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: goat-api
       ports:
         - protocol: TCP
           port: 4483
