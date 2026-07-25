@@ -450,7 +450,6 @@
             "matcher": { "id": "byName", "options": "Duration" },
             "properties": [
               { "id": "unit", "value": "ms" },
-              { "id": "custom.cellOptions", "value": { "type": "color-text" } },
               { "id": "custom.width", "value": 110 }
             ]
           },
