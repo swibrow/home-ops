@@ -178,8 +178,6 @@ notifications:
   deploymentAnnotations:
     reloader.stakater.com/auto: "true"
   notifiers:
-    service.slack: |
-      token: $argocd-secret-custom:slack-token
     service.github: |
       appID: $argocd-secret-custom:githubAppID
       installationID: $argocd-secret-custom:githubAppInstallationID

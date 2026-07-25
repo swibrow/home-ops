@@ -1,0 +1,42 @@
+---
+# Replaces the hand-applied argocd-repo-creds-github-swibrow from
+# secrets.sops.yaml. Supplies GitHub App auth for github.com/swibrow repos, and
+# is the privateKey source for the argocd-ghcr GithubAccessToken generator in
+# repo-creds-ghcr.yaml.
+#
+# target.template.metadata is mandatory here for two reasons: the
+# argocd.argoproj.io/secret-type label is what makes ArgoCD treat this as
+# repo-creds at all, and pinning metadata stops ESO copying its own
+# argocd.argoproj.io/tracking-id onto the Secret (permanent OutOfSync).
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/external-secrets.io/externalsecret_v1.json
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: argocd-repo-creds-github-swibrow
+  namespace: argocd
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: infisical
+  target:
+    name: argocd-repo-creds-github-swibrow
+    creationPolicy: Owner
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/part-of: argocd
+          argocd.argoproj.io/secret-type: repo-creds
+      data:
+        type: git
+        url: https://github.com/swibrow
+        githubAppID: "1320850"
+        githubAppInstallationID: "68309201"
+        githubAppPrivateKey: "{{ .privatekey }}"
+  data:
+    - secretKey: privatekey
+      remoteRef:
+        key: /argocd/privatekey
+        conversionStrategy: Default
+        decodingStrategy: None
+        metadataPolicy: None
