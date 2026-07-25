@@ -8,7 +8,7 @@ resources:
   - clickhouse-configmap.yaml
 components:
   - ../../../../components/cnpg-db
-  - ../../../../components/volsync
+  - ../../../../components/pvc
   - ../../../../components/kopiur
 configMapGenerator:
   - name: cnpg-db-config
@@ -16,15 +16,13 @@ configMapGenerator:
       - APP_NAME=rybbit
       - SECRET_NAME=rybbit-db-secret
       - CNPG_SECRET_KEY=rybbit-app
-  - name: volsync-config
+  - name: pvc-config
     options:
       disableNameSuffixHash: true
     literals:
-      - APP_NAME=rybbit-clickhouse
+      - APP_NAME=rybbit-pvc
       - CLAIM_NAME=rybbit-clickhouse
-      - SECRET_NAME=rybbit-clickhouse-volsync
       - STORAGE_SIZE=10Gi
-      - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/analytics/rybbit-clickhouse
   - name: kopiur-config
     options:
       disableNameSuffixHash: true

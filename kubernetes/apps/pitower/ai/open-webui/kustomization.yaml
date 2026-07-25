@@ -6,7 +6,7 @@ namespace: ai
 resources:
   - ./externalsecret.yaml
 components:
-  - ../../../../components/volsync
+  - ../../../../components/pvc
   - ../../../../components/kopiur
   - ../../../../components/cnpg-db
 configMapGenerator:
@@ -15,15 +15,13 @@ configMapGenerator:
       - APP_NAME=open-webui
       - SECRET_NAME=open-webui-db-secret
       - CNPG_SECRET_KEY=open-webui-app
-  - name: volsync-config
+  - name: pvc-config
     options:
       disableNameSuffixHash: true
     literals:
-      - APP_NAME=open-webui
+      - APP_NAME=open-webui-pvc
       - CLAIM_NAME=open-webui-data
-      - SECRET_NAME=open-webui-volsync
       - STORAGE_SIZE=10Gi
-      - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/ai/open-webui
   - name: kopiur-config
     options:
       disableNameSuffixHash: true

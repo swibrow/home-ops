@@ -6,7 +6,7 @@ namespace: ai
 resources:
   - externalsecret.yaml
 components:
-  - ../../../../components/volsync
+  - ../../../../components/pvc
   - ../../../../components/kopiur
 configMapGenerator:
   - name: hermes-config
@@ -20,15 +20,13 @@ configMapGenerator:
     files:
       - __init__.py=plugin-memini/__init__.py
       - plugin.yaml=plugin-memini/plugin.yaml
-  - name: volsync-config
+  - name: pvc-config
     options:
       disableNameSuffixHash: true
     literals:
-      - APP_NAME=hermes
+      - APP_NAME=hermes-pvc
       - CLAIM_NAME=hermes
-      - SECRET_NAME=hermes-volsync
       - STORAGE_SIZE=5Gi
-      - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/ai/hermes
   - name: kopiur-config
     options:
       disableNameSuffixHash: true

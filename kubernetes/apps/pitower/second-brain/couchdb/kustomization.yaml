@@ -5,18 +5,16 @@ namespace: second-brain
 resources:
   - externalsecret.yaml
 components:
-  - ../../../../components/volsync
+  - ../../../../components/pvc
   - ../../../../components/kopiur
 configMapGenerator:
-  - name: volsync-config
+  - name: pvc-config
     options:
       disableNameSuffixHash: true
     literals:
-      - APP_NAME=couchdb-backup
+      - APP_NAME=couchdb-pvc
       - CLAIM_NAME=couchdb-data
-      - SECRET_NAME=couchdb-volsync
       - STORAGE_SIZE=2Gi
-      - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/second-brain/couchdb
   - name: kopiur-config
     options:
       disableNameSuffixHash: true

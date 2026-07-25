@@ -6,18 +6,16 @@ namespace: media
 resources:
   - pvc.yaml
 components:
-  - ../../../../components/volsync
+  - ../../../../components/pvc
   - ../../../../components/kopiur
 configMapGenerator:
-  - name: volsync-config
+  - name: pvc-config
     options:
       disableNameSuffixHash: true
     literals:
-      - APP_NAME=sabnzbd
+      - APP_NAME=sabnzbd-pvc
       - CLAIM_NAME=sabnzbd-config
-      - SECRET_NAME=sabnzbd-volsync
       - STORAGE_SIZE=1Gi
-      - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/media/sabnzbd
   - name: kopiur-config
     options:
       disableNameSuffixHash: true

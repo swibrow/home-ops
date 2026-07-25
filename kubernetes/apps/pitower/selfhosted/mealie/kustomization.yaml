@@ -6,18 +6,16 @@ namespace: selfhosted
 resources:
   - externalsecret.yaml
 components:
-  - ../../../../components/volsync
+  - ../../../../components/pvc
   - ../../../../components/kopiur
 configMapGenerator:
-  - name: volsync-config
+  - name: pvc-config
     options:
       disableNameSuffixHash: true
     literals:
-      - APP_NAME=mealie
+      - APP_NAME=mealie-pvc
       - CLAIM_NAME=mealie-data
-      - SECRET_NAME=mealie-volsync
       - STORAGE_SIZE=1Gi
-      - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/selfhosted/mealie
   - name: kopiur-config
     options:
       disableNameSuffixHash: true

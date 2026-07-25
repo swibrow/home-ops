@@ -1,0 +1,50 @@
+---
+# An app's primary data PVC. This used to be rendered by components/volsync,
+# which meant dropping volsync from an app would have pruned its live data
+# volume; the declaration lives here so backup tooling can come and go freely.
+#
+# Consumers add this component plus a pvc-config ConfigMap with three literals:
+#   APP_NAME     names the ConfigMap. Must be unique within the namespace and
+#                distinct from the volsync/kopiur config names, so use
+#                "<app>-pvc".
+#   CLAIM_NAME   the PVC name. Must keep matching the name the app already
+#                mounts, or ArgoCD prunes the old volume and Ceph deletes it.
+#   STORAGE_SIZE the requested size.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+resources:
+  - pvc.yaml
+replacements:
+  # Storage size (must be before name replacement)
+  - source:
+      kind: ConfigMap
+      name: pvc-config
+      fieldPath: data.STORAGE_SIZE
+    targets:
+      - select:
+          kind: PersistentVolumeClaim
+          name: app
+        fieldPaths:
+          - spec.resources.requests.storage
+  # PVC name (changes select identity)
+  - source:
+      kind: ConfigMap
+      name: pvc-config
+      fieldPath: data.CLAIM_NAME
+    targets:
+      - select:
+          kind: PersistentVolumeClaim
+          name: app
+        fieldPaths:
+          - metadata.name
+  # ConfigMap name (last - makes name unique per app to avoid namespace conflicts)
+  - source:
+      kind: ConfigMap
+      name: pvc-config
+      fieldPath: data.APP_NAME
+    targets:
+      - select:
+          kind: ConfigMap
+          name: pvc-config
+        fieldPaths:
+          - metadata.name

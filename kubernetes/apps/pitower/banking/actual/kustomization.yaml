@@ -4,18 +4,16 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: banking
 components:
-  - ../../../../components/volsync
+  - ../../../../components/pvc
   - ../../../../components/kopiur
 configMapGenerator:
-  - name: volsync-config
+  - name: pvc-config
     options:
       disableNameSuffixHash: true
     literals:
-      - APP_NAME=actual
+      - APP_NAME=actual-pvc
       - CLAIM_NAME=actual-data
-      - SECRET_NAME=actual-volsync
       - STORAGE_SIZE=5Gi
-      - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/banking/actual
   - name: kopiur-config
     options:
       disableNameSuffixHash: true

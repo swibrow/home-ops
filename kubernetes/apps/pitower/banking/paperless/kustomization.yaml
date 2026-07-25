@@ -6,7 +6,7 @@ namespace: banking
 resources:
   - ./externalsecret.yaml
 components:
-  - ../../../../components/volsync
+  - ../../../../components/pvc
   - ../../../../components/kopiur
   - ../../../../components/cnpg-db
 configMapGenerator:
@@ -15,15 +15,13 @@ configMapGenerator:
       - APP_NAME=paperless
       - SECRET_NAME=paperless-db-secrets
       - CNPG_SECRET_KEY=paperless-app
-  - name: volsync-config
+  - name: pvc-config
     options:
       disableNameSuffixHash: true
     literals:
-      - APP_NAME=paperless
+      - APP_NAME=paperless-pvc
       - CLAIM_NAME=paperless-data
-      - SECRET_NAME=paperless-volsync
       - STORAGE_SIZE=5Gi
-      - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/banking/paperless
   - name: kopiur-config
     options:
       disableNameSuffixHash: true

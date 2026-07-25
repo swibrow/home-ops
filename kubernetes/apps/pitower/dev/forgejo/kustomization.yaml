@@ -9,7 +9,7 @@ resources:
   - dragonfly.yaml
 components:
   - ../../../../components/cnpg-db
-  - ../../../../components/volsync
+  - ../../../../components/pvc
   - ../../../../components/kopiur
 configMapGenerator:
   - name: cnpg-db-config
@@ -17,13 +17,13 @@ configMapGenerator:
       - APP_NAME=forgejo
       - SECRET_NAME=forgejo-db-secret
       - CNPG_SECRET_KEY=forgejo-app
-  - name: volsync-config
+  - name: pvc-config
+    options:
+      disableNameSuffixHash: true
     literals:
-      - APP_NAME=forgejo
+      - APP_NAME=forgejo-pvc
       - CLAIM_NAME=forgejo
-      - SECRET_NAME=forgejo-volsync
       - STORAGE_SIZE=10Gi
-      - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/dev/forgejo
   - name: kopiur-config
     options:
       disableNameSuffixHash: true

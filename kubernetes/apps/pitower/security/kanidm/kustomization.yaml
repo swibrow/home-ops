@@ -8,7 +8,7 @@ resources:
   - httproute.yaml
   - backendtlspolicy.yaml
 components:
-  - ../../../../components/volsync
+  - ../../../../components/pvc
   - ../../../../components/kopiur
 
 patches:
@@ -32,13 +32,13 @@ helmCharts:
     valuesFile: values.yaml
 
 configMapGenerator:
-  - name: volsync-config
+  - name: pvc-config
+    options:
+      disableNameSuffixHash: true
     literals:
-      - APP_NAME=kanidm
+      - APP_NAME=kanidm-pvc
       - CLAIM_NAME=kanidm-data
-      - SECRET_NAME=kanidm-volsync
       - STORAGE_SIZE=1Gi
-      - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/security/kanidm
   - name: kopiur-config
     options:
       disableNameSuffixHash: true
