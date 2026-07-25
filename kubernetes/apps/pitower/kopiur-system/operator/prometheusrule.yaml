@@ -1,0 +1,42 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/monitoring.coreos.com/prometheusrule_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: kopiur-absent
+spec:
+  groups:
+    - name: kopiur-absent.rules
+      rules:
+        # The chart's kopiur.rules all evaluate metrics the operator itself
+        # publishes, so they go silent rather than fire when it stops being
+        # scraped. kopiur is the only backup tier since volsync was removed.
+        - alert: KopiurControllerAbsent
+          annotations:
+            summary: >-
+              kopiur has disappeared from Prometheus target discovery; backup
+              failures are no longer being detected.
+          expr: |
+            absent(up{job="kopiur-controller-metrics"})
+          for: 15m
+          labels:
+            severity: critical
+        - alert: KopiurControllerDown
+          annotations:
+            summary: >-
+              kopiur is being scraped but is down; no snapshots are running.
+          expr: |
+            up{job="kopiur-controller-metrics"} == 0
+          for: 15m
+          labels:
+            severity: critical
+        - alert: KopiurPolicyMetricsAbsent
+          annotations:
+            summary: >-
+              kopiur is up but publishes no SnapshotPolicy metrics, so every
+              per-policy backup alert is silently inert.
+          expr: |
+            absent(kopiur_snapshotpolicy_last_backup_success)
+          for: 30m
+          labels:
+            severity: critical
