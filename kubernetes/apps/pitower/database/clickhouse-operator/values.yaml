@@ -1,0 +1,37 @@
+# Cluster-wide Altinity operator: it reconciles ClickHouseInstallation CRs in
+# every namespace, not just `database`. An empty watchNamespaces would scope it
+# to its own namespace only.
+watchNamespaces:
+  - ".*"
+
+fullnameOverride: clickhouse-operator
+
+# CRDs come from the chart's crds/ dir via includeCRDs, so the hook Job (which
+# pulls bitnami/kubectl:latest, no longer published) is not needed.
+crdHook:
+  enabled: false
+
+# The credentials the operator uses to reach the ClickHouse servers it manages,
+# and that it provisions into each installation. Supplied by ExternalSecret
+# under the name the operator reads from `clickhouse.access.secret.name`.
+secret:
+  create: false
+
+serviceMonitor:
+  enabled: true
+
+operator:
+  resources:
+    requests:
+      cpu: 20m
+      memory: 128Mi
+    limits:
+      memory: 512Mi
+
+metrics:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      memory: 256Mi
