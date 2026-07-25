@@ -41,6 +41,14 @@ spec:
                   - key: kubernetes.io/hostname
                     operator: NotIn
                     values: ["worker-01"]
+      # Sunshine's virtual input devices are created after the compositor has
+      # already enumerated, so Hyprland only picks them up via hotplug — and
+      # libinput learns about hotplug over a udev netlink socket, which is
+      # namespaced. In a private netns the events never arrive and the client
+      # gets a frozen mouse. Verified: hostNetwork alone isn't enough either,
+      # the /dev/input mount below is the other half.
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
       securityContext:
         fsGroup: 1001
       # The home PVC mounts over /home/dev and hides the desktop config baked
@@ -63,9 +71,6 @@ spec:
                 # finds a real 1920x1080 output and Sunshine picks that over the
                 # headless one — Moonlight would stream the node's console view.
                 echo 'monitor = HDMI-A-1, disable' >> /seed/.config/hypr/hyprland.conf
-                # Sunshine is launched from the container entrypoint instead, so
-                # that its input devices exist before the compositor enumerates.
-                sed -i '/exec-once *= *\/usr\/bin\/sunshine/d' /seed/.config/hypr/hyprland.conf
                 # Hyprland prefers hyprland.lua over hyprland.conf, and the .lua
                 # on the PVC is the default it wrote while it was failing to
                 # start. Keep it, but stop it shadowing the real config.
@@ -110,25 +115,9 @@ spec:
                 if [[ -S /run/seatd.sock ]]; then break; fi
                 sleep 0.1
               done
-              # Sunshine must create its virtual input devices BEFORE the
-              # compositor starts. libinput only enumerates at startup and
-              # hotplug uevents never cross into this network namespace, so
-              # devices that appear later are invisible to Hyprland — the client
-              # connects to a frozen mouse and a dead keyboard. Hence also
-              # --socket below: sunshine resolves WAYLAND_DISPLAY when a stream
-              # starts, so the name has to be fixed rather than whatever
-              # Hyprland happens to pick.
-              setpriv --reuid=1001 --regid=1001 --init-groups \
-                env HOME=/home/dev XDG_RUNTIME_DIR=/run/user/1001 \
-                    WAYLAND_DISPLAY=wayland-1 \
-                sunshine &
-              for _ in $(seq 100); do
-                if grep -q "Mouse passthrough" /proc/bus/input/devices; then break; fi
-                sleep 0.1
-              done
               exec setpriv --reuid=1001 --regid=1001 --init-groups \
                 env HOME=/home/dev XDG_RUNTIME_DIR=/run/user/1001 \
-                /usr/local/bin/start-desktop --socket wayland-1
+                /usr/local/bin/start-desktop
           env:
             - name: TZ
               value: Europe/Zurich
@@ -162,6 +151,8 @@ spec:
             - name: udev
               mountPath: /run/udev
               readOnly: true
+            - name: devinput
+              mountPath: /dev/input
       volumes:
         # Hyprland cannot start without a render node even though it is headless:
         # aquamarine only builds a GBM allocator from a backend reporting
@@ -188,6 +179,14 @@ spec:
         - name: udev
           hostPath:
             path: /run/udev
+            type: Directory
+        # runc populates the container's /dev once at creation, so device nodes
+        # that appear later — exactly what Sunshine's uinput devices are — never
+        # show up. Without this libinput gets the hotplug event and then fails on
+        # "Could not canonicalize path /dev/input/event10: No such file".
+        - name: devinput
+          hostPath:
+            path: /dev/input
             type: Directory
 ---
 apiVersion: v1
