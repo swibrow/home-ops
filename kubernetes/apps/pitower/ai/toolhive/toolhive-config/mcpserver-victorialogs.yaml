@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpserver_v1beta1.json
+# VictoriaLogs MCP backend — read-only LogsQL against the 14d log store
+# (monitoring/victoria-logs), plus embedded VictoriaLogs docs search (no egress
+# needed; the docs ship in the binary). Unauthenticated, in-cluster only, ingress
+# locked to the two vMCP pods (networkpolicy.yaml); auth is enforced at the vMCP edge.
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServer
+metadata:
+  name: victorialogs
+spec:
+  image: ghcr.io/victoriametrics/mcp-victorialogs:v1.9.0
+  transport: streamable-http
+  proxyPort: 8080
+  mcpPort: 8081
+  groupRef:
+    name: mcp-tools
+  env:
+    - name: VL_INSTANCE_ENTRYPOINT
+      value: http://victoria-logs.monitoring.svc.cluster.local:9428
+    # Image default is stdio; MCP_SERVER_MODE=http serves the /mcp endpoint.
+    - name: MCP_SERVER_MODE
+      value: http
+    # Default is localhost:8081, which the proxy can't reach across the pod
+    # boundary — the bare colon form binds all interfaces.
+    - name: MCP_LISTEN_ADDR
+      value: ":8081"
+    - name: MCP_LOG_FORMAT
+      value: json
+  # krr: victorialogs/toolhive
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      memory: 256Mi

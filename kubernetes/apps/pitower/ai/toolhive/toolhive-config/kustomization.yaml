@@ -20,6 +20,7 @@ resources:
   - externalsecret.yaml
   - mcpserver-kubernetes.yaml
   - mcpserver-grafana.yaml
+  - mcpserver-victorialogs.yaml
   - mcpserver-home-assistant.yaml
   - mcpserver-argocd.yaml
   - mcpserver-aws-api.yaml
