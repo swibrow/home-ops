@@ -140,6 +140,9 @@ spec:
               mountPath: /dev/dri
             - name: uinput
               mountPath: /dev/uinput
+            - name: udev
+              mountPath: /run/udev
+              readOnly: true
       volumes:
         # Hyprland cannot start without a render node even though it is headless:
         # aquamarine only builds a GBM allocator from a backend reporting
@@ -158,6 +161,15 @@ spec:
           hostPath:
             path: /dev/uinput
             type: CharDevice
+        # libinput classifies input devices from their udev properties, and a
+        # container has no udev database — so Hyprland logged "skip unconfigured
+        # input device" for every one and Sunshine's virtual mouse/keyboard did
+        # nothing. The devices themselves are created on the host via /dev/uinput,
+        # so the host's database is the one that describes them.
+        - name: udev
+          hostPath:
+            path: /run/udev
+            type: Directory
 ---
 apiVersion: v1
 kind: Service
