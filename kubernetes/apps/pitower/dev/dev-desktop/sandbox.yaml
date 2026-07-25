@@ -42,12 +42,69 @@ spec:
                     operator: NotIn
                     values: ["worker-01"]
       securityContext:
-        runAsUser: 1001
-        runAsGroup: 1001
         fsGroup: 1001
+      # The home PVC mounts over /home/dev and hides the desktop config baked
+      # into the image, so Hyprland generated a stock default instead — no
+      # `exec-once = sunshine`, hence a running compositor nobody can connect to.
+      # This seeds the PVC once; it mounts the PVC elsewhere, so unlike the app
+      # container it can still see the image's own /home/dev.
+      initContainers:
+        - name: seed-home
+          image: ghcr.io/cloudsnacks/dev-desktop:1.0.0
+          securityContext:
+            runAsUser: 1001
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -euo pipefail
+              if [[ ! -e /seed/.config/hypr/hyprland.conf ]]; then
+                cp -rn /home/dev/. /seed/
+                # The AMD nodes have a JetKVM wired to HDMI, so the DRM backend
+                # finds a real 1920x1080 output and Sunshine picks that over the
+                # headless one — Moonlight would stream the node's console view.
+                echo 'monitor = HDMI-A-1, disable' >> /seed/.config/hypr/hyprland.conf
+                # Hyprland prefers hyprland.lua over hyprland.conf, and the .lua
+                # on the PVC is the default it wrote while it was failing to
+                # start. Keep it, but stop it shadowing the real config.
+                if [[ -e /seed/.config/hypr/hyprland.lua ]]; then
+                  mv /seed/.config/hypr/hyprland.lua /seed/.config/hypr/hyprland.lua.generated
+                fi
+              fi
+          volumeMounts:
+            - name: home
+              mountPath: /seed
       containers:
         - name: dev-desktop
           image: ghcr.io/cloudsnacks/dev-desktop:1.0.0
+          securityContext:
+            # Kubernetes has no per-device cgroup API. Without privileged the
+            # cgroup v2 eBPF device filter denies open() on /dev/dri/* and
+            # /dev/uinput even for root and even at mode 0666, so a hostPath
+            # device mount alone is never enough. The desktop itself still runs
+            # as uid 1001 — only seatd needs the privileges (see command below).
+            privileged: true
+            runAsUser: 0
+          # The image entrypoint execs Hyprland directly, but aquamarine builds
+          # its GBM allocator only from a backend reporting drmFD() >= 0, which
+          # in practice means the DRM backend, which needs a libseat session.
+          # No seatd (or logind) means no session, no DRM backend, no allocator,
+          # and Hyprland aborts with "CBackend::create() failed!".
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -euo pipefail
+              install -d -o dev -g dev -m 700 /run/user/1001
+              # A container has no VT; without SEATD_VTBOUND=0 seatd waits on
+              # /dev/tty0 forever and never activates the session, so every
+              # device open comes back "client is not active".
+              SEATD_VTBOUND=0 seatd -g seat &
+              for _ in $(seq 50); do
+                if [[ -S /run/seatd.sock ]]; then break; fi
+                sleep 0.1
+              done
+              exec setpriv --reuid=1001 --regid=1001 --init-groups \
+                env HOME=/home/dev XDG_RUNTIME_DIR=/run/user/1001 \
+                /usr/local/bin/start-desktop
           env:
             - name: TZ
               value: Europe/Zurich
@@ -81,14 +138,17 @@ spec:
       volumes:
         # Hyprland cannot start without a render node even though it is headless:
         # aquamarine only builds a GBM allocator from a backend reporting
-        # drmFD() >= 0, and the headless backend returns -1. renderD128 is 0666
-        # on these nodes, so no supplementalGroups are needed.
+        # drmFD() >= 0, and the headless backend returns -1. card0 is needed too
+        # (not just renderD128) — the allocator comes from the DRM backend, and
+        # that enumerates KMS devices. File modes here are irrelevant; access is
+        # gated by the container's device cgroup (see privileged above).
         - name: dri
           hostPath:
             path: /dev/dri
             type: Directory
-        # Requires siderolabs/uinput in the node schematic; without it Moonlight
-        # gets video and audio but no mouse or keyboard.
+        # Requires siderolabs/uinput in the node schematic — and note that the
+        # schematic only takes effect after `topf upgrade`, not `topf apply`.
+        # Without it Moonlight gets video and audio but no mouse or keyboard.
         - name: uinput
           hostPath:
             path: /dev/uinput
