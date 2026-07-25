@@ -321,6 +321,15 @@ model_list:
       model: openrouter/google/gemini-3.6-flash
       api_key: os.environ/OPENROUTER_API_KEY
 
+  - model_name: claude-opus-5
+    litellm_params:
+      model: openrouter/anthropic/claude-opus-5
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: claude-opus-5-fast
+    litellm_params:
+      model: openrouter/anthropic/claude-opus-5-fast
+      api_key: os.environ/OPENROUTER_API_KEY
+
   # --- OpenRouter (catch-all passthrough) ---
   # Reach any other OpenRouter model by full id, e.g. openrouter/google/gemma-4-31b-it
   - model_name: "*"
