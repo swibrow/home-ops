@@ -100,3 +100,47 @@ spec:
     url: http://alertmanager.monitoring.svc.cluster.local:9093
     jsonData:
       implementation: prometheus
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/grafana.integreatly.org/grafanadatasource_v1beta1.json
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  name: github
+  namespace: monitoring
+spec:
+  plugins:
+    - name: grafana-github-datasource
+      version: latest
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  # The operator substitutes ${<secret key>} inside the string at each
+  # targetPath. appId/installationId stay strings — the plugin strips the quotes
+  # before ParseInt, and the operator can only rewrite string nodes.
+  valuesFrom:
+    - targetPath: jsonData.appId
+      valueFrom:
+        secretKeyRef:
+          name: grafana-github-app
+          key: app_id
+    - targetPath: jsonData.installationId
+      valueFrom:
+        secretKeyRef:
+          name: grafana-github-app
+          key: installation_id
+    - targetPath: secureJsonData.privateKey
+      valueFrom:
+        secretKeyRef:
+          name: grafana-github-app
+          key: private_key
+  datasource:
+    name: GitHub
+    uid: github
+    type: grafana-github-datasource
+    access: proxy
+    jsonData:
+      selectedAuthType: github-app
+      appId: "${app_id}"
+      installationId: "${installation_id}"
+    secureJsonData:
+      privateKey: "${private_key}"

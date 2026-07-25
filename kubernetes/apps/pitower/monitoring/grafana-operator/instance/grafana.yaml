@@ -51,7 +51,10 @@ spec:
             - name: grafana
               env:
                 - name: GF_INSTALL_PLUGINS
-                  value: grafana-clock-panel,victoriametrics-logs-datasource
+                  # This override wins over the operator's own GF_INSTALL_PLUGINS
+                  # (built from GrafanaDatasource .spec.plugins), so every plugin
+                  # declared on a datasource must be repeated here.
+                  value: grafana-clock-panel,victoriametrics-logs-datasource,grafana-github-datasource
                 - name: GF_SECURITY_ADMIN_USER
                   valueFrom:
                     secretKeyRef:

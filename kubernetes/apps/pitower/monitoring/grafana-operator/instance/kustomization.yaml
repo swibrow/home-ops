@@ -48,3 +48,8 @@ configMapGenerator:
       - dashboards/tempo.json
     options:
       disableNameSuffixHash: true
+  - name: grafana-dashboards-ci
+    files:
+      - dashboards/github-actions.json
+    options:
+      disableNameSuffixHash: true
