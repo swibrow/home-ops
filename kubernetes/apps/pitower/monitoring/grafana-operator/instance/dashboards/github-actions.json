@@ -321,8 +321,7 @@
               "head_branch": "Branch",
               "event": "Event",
               "status": "Status",
-              "conclusion": "Conclusion",
-              "html_url": "Link"
+              "conclusion": "Conclusion"
             }
           }
         }
@@ -360,29 +359,28 @@
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "Link" },
+            "matcher": { "id": "byName", "options": "html_url" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "#" },
             "properties": [
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "auto"
-                }
-              },
-              {
-                "id": "custom.width",
-                "value": 90
-              },
+              { "id": "custom.width", "value": 80 },
               {
                 "id": "links",
                 "value": [
                   {
                     "title": "Open run on GitHub",
-                    "url": "${__value.text}",
+                    "url": "${__data.fields.html_url}",
                     "targetBlank": true
                   }
                 ]
               }
             ]
+          },
+          {
+            "matcher": { "id": "byRegexp", "options": "Started|Finished" },
+            "properties": [{ "id": "custom.width", "value": 170 }]
           }
         ]
       },
@@ -483,8 +481,7 @@
               "path": "Path",
               "state": "State",
               "updated_at": "Updated",
-              "id": "ID",
-              "html_url": "Link"
+              "id": "ID"
             }
           }
         }
@@ -503,18 +500,18 @@
             "properties": [{ "id": "unit", "value": "none" }]
           },
           {
-            "matcher": { "id": "byName", "options": "Link" },
+            "matcher": { "id": "byName", "options": "html_url" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Name" },
             "properties": [
-              {
-                "id": "custom.width",
-                "value": 90
-              },
               {
                 "id": "links",
                 "value": [
                   {
                     "title": "Open workflow on GitHub",
-                    "url": "${__value.text}",
+                    "url": "${__data.fields.html_url}",
                     "targetBlank": true
                   }
                 ]
