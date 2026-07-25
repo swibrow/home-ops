@@ -162,8 +162,13 @@ metadata:
     lbipam.cilium.io/ips: "10.20.10.231"
 spec:
   type: LoadBalancer
-  # Preserve client IPs so Sunshine pairs against the real client address.
-  externalTrafficPolicy: Local
+  # Must stay Cluster: Cilium L2 announcements are explicitly incompatible with
+  # externalTrafficPolicy: Local. The announcing node is elected by lease,
+  # first-come-first-serve across all nodes, with no regard for where the pod
+  # runs — it landed on worker-07 while the desktop runs on worker-03, so every
+  # ARP-routed client got a node that drops the traffic. Costs client IP
+  # preservation; Sunshine sees a node address instead.
+  externalTrafficPolicy: Cluster
   selector:
     app.kubernetes.io/name: dev-desktop
   ports:
