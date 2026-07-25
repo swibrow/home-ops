@@ -1,0 +1,18 @@
+machine:
+  # Virtual input devices for Sunshine (dev/dev-desktop). Without /dev/uinput a
+  # Moonlight client gets video and audio but cannot move the mouse or type.
+  #
+  # uinput is neither built into the stock Talos kernel nor shipped as a module
+  # (kernel/drivers/input/ is absent from /lib/modules), so loading it depends on
+  # siderolabs/uinput being in the schematic — see ../extensions/amd.yaml. That
+  # makes this a control-plane-only patch: worker-01/02/03 are the AMD nodes and
+  # the only ones whose schematic carries the extension.
+  kernel:
+    modules:
+      - name: uinput
+  udev:
+    rules:
+      # The desktop container runs rootless (uid 1001) and the host GIDs do not
+      # line up with the image's, so widen the mode rather than match a group.
+      # /dev/dri/renderD128 is already 0666 by default; uinput defaults to 0600.
+      - SUBSYSTEM=="misc", KERNEL=="uinput", MODE="0666"

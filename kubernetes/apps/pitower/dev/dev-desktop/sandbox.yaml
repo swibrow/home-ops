@@ -1,0 +1,117 @@
+---
+# Arch/Hyprland desktop streamed to Moonlight clients over Sunshine.
+# Suspend when unused with `operatingMode: Suspended` (the home PVC is retained).
+apiVersion: agents.x-k8s.io/v1beta1
+kind: Sandbox
+metadata:
+  name: dev-desktop
+spec:
+  operatingMode: Running
+  # Sunshine needs raw TCP/UDP, so the LoadBalancer Service below replaces the
+  # controller's auto headless Service.
+  service: false
+  shutdownPolicy: Retain
+  volumeClaimTemplates:
+    - metadata:
+        name: home
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: openebs-hostpath
+        resources:
+          requests:
+            storage: 100Gi
+  podTemplate:
+    metadata:
+      labels:
+        app.kubernetes.io/name: dev-desktop
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              # The AMD Renoir APUs are the only nodes with a usable render node
+              # and a VCN encoder. worker-07's only VGA device is QEMU virtual.
+              - matchExpressions:
+                  - key: feature.node.kubernetes.io/amd-gpu
+                    operator: In
+                    values: ["true"]
+                  # worker-01/02/03 are control-plane nodes that already run hot;
+                  # worker-01 has the least headroom (~12.8Gi allocatable vs ~28Gi),
+                  # and starving it previously jammed the apiserver.
+                  - key: kubernetes.io/hostname
+                    operator: NotIn
+                    values: ["worker-01"]
+      securityContext:
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+      containers:
+        - name: dev-desktop
+          image: ghcr.io/cloudsnacks/dev-desktop:1.0.0
+          env:
+            - name: TZ
+              value: Europe/Zurich
+            - name: DOTFILES_REPO
+              value: https://github.com/swibrow/dotfiles.git
+          ports:
+            - { name: https, containerPort: 47984, protocol: TCP }
+            - { name: http, containerPort: 47989, protocol: TCP }
+            - { name: web, containerPort: 47990, protocol: TCP }
+            - { name: rtsp, containerPort: 48010, protocol: TCP }
+            - { name: video, containerPort: 47998, protocol: UDP }
+            - { name: control, containerPort: 47999, protocol: UDP }
+            - { name: audio, containerPort: 48000, protocol: UDP }
+            - { name: mic, containerPort: 48002, protocol: UDP }
+          resources:
+            requests:
+              cpu: 500m
+              memory: 2Gi
+            limits:
+              # Capped well under node capacity so a busy desktop cannot starve
+              # the control-plane services sharing this node.
+              cpu: "6"
+              memory: 10Gi
+          volumeMounts:
+            - name: home
+              mountPath: /home/dev
+            - name: dri
+              mountPath: /dev/dri
+            - name: uinput
+              mountPath: /dev/uinput
+      volumes:
+        # Hyprland cannot start without a render node even though it is headless:
+        # aquamarine only builds a GBM allocator from a backend reporting
+        # drmFD() >= 0, and the headless backend returns -1. renderD128 is 0666
+        # on these nodes, so no supplementalGroups are needed.
+        - name: dri
+          hostPath:
+            path: /dev/dri
+            type: Directory
+        # Requires siderolabs/uinput in the node schematic; without it Moonlight
+        # gets video and audio but no mouse or keyboard.
+        - name: uinput
+          hostPath:
+            path: /dev/uinput
+            type: CharDevice
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dev-desktop
+  annotations:
+    lbipam.cilium.io/ips: "10.20.10.231"
+spec:
+  type: LoadBalancer
+  # Preserve client IPs so Sunshine pairs against the real client address.
+  externalTrafficPolicy: Local
+  selector:
+    app.kubernetes.io/name: dev-desktop
+  ports:
+    - { name: https, port: 47984, targetPort: https, protocol: TCP }
+    - { name: http, port: 47989, targetPort: http, protocol: TCP }
+    - { name: web, port: 47990, targetPort: web, protocol: TCP }
+    - { name: rtsp, port: 48010, targetPort: rtsp, protocol: TCP }
+    - { name: video, port: 47998, targetPort: video, protocol: UDP }
+    - { name: control, port: 47999, targetPort: control, protocol: UDP }
+    - { name: audio, port: 48000, targetPort: audio, protocol: UDP }
+    - { name: mic, port: 48002, targetPort: mic, protocol: UDP }
