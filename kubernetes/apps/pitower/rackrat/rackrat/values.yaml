@@ -11,20 +11,18 @@
 defaultPodOptions:
   imagePullSecrets:
     - name: ghcr-pull-secret
-
 controllers:
   api:
     strategy: RollingUpdate
     annotations:
       reloader.stakater.com/auto: "true"
-
     initContainers:
       # Ordering matters: `reference sync` loads cpus.yaml/chassis.yaml into
       # hardware_reference, so the tables have to exist first.
       migrate:
         image:
           repository: ghcr.io/swibrow/rackrat
-          tag: v0.1.0
+          tag: v0.1.1
         command: ["sh", "-c"]
         args: ["alembic upgrade head && rackrat reference sync"]
         env: &env
@@ -47,12 +45,11 @@ controllers:
         envFrom: &envFrom
           - secretRef:
               name: rackrat-secret
-
     containers:
       app:
         image:
           repository: ghcr.io/swibrow/rackrat
-          tag: v0.1.0
+          tag: v0.1.1
         # The image entrypoint is the `rackrat` CLI; the API is a different
         # surface, so both command and args are replaced.
         command: ["uvicorn"]
@@ -89,7 +86,6 @@ controllers:
             memory: 256Mi
           limits:
             memory: 512Mi
-
   scrape:
     type: cronjob
     cronjob:
@@ -104,12 +100,11 @@ controllers:
       activeDeadlineSeconds: 900
       successfulJobsHistory: 3
       failedJobsHistory: 3
-
     containers:
       app:
         image:
           repository: ghcr.io/swibrow/rackrat
-          tag: v0.1.0
+          tag: v0.1.1
         args: ["scrape", "ricardo:poweredge", "--alert"]
         env: *env
         envFrom: *envFrom
@@ -122,14 +117,12 @@ controllers:
             # and the JSON-LD it parses only exists after the page runs.
             cpu: "2"
             memory: 2Gi
-
 service:
   app:
     controller: api
     ports:
       http:
         port: 8000
-
 route:
   app:
     enabled: true
