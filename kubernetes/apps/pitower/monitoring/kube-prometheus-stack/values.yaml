@@ -264,6 +264,14 @@ prometheus-node-exporter:
       operator: Equal
       value: "true"
       effect: NoExecute
+  prometheus:
+    monitor:
+      # The operator-added `pod` label makes every DaemonSet restart mint a new
+      # series. predict_linear() rules (CephNodeDiskspaceWarning) then regress
+      # over a minutes-long stub and extrapolate a transient into a cliff.
+      metricRelabelings:
+        - regex: pod
+          action: labeldrop
 grafana:
   enabled: false
   forceDeployDashboards: true
