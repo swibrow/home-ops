@@ -47,6 +47,14 @@ resource "proxmox_virtual_environment_vm" "talos_worker" {
     interface    = "scsi0"
     size         = var.talos_worker.disk
     iothread     = true
+    # rpool is 8x 600GB 10K SAS spinning disks (4 mirror vdevs, no SLOG), so with
+    # the default cache=none every guest sync write waits on a seek - measured
+    # 14.65ms avg write latency here vs 0.4-0.6ms on the NVMe control planes, at
+    # the same ~350 write IOPS. writeback lets the host absorb writes in its ARC
+    # (128GiB, on 755GiB of RAM) instead. The power-loss window this opens is
+    # covered by the UPS + dual PSU; without those this would risk the rook-ceph
+    # mon's rocksdb, which is resident on this node.
+    cache = "writeback"
   }
 
   network_device {
