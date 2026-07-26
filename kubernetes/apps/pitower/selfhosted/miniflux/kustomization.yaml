@@ -13,6 +13,7 @@ configMapGenerator:
       - APP_NAME=miniflux
       - SECRET_NAME=miniflux-db-secret
       - CNPG_SECRET_KEY=miniflux-app
+      - DB_SCHEME=postgresql
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm

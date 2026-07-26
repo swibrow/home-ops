@@ -16,6 +16,7 @@ configMapGenerator:
       - APP_NAME=memini
       - SECRET_NAME=memini-db-secret
       - CNPG_SECRET_KEY=memini-app
+      - DB_SCHEME=postgresql
   # Vendored from the chart's bundled dashboard with the datasource variable
   # fixed (shipped current.value was the datasource name "Prometheus", but
   # panels bind uid ${DS_PROMETHEUS} and the real uid is "prometheus" -> no

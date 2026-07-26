@@ -17,6 +17,7 @@ configMapGenerator:
       - APP_NAME=forgejo
       - SECRET_NAME=forgejo-db-secret
       - CNPG_SECRET_KEY=forgejo-app
+      - DB_SCHEME=postgresql
   - name: pvc-config
     options:
       disableNameSuffixHash: true

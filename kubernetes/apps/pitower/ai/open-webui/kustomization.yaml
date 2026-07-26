@@ -15,6 +15,7 @@ configMapGenerator:
       - APP_NAME=open-webui
       - SECRET_NAME=open-webui-db-secret
       - CNPG_SECRET_KEY=open-webui-app
+      - DB_SCHEME=postgresql
   - name: pvc-config
     options:
       disableNameSuffixHash: true

@@ -13,6 +13,7 @@ configMapGenerator:
       - APP_NAME=temporal
       - SECRET_NAME=temporal-db-secret
       - CNPG_SECRET_KEY=temporal-superuser
+      - DB_SCHEME=postgresql
 helmCharts:
   - name: temporal
     repo: https://go.temporal.io/helm-charts

@@ -11,6 +11,7 @@ configMapGenerator:
       - APP_NAME=house-hunter
       - SECRET_NAME=house-hunter-db-secret
       - CNPG_SECRET_KEY=house-hunter-app
+      - DB_SCHEME=postgresql
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm

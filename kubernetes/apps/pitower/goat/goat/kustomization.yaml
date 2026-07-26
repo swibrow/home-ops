@@ -9,6 +9,7 @@ configMapGenerator:
       - APP_NAME=goat
       - SECRET_NAME=goat-db-secret
       - CNPG_SECRET_KEY=goat-app
+      - DB_SCHEME=postgresql
 helmCharts:
   - name: goat
     repo: oci://ghcr.io/swibrow/charts

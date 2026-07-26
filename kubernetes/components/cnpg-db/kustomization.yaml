@@ -26,6 +26,23 @@ replacements:
           name: app-db
         fieldPaths:
           - spec.target.name
+  # DB_URL scheme, e.g. "postgresql" or "postgresql+psycopg". Replaces the segment
+  # before "://" and leaves the Go template after it untouched. Required, not
+  # optional: kustomize hard-errors on a replacement whose source fieldPath is
+  # absent, so every consumer has to name its driver explicitly.
+  - source:
+      kind: ConfigMap
+      name: cnpg-db-config
+      fieldPath: data.DB_SCHEME
+    targets:
+      - select:
+          kind: ExternalSecret
+          name: app-db
+        fieldPaths:
+          - spec.target.template.data.DB_URL
+        options:
+          delimiter: "://"
+          index: 0
   # ExternalSecret name (last — changes select identity)
   - source:
       kind: ConfigMap

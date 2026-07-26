@@ -122,6 +122,12 @@ metadata:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
+  name: rackrat-runners
+  namespace: arc-runners
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
   name: resume-runners
   namespace: arc-runners
 ---

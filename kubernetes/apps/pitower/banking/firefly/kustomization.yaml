@@ -15,6 +15,7 @@ configMapGenerator:
       - APP_NAME=firefly
       - SECRET_NAME=firefly-db-secrets
       - CNPG_SECRET_KEY=firefly-app
+      - DB_SCHEME=postgresql
   - name: pvc-config
     options:
       disableNameSuffixHash: true

@@ -2,22 +2,24 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: dev
-components:
-  - ../../../../components/cnpg-db
+namespace: rackrat
 resources:
   - externalsecret.yaml
+components:
+  - ../../../../components/cnpg-db
 configMapGenerator:
   - name: cnpg-db-config
     literals:
-      - APP_NAME=propagit
-      - SECRET_NAME=propagit-db-secret
-      - CNPG_SECRET_KEY=propagit-app
-      - DB_SCHEME=postgresql
+      - APP_NAME=rackrat
+      - SECRET_NAME=rackrat-db-secret
+      - CNPG_SECRET_KEY=rackrat-app
+      # rackrat drives SQLAlchemy, which resolves a bare `postgresql://` to the
+      # psycopg2 dialect. Only psycopg 3 is installed, so the URL has to name it.
+      - DB_SCHEME=postgresql+psycopg
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm
     version: 5.0.1
-    releaseName: propagit
-    namespace: dev
+    releaseName: rackrat
+    namespace: rackrat
     valuesFile: values.yaml
