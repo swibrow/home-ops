@@ -23,6 +23,11 @@ alertmanager:
     # Mounted at /etc/alertmanager/configmaps/alertmanager-templates/
     configMaps:
       - alertmanager-templates
+defaultRules:
+  disabled:
+    # Replaced by prometheusrule.yaml, which alerts per owning CronJob instead
+    # of per job run. The stock rule mints a new alert for every failed run.
+    KubeJobFailed: true
 kube-state-metrics:
   metricLabelsAllowlist:
     - "deployments=[*]"

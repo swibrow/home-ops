@@ -7,6 +7,7 @@ resources:
   - namespace.yaml
   - externalsecret.yaml
   - alertmanager-templates.yaml
+  - prometheusrule.yaml
 helmCharts:
   - name: kube-prometheus-stack
     repo: https://prometheus-community.github.io/helm-charts

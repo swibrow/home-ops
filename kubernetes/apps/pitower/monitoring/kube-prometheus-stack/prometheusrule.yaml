@@ -1,0 +1,50 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/monitoring.coreos.com/prometheusrule_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: kube-job-failed
+spec:
+  groups:
+    - name: kube-job-failed.rules
+      rules:
+        # Replaces the stock KubeJobFailed (disabled in values.yaml). That rule
+        # keys on job_name, so an hourly CronJob mints a brand new alert every
+        # run and Alertmanager notifies on each one. Collapsing onto the owning
+        # CronJob makes the alert identity match the problem: it fires once and
+        # stays firing across subsequent failed runs.
+        - alert: KubeCronJobFailing
+          annotations:
+            description: >-
+              CronJob {{ $labels.namespace }}/{{ $labels.owner_name }} has failed runs
+              on cluster {{ $labels.cluster }}. Covers every failed run of this CronJob;
+              clears once a run succeeds and the failed jobs are removed.
+            runbook_url: https://runbooks.prometheus-operator.dev/runbooks/kubernetes/kubejobfailed
+            summary: CronJob has failing runs.
+          expr: |
+            max by (cluster, namespace, owner_name) (
+              (kube_job_failed{job="kube-state-metrics"} > 0)
+                * on (cluster, namespace, job_name) group_left(owner_name)
+              kube_job_owner{job="kube-state-metrics", owner_kind="CronJob"}
+            )
+          for: 15m
+          labels:
+            severity: warning
+        # Jobs with no CronJob parent stay per-job: each one really is a
+        # separate problem. owner_kind!="CronJob" also matches the empty
+        # owner_kind that ownerless Jobs carry.
+        - alert: KubeJobFailed
+          annotations:
+            description: >-
+              Job {{ $labels.namespace }}/{{ $labels.job_name }} failed to complete.
+              Removing failed job after investigation should clear this alert on
+              cluster {{ $labels.cluster }}.
+            runbook_url: https://runbooks.prometheus-operator.dev/runbooks/kubernetes/kubejobfailed
+            summary: Job failed to complete.
+          expr: |
+            (kube_job_failed{job="kube-state-metrics"} > 0)
+              * on (cluster, namespace, job_name) group_left(owner_kind)
+            kube_job_owner{job="kube-state-metrics", owner_kind!="CronJob"}
+          for: 15m
+          labels:
+            severity: warning
