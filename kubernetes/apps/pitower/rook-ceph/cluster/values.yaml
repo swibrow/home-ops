@@ -53,43 +53,25 @@ cephClusterSpec:
                     - worker-01
                     - worker-02
                     - worker-03
-    # STAGE 2 of 3 — do not collapse this into `all`.
+    # NEVER narrow this list by more than one mon's node at a time.
     #
-    # Mons are the one daemon that cannot be re-placed in a single step. Each
-    # mon deployment is pinned by nodeSelector to the node the canary picked
-    # (recorded in the rook-ceph-mon-endpoints mapping), and on update Rook
-    # stamps the new nodeAffinity while PRESERVING that nodeSelector
-    # (mon.go:1662-1690, the `UseHostNetwork` branch). Narrowing straight to
-    # worker-01/02/03 makes all three mons unschedulable at once; startDeployments
-    # only re-checks quorum between mons, so it breaks two before stopping — at
-    # 1/3, i.e. quorum loss.
+    # Each mon deployment is nodeSelector-pinned to the node its canary picked
+    # (recorded in the rook-ceph-mon-endpoints mapping). On update Rook stamps
+    # the new nodeAffinity while PRESERVING that nodeSelector (mon.go:1662-1690,
+    # the `UseHostNetwork` branch), so any mon whose node leaves the list becomes
+    # unschedulable. startDeployments only re-checks quorum BETWEEN mons, so
+    # excluding two nodes at once breaks two mons and lands at 1/3 — quorum loss.
     #
-    # Each stage evicts exactly ONE mon. Rook parks it as unschedulable, then
-    # fails it over onto a node that satisfies this list; the replacement canary
-    # carries required host pod-anti-affinity, so it cannot land on a node
-    # already running a mon. Confirmed in stage 1: mon-ad@worker-07 was replaced
-    # by mon-ae@worker-03.
-    #
-    #   stage 1 (done):  [01 02 03 05 06] — evicted mon on worker-07
-    #   stage 2 (here):  [01 02 03 06]    — evicts mon on worker-05
-    #   stage 3:         delete this block — evicts mon on worker-06
-    #
-    # Wait for HEALTH_OK and 3/3 mons in quorum before advancing a stage.
-    # Budget ~45 min: the 2x ROOK_MON_OUT_TIMEOUT countdown starts when the
-    # operator logs `marking mon "X" out of quorum`, NOT when the pod goes
-    # Pending — the initial reconcile blocks in updateDeploymentAndWait first.
-    mon:
-      nodeAffinity:
-        requiredDuringSchedulingIgnoredDuringExecution:
-          nodeSelectorTerms:
-            - matchExpressions:
-                - key: kubernetes.io/hostname
-                  operator: In
-                  values:
-                    - worker-01
-                    - worker-02
-                    - worker-03
-                    - worker-06
+    # Migrated off worker-05/06/07 in three stages (2026-07-26). Per stage:
+    #   1. exclude exactly one mon's node, commit, force an ArgoCD sync — the
+    #      diff engine under-detects changes in this preserve-unknown-fields
+    #      subtree, so ApplyOutOfSyncOnly silently skips the resource;
+    #   2. Rook re-stamps ALL mon deployments and stalls on `ok-to-stop` EBUSY
+    #      for the survivors while the evicted mon is down;
+    #   3. break the stall by clearing the dead mon (ceph mon rm + delete deploy
+    #      + drop it from the mapping cm) then restarting the operator. A fresh
+    #      reconcile sees a MISSING mon and canary-creates it in ~40s, which is
+    #      far faster than waiting on ROOK_MON_OUT_TIMEOUT.
 
   network:
     provider: host
