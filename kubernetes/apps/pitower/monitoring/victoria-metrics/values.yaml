@@ -27,7 +27,10 @@ server:
       cpu: 100m
       memory: 1001Mi
     limits:
-      memory: 4Gi
+      # 100Gi of parts on local disk with a 2y retention; the cgroup was holding
+      # ~0.5Gi of page cache, so merges hit the disk instead of RAM. worker-07 has
+      # ~165Gi free, so buy the cache back here.
+      memory: 12Gi
   ingress:
     enabled: false
 

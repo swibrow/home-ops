@@ -14,7 +14,7 @@ tempo:
       cpu: 50m
       memory: 256Mi
     limits:
-      memory: 1Gi
+      memory: 4Gi
 
 persistence:
   enabled: true

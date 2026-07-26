@@ -28,7 +28,13 @@ server:
       cpu: 50m
       memory: 230Mi
     limits:
-      memory: 1Gi
+      # The limit caps this cgroup's page cache, not just its heap. At 1Gi the
+      # cgroup held ~90Mi of cache for a 20Gi dataset, so every background merge
+      # re-read the parts from disk — multi-GB/s bursts that starved the ceph-mon
+      # admin socket on this node and dropped it out of quorum. VictoriaLogs also
+      # sizes its internal caches off the cgroup limit (-memory.allowedPercent,
+      # default 60), so raising this is what actually removes the disk reads.
+      memory: 8Gi
 
 dashboards:
   enabled: true

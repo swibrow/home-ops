@@ -241,6 +241,12 @@ prometheus:
     enableAdminAPI: true
     walCompression: true
     retentionSize: 50GB
+    # Ceiling, not a squeeze: 7d peak working set is ~3.9Gi and the cgroup holds
+    # ~4.4Gi of page cache for the 50Gi TSDB. Sizing this below the sum would
+    # evict that cache and push compaction back onto worker-07's local disk.
+    resources:
+      limits:
+        memory: 12Gi
     startupProbe:
       failureThreshold: 120
     storageSpec:
