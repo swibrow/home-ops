@@ -49,11 +49,6 @@ auth:
         secretKeyRef:
           name: phoenix-secret
           key: PHOENIX_ADMIN_SECRET
-    - key: PHOENIX_DEFAULT_ADMIN_INITIAL_PASSWORD
-      valueFrom:
-        secretKeyRef:
-          name: phoenix-secret
-          key: PHOENIX_DEFAULT_ADMIN_INITIAL_PASSWORD
     - key: PHOENIX_POSTGRES_PASSWORD
       valueFrom:
         secretKeyRef:
