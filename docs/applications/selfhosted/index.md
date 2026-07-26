@@ -94,7 +94,7 @@ The `selfhosted` namespace contains a variety of productivity tools, dashboards,
 
 [RRDA](https://github.com/swibrow/rrda) is a REST API for DNS record lookups, providing an HTTP interface to DNS queries.
 
-- **Image**: `ghcr.io/swibrow/rrda:1.4.1`
+- **Image**: `ghcr.io/cloudsnacks/rrda:1.4.1` (built from [cloudsnacks/containers](https://github.com/cloudsnacks/containers))
 - **Sidecar**: `adguard/dnsproxy:v0.78.2` -- DNS-over-HTTPS proxy to bypass the Ubiquiti router's DNS interception on port 53
 
 !!! note "DoH Sidecar"

@@ -92,7 +92,7 @@ home-ops/
 ├── .github/workflows/   # CI/CD pipelines
 ├── .justfiles/          # Just task runner recipes
 ├── ansible/             # Host provisioning
-├── docker/              # Custom container images
+├── docker/              # Container images that can't live in cloudsnacks/containers
 ├── docs/                # MkDocs documentation site
 ├── iot/                 # ESPHome, Home Assistant, Button+ configs
 ├── kubernetes/

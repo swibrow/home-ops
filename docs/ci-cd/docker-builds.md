@@ -6,17 +6,22 @@ Automated Docker image builds using GitHub Actions with multi-architecture suppo
 
 ## Overview
 
-Custom Docker images live in the `docker/` directory at the repository root. Each subdirectory contains a `Dockerfile` and any supporting files for a single image.
+!!! warning "Most images now live in `cloudsnacks/containers`"
+
+    General-purpose images were migrated to [cloudsnacks/containers](https://github.com/cloudsnacks/containers),
+    which builds multi-arch on native runners with SBOM and provenance attestations, and publishes to
+    `ghcr.io/cloudsnacks/<name>`. Add new images there by default.
+
+    The `docker/` directory here is for images that can't meet that repo's conventions — currently only
+    `browser-use`, which runs a supervised multi-process VNC stack as root.
+
+Images still built here live in the `docker/` directory at the repository root. Each subdirectory contains a `Dockerfile` and any supporting files for a single image.
 
 ```
 docker/
-├── app-one/
-│   └── Dockerfile
-├── app-two/
-│   ├── Dockerfile
-│   └── config.yaml
-└── app-three/
-    └── Dockerfile
+└── browser-use/
+    ├── Dockerfile
+    └── supervisord.conf
 ```
 
 ---
@@ -155,16 +160,21 @@ Each successful build produces two tags:
 | `<version>` | Immutable version tag extracted from Dockerfile |
 | `latest` | Rolling tag pointing to the most recent build |
 
-Example for an image `rrda` with `ARG RRDA_VERSION=2.1.0`:
+Example for an image `browser-use` with `ARG BROWSER_USE_VERSION=v3.0.0`:
 
 ```
-ghcr.io/swibrow/rrda:2.1.0
-ghcr.io/swibrow/rrda:latest
+ghcr.io/swibrow/browser-use:v3.0.0
+ghcr.io/swibrow/browser-use:latest
 ```
 
 ---
 
 ## Adding a New Docker Image
+
+!!! tip "Prefer `cloudsnacks/containers`"
+
+    Add new images to [cloudsnacks/containers](https://github.com/cloudsnacks/containers) unless they need
+    root, an init framework, or multiple processes. Only then use the steps below.
 
 1. Create a new directory under `docker/`:
 

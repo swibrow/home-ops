@@ -114,7 +114,7 @@ controllers:
     containers:
       app:
         image:
-          repository: ghcr.io/swibrow/rrda
+          repository: ghcr.io/cloudsnacks/rrda
           tag: 1.4.1
         probes:
           liveness: &probes

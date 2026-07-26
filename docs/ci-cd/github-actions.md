@@ -9,7 +9,7 @@ GitHub Actions workflows for linting, Docker builds, and documentation deploymen
 | Workflow | File | Trigger |
 |:---------|:-----|:--------|
 | Lint | `.github/workflows/lint.yaml` | Pull requests to `main` |
-| Build Docker Images | `.github/workflows/build-docker-images.yaml` | Push to `main` (docker/**) or manual dispatch |
+| Build Docker Images | `.github/workflows/build-docker-images.yaml` | Push to `main` (docker/**) or manual dispatch — most images now live in [cloudsnacks/containers](https://github.com/cloudsnacks/containers) |
 | Deploy Docs | `.github/workflows/deploy-docs.yml` | Push to `main` (docs/** or mkdocs.yml) |
 
 ---

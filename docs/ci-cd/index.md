@@ -44,7 +44,7 @@ Two workflows automate CI tasks:
 | Workflow | Trigger | Purpose |
 |:---------|:--------|:--------|
 | **Lint** | Pull requests to `main` | Code quality checks on PR changes |
-| **Build Docker Images** | Push to `main` (docker/**) or manual dispatch | Build and push multi-arch Docker images to GHCR |
+| **Build Docker Images** | Push to `main` (docker/**) or manual dispatch | Build and push multi-arch Docker images to GHCR (most images now live in [cloudsnacks/containers](https://github.com/cloudsnacks/containers)) |
 
 Details: [GitHub Actions](github-actions.md)
 
