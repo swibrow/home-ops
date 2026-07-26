@@ -51,3 +51,4 @@ nodes:
     schematicId: "@extensions/proxmox.yaml"
     data:
       mac: "bc:24:11:e8:10:19"
+      untagged: true
