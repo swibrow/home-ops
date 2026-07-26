@@ -59,6 +59,19 @@ drivers:
     controllerPlugin:
       replicas: 2
       priorityClassName: system-cluster-critical
+      # Provisioner/attacher side only. The nodePlugin above stays cluster-wide
+      # on purpose — it mounts RBD volumes, and worker-07 holds the most of them.
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - worker-01
+                      - worker-02
+                      - worker-03
       resources:
         provisioner:
           requests: { memory: 32Mi, cpu: 10m }

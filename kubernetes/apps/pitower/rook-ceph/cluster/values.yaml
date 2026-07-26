@@ -1,5 +1,18 @@
 toolbox:
   enabled: true
+  # cephClusterSpec.placement does not cover the toolbox — it is a chart-owned
+  # Deployment, not a Rook-managed daemon.
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                  - worker-01
+                  - worker-02
+                  - worker-03
 
 monitoring:
   enabled: true
@@ -13,17 +26,14 @@ route:
 
 cephClusterSpec:
   placement:
+    # Rook resolves every daemon as all.Merge(<daemon>); Merge REPLACES
+    # nodeAffinity and APPENDS tolerations. So `all` covers mgr/osd/prepareosd/
+    # cleanup, and any per-daemon block must restate nodeAffinity in full.
+    #
+    # Safe for OSDs: their deployments are already nodeSelector-pinned to
+    # worker-01/02/03, which intersects this list. mgr has no pin and just
+    # reschedules.
     all:
-      tolerations:
-        - key: node-issue
-          operator: Equal
-          value: "true"
-          effect: NoExecute
-        - key: dedicated
-          operator: Equal
-          value: storage
-          effect: NoSchedule
-    mon:
       tolerations:
         - key: node-issue
           operator: Equal
@@ -38,9 +48,45 @@ cephClusterSpec:
           nodeSelectorTerms:
             - matchExpressions:
                 - key: kubernetes.io/hostname
-                  operator: NotIn
+                  operator: In
                   values:
                     - worker-01
+                    - worker-02
+                    - worker-03
+    # STAGE 1 of 3 — do not collapse this into `all`.
+    #
+    # Mons are the one daemon that cannot be re-placed in a single step. Each
+    # mon deployment is pinned by nodeSelector to the node the canary picked
+    # (recorded in the rook-ceph-mon-endpoints mapping), and on update Rook
+    # stamps the new nodeAffinity while PRESERVING that nodeSelector
+    # (mon.go:1662-1690, the `UseHostNetwork` branch). Narrowing straight to
+    # worker-01/02/03 makes all three mons unschedulable at once; startDeployments
+    # only re-checks quorum between mons, so it breaks two before stopping — at
+    # 1/3, i.e. quorum loss.
+    #
+    # Each stage evicts exactly ONE mon. Rook parks it as unschedulable, then
+    # fails it over after ~2x ROOK_MON_OUT_TIMEOUT onto a node that satisfies
+    # this list; the replacement canary carries required host pod-anti-affinity,
+    # so it cannot land on a node already running a mon.
+    #
+    #   stage 1 (here): [01 02 03 05 06] — evicts mon on worker-07  <- the ask
+    #   stage 2:        [01 02 03 06]    — evicts mon on worker-05
+    #   stage 3:        delete this block — evicts mon on worker-06
+    #
+    # Wait for HEALTH_OK and 3/3 mons in quorum before advancing a stage.
+    mon:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: kubernetes.io/hostname
+                  operator: In
+                  values:
+                    - worker-01
+                    - worker-02
+                    - worker-03
+                    - worker-05
+                    - worker-06
 
   network:
     provider: host

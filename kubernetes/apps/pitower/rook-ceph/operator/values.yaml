@@ -12,6 +12,15 @@ crds:
 # rook-ceph-exporter ServiceMonitors and no ceph_* metrics are scraped.
 monitoring:
   enabled: true
+# Keep the controllers on the OSD hosts (worker-01/02/03), off worker-07.
+# Neither this chart nor the ceph-csi-operator subchart exposes `affinity` —
+# only nodeSelector — so this rides the control-plane role label, which today
+# marks exactly worker-01/02/03. Adding a fourth control plane would widen it.
+nodeSelector: &cephControllerNodes
+  node-role.kubernetes.io/control-plane: ""
+ceph-csi-operator:
+  controllerManager:
+    nodeSelector: *cephControllerNodes
 # krr: rook-ceph-operator/rook-ceph-operator
 resources:
   requests:
