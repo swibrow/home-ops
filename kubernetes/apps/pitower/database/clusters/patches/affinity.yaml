@@ -1,0 +1,24 @@
+---
+# Pin all CNPG clusters to worker-05 / worker-06 (OpenEBS hostpath data is node-local).
+# Required pod anti-affinity ensures the two instances never share a node.
+#
+# Duplicated from cloudnative-pg/cluster/patches/affinity.yaml rather than shared:
+# kustomize load restrictions refuse a patch path outside the kustomization root,
+# and these Clusters live in their own overlay. Keep the two files in step.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: not-used
+spec:
+  affinity:
+    podAntiAffinityType: required
+    topologyKey: kubernetes.io/hostname
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                  - worker-05
+                  - worker-06

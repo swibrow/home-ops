@@ -6,3 +6,9 @@ namespace: database
 resources:
   - immich.yaml
   - phoenix.yaml
+patches:
+  - path: patches/affinity.yaml
+    target:
+      group: postgresql.cnpg.io
+      version: v1
+      kind: Cluster
