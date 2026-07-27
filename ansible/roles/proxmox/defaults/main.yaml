@@ -12,6 +12,29 @@ proxmox_acme_email: sam.wibrow.wa@gmail.com
 proxmox_acme_plugin: cloudflare
 proxmox_acme_directory: https://acme-v02.api.letsencrypt.org/directory
 
+# ZFS dataset properties applied to guest zvols. rpool is 8x 600GB 10K SAS
+# spinning (4 mirror vdevs, no SLOG), so sync writes cost a seek. Measured on
+# vm-200 (worker-07): 21-33 MB/s of ZIL traffic and 27-103 zil_commit/s were
+# driving 90-127 MB/s of physical spindle writes against a guest writing only
+# 12-16 MB/s. sync=disabled dropped that to 6.3 MB/s and took guest write
+# latency 11.26ms -> 2.67ms, because WAL rewrites of the same blocks now
+# coalesce in ARC within the txg instead of each being forced out.
+#
+# The trade: the guest loses up to one txg (~5s) of acknowledged writes on host
+# power loss. Accepted here - the node's local disk holds TSDBs (prometheus,
+# victoria-metrics, victoria-logs, tempo) which just re-scrape, plus media that
+# kopiur backs up. The ceph mons that used to make this unsafe now live on
+# worker-01/02/03. Postgres is the one workload this is wrong for.
+#
+# NOT expressible in terraform: Proxmox has no per-VM setting for it, it is a
+# host-side ZFS dataset property. Also note a zvol recreated by terraform comes
+# back as sync=standard, silently restoring the 11ms - rerun this playbook after
+# any VM disk recreate.
+proxmox_zfs_volume_properties:
+  - dataset: rpool/data/vm-200-disk-1
+    properties:
+      sync: disabled
+
 proxmox_network_iface: nic1
 proxmox_network_vlan: 20
 proxmox_network_bridge: vmbr0
