@@ -52,8 +52,17 @@ resource "proxmox_virtual_environment_vm" "talos_worker" {
     # 14.65ms avg write latency here vs 0.4-0.6ms on the NVMe control planes, at
     # the same ~350 write IOPS. writeback lets the host absorb writes in its ARC
     # (128GiB, on 755GiB of RAM) instead. The power-loss window this opens is
-    # covered by the UPS + dual PSU; without those this would risk the rook-ceph
-    # mon's rocksdb, which is resident on this node.
+    # covered by the UPS + dual PSU.
+    #
+    # writeback alone only got this to ~11ms; the rest of the fix is sync=disabled
+    # on the backing zvol, which is NOT settable from here (Proxmox exposes no
+    # per-VM knob - it is a host-side ZFS dataset property). It lives in the
+    # ansible proxmox role as proxmox_zfs_volume_properties, and that is where the
+    # measurements and the durability trade-off are written up.
+    #
+    # If this disk is ever recreated, the new zvol defaults back to sync=standard
+    # and write latency silently returns to ~11ms. Rerun the ansible proxmox role
+    # after any recreate.
     cache = "writeback"
   }
 
