@@ -30,7 +30,7 @@ controllers:
           WEBHOOK_URL: https://n8n-webhook.wibrow.dev
         resources:
           requests:
-            cpu: 5m
+            cpu: 26m
             memory: 304Mi
           limits:
             memory: 2Gi

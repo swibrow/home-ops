@@ -85,8 +85,8 @@ cephClusterSpec:
     # krr: rook-ceph-mgr-a/mgr
     mgr:
       requests:
-        cpu: "18m"
-        memory: "675Mi"
+        cpu: "73m"
+        memory: "283Mi"
       limits:
         memory: "2Gi"
     # krr: rook-ceph-mon-aa/mon

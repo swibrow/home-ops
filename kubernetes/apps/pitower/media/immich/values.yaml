@@ -54,7 +54,7 @@ controllers:
               periodSeconds: 10
         resources:
           requests:
-            cpu: 100m
+            cpu: 12m
             memory: 512Mi
           limits:
             memory: 2Gi
@@ -103,8 +103,8 @@ controllers:
               periodSeconds: 10
         resources:
           requests:
-            cpu: 100m
-            memory: 1Gi
+            cpu: 11m
+            memory: 496Mi
           limits:
             memory: 4Gi
 

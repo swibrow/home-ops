@@ -18,7 +18,7 @@ spec:
           # One EnvoyProxy backs envoy-external/internal/direct — sized off the busiest (external).
           resources:
             requests:
-              cpu: 10m
+              cpu: 29m
               memory: 96Mi
             limits:
               memory: 1Gi
