@@ -45,6 +45,10 @@ controllers:
         envFrom: &envFrom
           - secretRef:
               name: rackrat-secret
+              # Every key in it is optional, so ESO emits no Secret at all while
+              # /rackrat is empty in Infisical. Without this the pods sit in
+              # CreateContainerConfigError instead of running degraded.
+              optional: true
     containers:
       app:
         image:
@@ -89,6 +93,9 @@ controllers:
   scrape:
     type: cronjob
     cronjob:
+      # Suspended: a live scrape needs the Ricardo CDP endpoint and a Claude key,
+      # and until /rackrat is populated in Infisical every run just fails.
+      suspend: true
       # Etiquette: at most one scrape per marketplace per hour. The offset is
       # arbitrary but fixed — auctions close on the hour, and this catches the
       # window where a realised price becomes visible.
