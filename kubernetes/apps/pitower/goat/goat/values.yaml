@@ -13,12 +13,6 @@ database:
   secret: goat-db-secret
   secretKey: DB_URL
 api:
-  # api and hooks are both held at zero for the database migration onto
-  # the shared ai CNPG cluster: hooks is stateless but DB-only, and the
-  # api carries the scheduler, so both write. kubectl scale cannot hold
-  # this - replicas is part of the rendered manifest, so the next
-  # automated sync restores it mid-dump.
-  replicas: 0
   persistence:
     size: 10Gi
   # Telegram allow-list and admins (numeric user IDs). The bot fails closed:
@@ -57,9 +51,6 @@ api:
     # mcp__sre__checkout_repo. This allowlist is the whole gate — anything not
     # matched here is refused.
     REPO_CHECKOUT_ALLOWLIST: "swibrow/*,DND-IT/*,tx-pts-dai/*,20minuten/*"
-hooks:
-  # See api.replicas above - held at zero for the database migration.
-  replicas: 0
 # Dev-session pods (Claude Code in the goat namespace) — needs the
 # ghcr.io/swibrow/claude-code image and the egress NetworkPolicy below.
 devSessions:

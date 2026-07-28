@@ -2,13 +2,13 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: goat
 components:
-  - ../../../../components/cnpg-db
+  - ../../../../components/cnpg-db-shared
 configMapGenerator:
   - name: cnpg-db-config
     literals:
       - APP_NAME=goat
       - SECRET_NAME=goat-db-secret
-      - CNPG_SECRET_KEY=goat-app
+      - CNPG_SECRET_KEY=ai-goat
       - DB_SCHEME=postgresql
 helmCharts:
   - name: goat
