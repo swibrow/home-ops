@@ -1,0 +1,62 @@
+---
+# Backup target for every CNPG cluster in this namespace, via the barman-cloud
+# CNPG-I plugin (the in-tree `backup.barmanObjectStore` field is deprecated as
+# of CNPG 1.26).
+#
+# One ObjectStore serves all clusters: barman namespaces each cluster's backups
+# under its own serverName, which defaults to the cluster name, so `shared` and
+# `ai` land in s3://cnpg/shared/ and s3://cnpg/ai/ without extra configuration.
+# `spec.configuration.serverName` must stay unset — it exists only for API
+# compatibility with the deprecated in-tree field.
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: garage
+spec:
+  retentionPolicy: 30d
+  configuration:
+    destinationPath: s3://cnpg/
+    # Self-hosted Garage on garage-01 (LXC, VLAN 20). Bucket `cnpg` and the
+    # `cnpg` key that owns it are declared in ansible/roles/garage/defaults —
+    # the key is scoped to this bucket and cannot create others.
+    endpointURL: https://s3.wibrow.dev
+    s3Credentials:
+      accessKeyId:
+        name: cnpg-backup-secret
+        key: AWS_ACCESS_KEY_ID
+      secretAccessKey:
+        name: cnpg-backup-secret
+        key: AWS_SECRET_ACCESS_KEY
+      region:
+        name: cnpg-backup-secret
+        key: AWS_REGION
+    wal:
+      compression: gzip
+    data:
+      compression: gzip
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: cnpg-backup-secret
+spec:
+  refreshInterval: 12h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: infisical
+  target:
+    name: cnpg-backup-secret
+    template:
+      data:
+        AWS_ACCESS_KEY_ID: "{{ .AWS_ACCESS_KEY_ID }}"
+        AWS_SECRET_ACCESS_KEY: "{{ .AWS_SECRET_ACCESS_KEY }}"
+        # Garage ignores the region for routing but the S3 SDK requires one,
+        # and it must match `garage_s3_region` in the ansible role.
+        AWS_REGION: "garage"
+  data:
+    - secretKey: AWS_ACCESS_KEY_ID
+      remoteRef:
+        key: /database/cnpg-backups/AWS_ACCESS_KEY_ID
+    - secretKey: AWS_SECRET_ACCESS_KEY
+      remoteRef:
+        key: /database/cnpg-backups/AWS_SECRET_ACCESS_KEY
