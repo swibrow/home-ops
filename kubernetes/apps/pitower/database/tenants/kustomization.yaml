@@ -22,4 +22,5 @@ resources:
   - miniflux.yaml
   - open-webui.yaml
   - paperless.yaml
+  - phoenix.yaml
   - rackrat.yaml
