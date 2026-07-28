@@ -6,7 +6,7 @@ namespace: dev
 resources:
   - httproute.yaml
 components:
-  - ../../../../components/cnpg-db
+  - ../../../../components/cnpg-db-database
 configMapGenerator:
   - name: cnpg-db-config
     literals:

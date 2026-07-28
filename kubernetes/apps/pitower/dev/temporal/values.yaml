@@ -16,7 +16,7 @@ server:
           sql:
             pluginName: postgres12
             databaseName: temporal
-            connectAddr: "temporal-rw.cloudnative-pg.svc.cluster.local:5432"
+            connectAddr: "temporal-rw.database.svc.cluster.local:5432"
             connectProtocol: "tcp"
             user: postgres
             existingSecret: temporal-db-secret
@@ -30,7 +30,7 @@ server:
           sql:
             pluginName: postgres12
             databaseName: temporal_visibility
-            connectAddr: "temporal-rw.cloudnative-pg.svc.cluster.local:5432"
+            connectAddr: "temporal-rw.database.svc.cluster.local:5432"
             connectProtocol: "tcp"
             user: postgres
             existingSecret: temporal-db-secret
