@@ -171,11 +171,13 @@ mcp:
         - gatus_list_tables
         - ghostfolio_list_tables
         - house-hunter_list_tables
+        - immich_list_tables
         - litellm_list_tables
         - memini_list_tables
         - miniflux_list_tables
         - open-webui_list_tables
         - paperless_list_tables
+        - phoenix_list_tables
         - propagit_list_tables
         - rybbit_list_tables
     # hass-mcp can actuate the house: entity_action, call_service_tool and
