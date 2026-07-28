@@ -1,0 +1,13 @@
+# CNPG-I backup plugin. The in-tree `backup.barmanObjectStore` field has been
+# deprecated since CNPG 1.26 in favour of this plugin, so new clusters use it
+# instead of the field.
+#
+# A standalone CNPG-I plugin must run in the *same namespace* as the operator
+# that consumes it — the operator discovers plugins by watching Services
+# carrying `cnpg.io/pluginName` in its own namespace. Our only running operator
+# is `cloudnative-pg-database` in `database`, so this goes there, not into the
+# chart's default `cnpg-system`.
+#
+# mTLS between operator and plugin is issued by a self-signed cert-manager
+# Issuer the chart creates; cert-manager is already installed cluster-wide.
+replicaCount: 1
