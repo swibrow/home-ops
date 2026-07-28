@@ -7,7 +7,7 @@ resources:
   - externalsecret.yaml
   - grafanadashboard.yaml
 components:
-  - ../../../../components/cnpg-db
+  - ../../../../components/cnpg-db-shared
 configMapGenerator:
   - name: cnpg-db-config
     options:
@@ -15,7 +15,7 @@ configMapGenerator:
     literals:
       - APP_NAME=memini
       - SECRET_NAME=memini-db-secret
-      - CNPG_SECRET_KEY=memini-app
+      - CNPG_SECRET_KEY=ai-memini
       - DB_SCHEME=postgresql
   # Vendored from the chart's bundled dashboard with the datasource variable
   # fixed (shipped current.value was the datasource name "Prometheus", but
