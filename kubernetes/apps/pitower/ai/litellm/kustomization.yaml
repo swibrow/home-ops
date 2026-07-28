@@ -6,7 +6,7 @@ namespace: ai
 resources:
   - externalsecret.yaml
 components:
-  - ../../../../components/cnpg-db
+  - ../../../../components/cnpg-db-shared
 configMapGenerator:
   - name: litellm-config
     options:
@@ -17,7 +17,7 @@ configMapGenerator:
     literals:
       - APP_NAME=litellm
       - SECRET_NAME=litellm-db-secret
-      - CNPG_SECRET_KEY=litellm-app
+      - CNPG_SECRET_KEY=ai-litellm
       - DB_SCHEME=postgresql
 helmCharts:
   - name: app-template
