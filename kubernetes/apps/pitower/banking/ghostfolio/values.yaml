@@ -1,5 +1,10 @@
 controllers:
   ghostfolio:
+    # Held at zero for the database migration onto the shared CNPG
+    # cluster. kubectl scale cannot hold this: replicas is part of the
+    # rendered manifest, so the next automated sync restores it and the
+    # app resumes writing to the old database mid-dump.
+    replicas: 0
     annotations:
       reloader.stakater.com/auto: "true"
     containers:
