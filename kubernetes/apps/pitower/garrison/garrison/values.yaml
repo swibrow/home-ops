@@ -154,17 +154,16 @@ mcp:
     # read tools, and home-assistant can actuate devices — neither backend is
     # read-only on its own, so both are held to a listing/read allowlist here
     # (enforced in the runner by the PreToolUse deny hook, not by the server).
-    # The toolbox exposes one pair of tools per cloudnative-pg cluster,
-    # `<cluster>_list_tables` and `<cluster>_execute_sql`, and it connects as
-    # each database's app user — so execute_sql is a live write vector on prod
-    # data. Only the schema-listing half is granted. A new cluster's entry has
+    # The toolbox exposes one pair of tools per database in the `database`
+    # namespace, `<db>_list_tables` and `<db>_execute_sql`, and it connects as
+    # each database's owning role — so execute_sql is a live write vector on prod
+    # data. Only the schema-listing half is granted. A new database's entry has
     # to be added here explicitly; that is the point.
     - name: database-toolbox
       url: http://mcp-database-toolbox-proxy.ai.svc.cluster.local:8080/mcp
-      description: Postgres schema inspection across the cloudnative-pg clusters (list_tables only)
+      description: Postgres schema inspection across the database namespace (list_tables only)
       tools:
         - autobrr_list_tables
-        - backstage_list_tables
         - firefly_list_tables
         - forgejo_list_tables
         - garrison_list_tables
@@ -172,7 +171,6 @@ mcp:
         - ghostfolio_list_tables
         - house-hunter_list_tables
         - litellm_list_tables
-        - mattermost_list_tables
         - memini_list_tables
         - miniflux_list_tables
         - open-webui_list_tables

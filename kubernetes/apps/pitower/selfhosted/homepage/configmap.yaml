@@ -182,10 +182,6 @@ data:
             icon: mdi-lock-outline
             href: https://secrets.wibrow.dev
             description: Secret sharing
-        - Mattermost:
-            icon: mattermost.svg
-            href: https://mattermost.wibrow.dev
-            description: Team chat
         - House Hunter:
             icon: mdi-home-search
             href: https://house-hunter.wibrow.dev
