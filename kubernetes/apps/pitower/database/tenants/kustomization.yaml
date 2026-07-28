@@ -1,0 +1,13 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+#
+# Tenants of the shared/ai clusters — one file per app, each holding the
+# credential ExternalSecret plus the Database and DatabaseRole CRs.
+#
+# Kept as its own ArgoCD app rather than folded into ../clusters so onboarding a
+# tenant never shows up as a diff against a Cluster resource.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: database
+resources:
+  - miniflux.yaml

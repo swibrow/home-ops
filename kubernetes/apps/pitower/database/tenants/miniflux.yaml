@@ -1,0 +1,68 @@
+---
+# The tenant secret does double duty: CNPG reconciles the role's password from
+# `username`/`password` below, and the consuming app's ExternalSecret (via the
+# cnpg-secrets-database store and components/cnpg-db-shared) reads all five keys
+# out of the same object. That is what keeps the consumer component free of any
+# namespace or service FQDN.
+#
+# The password is the one this app already used on its own cluster, carried over
+# so credentials do not change across the cutover.
+#
+# target.template.metadata is pinned deliberately: without it ESO copies
+# ArgoCD's tracking-id annotation onto the Secret and the app never leaves
+# OutOfSync.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: shared-miniflux
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: infisical
+  target:
+    name: shared-miniflux
+    template:
+      # CNPG requires exactly this type, and `username` must match the role name.
+      type: kubernetes.io/basic-auth
+      metadata:
+        labels:
+          # Without this label a password change is only picked up whenever the
+          # operator next refreshes its cache, rather than immediately.
+          cnpg.io/reload: "true"
+      data:
+        username: miniflux
+        password: "{{ .password }}"
+        host: shared-rw.database.svc.cluster.local
+        port: "5432"
+        dbname: miniflux
+  data:
+    - secretKey: password
+      remoteRef:
+        key: /database/tenants/MINIFLUX_PASSWORD
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: DatabaseRole
+metadata:
+  name: miniflux
+spec:
+  cluster:
+    name: shared
+  name: miniflux
+  login: true
+  # retain (the default) is deliberate: deleting this CR must not DROP ROLE.
+  databaseRoleReclaimPolicy: retain
+  passwordSecret:
+    name: shared-miniflux
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: shared-miniflux
+spec:
+  cluster:
+    name: shared
+  name: miniflux
+  owner: miniflux
+  # retain so deleting this CR never drops the database.
+  databaseReclaimPolicy: retain
