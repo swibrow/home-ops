@@ -7,7 +7,7 @@
 # cluster (see database/tenants/goat.yaml + the cnpg-db-shared kustomize
 # component).
 image:
-  tag: v0.20.0
+  tag: v0.21.0
 imagePullSecret: ghcr-pull-secret
 database:
   enabled: true
