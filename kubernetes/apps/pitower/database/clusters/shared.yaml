@@ -1,0 +1,53 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/postgresql.cnpg.io/cluster_v1.json
+#
+# General-purpose multi-tenant Postgres. Each consuming app gets its own
+# database and its own login role, declared as `Database` + `DatabaseRole` CRs
+# in apps/<app>.yaml — never as entries in this Cluster's spec. That keeps
+# onboarding an app from mutating the Cluster at all, so the primary is never
+# rolled to add a tenant.
+#
+# Target for: miniflux, gatus, ghostfolio, rackrat, house-hunter, firefly,
+# autobrr, paperless — all of which were single-database clusters of their own
+# in the `cloudnative-pg` namespace.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: shared
+  namespace: database
+spec:
+  instances: 2
+  # pg18 is the highest major among the incoming apps (rackrat). pg_dump is
+  # forward-compatible only, so the target must be >= every source: restoring
+  # the pg16 apps here is fine, the reverse would not be.
+  imageName: ghcr.io/cloudnative-pg/postgresql:18
+  # On any PodSpec change CNPG defaults to restarting the primary in place. With
+  # openebs-hostpath the data is node-local, so a primary that cannot reschedule
+  # onto its own node leaves the cluster with no primary and writes down, with
+  # no automatic failover. Switchover promotes the replica first instead.
+  primaryUpdateMethod: switchover
+  postgresql:
+    parameters:
+      # Eight tenants share one postmaster; the 100 default is the sum across
+      # all of them, not per app.
+      max_connections: "200"
+  resources:
+    # Requests only, deliberately. A memory *limit* caps the cgroup's page
+    # cache, which for Postgres means the shared buffer working set gets
+    # evicted and reads fall through to disk — the same failure that took out
+    # vlogs. Leave the limit unset so page cache can use spare node memory.
+    requests:
+      cpu: 250m
+      memory: 1Gi
+  storage:
+    # ~120 MB of tenant data today across all eight. The headroom is for WAL
+    # and future tenants, not current size.
+    size: 10Gi
+    storageClass: openebs-hostpath
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: garage
+  monitoring:
+    enablePodMonitor: true

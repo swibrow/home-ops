@@ -1,0 +1,53 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/postgresql.cnpg.io/cluster_v1.json
+#
+# Multi-tenant Postgres for the AI apps plus the two pg18 services that need no
+# vector support but do need pg18: litellm, memini, open-webui, garrison, goat.
+#
+# Same tenancy model as `shared` — see shared.yaml. Databases and roles are
+# declared per app, never in this spec.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: ai
+  namespace: database
+spec:
+  instances: 2
+  # VectorChord build, because memini's postgres backend runs
+  # `CREATE EXTENSION IF NOT EXISTS vchord CASCADE` itself at startup and needs
+  # the extension binaries present. This is the CNPG-flavoured image family
+  # (same one immich uses), not tensorchord's Debian `vchord-postgres` — so the
+  # postgres user is CNPG's usual 26:26 and no postgresUID/postgresGID override
+  # is needed.
+  #
+  # pg18 is forced by garrison and goat, which are already on 18. That rules out
+  # keeping vchord on the 0.5.x line memini runs today: this image family has no
+  # 18-0.5.x build. The logical restore rebuilds vector indexes from the dump,
+  # so the 0.5.1 -> 1.1.1 jump happens as part of memini's migration.
+  imageName: ghcr.io/tensorchord/cloudnative-vectorchord:18-1.1.1
+  primaryUpdateMethod: switchover
+  postgresql:
+    # vchord is a background-worker extension, not a pure-SQL one — it must be
+    # loaded at postmaster start or CREATE EXTENSION fails with "vchord must be
+    # loaded via shared_preload_libraries". Cluster-wide by necessity; the
+    # extension itself is still only created in memini's database.
+    shared_preload_libraries:
+      - vchord.so
+    parameters:
+      max_connections: "200"
+  resources:
+    # See shared.yaml for why there is no memory limit.
+    requests:
+      cpu: 250m
+      memory: 1Gi
+  storage:
+    # goat alone is 72 MB, the rest ~50 MB combined.
+    size: 10Gi
+    storageClass: openebs-hostpath
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: garage
+  monitoring:
+    enablePodMonitor: true
