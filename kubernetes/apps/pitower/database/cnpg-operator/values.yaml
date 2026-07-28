@@ -1,21 +1,35 @@
-# Second CNPG operator, scoped to the `database` namespace only.
-# The cluster-wide operator in `cloudnative-pg` owns the singletons that must
-# not be duplicated: the CRDs and the (cluster-scoped, no namespaceSelector)
-# admission webhooks. It also validates database-ns Clusters — webhook serving
-# is stateless and version-based, independent of watch scope. So this operator
-# reuses those and only reconciles Clusters in `database`.
-# The two operators MUST stay on the same chart/image version.
+# The cluster's only running CNPG operator.
+#
+# Two operators cannot coexist: the admission webhook configurations are
+# cluster-scoped with names hardcoded in the operator
+# (cnpg-{mutating,validating}-webhook-configuration), and every operator
+# unconditionally re-patches their caBundle with its own generated CA on a
+# periodic reconcile loop. Two of them ping-pong that field, and whichever
+# loses leaves the caBundle disagreeing with the serving cert behind
+# clientConfig.service, breaking every Cluster create/update cluster-wide.
+# There is no opt-out: `manager controller --help` on 1.30.0 exposes no flag
+# for it, and the chart grants the webhook patch RBAC regardless of
+# config.clusterWide.
+#
+# So this release owns the webhook configurations (they render pointing at
+# database/cnpg-webhook-service, matching this operator's serving cert) and
+# the operator in `cloudnative-pg` is scaled to zero. CRD ownership stays with
+# that release for now; it still carries helm.sh/resource-policy: keep.
+#
+# clusterWide must be true for the RBAC (a namespaced Role could not reconcile
+# Clusters in `cloudnative-pg`); WATCH_NAMESPACE does the actual narrowing.
+# Drop `cloudnative-pg` from it once that namespace has no Clusters left.
 crds:
   create: false
 config:
-  clusterWide: false
+  clusterWide: true
   data:
-    WATCH_NAMESPACE: database
+    WATCH_NAMESPACE: cloudnative-pg,database
 webhook:
   mutating:
-    create: false
+    create: true
   validating:
-    create: false
+    create: true
 monitoring:
   podMonitorEnabled: true
   grafanaDashboard:

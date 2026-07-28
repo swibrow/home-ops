@@ -1,8 +1,21 @@
+# Retired operator, kept only to own the CRDs.
+#
+# The running operator is the one in `database`, which now watches this
+# namespace too. This deployment is scaled to zero because a second operator
+# would fight it over the shared webhook caBundle; see the values.yaml there
+# for why that is unfixable with two of them.
+#
+# The release is not deleted yet: it renders the CRDs, and handing those over
+# is a separate, riskier step. Delete it once the Clusters here have migrated
+# to `database` and CRD ownership has moved.
+replicaCount: 0
 crds:
   create: true
-# Cluster-wide RBAC/CRDs/webhooks stay owned here, but reconciliation is
-# narrowed to this namespace so the scoped operator in `database` can own that
-# one without both fighting over the same Clusters.
+webhook:
+  mutating:
+    create: false
+  validating:
+    create: false
 config:
   data:
     WATCH_NAMESPACE: cloudnative-pg
