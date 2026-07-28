@@ -38,34 +38,6 @@ spec:
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
-  name: forgejo
-spec:
-  schedule: "0 0 3 * * *"
-  backupOwnerReference: self
-  target: prefer-standby
-  cluster:
-    name: forgejo
-  method: plugin
-  pluginConfiguration:
-    name: barman-cloud.cloudnative-pg.io
----
-apiVersion: postgresql.cnpg.io/v1
-kind: ScheduledBackup
-metadata:
-  name: propagit
-spec:
-  schedule: "0 30 3 * * *"
-  backupOwnerReference: self
-  target: prefer-standby
-  cluster:
-    name: propagit
-  method: plugin
-  pluginConfiguration:
-    name: barman-cloud.cloudnative-pg.io
----
-apiVersion: postgresql.cnpg.io/v1
-kind: ScheduledBackup
-metadata:
   name: immich
 spec:
   schedule: "0 0 4 * * *"
@@ -73,20 +45,6 @@ spec:
   target: prefer-standby
   cluster:
     name: immich
-  method: plugin
-  pluginConfiguration:
-    name: barman-cloud.cloudnative-pg.io
----
-apiVersion: postgresql.cnpg.io/v1
-kind: ScheduledBackup
-metadata:
-  name: rybbit
-spec:
-  schedule: "0 30 4 * * *"
-  backupOwnerReference: self
-  target: prefer-standby
-  cluster:
-    name: rybbit
   method: plugin
   pluginConfiguration:
     name: barman-cloud.cloudnative-pg.io

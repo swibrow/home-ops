@@ -9,9 +9,6 @@ resources:
   - immich.yaml
   - shared.yaml
   - ai.yaml
-  - forgejo.yaml
-  - propagit.yaml
-  - rybbit.yaml
 patches:
   - path: patches/affinity.yaml
     target:

@@ -64,6 +64,11 @@ gitea:
       HOST: shared-rw.database.svc.cluster.local:5432
       NAME: forgejo
       USER: forgejo
+      # Forgejo's default pool is unbounded. That was harmless on a dedicated
+      # postmaster; on `shared` an unbounded pool here is a way for forgejo to
+      # eat the cluster-wide max_connections out from under ten other tenants.
+      MAX_OPEN_CONNS: 20
+      MAX_IDLE_CONNS: 5
     cache:
       ENABLED: true
       ADAPTER: redis

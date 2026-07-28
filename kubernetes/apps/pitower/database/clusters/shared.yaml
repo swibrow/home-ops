@@ -9,7 +9,8 @@
 #
 # Target for: miniflux, gatus, ghostfolio, rackrat, house-hunter, firefly,
 # autobrr, paperless — all of which were single-database clusters of their own
-# in the `cloudnative-pg` namespace.
+# in the `cloudnative-pg` namespace — plus forgejo, propagit and rybbit, which
+# were dedicated clusters here in `database` until they were folded in too.
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
@@ -28,7 +29,7 @@ spec:
   primaryUpdateMethod: switchover
   postgresql:
     parameters:
-      # Eight tenants share one postmaster; the 100 default is the sum across
+      # Eleven tenants share one postmaster; the 100 default is the sum across
       # all of them, not per app.
       max_connections: "200"
   resources:
