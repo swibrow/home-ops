@@ -1,18 +1,22 @@
 # ServiceAccount for the database-toolbox backend. The init container uses this
-# SA's token to list the CNPG app-user secrets in the cloudnative-pg namespace —
-# the Role/RoleBinding that grants that read live with the cnpg app, at
-# kubernetes/apps/pitower/cloudnative-pg/clustersecretstore/rbac.yaml.
+# SA's token to list the Postgres credential secrets in the database namespace —
+# the Role/RoleBinding that grants that read lives with the store it reads, at
+# kubernetes/apps/pitower/database/clustersecretstore/rbac.yaml.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: toolhive-database-toolbox
   namespace: ai
 ---
-# Generator script for the init container below. Enumerates every CNPG `<cluster>-app`
-# secret and emits one genai-toolbox `source` + execute-sql/list-tables tools per
-# cluster into a shared emptyDir, so the set of databases is DYNAMIC — new CNPG
-# clusters are picked up on the next pod restart, with no edits here. Passwords stay
-# in pod memory (emptyDir), never in a committed ConfigMap.
+# Generator script for the init container below. Enumerates the Postgres credentials
+# in the `database` namespace and emits one genai-toolbox `source` + execute-sql/
+# list-tables tool pair per DATABASE into a shared emptyDir, so coverage is DYNAMIC —
+# a new tenant or cluster is picked up on the next pod restart, with no edits here.
+# Passwords stay in pod memory (emptyDir), never in a committed ConfigMap.
+#
+# One source per database, not per cluster: after the consolidation `shared` and `ai`
+# each host many tenant databases, and a per-cluster source could only ever reach one
+# of them.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -23,26 +27,57 @@ data:
     #!/bin/sh
     set -eu
     OUT=/shared/tools.yaml
-    NS=cloudnative-pg
+    NS=database
     : > "$OUT"
     count=0
-    # CNPG labels every managed secret with cnpg.io/cluster; only the `<cluster>-app`
-    # secret carries app-user login creds (host/port/user/password/dbname).
-    for name in $(kubectl get secrets -n "$NS" -l cnpg.io/cluster \
-        -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'); do
-      case "$name" in *-app) ;; *) continue ;; esac
+    # YAML-safe single-quote (double any embedded quote)
+    q() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/''/g")"; }
+    #
+    # Two credential shapes live here, and they are told apart by the
+    # `cnpg.io/cluster` label, NOT by which keys are present: CNPG's secrets carry
+    # both `user` (its own convention) and `username` (mandated by the
+    # kubernetes.io/basic-auth type), so keying off `username` would misread every
+    # one of them.
+    #
+    #   labelled   -> CNPG-generated `<cluster>-app` / `<cluster>-superuser`, for
+    #                 the clusters that own a single database. Only `-app` is taken;
+    #                 `-superuser` reaches the same database as `postgres` with
+    #                 dbname `*`, which is not something to hand out as a tool.
+    #   unlabelled -> the tenant secrets we author for the shared and ai
+    #                 multi-tenant clusters, named `<cluster>-<app>`.
+    #
+    for name in $(
+      kubectl get secrets -n "$NS" -l cnpg.io/cluster \
+        -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | sed -n 's/-app$/-app/p'
+      kubectl get secrets -n "$NS" -l '!cnpg.io/cluster' \
+        --field-selector type=kubernetes.io/basic-auth \
+        -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}'
+    ); do
       json=$(kubectl get secret "$name" -n "$NS" -o json)
       get() { printf '%s' "$json" | jq -r --arg k "$1" '.data[$k] // empty' | base64 -d; }
-      # YAML-safe single-quote (double any embedded quote)
-      q() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/''/g")"; }
-      db=$(get dbname);  [ -n "$db" ] || continue
-      host=$(get host); port=$(get port); user=$(get user); pass=$(get password)
+      if printf '%s' "$json" | jq -e '.metadata.labels["cnpg.io/cluster"] // empty' >/dev/null; then
+        src="${name%-app}"
+        user=$(get user)
+      else
+        # shared-miniflux -> miniflux, ai-open-webui -> open-webui. Cluster names
+        # carry no hyphen, so stripping to the first one leaves the app name — which
+        # keeps every tool named exactly as it was before the consolidation.
+        src="${name#*-}"
+        user=$(get username)
+      fi
+      [ -n "$user" ] || continue
+      db=$(get dbname)
+      [ -n "$db" ] || continue
+      # shared and ai keep CNPG's default `app` database. It is empty, and its `app`
+      # role cannot see tenant tables — it connects fine and reports nothing — so
+      # emitting it would add two silently useless tools per multi-tenant cluster.
+      if [ "$db" = "app" ]; then continue; fi
+      host=$(get host); port=$(get port); pass=$(get password)
       case "$host" in *.*) fqdn="$host" ;; *) fqdn="${host}.${NS}.svc.cluster.local" ;; esac
-      cluster="${name%-app}"
       {
         echo "---"
         echo "kind: source"
-        echo "name: ${cluster}"
+        echo "name: ${src}"
         echo "type: postgres"
         echo "host: $(q "$fqdn")"
         echo "port: $(q "$port")"
@@ -51,27 +86,28 @@ data:
         echo "password: $(q "$pass")"
         echo "---"
         echo "kind: tool"
-        echo "name: ${cluster}_execute_sql"
+        echo "name: ${src}_execute_sql"
         echo "type: postgres-execute-sql"
-        echo "source: ${cluster}"
-        echo "description: $(q "Execute a SQL statement against the '${cluster}' CNPG PostgreSQL database. Connects as the app user (read/write on its own database).")"
+        echo "source: ${src}"
+        echo "description: $(q "Execute a SQL statement against the '${src}' PostgreSQL database. Connects as that database's owning role (read/write on it).")"
         echo "---"
         echo "kind: tool"
-        echo "name: ${cluster}_list_tables"
+        echo "name: ${src}_list_tables"
         echo "type: postgres-list-tables"
-        echo "source: ${cluster}"
-        echo "description: $(q "List tables and inspect schema (columns, indexes, constraints) in the '${cluster}' CNPG PostgreSQL database.")"
+        echo "source: ${src}"
+        echo "description: $(q "List tables and inspect schema (columns, indexes, constraints) in the '${src}' PostgreSQL database.")"
       } >> "$OUT"
       count=$((count + 1))
     done
     echo "database-toolbox: generated ${count} postgres source(s) -> ${OUT}"
-    [ "$count" -gt 0 ] || echo "WARNING: no CNPG '<cluster>-app' secrets found in ${NS}"
+    [ "$count" -gt 0 ] || echo "WARNING: no postgres credentials found in ${NS}"
 ---
 # yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpserver_v1beta1.json
-# Database Toolbox MCP backend (Google genai-toolbox) — ONE server fronting ALL CNPG
-# clusters. The init container generates a multi-source tools.yaml from the live
-# `<cluster>-app` secrets (see ConfigMap above), so coverage is dynamic. Auth reuses
-# each cluster's existing app user (read/write on its own database) per the chosen
+# Database Toolbox MCP backend (Google genai-toolbox) — ONE server fronting EVERY
+# Postgres database in the `database` namespace, tenants of the shared/ai clusters
+# included. The init container generates a multi-source tools.yaml from the live
+# credential secrets (see ConfigMap above), so coverage is dynamic. Auth reuses each
+# database's existing owning role (read/write on that database) per the chosen
 # trade-off; the execute-sql tool can therefore write — it's a human-in-the-loop dev
 # tool, not for autonomous agents. Unauthenticated and in-cluster only; auth is
 # enforced at the vMCP edge, ingress locked to the vMCP pods (networkpolicy.yaml).
