@@ -13,18 +13,3 @@ helmCharts:
     releaseName: phoenix
     namespace: ai
     valuesFile: values.yaml
-# Held at zero while the phoenix database moves into the shared `ai` CNPG
-# cluster: the dump has to run against a quiesced source. Removed in the commit
-# that flips database.postgres.host.
-#
-# This is a patch rather than `replicaCount: 0` in values.yaml because the chart
-# renders `{{ .Values.replicaCount | default 1 }}`, and Helm's `default` treats 0
-# as empty — the value would silently come back out as 1.
-patches:
-  - target:
-      kind: Deployment
-      name: phoenix
-    patch: |
-      - op: replace
-        path: /spec/replicas
-        value: 0

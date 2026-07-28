@@ -3,8 +3,8 @@ ingress:
   enabled: false
 
 # Strategy 3 from the chart docs: external database. Both the bundled postgres
-# subchart and the SQLite PVC stay off; state lives in the CNPG `phoenix` cluster
-# in the `database` namespace.
+# subchart and the SQLite PVC stay off; state lives in the `phoenix` database on
+# the shared `ai` CNPG cluster in the `database` namespace.
 postgresql:
   enabled: false
 persistence:
@@ -12,12 +12,13 @@ persistence:
 
 database:
   postgres:
-    host: phoenix-rw.database.svc.cluster.local
+    host: ai-rw.database.svc.cluster.local
     port: 5432
     db: phoenix
     user: phoenix
   # Spans are rows in postgres here, not a columnar store — without a retention
-  # window the volume only ever grows.
+  # window the volume only ever grows, and it now shares a cluster with the
+  # other AI tenants.
   defaultRetentionPolicyDays: 30
 
 server:
