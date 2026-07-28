@@ -12,15 +12,16 @@
 # config.clusterWide.
 #
 # So this release owns the webhook configurations (they render pointing at
-# database/cnpg-webhook-service, matching this operator's serving cert) and
-# the operator in `cloudnative-pg` is scaled to zero. CRD ownership stays with
-# that release for now; it still carries helm.sh/resource-policy: keep.
+# database/cnpg-webhook-service, matching this operator's serving cert) and the
+# CRDs, taken over from the retired release in `cloudnative-pg`. The handover is
+# safe because the chart stamps helm.sh/resource-policy: keep on every CRD, which
+# ArgoCD honours — deleting the old Application could not have pruned them.
 #
 # clusterWide must be true for the RBAC (a namespaced Role could not reconcile
 # Clusters in `cloudnative-pg`); WATCH_NAMESPACE does the actual narrowing.
 # Drop `cloudnative-pg` from it once that namespace has no Clusters left.
 crds:
-  create: false
+  create: true
 config:
   clusterWide: true
   data:

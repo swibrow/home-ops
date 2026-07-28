@@ -5,6 +5,22 @@ metadata:
   name: external-secrets-pg
   namespace: database
 ---
+# Read-only on secrets cluster-wide, plus the selfsubjectrulesreview the ESO
+# kubernetes provider issues to validate the store. Cluster-scoped and shared,
+# so it lives with the only store that still binds it — it used to be defined
+# alongside the retired `cnpg-secrets` store in the cloudnative-pg namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: external-secrets-pg
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["authorization.k8s.io"]
+    resources: ["selfsubjectrulesreviews"]
+    verbs: ["create"]
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
