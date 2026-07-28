@@ -3,8 +3,9 @@
 # image by release version: spegel resolves mutable tags like :latest from
 # peer caches, serving stale images.
 #
-# goat-db-secret is the CNPG-generated app credential (see
-# cloudnative-pg/cluster/cluster.yaml + the cnpg-db kustomize component).
+# goat-db-secret is derived from goat's tenant credential on the shared `ai`
+# cluster (see database/tenants/goat.yaml + the cnpg-db-shared kustomize
+# component).
 image:
   tag: v0.20.0
 imagePullSecret: ghcr-pull-secret

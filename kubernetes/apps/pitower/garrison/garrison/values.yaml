@@ -5,8 +5,9 @@
 # caches, serving stale images.
 #
 # database.enabled flips keep/herald to Postgres + HA (2 replicas each);
-# garrison-db-secret is the CNPG-generated app credential (see
-# cloudnative-pg/cluster/cluster.yaml + the cnpg-db kustomize component).
+# garrison-db-secret is derived from garrison's tenant credential on the shared
+# `ai` cluster (see database/tenants/garrison.yaml + the cnpg-db-shared
+# kustomize component).
 # Cut over per garrison's docs/postgres.md runbook.
 database:
   enabled: true
