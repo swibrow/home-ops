@@ -5,6 +5,7 @@ kind: Kustomization
 namespace: database
 resources:
   - objectstore.yaml
+  - scheduledbackup.yaml
   - immich.yaml
   - phoenix.yaml
   - shared.yaml

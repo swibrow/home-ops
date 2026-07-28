@@ -1,0 +1,36 @@
+---
+# Nightly base backups. WAL archiving is continuous and independent of these —
+# it is driven by the `isWALArchiver` plugin entry on the Cluster — so these
+# only set how far back a PITR has to replay WAL from.
+#
+# The schedule is NOT Kubernetes CronJob syntax: CNPG prepends a seconds field,
+# so this is six fields, not five. Times are UTC.
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: shared
+spec:
+  schedule: "0 0 2 * * *"
+  backupOwnerReference: self
+  # Run against a replica so the base backup does not compete with tenant
+  # traffic on the primary.
+  target: prefer-standby
+  cluster:
+    name: shared
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: ai
+spec:
+  schedule: "0 30 2 * * *"
+  backupOwnerReference: self
+  target: prefer-standby
+  cluster:
+    name: ai
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
