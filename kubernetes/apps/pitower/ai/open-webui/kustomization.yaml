@@ -8,13 +8,13 @@ resources:
 components:
   - ../../../../components/pvc
   - ../../../../components/kopiur
-  - ../../../../components/cnpg-db
+  - ../../../../components/cnpg-db-shared
 configMapGenerator:
   - name: cnpg-db-config
     literals:
       - APP_NAME=open-webui
       - SECRET_NAME=open-webui-db-secret
-      - CNPG_SECRET_KEY=open-webui-app
+      - CNPG_SECRET_KEY=ai-open-webui
       - DB_SCHEME=postgresql
   - name: pvc-config
     options:
