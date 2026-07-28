@@ -10,4 +10,16 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: database
 resources:
+  - autobrr.yaml
+  - firefly.yaml
+  - garrison.yaml
+  - gatus.yaml
+  - ghostfolio.yaml
+  - goat.yaml
+  - house-hunter.yaml
+  - litellm.yaml
+  - memini.yaml
   - miniflux.yaml
+  - open-webui.yaml
+  - paperless.yaml
+  - rackrat.yaml

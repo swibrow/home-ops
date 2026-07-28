@@ -1,0 +1,53 @@
+---
+# See miniflux.yaml for why the tenant secret is basic-auth, why it carries
+# host/port/dbname, and why target.template.metadata is pinned.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: ai-open-webui
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: infisical
+  target:
+    name: ai-open-webui
+    template:
+      type: kubernetes.io/basic-auth
+      metadata:
+        labels:
+          cnpg.io/reload: "true"
+      data:
+        username: open_webui
+        password: "{{ .password }}"
+        host: ai-rw.database.svc.cluster.local
+        port: "5432"
+        dbname: open_webui
+  data:
+    - secretKey: password
+      remoteRef:
+        key: /database/tenants/OPEN_WEBUI_PASSWORD
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: DatabaseRole
+metadata:
+  name: open-webui
+spec:
+  cluster:
+    name: ai
+  name: open_webui
+  login: true
+  databaseRoleReclaimPolicy: retain
+  passwordSecret:
+    name: ai-open-webui
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: ai-open-webui
+spec:
+  cluster:
+    name: ai
+  name: open_webui
+  owner: open_webui
+  databaseReclaimPolicy: retain

@@ -1,0 +1,53 @@
+---
+# See miniflux.yaml for why the tenant secret is basic-auth, why it carries
+# host/port/dbname, and why target.template.metadata is pinned.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: shared-house-hunter
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: infisical
+  target:
+    name: shared-house-hunter
+    template:
+      type: kubernetes.io/basic-auth
+      metadata:
+        labels:
+          cnpg.io/reload: "true"
+      data:
+        username: house_hunter
+        password: "{{ .password }}"
+        host: shared-rw.database.svc.cluster.local
+        port: "5432"
+        dbname: house_hunter
+  data:
+    - secretKey: password
+      remoteRef:
+        key: /database/tenants/HOUSE_HUNTER_PASSWORD
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: DatabaseRole
+metadata:
+  name: house-hunter
+spec:
+  cluster:
+    name: shared
+  name: house_hunter
+  login: true
+  databaseRoleReclaimPolicy: retain
+  passwordSecret:
+    name: shared-house-hunter
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: shared-house-hunter
+spec:
+  cluster:
+    name: shared
+  name: house_hunter
+  owner: house_hunter
+  databaseReclaimPolicy: retain

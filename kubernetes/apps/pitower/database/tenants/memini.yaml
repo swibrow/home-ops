@@ -1,0 +1,67 @@
+---
+# See miniflux.yaml for why the tenant secret is basic-auth, why it carries
+# host/port/dbname, and why target.template.metadata is pinned.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: ai-memini
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: infisical
+  target:
+    name: ai-memini
+    template:
+      type: kubernetes.io/basic-auth
+      metadata:
+        labels:
+          cnpg.io/reload: "true"
+      data:
+        username: memini
+        password: "{{ .password }}"
+        host: ai-rw.database.svc.cluster.local
+        port: "5432"
+        dbname: memini
+  data:
+    - secretKey: password
+      remoteRef:
+        key: /database/tenants/MEMINI_PASSWORD
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: DatabaseRole
+metadata:
+  name: memini
+spec:
+  cluster:
+    name: ai
+  name: memini
+  login: true
+  databaseRoleReclaimPolicy: retain
+  passwordSecret:
+    name: ai-memini
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: ai-memini
+spec:
+  cluster:
+    name: ai
+  name: memini
+  owner: memini
+  databaseReclaimPolicy: retain
+  # The only tenant needing extensions. The operator creates these as superuser,
+  # which is what lets the memini role own the database without being one.
+  # Listed dependency-first: vchord builds on vector (pgvector), which is what
+  # `CREATE EXTENSION vchord CASCADE` would otherwise pull in implicitly.
+  #
+  # No version is pinned, so each resolves to whatever the cluster image ships
+  # (vectorchord 18-1.1.1) rather than the 0.8.0/0.5.1 the old cluster ran. The
+  # logical restore rebuilds the vector indexes, so nothing carries the old
+  # on-disk index format across.
+  extensions:
+    - name: vector
+      ensure: present
+    - name: vchord
+      ensure: present
