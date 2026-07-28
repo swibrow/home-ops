@@ -9,7 +9,7 @@ resources:
 helmCharts:
   - name: phoenix-helm
     repo: oci://registry-1.docker.io/arizephoenix
-    version: 11.0.6
+    version: 11.0.7
     releaseName: phoenix
     namespace: ai
     valuesFile: values.yaml
