@@ -1,13 +1,5 @@
 controllers:
   backend:
-    # Held at zero for the database migration onto the dedicated rybbit
-    # cluster in the database namespace. kubectl scale cannot hold this:
-    # replicas is part of the rendered manifest, so the next automated sync
-    # restores it and the app resumes writing to the old database mid-dump.
-    # Only the backend touches Postgres - client is the SPA and clickhouse
-    # is a separate store - but tracking events arriving while it is down
-    # are dropped rather than queued.
-    replicas: 0
     annotations:
       reloader.stakater.com/auto: "true"
     containers:

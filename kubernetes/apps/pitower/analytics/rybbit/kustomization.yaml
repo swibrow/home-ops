@@ -7,7 +7,7 @@ resources:
   - externalsecret.yaml
   - clickhouse-configmap.yaml
 components:
-  - ../../../../components/cnpg-db
+  - ../../../../components/cnpg-db-database
   - ../../../../components/pvc
   - ../../../../components/kopiur
 configMapGenerator:
