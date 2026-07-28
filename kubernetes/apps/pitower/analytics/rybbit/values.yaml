@@ -1,5 +1,8 @@
 controllers:
   backend:
+    # Held at zero for the logical migration onto the shared cluster. The
+    # backend is rybbit's only Postgres writer; client and clickhouse stay up.
+    replicas: 0
     annotations:
       reloader.stakater.com/auto: "true"
     containers:

@@ -31,6 +31,18 @@ configMapGenerator:
     literals:
       - APP_NAME=forgejo-kopiur
       - CLAIM_NAME=forgejo
+patches:
+  # Held at zero for the logical migration onto the shared cluster. The chart's
+  # JSON schema sets `replicaCount` minimum 1, so setting it in values.yaml
+  # fails `helm template` and stops the whole Application rendering — this has
+  # to be a patch on the rendered Deployment.
+  - target:
+      kind: Deployment
+      name: forgejo
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 0
 helmCharts:
   - name: forgejo
     repo: oci://code.forgejo.org/forgejo-helm
