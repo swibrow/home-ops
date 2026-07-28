@@ -7,7 +7,7 @@ resources:
   - externalsecret.yaml
   - clickhouse-configmap.yaml
 components:
-  - ../../../../components/cnpg-db-database
+  - ../../../../components/cnpg-db-shared
   - ../../../../components/pvc
   - ../../../../components/kopiur
 configMapGenerator:
@@ -15,7 +15,7 @@ configMapGenerator:
     literals:
       - APP_NAME=rybbit
       - SECRET_NAME=rybbit-db-secret
-      - CNPG_SECRET_KEY=rybbit-app
+      - CNPG_SECRET_KEY=shared-rybbit
       - DB_SCHEME=postgresql
   - name: pvc-config
     options:

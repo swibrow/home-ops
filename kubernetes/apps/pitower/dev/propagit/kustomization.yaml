@@ -4,7 +4,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: dev
 components:
-  - ../../../../components/cnpg-db-database
+  - ../../../../components/cnpg-db-shared
 resources:
   - externalsecret.yaml
 configMapGenerator:
@@ -12,7 +12,7 @@ configMapGenerator:
     literals:
       - APP_NAME=propagit
       - SECRET_NAME=propagit-db-secret
-      - CNPG_SECRET_KEY=propagit-app
+      - CNPG_SECRET_KEY=shared-propagit
       - DB_SCHEME=postgresql
 helmCharts:
   - name: app-template

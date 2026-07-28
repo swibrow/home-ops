@@ -1,8 +1,5 @@
 controllers:
   propagit:
-    # Held at zero for the logical migration onto the shared cluster. Declared
-    # here rather than with `kubectl scale`, which the next ArgoCD sync undoes.
-    replicas: 0
     annotations:
       reloader.stakater.com/auto: "true"
     pod:
