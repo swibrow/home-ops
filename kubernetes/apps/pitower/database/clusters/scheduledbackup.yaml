@@ -76,18 +76,3 @@ spec:
   method: plugin
   pluginConfiguration:
     name: barman-cloud.cloudnative-pg.io
----
-# Single-instance cluster, so there is no standby to prefer; this one always
-# runs against the primary.
-apiVersion: postgresql.cnpg.io/v1
-kind: ScheduledBackup
-metadata:
-  name: temporal
-spec:
-  schedule: "0 30 4 * * *"
-  backupOwnerReference: self
-  cluster:
-    name: temporal
-  method: plugin
-  pluginConfiguration:
-    name: barman-cloud.cloudnative-pg.io

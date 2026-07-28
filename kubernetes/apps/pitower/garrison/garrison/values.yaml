@@ -179,7 +179,6 @@ mcp:
         - paperless_list_tables
         - propagit_list_tables
         - rybbit_list_tables
-        - temporal_list_tables
     # hass-mcp can actuate the house: entity_action, call_service_tool and
     # restart_ha are omitted, everything granted below only reads state.
     - name: home-assistant
