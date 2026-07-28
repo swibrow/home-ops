@@ -66,9 +66,23 @@ spec:
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
-  name: rybbit
+  name: immich
 spec:
   schedule: "0 0 4 * * *"
+  backupOwnerReference: self
+  target: prefer-standby
+  cluster:
+    name: immich
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: rybbit
+spec:
+  schedule: "0 30 4 * * *"
   backupOwnerReference: self
   target: prefer-standby
   cluster:
