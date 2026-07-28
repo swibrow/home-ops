@@ -1,10 +1,5 @@
 controllers:
   miniflux:
-    # Held down for the database migration onto the shared CNPG cluster. A
-    # `kubectl scale` cannot hold this: replicas is part of the rendered
-    # manifest, so the next automated sync puts it straight back and the app
-    # would resume writing to the old database mid-dump.
-    replicas: 0
     strategy: RollingUpdate
     annotations:
       reloader.stakater.com/auto: "true"

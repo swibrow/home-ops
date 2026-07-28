@@ -6,13 +6,15 @@ namespace: selfhosted
 resources:
   - externalsecret.yaml
 components:
-  - ../../../../components/cnpg-db
+  - ../../../../components/cnpg-db-shared
 configMapGenerator:
   - name: cnpg-db-config
     literals:
       - APP_NAME=miniflux
       - SECRET_NAME=miniflux-db-secret
-      - CNPG_SECRET_KEY=miniflux-app
+      # Tenant secret in the database namespace, not a CNPG-generated -app
+      # secret. It carries host/port/dbname as well as the credentials.
+      - CNPG_SECRET_KEY=shared-miniflux
       - DB_SCHEME=postgresql
 helmCharts:
   - name: app-template
