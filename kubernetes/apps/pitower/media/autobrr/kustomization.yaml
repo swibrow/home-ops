@@ -6,13 +6,13 @@ namespace: media
 resources:
   - externalsecret.yaml
 components:
-  - ../../../../components/cnpg-db
+  - ../../../../components/cnpg-db-shared
 configMapGenerator:
   - name: cnpg-db-config
     literals:
       - APP_NAME=autobrr
       - SECRET_NAME=autobrr-db-secret
-      - CNPG_SECRET_KEY=autobrr-app
+      - CNPG_SECRET_KEY=shared-autobrr
       - DB_SCHEME=postgresql
 helmCharts:
   - name: app-template

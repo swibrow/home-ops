@@ -6,13 +6,13 @@ namespace: rackrat
 resources:
   - externalsecret.yaml
 components:
-  - ../../../../components/cnpg-db
+  - ../../../../components/cnpg-db-shared
 configMapGenerator:
   - name: cnpg-db-config
     literals:
       - APP_NAME=rackrat
       - SECRET_NAME=rackrat-db-secret
-      - CNPG_SECRET_KEY=rackrat-app
+      - CNPG_SECRET_KEY=shared-rackrat
       # rackrat drives SQLAlchemy, which resolves a bare `postgresql://` to the
       # psycopg2 dialect. Only psycopg 3 is installed, so the URL has to name it.
       - DB_SCHEME=postgresql+psycopg

@@ -7,13 +7,13 @@ resources:
   - configmap.yaml
   - envoyextensionpolicy.yaml
 components:
-  - ../../../../components/cnpg-db
+  - ../../../../components/cnpg-db-shared
 configMapGenerator:
   - name: cnpg-db-config
     literals:
       - APP_NAME=gatus
       - SECRET_NAME=gatus-db-secret
-      - CNPG_SECRET_KEY=gatus-app
+      - CNPG_SECRET_KEY=shared-gatus
       - DB_SCHEME=postgresql
 helmCharts:
   - name: app-template
