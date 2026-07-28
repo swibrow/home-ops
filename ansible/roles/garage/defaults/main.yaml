@@ -52,6 +52,7 @@ garage_capacity: "450G"
 garage_buckets:
   - garage
   - kopiur
+  - cnpg
 
 # API keys to ensure exist, each granted read+write+owner on the listed
 # buckets. Garage stores the key + secret durably itself; read the secret back
@@ -63,3 +64,6 @@ garage_keys:
   - name: kopiur
     buckets:
       - kopiur
+  - name: cnpg
+    buckets:
+      - cnpg
