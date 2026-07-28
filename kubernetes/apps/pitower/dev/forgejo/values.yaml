@@ -21,13 +21,6 @@ route:
 tcpRoute:
   enabled: false
 
-# Held at zero for the database migration onto the dedicated forgejo cluster
-# in the database namespace. kubectl scale cannot hold this: replicas is part
-# of the rendered manifest, so the next automated sync restores it and the app
-# resumes writing to the old database mid-dump. Git over SSH and HTTP is down
-# for the duration, as is the home-ops pull mirror's next sync.
-replicaCount: 0
-
 deployment:
   annotations:
     reloader.stakater.com/auto: "true"

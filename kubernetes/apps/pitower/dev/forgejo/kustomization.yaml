@@ -31,6 +31,20 @@ configMapGenerator:
     literals:
       - APP_NAME=forgejo-kopiur
       - CLAIM_NAME=forgejo
+# Held at zero for the database migration onto the dedicated forgejo cluster
+# in the database namespace. This has to be a post-render patch rather than
+# `replicaCount: 0` in values.yaml: the chart ships a JSON schema with
+# `minimum: 1`, so a zero there fails `helm template` outright and the whole
+# Application stops rendering. Patching the rendered Deployment keeps the hold
+# declared in git, which is what makes it survive the next automated sync.
+patches:
+  - target:
+      kind: Deployment
+      name: forgejo
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 0
 helmCharts:
   - name: forgejo
     repo: oci://code.forgejo.org/forgejo-helm
