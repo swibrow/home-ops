@@ -13,12 +13,6 @@ database:
   secret: garrison-db-secret
   secretKey: DB_URL
 keep:
-  # keep/herald/warhorn are all held at zero for the database migration
-  # onto the shared ai CNPG cluster: each writes its own schema directly,
-  # so all three have to be down for the dump to be consistent. kubectl
-  # scale cannot hold this - replicas is part of the rendered manifest, so
-  # the next automated sync restores it mid-dump.
-  replicas: 0
   image: ghcr.io/swibrow/garrison-keep:v0.42.0
   imagePullPolicy: IfNotPresent
 # ghcr packages stay private (the repo is private); ghcr-pull-secret is
@@ -31,8 +25,6 @@ harness: claude
 launcher: sandbox
 herald:
   enabled: true
-  # See keep.replicas above - held at zero for the database migration.
-  replicas: 0
   allowedChatIds: "1053711635,-5540433154"
 # Discord surface. Bot token, application id, and the guild allowlist all
 # sync from Infisical (/garrison/WARHORN_*) via external-secrets — nothing
@@ -42,8 +34,6 @@ herald:
 # version above is bumped past it, these keys are inert.
 warhorn:
   enabled: true
-  # See keep.replicas above - held at zero for the database migration.
-  replicas: 0
 # Post-mortem log source. Kubernetes drops a raid pod's logs when the pod goes,
 # so `garrison keep logs`, the wartable panel, and the emissary pod_logs tool
 # used to go blind on exactly the raids worth investigating. VictoriaLogs keeps

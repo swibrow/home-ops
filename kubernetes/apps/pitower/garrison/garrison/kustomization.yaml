@@ -4,13 +4,13 @@ namespace: garrison
 resources:
   - networkpolicy-otel.yaml
 components:
-  - ../../../../components/cnpg-db
+  - ../../../../components/cnpg-db-shared
 configMapGenerator:
   - name: cnpg-db-config
     literals:
       - APP_NAME=garrison
       - SECRET_NAME=garrison-db-secret
-      - CNPG_SECRET_KEY=garrison-app
+      - CNPG_SECRET_KEY=ai-garrison
       - DB_SCHEME=postgresql
 helmCharts:
   - name: garrison
