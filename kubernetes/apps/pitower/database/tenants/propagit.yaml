@@ -1,0 +1,56 @@
+---
+# See miniflux.yaml for why the tenant secret is basic-auth, why it carries
+# host/port/dbname, and why target.template.metadata is pinned.
+#
+# The password is newly minted rather than carried over: the source credential
+# was CNPG-generated on propagit's own cluster, so there is nothing to preserve.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: shared-propagit
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: infisical
+  target:
+    name: shared-propagit
+    template:
+      type: kubernetes.io/basic-auth
+      metadata:
+        labels:
+          cnpg.io/reload: "true"
+      data:
+        username: propagit
+        password: "{{ .password }}"
+        host: shared-rw.database.svc.cluster.local
+        port: "5432"
+        dbname: propagit
+  data:
+    - secretKey: password
+      remoteRef:
+        key: /database/tenants/PROPAGIT_PASSWORD
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: DatabaseRole
+metadata:
+  name: propagit
+spec:
+  cluster:
+    name: shared
+  name: propagit
+  login: true
+  databaseRoleReclaimPolicy: retain
+  passwordSecret:
+    name: shared-propagit
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: shared-propagit
+spec:
+  cluster:
+    name: shared
+  name: propagit
+  owner: propagit
+  databaseReclaimPolicy: retain

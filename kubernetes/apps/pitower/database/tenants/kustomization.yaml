@@ -12,6 +12,7 @@ namespace: database
 resources:
   - autobrr.yaml
   - firefly.yaml
+  - forgejo.yaml
   - garrison.yaml
   - gatus.yaml
   - ghostfolio.yaml
@@ -23,4 +24,6 @@ resources:
   - open-webui.yaml
   - paperless.yaml
   - phoenix.yaml
+  - propagit.yaml
   - rackrat.yaml
+  - rybbit.yaml

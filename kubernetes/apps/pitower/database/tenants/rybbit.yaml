@@ -1,0 +1,59 @@
+---
+# See miniflux.yaml for why the tenant secret is basic-auth, why it carries
+# host/port/dbname, and why target.template.metadata is pinned.
+#
+# Only rybbit's Postgres side is a tenant here. Its ClickHouse store stays with
+# the app and keeps its own kopiur snapshot policy.
+#
+# The password is newly minted rather than carried over: the source credential
+# was CNPG-generated on rybbit's own cluster, so there is nothing to preserve.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: shared-rybbit
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: infisical
+  target:
+    name: shared-rybbit
+    template:
+      type: kubernetes.io/basic-auth
+      metadata:
+        labels:
+          cnpg.io/reload: "true"
+      data:
+        username: rybbit
+        password: "{{ .password }}"
+        host: shared-rw.database.svc.cluster.local
+        port: "5432"
+        dbname: rybbit
+  data:
+    - secretKey: password
+      remoteRef:
+        key: /database/tenants/RYBBIT_PASSWORD
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: DatabaseRole
+metadata:
+  name: rybbit
+spec:
+  cluster:
+    name: shared
+  name: rybbit
+  login: true
+  databaseRoleReclaimPolicy: retain
+  passwordSecret:
+    name: shared-rybbit
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: shared-rybbit
+spec:
+  cluster:
+    name: shared
+  name: rybbit
+  owner: rybbit
+  databaseReclaimPolicy: retain
