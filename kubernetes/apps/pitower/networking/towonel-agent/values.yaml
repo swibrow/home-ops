@@ -33,7 +33,9 @@ controllers:
           TOWONEL_AGENT_HEALTH_LISTEN_ADDR: 0.0.0.0:9090
           TOWONEL_AGENT_SERVICES: |
             [
-              {"hostname":"*.wibrow.dev","origin":"envoy-external.networking.svc.cluster.local:443"}
+              {"hostname":"*.wibrow.dev","origin":"envoy-external.networking.svc.cluster.local:443"},
+              {"hostname":"propagit.dev","origin":"envoy-external.networking.svc.cluster.local:443"},
+              {"hostname":"*.propagit.dev","origin":"envoy-external.networking.svc.cluster.local:443"}
             ]
           TOWONEL_INVITE_TOKEN:
             valueFrom:

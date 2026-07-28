@@ -28,10 +28,17 @@ spec:
         namespaces:
           from: All
       tls:
+        # Both certs hang off this one listener: Envoy selects on SNI
+        # (longest matching name wins). Separate listeners would need one
+        # per hostname pattern and, being more specific, would claim the
+        # traffic away from this listener entirely.
         certificateRefs:
           - group: ''
             kind: Secret
             name: wibrow-dev-production-tls
+          - group: ''
+            kind: Secret
+            name: propagit-dev-production-tls
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/gateway.networking.k8s.io/httproute_v1.json
 apiVersion: gateway.networking.k8s.io/v1

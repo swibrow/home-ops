@@ -17,7 +17,7 @@ spec:
         selector:
           dnsZones:
             - "wibrow.dev"
-            - "wibrow.dev"
+            - "propagit.dev"
 ---
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
@@ -38,4 +38,4 @@ spec:
         selector:
           dnsZones:
             - "wibrow.dev"
-            - "wibrow.dev"
+            - "propagit.dev"

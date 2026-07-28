@@ -20,3 +20,17 @@ spec:
       providerSpecific:
         - name: external-dns.alpha.kubernetes.io/cloudflare-proxied
           value: "false"
+    # propagit.dev rides the same tunnel edge. Cloudflare flattens the apex
+    # CNAME, so no A record is needed here.
+    - dnsName: "propagit.dev"
+      recordType: CNAME
+      targets: ["tunnel.wibrow.dev"]
+      providerSpecific:
+        - name: external-dns.alpha.kubernetes.io/cloudflare-proxied
+          value: "false"
+    - dnsName: "*.propagit.dev"
+      recordType: CNAME
+      targets: ["tunnel.wibrow.dev"]
+      providerSpecific:
+        - name: external-dns.alpha.kubernetes.io/cloudflare-proxied
+          value: "false"

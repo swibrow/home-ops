@@ -13,6 +13,13 @@ controllers:
         env:
           TZ: Europe/Zurich
           PROPAGIT_ADDR: :8000
+          # /metrics is served only on this second listener, off the routed
+          # port, so it never reaches the internet.
+          PROPAGIT_METRICS_ADDR: :9090
+          # Envoy fronts propagit, so X-Forwarded-For is trusted only from the
+          # pod network. Without it every client shares one rate-limit bucket
+          # keyed on the gateway's address.
+          PROPAGIT_TRUSTED_PROXIES: 10.244.0.0/16
           PROPAGIT_DATABASE_URL:
             valueFrom:
               secretKeyRef:
@@ -63,9 +70,23 @@ service:
     ports:
       http:
         port: *httpPort
+      metrics:
+        port: 9090
+
+serviceMonitor:
+  app:
+    serviceName: propagit
+    endpoints:
+      - port: metrics
+        scheme: http
+        path: /metrics
+        interval: 1m
+        scrapeTimeout: 10s
+
 route:
   app:
     hostnames:
+      - propagit.dev
       - propagit.wibrow.dev
     parentRefs:
       - name: envoy-external
