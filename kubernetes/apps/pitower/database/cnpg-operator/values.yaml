@@ -1,4 +1,4 @@
-# The cluster's only running CNPG operator.
+# The cluster's only CNPG operator.
 #
 # Two operators cannot coexist: the admission webhook configurations are
 # cluster-scoped with names hardcoded in the operator
@@ -13,19 +13,17 @@
 #
 # So this release owns the webhook configurations (they render pointing at
 # database/cnpg-webhook-service, matching this operator's serving cert) and the
-# CRDs, taken over from the retired release in `cloudnative-pg`. The handover is
-# safe because the chart stamps helm.sh/resource-policy: keep on every CRD, which
-# ArgoCD honours — deleting the old Application could not have pruned them.
+# CRDs, taken over from the release that used to run in `cloudnative-pg`.
 #
-# clusterWide must be true for the RBAC (a namespaced Role could not reconcile
-# Clusters in `cloudnative-pg`); WATCH_NAMESPACE does the actual narrowing.
-# Drop `cloudnative-pg` from it once that namespace has no Clusters left.
+# clusterWide stays true because the webhook configurations and the CRDs are
+# cluster-scoped and a namespaced Role could not reconcile them; WATCH_NAMESPACE
+# is what actually confines the operator to the Clusters in this namespace.
 crds:
   create: true
 config:
   clusterWide: true
   data:
-    WATCH_NAMESPACE: cloudnative-pg,database
+    WATCH_NAMESPACE: database
 webhook:
   mutating:
     create: true
