@@ -61,7 +61,7 @@ gitea:
   config:
     database:
       DB_TYPE: postgres
-      HOST: forgejo-rw.cloudnative-pg.svc.cluster.local:5432
+      HOST: forgejo-rw.database.svc.cluster.local:5432
       NAME: forgejo
       USER: forgejo
     cache:
