@@ -1,0 +1,31 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/postgresql.cnpg.io/cluster_v1.json
+#
+# Only rybbit's Postgres side lives here. Its ClickHouse store is separate and
+# is backed up by its own kopiur snapshot policy in the app.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: rybbit
+  namespace: database
+spec:
+  instances: 2
+  # pg17 on the old cluster; the logical restore carries it to 18.
+  imageName: ghcr.io/cloudnative-pg/postgresql:18
+  enableSuperuserAccess: true
+  # See forgejo.yaml for why switchover rather than the default in-place restart.
+  primaryUpdateMethod: switchover
+  bootstrap:
+    initdb:
+      database: rybbit
+      owner: rybbit
+  storage:
+    size: 1Gi
+    storageClass: openebs-hostpath
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: garage
+  monitoring:
+    enablePodMonitor: true
