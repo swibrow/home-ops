@@ -9,3 +9,9 @@ spec:
   replicas: 2
   sandboxTemplateRef:
     name: flickerd
+  # Default (OnReplenish) only staleness-checks orphaned Sandboxes, so already-warmed
+  # pods keep running an old sandbox image indefinitely after a SandboxTemplate bump.
+  # Recreate hash-compares every owned Sandbox against the template each reconcile and
+  # replaces drifted ones automatically.
+  updateStrategy:
+    type: Recreate
