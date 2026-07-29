@@ -159,6 +159,7 @@ nav:
       - Talos Commands: operations/talos-commands.md
       - Troubleshooting: operations/troubleshooting.md
       - Upgrades: operations/upgrades.md
+      - CNPG Consolidation: operations/cnpg-consolidation.md
   - CI/CD:
       - ci-cd/index.md
       - GitHub Actions: ci-cd/github-actions.md
