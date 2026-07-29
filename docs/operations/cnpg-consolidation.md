@@ -53,7 +53,7 @@ flowchart TD
     end
 
     subgraph Consumers["Application namespaces"]
-        C1[17 apps via<br/>cnpg-db-shared]
+        C1[16 apps via<br/>cnpg-db-shared]
         C2[immich via an<br/>inline ExternalSecret]
     end
 
@@ -157,13 +157,16 @@ Both are consumed identically by the app -- they emit the same
 `DB_HOST`/`DB_PORT`/`DB_USER`/`DB_PASS`/`DB_NAME`/`DB_URL` Secret -- so flipping
 an app between them is a two-line kustomization change.
 
-!!! warning "`cnpg-db-database` is now dead code"
-    It was written for the dedicated-cluster detour and its last three
-    consumers left on 2026-07-29. `cnpg-db-shared` now has 17 consumers;
-    `cnpg-db-database` has **zero**. immich, the only app still reading a
-    CNPG-generated secret, does it with an inline ExternalSecret against the
-    `cnpg-secrets-database` store rather than through the component. Unless a
-    dedicated cluster is planned, the component should be deleted.
+!!! note "`cnpg-db-database` has since been deleted"
+    It was written for the dedicated-cluster detour, and its last three
+    consumers left on 2026-07-29, taking it to zero. immich, the only app still
+    reading a CNPG-generated secret, does it with an inline ExternalSecret
+    against the `cnpg-secrets-database` store rather than through a component,
+    so nothing was left to serve. Removed 2026-07-29; the table above is
+    kept because it explains why two components existed during the migration.
+
+    `cnpg-db-shared`, with 16 app consumers, is now the only CNPG consumer
+    component.
 
 ### Backups
 
@@ -680,13 +683,10 @@ migration -- the columns were absent from source *and* target, 926 = 926.
 
 Known-stale and outstanding, none blocking:
 
-- **`components/cnpg-db-database` has no consumers.** Orphaned by the final
-  batch; see the warning [above](#the-tenant-credential-secret). Delete it
-  unless a dedicated cluster is planned.
-- **`docs/applications/databases/index.md` is badly out of date.** It still
-  documents the retired `cloudnative-pg` namespace, its per-app clusters and
-  the `cnpg-secrets` store, including apps (tandoor, lldap) that no longer have
-  databases. It needs a rewrite against the three-cluster shape.
+- ~~`components/cnpg-db-database` has no consumers.~~ **Done** — deleted
+  2026-07-29.
+- ~~`docs/applications/databases/index.md` is badly out of date.~~ **Done** —
+  rewritten against the three-cluster shape 2026-07-29.
 - **Three orphaned `Backup` CRs.** `forgejo-premigration-cutover`,
   `propagit-premigration-cutover` and `rybbit-premigration-cutover` reference
   Clusters that no longer exist. They were created on-demand, so ArgoCD has no
