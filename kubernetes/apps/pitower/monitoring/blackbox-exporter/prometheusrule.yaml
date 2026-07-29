@@ -1,0 +1,101 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/monitoring.coreos.com/prometheusrule_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: cameras
+spec:
+  groups:
+    - name: cameras.rules
+      rules:
+        # Probes run every 60s, so `for: 5m` means five consecutive failures.
+        # That rides out a camera reboot or a PoE switch port bouncing without
+        # notifying, while still catching a real outage inside six minutes.
+        # Alertmanager groups on alertname, so several cameras dropping at once
+        # arrive as one notification rather than one per camera.
+        - alert: CameraUnreachable
+          annotations:
+            summary: Camera {{ $labels.camera }} is unreachable.
+            description: >-
+              The RTSP port on {{ $labels.instance }} ({{ $labels.camera }}) has
+              refused or timed out every connection for 5 minutes, so Frigate
+              cannot be recording it. Check the camera has power and its PoE
+              switch port is up, then that the IoT VLAN still resolves and routes
+              from the cluster.
+          expr: |
+            probe_success{job="cameras"} == 0
+          for: 5m
+          labels:
+            severity: critical
+
+        # Every camera failing at once is almost never five simultaneous camera
+        # faults — it points at the IoT VLAN, DNS, or the exporter's egress path.
+        # Deliberately a separate alert from CameraUnreachable: the inhibit rules
+        # in the Alertmanager config match on alertname, so this fires alongside
+        # the per-camera alerts and names the likely cause.
+        - alert: AllCamerasUnreachable
+          annotations:
+            summary: All cameras are unreachable at once — suspect the network, not the cameras.
+            description: >-
+              Every camera probe is failing. Check IoT VLAN routing, DNS
+              resolution of *.iot from the cluster, and the IoT firewall rules
+              before power-cycling any camera.
+          expr: |
+            count(probe_success{job="cameras"} == 0)
+              ==
+            count(probe_success{job="cameras"})
+          for: 5m
+          labels:
+            severity: critical
+
+        # A camera that flaps in and out will not hold CameraUnreachable for the
+        # full 5m, so it would otherwise go unnoticed while Frigate drops
+        # segments. Six or more transitions in an hour is well clear of a single
+        # reboot (two transitions).
+        - alert: CameraFlapping
+          annotations:
+            summary: Camera {{ $labels.camera }} connectivity is flapping.
+            description: >-
+              {{ $labels.instance }} ({{ $labels.camera }}) has changed
+              reachability {{ $value | printf "%.0f" }} times in the last hour.
+              Frigate will be losing recording segments each time it drops.
+              Usually a marginal PoE run, a failing injector, or wifi contention.
+          expr: |
+            changes(probe_success{job="cameras"}[1h]) >= 6
+          for: 10m
+          labels:
+            severity: warning
+
+        # Guards against silent failure of the monitoring itself: if the
+        # exporter dies or the Probe objects stop being discovered, probe_success
+        # simply stops existing and every rule above evaluates to nothing.
+        - alert: CameraProbesAbsent
+          annotations:
+            summary: Camera connectivity probes have stopped reporting.
+            description: >-
+              No probe_success series for job="cameras". Camera connectivity is
+              currently unmonitored — check the blackbox-exporter pod and that
+              the Probe resources are still present.
+          expr: |
+            absent(probe_success{job="cameras"})
+          for: 15m
+          labels:
+            severity: critical
+
+        - alert: BlackboxExporterAbsent
+          annotations:
+            summary: Blackbox exporter has disappeared from Prometheus target discovery.
+          expr: |
+            absent(up{job="blackbox-exporter"})
+          for: 15m
+          labels:
+            severity: critical
+
+        - alert: BlackboxExporterDown
+          annotations:
+            summary: Blackbox exporter is not scrapeable.
+          expr: |
+            up{job="blackbox-exporter"} == 0
+          for: 15m
+          labels:
+            severity: warning

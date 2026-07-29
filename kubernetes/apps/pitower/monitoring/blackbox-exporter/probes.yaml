@@ -1,0 +1,112 @@
+---
+# One Probe per camera. They all share jobName: cameras, so alerts can select
+# the whole fleet with job="cameras" while each series still carries a readable
+# `camera` label — the hostnames are opaque UniFi serials.
+#
+# Targets mirror the go2rtc stream hosts in the Frigate config at
+# kubernetes/apps/pitower/home-automation/frigate/configmap.yaml. Keep the two
+# in sync when a camera is added, replaced, or renamed.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/monitoring.coreos.com/probe_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: camera-basement
+spec:
+  jobName: cameras
+  interval: 1m
+  scrapeTimeout: 10s
+  module: camera_rtsp
+  prober:
+    url: blackbox-exporter.monitoring.svc.cluster.local:9115
+    scheme: http
+    path: /probe
+  targets:
+    staticConfig:
+      static:
+        - Camera-G100-7C13.iot:8554
+      labels:
+        camera: basement
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/monitoring.coreos.com/probe_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: camera-bedroom-juno
+spec:
+  jobName: cameras
+  interval: 1m
+  scrapeTimeout: 10s
+  module: camera_rtsp
+  prober:
+    url: blackbox-exporter.monitoring.svc.cluster.local:9115
+    scheme: http
+    path: /probe
+  targets:
+    staticConfig:
+      static:
+        - Camera-G100-815D.iot:8554
+      labels:
+        camera: bedroom_juno
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/monitoring.coreos.com/probe_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: camera-doorbell
+spec:
+  jobName: cameras
+  interval: 1m
+  scrapeTimeout: 10s
+  module: camera_rtsp
+  prober:
+    url: blackbox-exporter.monitoring.svc.cluster.local:9115
+    scheme: http
+    path: /probe
+  targets:
+    staticConfig:
+      static:
+        - Doorbell.iot:8554
+      labels:
+        camera: doorbell
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/monitoring.coreos.com/probe_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: camera-backyard
+spec:
+  jobName: cameras
+  interval: 1m
+  scrapeTimeout: 10s
+  module: camera_rtsp
+  prober:
+    url: blackbox-exporter.monitoring.svc.cluster.local:9115
+    scheme: http
+    path: /probe
+  targets:
+    staticConfig:
+      static:
+        - Camera-G100-6751.iot:8554
+      labels:
+        camera: backyard
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/monitoring.coreos.com/probe_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: camera-attic
+spec:
+  jobName: cameras
+  interval: 1m
+  scrapeTimeout: 10s
+  module: camera_rtsp
+  prober:
+    url: blackbox-exporter.monitoring.svc.cluster.local:9115
+    scheme: http
+    path: /probe
+  targets:
+    staticConfig:
+      static:
+        - Camera-G100-9849.iot:8554
+      labels:
+        camera: attic

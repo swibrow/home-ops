@@ -1,0 +1,81 @@
+controllers:
+  blackbox-exporter:
+    strategy: RollingUpdate
+    annotations:
+      reloader.stakater.com/auto: "true"
+    containers:
+      app:
+        image:
+          repository: quay.io/prometheus/blackbox-exporter
+          tag: v0.28.0
+        args:
+          - --config.file=/etc/blackbox_exporter/blackbox.yml
+        env:
+          TZ: Europe/Zurich
+        probes:
+          liveness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /-/healthy
+                port: 9115
+              initialDelaySeconds: 5
+              periodSeconds: 10
+              failureThreshold: 3
+          readiness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /-/healthy
+                port: 9115
+              initialDelaySeconds: 5
+              periodSeconds: 10
+              failureThreshold: 3
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities: {drop: ["ALL"]}
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32M
+          limits:
+            memory: 128M
+
+defaultPodOptions:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+
+service:
+  app:
+    controller: blackbox-exporter
+    ports:
+      http:
+        port: 9115
+
+# Self-monitoring only. The camera probes themselves are driven by the Probe
+# resources in probes.yaml, which point Prometheus at this service's /probe
+# endpoint. Scraping /metrics here is what makes up{job="blackbox-exporter"}
+# exist, so BlackboxExporterAbsent can catch the exporter dying.
+serviceMonitor:
+  app:
+    serviceName: blackbox-exporter
+    endpoints:
+      - port: http
+        scheme: http
+        path: /metrics
+        interval: 1m
+        scrapeTimeout: 10s
+
+persistence:
+  config:
+    type: configMap
+    name: blackbox-exporter-config
+    globalMounts:
+      - path: /etc/blackbox_exporter/blackbox.yml
+        subPath: blackbox.yml
+        readOnly: true

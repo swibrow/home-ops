@@ -1,0 +1,29 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: blackbox-exporter-config
+  namespace: monitoring
+data:
+  blackbox.yml: |
+    modules:
+      # Plain TCP connect against the camera's RTSP port.
+      #
+      # Not an RTSP OPTIONS handshake: blackbox's `query_response.send` is a
+      # static string shared by every target, so the request line can't carry
+      # the per-camera host, and `OPTIONS * RTSP/1.0` is not answered
+      # consistently across firmware revisions.
+      #
+      # Not ICMP either: ping needs CAP_NET_RAW, and a camera that answers ping
+      # with a dead RTSP daemon is still broken as far as Frigate is concerned.
+      # A successful connect to 8554 proves DNS, IoT-VLAN routing, and the
+      # camera's RTSP listener are all alive in one check.
+      camera_rtsp:
+        prober: tcp
+        timeout: 5s
+        tcp:
+          # Cameras are IPv4-only on the IoT VLAN. Without the fallback disabled
+          # blackbox retries over IPv6 on failure, which slows the probe down and
+          # reports a misleading probe_ip_protocol.
+          preferred_ip_protocol: ip4
+          ip_protocol_fallback: false
