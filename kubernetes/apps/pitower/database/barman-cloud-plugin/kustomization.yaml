@@ -6,7 +6,7 @@ namespace: database
 helmCharts:
   - name: plugin-barman-cloud
     repo: https://cloudnative-pg.io/charts/
-    version: 0.7.0
+    version: 0.7.1
     releaseName: barman-cloud
     includeCRDs: true
     valuesFile: values.yaml
