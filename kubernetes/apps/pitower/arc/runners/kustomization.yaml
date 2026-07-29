@@ -140,7 +140,7 @@ helmCharts:
           serviceAccountName: garrison-runners
           containers:
             - name: runner
-              image: ghcr.io/cloudsnacks/actions-runner:2.336.0-1
+              image: ghcr.io/cloudsnacks/actions-runner:2.336.0-2
               command: ["/home/runner/run.sh"]
               resources:
                 requests:
