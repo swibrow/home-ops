@@ -9,7 +9,7 @@ controllers:
       app:
         image:
           repository: ghcr.io/immich-app/immich-server
-          tag: v3.0.3
+          tag: v3.1.0
         env:
           TZ: Europe/Zurich
           IMMICH_PORT: &serverPort 2283
@@ -68,7 +68,7 @@ controllers:
       app:
         image:
           repository: ghcr.io/immich-app/immich-machine-learning
-          tag: v3.0.3
+          tag: v3.1.0
         env:
           TZ: Europe/Zurich
           MACHINE_LEARNING_CACHE_FOLDER: /cache
