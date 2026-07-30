@@ -135,12 +135,20 @@ helmCharts:
     valuesInline:
       githubConfigUrl: https://github.com/swibrow/garrison
       runnerScaleSetName: garrison
+      # garrison's ci workflow fans out further than the shared default of two
+      # runners can absorb: on a main push it wants the five gates plus a keep
+      # and a runner image build at once. On run 30489535961 that queued for 56
+      # aggregate minutes against 24 minutes of actual work — build (keep) alone
+      # waited 22m54 for a slot. minRunners keeps one warm, which is what takes
+      # the ~10 minute ARC cold start off the front of every run.
+      minRunners: 1
+      maxRunners: 6
       template:
         spec:
           serviceAccountName: garrison-runners
           containers:
             - name: runner
-              image: ghcr.io/cloudsnacks/actions-runner:2.336.0-1
+              image: ghcr.io/cloudsnacks/actions-runner:2.336.0-3
               command: ["/home/runner/run.sh"]
               resources:
                 requests:
