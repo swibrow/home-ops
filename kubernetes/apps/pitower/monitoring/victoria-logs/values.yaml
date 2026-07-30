@@ -25,8 +25,8 @@ server:
   # krr: victoria-logs/vlogs
   resources:
     requests:
-      cpu: 50m
-      memory: 230Mi
+      cpu: 134m
+      memory: 581Mi
     limits:
       # The limit caps this cgroup's page cache, not just its heap. At 1Gi the
       # cgroup held ~90Mi of cache for a 20Gi dataset, so every background merge

@@ -25,5 +25,5 @@ ceph-csi-operator:
 resources:
   requests:
     memory: 74Mi
-    cpu: 35m
+    cpu: 467m
   limits: {}

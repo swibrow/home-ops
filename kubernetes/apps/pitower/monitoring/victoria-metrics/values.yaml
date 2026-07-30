@@ -24,7 +24,7 @@ server:
   # krr: victoria-metrics-server/vmsingle
   resources:
     requests:
-      cpu: 100m
+      cpu: 175m
       memory: 1001Mi
     limits:
       # 100Gi of parts on local disk with a 2y retention; the cgroup was holding
