@@ -142,16 +142,53 @@ helmCharts:
       template:
         spec:
           serviceAccountName: garrison-runners
+          # Both CI scratch paths are tmpfs. worker-07 is the only compute node,
+          # so it carries all of these runners on top of frigate, the ai
+          # namespace and monitoring - sda sustains ~6700 w/s at queue depth 28,
+          # and a 4k fsync from inside a runner measured 37ms at rest and >240ms
+          # under a CI fan-out. That is not a throughput problem (bulk writes hit
+          # ~107MB/s and 100 file creates take 37ms); it is fsync latency on the
+          # shared containerd overlayfs, and it is what makes garrison's gates
+          # time out. The same node:sqlite open/write/reopen cycle that herald's
+          # binding-store test performs runs 6x faster on tmpfs than on the
+          # overlay on an idle node, and tmpfs does not degrade under a fan-out
+          # because no block device is involved. `work` is where the checkout,
+          # node_modules (2.4GB / ~101k files) and dist land; /tmp is where
+          # os.tmpdir() tests write.
+          volumes:
+            # A green run puts 3.4Gi in `work` (checkout + node_modules + every
+            # package's dist) plus setup-node's tool cache, so 8Gi is a bit over
+            # 2x headroom.
+            - name: work
+              emptyDir:
+                medium: Memory
+                sizeLimit: 8Gi
+            - name: tmp
+              emptyDir:
+                medium: Memory
+                sizeLimit: 2Gi
           containers:
             - name: runner
               image: ghcr.io/cloudsnacks/actions-runner:2.336.0-3
               command: ["/home/runner/run.sh"]
+              # The chart mounts `work` and dind-sock itself; anything else has
+              # to be declared here or it is dropped.
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
               resources:
+                # tmpfs pages count against the container's memory cgroup and
+                # cannot be reclaimed, so both sizeLimits (10Gi) are memory this
+                # pod can really pin, on top of the job itself - a gate peaked
+                # at ~2.3Gi. The request has to carry that, not just the limit:
+                # with maxRunners unset the only thing bounding a wide burst is
+                # the scheduler, and it can only bound what it was told to
+                # reserve.
                 requests:
                   cpu: 1
-                  memory: 4Gi
+                  memory: 12Gi
                 limits:
-                  memory: 8Gi
+                  memory: 14Gi
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
