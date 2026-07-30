@@ -55,6 +55,11 @@ secrets:
     store: infisical
     basePath: /garrison
     githubApp: true
+    # /garrison/CLAUDE_CODE_OAUTH_TOKEN into garrison-keep-env: the keep pod
+    # runs Claude itself for the Guild Officer (the hosted Guild Chat replier,
+    # keep >= 0.48.0) and the quest-enrichment agent. Without it the officer
+    # parks at degraded with "Not logged in · Please run /login".
+    keepEnv: true
     # OTLP collector endpoint for runner sortie pods and the keep itself —
     # synced by the chart's own garrison-runner-env/garrison-keep-env
     # ExternalSecrets (requires chart >= 0.25.0). Replaces the standalone
