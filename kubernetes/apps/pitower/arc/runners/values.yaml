@@ -8,8 +8,9 @@ controllerServiceAccount:
   name: arc-gha-rs-controller
   namespace: arc
 
+# maxRunners left unset on purpose: the controller then hands the listener
+# math.MaxInt32, so scale-up is bounded only by cluster capacity, not by ARC.
 minRunners: 0
-maxRunners: 2
 
 containerMode:
   type: dind
