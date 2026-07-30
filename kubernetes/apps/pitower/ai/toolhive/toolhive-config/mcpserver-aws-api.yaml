@@ -47,6 +47,13 @@ spec:
       value: 0.0.0.0
     - name: AWS_API_MCP_ALLOWED_HOSTS
       value: "*"
+    # AWS_API_MCP_ALLOWED_HOSTS only reaches the app-level FastMCP middleware.
+    # FastMCP 3.x has its own host check ahead of it (http_host_origin_protection,
+    # default on) whose allowlist is DEFAULT_HOSTS = 127.0.0.1/localhost/::1, so it
+    # 421s the headless-service Host the ToolHive proxy rewrites to. Settings env
+    # prefix is FASTMCP_, and the field is a list, so the value must be JSON.
+    - name: FASTMCP_HTTP_ALLOWED_HOSTS
+      value: '["*"]'
     - name: AWS_REGION
       value: eu-central-2
     # The vMCP enforces auth at the edge; the server itself is unauthenticated

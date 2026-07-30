@@ -13,6 +13,11 @@ spec:
   args:
     - -t
     - sse
+    # mcp-grafana 1.0.0 validates the Host header, defaulting to loopback variants
+    # of --address (here only "[::1]:8000"). The ToolHive proxy rewrites Host to
+    # the headless service name, which that default rejects with 403. Safe to
+    # disable: ingress is netpol-locked to the two vMCP pods.
+    - -allowed-hosts=*
   groupRef:
     name: mcp-tools
   env:
