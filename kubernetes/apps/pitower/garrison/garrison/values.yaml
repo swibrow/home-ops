@@ -67,6 +67,11 @@ secrets:
     # the chart's own ExternalSecrets for ownership of the same Secret.
     runnerOtel: true
     keepOtel: true
+    # /garrison/MEMINI_API_KEY into garrison-runner-env: cross-raid memory.
+    # A raid only uses it when its repo commits a memory.url to
+    # .garrison/config.yaml — the key alone is inert.
+    runnerProviderKeys:
+      - MEMINI_API_KEY
 persistence:
   size: 5Gi
 networkPolicy:
@@ -86,6 +91,20 @@ networkPolicy:
       ports:
         - protocol: TCP
           port: 8080
+    # memini (ai/memini) is only published on envoy-internal, so
+    # memini-api.wibrow.dev resolves to 10.20.10.238 — inside the blocked
+    # 10.0.0.0/8 range. Allowing the gateway pods on 443 also reaches every
+    # other internal vhost behind them; NetworkPolicy cannot filter by SNI.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: networking
+          podSelector:
+            matchLabels:
+              gateway.networking.k8s.io/gateway-name: envoy-internal
+      ports:
+        - protocol: TCP
+          port: 443
 httpRoute:
   enabled: true
   hostname: garrison.wibrow.dev
