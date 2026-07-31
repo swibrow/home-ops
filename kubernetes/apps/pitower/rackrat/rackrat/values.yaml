@@ -22,7 +22,7 @@ controllers:
       migrate:
         image:
           repository: ghcr.io/swibrow/rackrat
-          tag: v0.1.1
+          tag: v0.2.0
         command: ["sh", "-c"]
         args: ["alembic upgrade head && rackrat reference sync"]
         env: &env
@@ -53,7 +53,7 @@ controllers:
       app:
         image:
           repository: ghcr.io/swibrow/rackrat
-          tag: v0.1.1
+          tag: v0.2.0
         # The image entrypoint is the `rackrat` CLI; the API is a different
         # surface, so both command and args are replaced.
         command: ["uvicorn"]
@@ -111,7 +111,7 @@ controllers:
       app:
         image:
           repository: ghcr.io/swibrow/rackrat
-          tag: v0.1.1
+          tag: v0.2.0
         args: ["scrape", "ricardo:poweredge", "--alert"]
         env: *env
         envFrom: *envFrom
