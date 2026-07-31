@@ -75,6 +75,13 @@ oidc:
   issuer: https://idm.wibrow.dev/oauth2/openid/goat
   clientId: goat
   scopes: "openid email profile groups offline_access"
+  # MCP OAuth proxy (goat >= 0.22): /mcp advertises goat as its own OAuth
+  # server and proxies login through this kanidm public client (kanidm has no
+  # dynamic client registration). Redirect URL registered in kanidm:
+  # https://goat.wibrow.dev/oauth/callback. Access gated by the app_access
+  # scope map, same as the SPA client. The chart derives PUBLIC_BASE_URL from
+  # httpRoute.hostname when this is set.
+  mcpClientId: goat-mcp
 secrets:
   externalSecrets:
     enabled: true
