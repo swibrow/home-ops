@@ -63,14 +63,6 @@ hubble:
   ui:
     enabled: true
     rollOutPods: true
-    ingress:
-      enabled: true
-      className: internal
-      hosts:
-        - "hubble.wibrow.dev"
-      tls:
-        - hosts:
-            - "hubble.wibrow.dev"
 ipam:
   mode: kubernetes
 ipv4NativeRoutingCIDR: 10.244.0.0/16
