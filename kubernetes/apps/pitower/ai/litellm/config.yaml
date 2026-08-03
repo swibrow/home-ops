@@ -16,6 +16,42 @@ model_list:
     litellm_params:
       model: openrouter/anthropic/claude-haiku-4.5
       api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: claude-fable
+    litellm_params:
+      model: openrouter/anthropic/claude-fable-5
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  # --- Claude Code Max subscription (direct Anthropic, OAuth forwarded) ---
+  # One pinned entry per model, no router: Claude Code sets ANTHROPIC_MODEL to
+  # exactly one of these, so a conversation never switches model mid-flight and
+  # the prompt cache survives. Routing across tiers is what breaks that, and it
+  # also walks into litellm#26224 (complexity_router 400s on thinking.type=adaptive).
+  #
+  # No api_key: Claude Code authenticates to LiteLLM with x-litellm-api-key and
+  # carries its own sub OAuth token (sk-ant-oat*) in Authorization. clean_headers()
+  # preserves that header and add_provider_specific_headers_to_request() forwards it
+  # to anthropic/bedrock/vertex_ai only, so it never reaches OpenRouter. Needs no
+  # forward_client_headers_to_llm_api on v1.95.0 despite what the tutorial says.
+  # The client must NOT set ANTHROPIC_AUTH_TOKEN/ANTHROPIC_API_KEY: per Anthropic's
+  # gateway docs a credential variable replaces the subscription login and moves
+  # billing to that credential. The virtual key rides in ANTHROPIC_CUSTOM_HEADERS.
+  # Any client WITHOUT an OAuth token silently falls back to the ANTHROPIC_API_KEY
+  # in the litellm secret and bills the API account instead of the subscription.
+  - model_name: claude-haiku-max
+    litellm_params:
+      model: anthropic/claude-haiku-4-5
+  - model_name: claude-sonnet-max
+    litellm_params:
+      model: anthropic/claude-sonnet-5
+  - model_name: claude-opus-max
+    litellm_params:
+      model: anthropic/claude-opus-5
+  # Fable rejects thinking:{type:disabled} and assistant prefill with a 400, and
+  # is unavailable to orgs below 30-day data retention. drop_params handles the
+  # first; the rest surface as errors rather than silently downgrading.
+  - model_name: claude-fable-max
+    litellm_params:
+      model: anthropic/claude-fable-5
 
   # --- Embeddings (memini) ---
   - model_name: memini-embed
