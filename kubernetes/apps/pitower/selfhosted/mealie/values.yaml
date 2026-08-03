@@ -7,6 +7,7 @@ controllers:
           tag: v3.22.0
         env:
           ALLOW_SIGNUP: "false"
+          ALLOW_PASSWORD_LOGIN: "false"
           BASE_URL: https://recipes.wibrow.dev
           TZ: Europe/Zurich
           OIDC_AUTH_ENABLED: "true"
