@@ -37,7 +37,7 @@ controllers:
                 key: DB_NAME
         resources:
           requests:
-            cpu: 10m
+            cpu: 38m
             memory: 128Mi
           limits:
             memory: 512Mi

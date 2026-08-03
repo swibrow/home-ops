@@ -31,7 +31,7 @@ controllers:
         resources:
           requests:
             cpu: 10m
-            memory: 120Mi
+            memory: 181Mi
     serviceAccount:
       identifier: homepage
 service:

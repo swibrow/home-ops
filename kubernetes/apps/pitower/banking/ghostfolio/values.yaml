@@ -36,7 +36,7 @@ controllers:
             enabled: true
         resources:
           requests:
-            cpu: 15m
+            cpu: 424m
             memory: 380Mi
       valkey:
         image:
