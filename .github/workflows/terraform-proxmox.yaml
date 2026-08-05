@@ -3,17 +3,18 @@ name: Terraform Proxmox
 # Split out from terraform-{plan,apply}.yaml because this stack can only run on
 # the in-cluster `home-ops` runner: the bpg/proxmox provider talks to
 # proxmox-01 on VLAN 20, which a GitHub-hosted runner cannot reach.
+# Deliberately not path-triggered on this workflow file itself: renovate bumps
+# the MISE_VERSION pin below, and each bump would otherwise run a full
+# plan + apply with no terraform changes. Use workflow_dispatch after edits.
 on:
   pull_request:
     branches: [main]
     paths:
       - terraform/proxmox/**
-      - .github/workflows/terraform-proxmox.yaml
   push:
     branches: [main]
     paths:
       - terraform/proxmox/**
-      - .github/workflows/terraform-proxmox.yaml
   workflow_dispatch:
     inputs:
       action:
