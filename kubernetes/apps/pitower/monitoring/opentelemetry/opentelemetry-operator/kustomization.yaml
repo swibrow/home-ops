@@ -10,7 +10,7 @@ commonAnnotations:
 helmCharts:
   - name: opentelemetry-operator
     repo: https://open-telemetry.github.io/opentelemetry-helm-charts
-    version: 0.120.1
+    version: 0.120.2
     releaseName: opentelemetry-operator
     includeCRDs: true
     namespace: monitoring
