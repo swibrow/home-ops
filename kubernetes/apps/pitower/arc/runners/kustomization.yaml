@@ -139,6 +139,12 @@ helmCharts:
       # and a runner image build at once), so minRunners keeps one warm - that
       # is what takes the ~10 minute ARC cold start off the front of every run.
       minRunners: 1
+      # worker-07 is the sole compute node and shared with every other repo's
+      # runners; at 1 CPU/12Gi each, an unbounded garrison burst (multiple
+      # concurrent pushes) can alone push the node into contention. Cap so
+      # garrison can't monopolize it - 6 covers one full fan-out (3 jobs) plus
+      # headroom for a second push queued behind it.
+      maxRunners: 6
       template:
         spec:
           serviceAccountName: garrison-runners
