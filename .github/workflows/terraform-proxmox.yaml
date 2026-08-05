@@ -17,10 +17,14 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: Run a plan or an apply
+        description: Run a plan, an apply, or release a stale state lock
         type: choice
         default: plan
-        options: [plan, apply]
+        options: [plan, apply, unlock]
+      lock_id:
+        description: Lock ID to release (unlock only, from the "Error acquiring the state lock" output)
+        type: string
+        required: false
 
 permissions:
   contents: read
@@ -109,6 +113,16 @@ jobs:
         with:
           path: terraform/proxmox
           label: proxmox
+
+      # A run killed mid-apply (runner death, node reboot) leaves its S3 lockfile
+      # behind and every later run stalls on it until the 30m timeout. Only the
+      # CI role can reach the state bucket, so the unlock has to happen here.
+      - name: Unlock state
+        if: inputs.action == 'unlock'
+        uses: dflook/terraform-unlock-state@eec38dcbe1341061e092afea7241836041614b25 # v3.0.0
+        with:
+          path: terraform/proxmox
+          lock_id: ${{ inputs.lock_id }}
 
       - name: Apply
         if: github.event_name == 'push' || inputs.action == 'apply'
