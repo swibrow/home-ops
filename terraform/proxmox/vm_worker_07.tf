@@ -28,8 +28,14 @@ resource "proxmox_virtual_environment_vm" "talos_worker" {
   }
 
   cpu {
-    cores = var.talos_worker.cores
-    type  = "host"
+    # 2x16 mirrors the host's two NUMA nodes (2x E5-2687W v4, 12c/24t each);
+    # numa=true is required so the ~364GiB of guest RAM splits across both host
+    # nodes instead of presenting as one flat remote-heavy node. Memory must
+    # stay divisible by the socket count or the VM refuses to start.
+    cores   = var.talos_worker.cores
+    sockets = 2
+    numa    = true
+    type    = "host"
   }
 
   memory {

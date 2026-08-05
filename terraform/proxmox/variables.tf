@@ -46,8 +46,8 @@ variable "talos_worker" {
   default = {
     vmid   = 200
     name   = "pitower-worker-07"
-    cores  = 30
-    memory = 262141
+    cores  = 16
+    memory = 372736
     disk   = 1000
   }
 }
