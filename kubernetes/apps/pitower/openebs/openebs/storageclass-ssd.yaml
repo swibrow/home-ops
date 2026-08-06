@@ -1,0 +1,19 @@
+---
+# Hostpath class on worker-07's scratch SSD (Talos user volume `scratch`,
+# single consumer SSD on proxmox-01 - no redundancy, no PLP). For rebuildable
+# write-heavy data only; pair with a nodeSelector/affinity on worker-07 since
+# only that node has the mount.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: openebs-hostpath-ssd
+  annotations:
+    openebs.io/cas-type: local
+    cas.openebs.io/config: |
+      - name: StorageType
+        value: "hostpath"
+      - name: BasePath
+        value: "/var/mnt/scratch/openebs/local"
+provisioner: openebs.io/local
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer

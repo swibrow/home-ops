@@ -5,6 +5,7 @@ kind: Kustomization
 namespace: openebs
 resources:
   - namespace.yaml
+  - storageclass-ssd.yaml
 helmCharts:
   - name: openebs
     repo: https://openebs.github.io/openebs

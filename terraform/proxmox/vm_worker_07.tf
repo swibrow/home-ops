@@ -72,6 +72,20 @@ resource "proxmox_virtual_environment_vm" "talos_worker" {
     cache = "writeback"
   }
 
+  disk {
+    # Scratch disk on the single 500GB SATA SSD in bay 8 (zpool `scratch`,
+    # Proxmox storage `scratch`). No redundancy and no PLP - holds only
+    # rebuildable write-heavy data (TSDB PVCs) to keep their WAL churn off the
+    # spinning rpool. cache=none: the SSD doesn't need the host page cache and
+    # writeback would just burn ARC-adjacent RAM.
+    datastore_id = "scratch"
+    interface    = "scsi1"
+    size         = 450
+    iothread     = true
+    discard      = "on"
+    ssd          = true
+  }
+
   network_device {
     bridge = var.network_bridge
     model  = "virtio"
