@@ -161,7 +161,26 @@ helmCharts:
           # because no block device is involved. `work` is where the checkout,
           # node_modules (2.4GB / ~101k files) and dist land; /tmp is where
           # os.tmpdir() tests write.
+          #
+          # values.yaml's template.spec.volumes/containers are plain lists, not
+          # merged by name - overriding either here replaces the whole list, so
+          # dind-sock/dind-externals/var-lib-docker (needed by the base
+          # init-dind-externals and dind initContainers) have to be repeated
+          # below or pod creation fails validation.
           volumes:
+            - name: dind-sock
+              emptyDir: {}
+            - name: dind-externals
+              emptyDir: {}
+            - name: var-lib-docker
+              ephemeral:
+                volumeClaimTemplate:
+                  spec:
+                    accessModes: ["ReadWriteOnce"]
+                    storageClassName: openebs-hostpath-runners
+                    resources:
+                      requests:
+                        storage: 40Gi
             # A green run puts 3.4Gi in `work` (checkout + node_modules + every
             # package's dist) plus setup-node's tool cache, so 8Gi is a bit over
             # 2x headroom.
@@ -177,9 +196,16 @@ helmCharts:
             - name: runner
               image: ghcr.io/cloudsnacks/actions-runner:2.336.0-3
               command: ["/home/runner/run.sh"]
-              # The chart mounts `work` and dind-sock itself; anything else has
-              # to be declared here or it is dropped.
+              env:
+                - name: DOCKER_HOST
+                  value: unix:///var/run/docker.sock
+                - name: RUNNER_WAIT_FOR_DOCKER_IN_SECONDS
+                  value: "120"
               volumeMounts:
+                - name: work
+                  mountPath: /home/runner/_work
+                - name: dind-sock
+                  mountPath: /var/run
                 - name: tmp
                   mountPath: /tmp
               resources:
