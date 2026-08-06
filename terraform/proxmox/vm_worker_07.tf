@@ -102,9 +102,9 @@ resource "proxmox_virtual_environment_vm" "talos_worker" {
   network_device {
     bridge = var.network_bridge
     model  = "virtio"
-    # No vlan_id: vmbr0 itself carries VLAN20 as a flat tag on the host side
-    # (nic1.20 -> vmbr0), so guest traffic is already on VLAN20 untagged from
-    # the bridge's perspective. Tagging here too would double-tag.
+    # No vlan_id: the bridge itself carries VLAN20 as a flat tag on the host
+    # side (nic6.20 -> vmbr2), so guest traffic is already on VLAN20 untagged
+    # from the bridge's perspective. Tagging here too would double-tag.
   }
 
   cdrom {

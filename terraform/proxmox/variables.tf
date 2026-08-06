@@ -17,9 +17,9 @@ variable "disk_storage" {
 }
 
 variable "network_bridge" {
-  description = "Proxmox network bridge for the VM NIC"
+  description = "Proxmox network bridge for the VM NIC - dedicated 10G guest bridge (vmbr2, tagged VLAN20 same as vmbr0), not the 1G host-management vmbr0"
   type        = string
-  default     = "vmbr0"
+  default     = "vmbr2"
 }
 
 variable "talos_version" {

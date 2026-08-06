@@ -61,8 +61,8 @@ resource "proxmox_virtual_environment_container" "garage" {
   network_interface {
     name   = "eth0"
     bridge = var.network_bridge
-    # No vlan_id, same reason as the VMs: vmbr0 already carries VLAN20 as a
-    # flat tag on the host side (nic1.20 -> vmbr0).
+    # No vlan_id, same reason as the VMs: the bridge already carries VLAN20
+    # as a flat tag on the host side (nic6.20 -> vmbr2).
   }
 
   initialization {
