@@ -135,10 +135,7 @@ helmCharts:
     valuesInline:
       githubConfigUrl: https://github.com/swibrow/garrison
       runnerScaleSetName: garrison
-      # garrison's ci workflow fans out on a main push (five gates plus a keep
-      # and a runner image build at once), so minRunners keeps one warm - that
-      # is what takes the ~10 minute ARC cold start off the front of every run.
-      minRunners: 1
+      minRunners: 0
       # worker-07 is the sole compute node and shared with every other repo's
       # runners; at 1 CPU/12Gi each, an unbounded garrison burst (multiple
       # concurrent pushes) can alone push the node into contention. Cap so
