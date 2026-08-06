@@ -86,6 +86,19 @@ resource "proxmox_virtual_environment_vm" "talos_worker" {
     ssd          = true
   }
 
+  disk {
+    # GitHub-runner scratch on the 4x Samsung 830 stripe (zpool `runners`,
+    # RAID0, sync=disabled - disposable data only). Size stays in the
+    # 300-400GiB band: Talos UserVolumeConfigs select disks by size range,
+    # scratch owns 400-500GiB.
+    datastore_id = "runners"
+    interface    = "scsi2"
+    size         = 350
+    iothread     = true
+    discard      = "on"
+    ssd          = true
+  }
+
   network_device {
     bridge = var.network_bridge
     model  = "virtio"

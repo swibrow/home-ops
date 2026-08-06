@@ -1,0 +1,15 @@
+---
+# 350GiB scsi2 disk on proxmox-01's 4x Samsung 830 stripe (zpool `runners`,
+# RAID0, sync=disabled) - GitHub runner dind/work scratch only. Size-band
+# selector: 300-400GiB is this volume, 400-500GiB is `scratch`, 1000GiB is the
+# system disk.
+apiVersion: v1alpha1
+kind: UserVolumeConfig
+name: runners
+provisioning:
+  diskSelector:
+    match: disk.size > 300u * GiB && disk.size < 400u * GiB
+  minSize: 300GiB
+  grow: true
+filesystem:
+  type: xfs

@@ -16,3 +16,10 @@ machine:
           - rbind
           - rshared
           - rw
+      - destination: /var/mnt/runners
+        type: bind
+        source: /var/mnt/runners
+        options:
+          - rbind
+          - rshared
+          - rw

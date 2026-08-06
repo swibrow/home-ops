@@ -1,0 +1,32 @@
+---
+- name: List existing ZFS pools
+  ansible.builtin.command: zpool list -H -o name
+  register: proxmox_existing_pools
+  changed_when: false
+
+- name: Create ZFS pools
+  ansible.builtin.command: >-
+    zpool create -f
+    {% for k, v in item.pool_options.items() %}-o {{ k }}={{ v }} {% endfor %}
+    {% for k, v in item.fs_options.items() %}-O {{ k }}={{ v }} {% endfor %}
+    {{ item.name }} {{ item.disks | join(' ') }}
+  when: item.name not in proxmox_existing_pools.stdout_lines
+  loop: "{{ proxmox_zfs_pools }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: List Proxmox storages
+  ansible.builtin.command: pvesm status
+  register: proxmox_storage_status
+  changed_when: false
+
+- name: Register ZFS pools as Proxmox zfspool storage
+  ansible.builtin.command: >-
+    pvesm add zfspool {{ item.name }}
+    -pool {{ item.name }}
+    -content {{ item.content | default('images') }}
+    -sparse {{ '1' if item.sparse | default(true) else '0' }}
+  when: item.name not in (proxmox_storage_status.stdout_lines | map('split') | map('first') | list)
+  loop: "{{ proxmox_zfs_pools }}"
+  loop_control:
+    label: "{{ item.name }}"

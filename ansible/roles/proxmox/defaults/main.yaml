@@ -12,8 +12,41 @@ proxmox_acme_email: sam.wibrow.wa@gmail.com
 proxmox_acme_plugin: cloudflare
 proxmox_acme_directory: https://acme-v02.api.letsencrypt.org/directory
 
-# ZFS dataset properties applied to guest zvols. rpool is 8x 600GB 10K SAS
-# spinning (4 mirror vdevs, no SLOG), so sync writes cost a seek. Measured on
+# ZFS pools created on the host and registered as Proxmox zfspool storage.
+# Disks pinned by serial; creation only runs when the pool is absent, so
+# changing options here does NOT alter an existing pool. Both pools hold
+# rebuildable data only (no redundancy, consumer SSDs without PLP):
+# - scratch: single 500GB SanDisk in bay 8; write-heavy TSDB PVCs of worker-07.
+# - runners: 4x Samsung 830 128GB stripe in bays 4-7; GitHub runner dind/work
+#   scratch. sync=disabled at pool level: nothing on it needs to survive a
+#   crash, runner pods just respawn.
+proxmox_zfs_pools:
+  - name: scratch
+    disks:
+      - /dev/disk/by-id/ata-SanDisk_SD7SB2Q512G1001_153141400183
+    pool_options:
+      ashift: "12"
+      autotrim: "on"
+    fs_options:
+      compression: lz4
+      atime: "off"
+  - name: runners
+    disks:
+      - /dev/disk/by-id/ata-SAMSUNG_MZ7PC128HAFU-000L5_S11VNSAD307256
+      - /dev/disk/by-id/ata-SAMSUNG_MZ7PC128HAFU-000L5_S11VNSAD307248
+      - /dev/disk/by-id/ata-SAMSUNG_MZ7PC128HAFU-000L5_S11VNSAD308145
+      - /dev/disk/by-id/ata-SAMSUNG_MZ7PC128HAFU-000L5_S11VNSAD307240
+    pool_options:
+      ashift: "12"
+      autotrim: "on"
+    fs_options:
+      compression: lz4
+      atime: "off"
+      sync: disabled
+
+# ZFS dataset properties applied to guest zvols. rpool is 4x 600GB 10K SAS
+# spinning (2 mirror vdevs since 2026-08-06, no SLOG), so sync writes cost a
+# seek. Measured on
 # vm-200 (worker-07): 21-33 MB/s of ZIL traffic and 27-103 zil_commit/s were
 # driving 90-127 MB/s of physical spindle writes against a guest writing only
 # 12-16 MB/s. sync=disabled dropped that to 6.3 MB/s and took guest write

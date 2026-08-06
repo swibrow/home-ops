@@ -1,0 +1,19 @@
+---
+# Hostpath class on worker-07's runners volume (Talos user volume `runners`,
+# 4x Samsung 830 RAID0 on proxmox-01 - disposable data only, pool dies with
+# any one drive). Exists solely for GitHub runner pods' ephemeral volumes;
+# only worker-07 has the mount.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: openebs-hostpath-runners
+  annotations:
+    openebs.io/cas-type: local
+    cas.openebs.io/config: |
+      - name: StorageType
+        value: "hostpath"
+      - name: BasePath
+        value: "/var/mnt/runners/openebs/local"
+provisioner: openebs.io/local
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
