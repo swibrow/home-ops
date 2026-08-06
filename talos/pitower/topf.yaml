@@ -52,3 +52,21 @@ nodes:
     data:
       mac: "bc:24:11:e8:10:19"
       untagged: true
+  - host: worker-08
+    ip: 10.20.10.8
+    role: worker
+    schematicId: "@extensions/rpi-poe.yaml"
+    data:
+      mac: "dc:a6:32:4f:95:ca" # ex-pistack, UniFi pistack-01
+  - host: worker-09
+    ip: 10.20.10.9
+    role: worker
+    schematicId: "@extensions/rpi-poe.yaml"
+    data:
+      mac: "dc:a6:32:4f:ee:e2" # ex-controller, UniFi pistack-02
+  - host: worker-10
+    ip: 10.20.10.10
+    role: worker
+    schematicId: "@extensions/rpi-poe.yaml"
+    data:
+      mac: "dc:a6:32:46:b2:ba" # ex-auth, UniFi pistack-03

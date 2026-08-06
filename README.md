@@ -45,14 +45,11 @@ This repository is the single source of truth for my Kubernetes home lab. Everyt
 
 ## Clusters
 
-The environment is split across several clusters. The main workload cluster (`pitower`) depends on a set of single-node Raspberry Pi management clusters that host critical services, so a `pitower` outage can't take them down. All management clusters live on VLAN 20 (`10.20.0.0/16`), each in its own `/24`, with no VIP (the API endpoint is the node IP).
+`pitower` is the sole cluster: the main workload cluster, self-hosting its own ArgoCD and Kanidm.
 
 | Cluster | Role | Endpoint |
 |:--------|:-----|:---------|
-| `pitower` | Main workload cluster (6 nodes) | `https://10.20.10.0:6443` (VIP) |
-| `controller` | ArgoCD GitOps hub | `10.20.30.1` |
-| `auth` | Kanidm + Vaultwarden | `10.20.40.1` |
-| `pistack` | Supporting services | `10.20.20.1` |
+| `pitower` | Main workload cluster (10 nodes) | `https://10.20.10.0:6443` (VIP) |
 
 ### `pitower` Nodes
 
@@ -64,6 +61,10 @@ The environment is split across several clusters. The main workload cluster (`pi
 | worker-04 | Worker | 10.20.10.4 | Intel (iGPU, `dedicated=media-home` taint) |
 | worker-05 | Worker | 10.20.10.5 | Intel |
 | worker-06 | Worker | 10.20.10.6 | Intel |
+| worker-07 | Worker | 10.20.10.7 | Proxmox VM |
+| worker-08 | Worker | 10.20.10.8 | Raspberry Pi (arm64) |
+| worker-09 | Worker | 10.20.10.9 | Raspberry Pi (arm64) |
+| worker-10 | Worker | 10.20.10.10 | Raspberry Pi (arm64) |
 
 ### Network
 

@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       clusters:
-        description: 'JSON array of clusters to apply, e.g. ["pitower","auth"]. Empty = all changed.'
+        description: 'JSON array of clusters to apply, e.g. ["pitower"]. Empty = all changed.'
         required: false
         default: ""
 
@@ -50,13 +50,6 @@ jobs:
           fi
           changed=$(git diff --name-only "$base" "$AFTER" -- talos/ \
             | sed -n 's#^talos/\([^/]*\)/.*#\1#p' | sort -u)
-          # Clusters held out of automatic CI apply. pistack is still a live
-          # 3-node cluster; its repo config is the not-yet-applied single-node
-          # target, so auto-applying would clobber it. Remove to re-enable.
-          # (A workflow_dispatch override bypasses this and can force pistack.)
-          for x in pistack; do
-            changed=$(printf '%s\n' $changed | grep -vxF "$x" || true)
-          done
           json="["; first=1
           for c in $changed; do
             [ "$first" -eq 1 ] && first=0 || json="${json},"
@@ -131,10 +124,10 @@ jobs:
           TOPF_CONFIRM: "false"
         run: |
           set -euo pipefail
-          # This runner is a pod inside the pitower cluster. Applying to pitower, a
+          # This runner is a pod inside the pitower cluster (the only cluster). A
           # change that needs a reboot will kill the job when topf reaches the
           # runner's own node — re-run the workflow (or finish with `topf apply`
-          # locally). Applies to controller/auth/pistack are remote and unaffected.
+          # locally).
           topf apply --redact 2>&1 | tee "$RUNNER_TEMP/topf-apply.out"
 
       - name: Summary

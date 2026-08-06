@@ -1,5 +1,0 @@
----
-providerRegex: |
-  ^(auth)$
-
-bypassDnsResolution: true

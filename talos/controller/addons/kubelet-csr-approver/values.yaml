@@ -1,5 +1,0 @@
----
-providerRegex: |
-  ^(controller)$
-
-bypassDnsResolution: true
