@@ -1,0 +1,108 @@
+# Pitwall: org-wide GitHub Actions telemetry dashboard
+# (github.com/cloudsnacks/pitwall). Covers the cloudsnacks org and the swibrow
+# personal account; both installations of the Pitwall GitHub App deliver
+# workflow_run webhooks to the same endpoint.
+
+# The ghcr.io/cloudsnacks/pitwall package is private, and the ghcr-pull-secret
+# ClusterExternalSecret already lands in every namespace.
+defaultPodOptions:
+  imagePullSecrets:
+    - name: ghcr-pull-secret
+  securityContext:
+    # The image is distroless nonroot; fsGroup makes the ceph-block /data
+    # volume writable for the dead-letter file.
+    runAsUser: 65532
+    runAsGroup: 65532
+    fsGroup: 65532
+    fsGroupChangePolicy: OnRootMismatch
+
+controllers:
+  pitwall:
+    # The SSE broker is in-memory: exactly one replica, and Recreate so two
+    # pods never run concurrently during a rollout (migrations also run on
+    # startup against the shared CNPG database).
+    strategy: Recreate
+    annotations:
+      reloader.stakater.com/auto: "true"
+    containers:
+      app:
+        image:
+          # CI publishes :latest and :<git-sha> on every push to main; pin the
+          # SHA and bump it to roll out.
+          repository: ghcr.io/cloudsnacks/pitwall
+          tag: cf5d95d3078f6c3693e8f328c1bd4650b2289115
+        env:
+          TZ: Europe/Zurich
+          # Sign-in gate: active members of this org may log in. swibrow must
+          # be an active cloudsnacks member; there is no multi-org support.
+          GITHUB_ORG: cloudsnacks
+          DEAD_LETTER_PATH: /data/dead-letter.jsonl
+          # The cnpg-db component emits DB_URL in pitwall-db-secret.
+          DATABASE_URL:
+            valueFrom:
+              secretKeyRef:
+                name: pitwall-db-secret
+                key: DB_URL
+        envFrom:
+          - secretRef:
+              name: pitwall-secret
+        probes:
+          readiness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /readyz
+                port: &httpPort 8080
+              initialDelaySeconds: 5
+              periodSeconds: 10
+          liveness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /healthz
+                port: *httpPort
+              initialDelaySeconds: 10
+              periodSeconds: 30
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
+
+persistence:
+  data:
+    # Declared via components/pvc (claim "pitwall") so backup tooling can come
+    # and go without ArgoCD pruning the volume.
+    existingClaim: pitwall
+    globalMounts:
+      - path: /data
+
+service:
+  app:
+    controller: pitwall
+    ports:
+      http:
+        port: *httpPort
+
+route:
+  app:
+    hostnames:
+      - pitwall.wibrow.dev
+    parentRefs:
+      # External: GitHub webhook deliveries come in from the internet.
+      - name: envoy-external
+        namespace: networking
+        sectionName: https
+    rules:
+      - backendRefs:
+          - identifier: app
+            port: *httpPort
