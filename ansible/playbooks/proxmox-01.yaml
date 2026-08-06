@@ -1,7 +1,9 @@
 ---
-- name: proxmox-01 node (fail2ban + repo config)
+# proxmox role first: it fixes the apt repos (enterprise 401s otherwise) that
+# fail2ban's package install depends on.
+- name: proxmox-01 node (repo config + zfs + fail2ban)
   hosts: proxmox_01
   become: true
   roles:
-    - fail2ban
     - proxmox
+    - fail2ban
