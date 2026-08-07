@@ -16,11 +16,14 @@ minRunners: 0
 # (chart 0.14.2 helpers, k8s>=1.29 sidecar variant) written out explicitly.
 # Reason: containerMode.type=dind generates the dind container with no way to
 # relocate /var/lib/docker, which is where per-job image pulls land. Here both
-# the work dir and docker storage live on ephemeral PVCs from
-# openebs-hostpath-runners (worker-07's 4x SSD RAID0 zpool `runners`) instead
-# of the spinning rpool. PVCs are born and die with the pod - same disposable
-# semantics as the emptyDirs they replace. Re-diff against the chart helpers
-# on chart upgrades.
+# the work dir and docker storage live on ephemeral PVCs from an SSD-backed
+# storage class instead of the spinning rpool. PVCs are born and die with the
+# pod - same disposable semantics as the emptyDirs they replace. Re-diff
+# against the chart helpers on chart upgrades.
+#
+# Temporarily on openebs-hostpath-ssd (zpool `scratch`) while the `runners`
+# zpool is rebuilt onto the 500GB EVOs; revert to openebs-hostpath-runners
+# once the new pool and scsi2 are back.
 template:
   spec:
     automountServiceAccountToken: true
@@ -96,7 +99,7 @@ template:
           volumeClaimTemplate:
             spec:
               accessModes: ["ReadWriteOnce"]
-              storageClassName: openebs-hostpath-runners
+              storageClassName: openebs-hostpath-ssd
               resources:
                 requests:
                   storage: 20Gi
@@ -105,7 +108,7 @@ template:
           volumeClaimTemplate:
             spec:
               accessModes: ["ReadWriteOnce"]
-              storageClassName: openebs-hostpath-runners
+              storageClassName: openebs-hostpath-ssd
               resources:
                 requests:
                   storage: 40Gi
