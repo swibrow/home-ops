@@ -27,9 +27,11 @@ serviceMonitor:
 podAnnotations:
   reloader.stakater.com/auto: "true"
 
+# v3.14.0-full (chart default image tag) with 4 gunicorn workers OOMs
+# under 2Gi within seconds of startup.
 resources:
   requests:
     cpu: 100m
     memory: 512Mi
   limits:
-    memory: 2Gi
+    memory: 4Gi
