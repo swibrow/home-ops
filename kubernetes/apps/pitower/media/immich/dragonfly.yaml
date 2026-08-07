@@ -6,8 +6,11 @@ metadata:
   namespace: media
 spec:
   replicas: 1
+  nodeSelector:
+    kubernetes.io/arch: amd64
   args:
     - "--proactor_threads=1"
+    - "--default_lua_flags=allow-undeclared-keys"
   resources:
     requests:
       cpu: 16m
