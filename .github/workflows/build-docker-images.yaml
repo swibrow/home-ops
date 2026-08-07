@@ -31,7 +31,7 @@ jobs:
       - id: set-matrix
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "images=$(ls -d docker/*/ | xargs -I{} basename {} | jq -R -s -c 'split("\n") | map(select(length > 0))')" >> "$GITHUB_OUTPUT"
+            echo "images=$(basename -a docker/*/ | jq -R -s -c 'split("\n") | map(select(length > 0))')" >> "$GITHUB_OUTPUT"
           else
             echo "images=$(echo '${{ steps.changed.outputs.all_changed_files }}' | jq -c '[.[] | ltrimstr("docker/")]')" >> "$GITHUB_OUTPUT"
           fi

@@ -32,7 +32,7 @@ machine:
 cluster:
   allowSchedulingOnControlPlanes: true
   coreDNS:
-      disabled: true
+    disabled: true
   # Expose etcd metrics on :2381 (http) so kube-prometheus-stack's kubeEtcd
   # ServiceMonitor can scrape them. Without this etcd serves metrics only on the
   # cert-guarded client port and the etcd dashboard stays empty.
@@ -54,11 +54,11 @@ cluster:
       - 10.20.10.0
       - 127.0.0.1
     extraArgs:
-        oidc-issuer-url: https://idm.wibrow.dev/oauth2/openid/headlamp
-        oidc-client-id: headlamp
-        oidc-username-claim: email
-        oidc-username-prefix: "oidc:"
-        oidc-groups-claim: groups
-        oidc-groups-prefix: "oidc:"
-        service-account-issuer: https://raw.githubusercontent.com/swibrow/home-ops/main/pitower/kubernetes
-        service-account-jwks-uri: https://k8s.pitower.internal:6443/openid/v1/jwks
+      oidc-issuer-url: https://idm.wibrow.dev/oauth2/openid/headlamp
+      oidc-client-id: headlamp
+      oidc-username-claim: email
+      oidc-username-prefix: "oidc:"
+      oidc-groups-claim: groups
+      oidc-groups-prefix: "oidc:"
+      service-account-issuer: https://raw.githubusercontent.com/swibrow/home-ops/main/pitower/kubernetes
+      service-account-jwks-uri: https://k8s.pitower.internal:6443/openid/v1/jwks

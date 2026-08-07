@@ -1,0 +1,28 @@
+# Tuned for a large Helm/Kustomize repo: values.yaml and templated ExternalSecret
+# strings routinely trip the stricter default rules without being real problems.
+extends: default
+
+rules:
+  # Comments, long URLs, and base64/template blobs make this noise, not signal.
+  line-length: disable
+  # Chart-generated files (values.yaml, Chart.yaml) rarely lead with "---";
+  # hand-authored manifests often do. Both are fine.
+  document-start: disable
+  # Go template syntax ({{ .foo }}) inside strings reads as flow-mapping braces
+  # to yamllint; a single padding space either side is the templating norm.
+  braces:
+    max-spaces-inside: 1
+  # "on:" as a GitHub Actions trigger key is valid YAML, not a stray boolean.
+  truthy:
+    check-keys: false
+  # Sequences are indented under their key in some files and flush with it in
+  # others (hand-written vs. tool-generated); enforce consistency per file only.
+  indentation:
+    indent-sequences: consistent
+  comments:
+    min-spaces-from-content: 1
+  comments-indentation: disable
+  # iot/button-plus/office.yaml column-aligns inline flow-mapping keys on
+  # purpose across a block of near-identical entries; don't fight that.
+  commas:
+    max-spaces-after: -1

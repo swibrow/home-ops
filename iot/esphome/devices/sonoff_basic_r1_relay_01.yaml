@@ -21,7 +21,7 @@ binary_sensor:
     pin:
       number: GPIO0
       mode: INPUT_PULLUP
-      inverted: True
+      inverted: true
     name: "Sonoff Basic Button"
     on_press:
       - switch.toggle: relay
@@ -35,4 +35,4 @@ switch:
 status_led:
   pin:
     number: GPIO13
-    inverted: yes
+    inverted: true

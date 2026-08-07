@@ -1,0 +1,40 @@
+name: Checks
+
+# No path filter, deliberately: this is the "checks" required status check
+# (see branch protection on main) and must report on every PR, or GitHub waits
+# forever on a check that never runs. Everything it does is fast and universal
+# (yaml/workflow lint, whitespace hygiene, terraform fmt) — stack-specific
+# validation (terraform plan, talos diff, argocd diff) lives in its own
+# path-scoped workflow.
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install actionlint
+        env:
+          # renovate: datasource=github-releases depName=rhysd/actionlint
+          ACTIONLINT_VERSION: 1.7.12
+        run: |
+          cd "$RUNNER_TEMP"
+          curl -fsSL -O "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl -fsSL -O "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_checksums.txt"
+          sha256sum --ignore-missing -c "actionlint_${ACTIONLINT_VERSION}_checksums.txt"
+          tar xzf "actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz" actionlint
+          sudo mv actionlint /usr/local/bin/actionlint
+
+      - name: actionlint
+        run: actionlint -color
+
+      # yamllint / end-of-file-fixer / trailing-whitespace / terraform fmt.
+      # terraform_validate is excluded (SKIP) — it needs `terraform init` per
+      # stack, which is what terraform-plan.yaml/terraform-proxmox.yaml
+      # already do against just the changed stack.
+      - uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
+        env:
+          SKIP: terraform_validate

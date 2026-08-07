@@ -27,9 +27,9 @@ machine:
           device_ownership_from_security_context = true
   features:
     hostDNS:
-        enabled: true
-        forwardKubeDNSToHost: false
-        resolveMemberNames: true
+      enabled: true
+      forwardKubeDNSToHost: false
+      resolveMemberNames: true
   sysctls:
     net.ipv6.conf.all.forwarding: "1"
 cluster:
