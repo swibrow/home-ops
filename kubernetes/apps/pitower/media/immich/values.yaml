@@ -56,8 +56,6 @@ controllers:
           requests:
             cpu: 12m
             memory: 512Mi
-          limits:
-            memory: 2Gi
   machine-learning:
     annotations:
       reloader.stakater.com/auto: "true"
@@ -105,8 +103,6 @@ controllers:
           requests:
             cpu: 11m
             memory: 496Mi
-          limits:
-            memory: 4Gi
 
 service:
   server:
