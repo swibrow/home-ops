@@ -10,7 +10,7 @@ controllers:
         resources:
           requests:
             cpu: 15m
-            memory: 72Mi
+            memory: 166Mi
         envFrom:
           - secretRef:
               name: firefly-secrets

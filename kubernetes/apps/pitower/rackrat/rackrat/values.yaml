@@ -86,8 +86,8 @@ controllers:
               periodSeconds: 20
         resources:
           requests:
-            cpu: 100m
-            memory: 256Mi
+            cpu: 10m
+            memory: 57Mi
           limits:
             memory: 512Mi
   scrape:
