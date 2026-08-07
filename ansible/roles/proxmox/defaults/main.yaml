@@ -17,9 +17,12 @@ proxmox_acme_directory: https://acme-v02.api.letsencrypt.org/directory
 # changing options here does NOT alter an existing pool. Both pools hold
 # rebuildable data only (no redundancy, consumer SSDs without PLP):
 # - scratch: single 500GB SanDisk in bay 8; write-heavy TSDB PVCs of worker-07.
-# - runners: 4x Samsung 830 128GB stripe in bays 4-7; GitHub runner dind/work
-#   scratch. sync=disabled at pool level: nothing on it needs to survive a
-#   crash, runner pods just respawn.
+#
+# `runners` (4x Samsung 830 128GB stripe, bays 4-7) was destroyed on
+# 2026-08-07: the 830s are being replaced by 2x 500GB Samsung EVOs. Because
+# creation is create-if-absent, leaving the old entry here would have the role
+# rebuild the pool on the 830s. Re-add it with the EVO serials once they are
+# seated, together with the terraform scsi2 disk and the Talos UserVolumeConfig.
 proxmox_zfs_pools:
   - name: scratch
     disks:
@@ -30,19 +33,6 @@ proxmox_zfs_pools:
     fs_options:
       compression: lz4
       atime: "off"
-  - name: runners
-    disks:
-      - /dev/disk/by-id/ata-SAMSUNG_MZ7PC128HAFU-000L5_S11VNSAD307256
-      - /dev/disk/by-id/ata-SAMSUNG_MZ7PC128HAFU-000L5_S11VNSAD307248
-      - /dev/disk/by-id/ata-SAMSUNG_MZ7PC128HAFU-000L5_S11VNSAD308145
-      - /dev/disk/by-id/ata-SAMSUNG_MZ7PC128HAFU-000L5_S11VNSAD307240
-    pool_options:
-      ashift: "12"
-      autotrim: "on"
-    fs_options:
-      compression: lz4
-      atime: "off"
-      sync: disabled
 
 # ZFS dataset properties applied to guest zvols. rpool is 4x 600GB 10K SAS
 # spinning (2 mirror vdevs since 2026-08-06, no SLOG), so sync writes cost a

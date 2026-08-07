@@ -86,18 +86,12 @@ resource "proxmox_virtual_environment_vm" "talos_worker" {
     ssd          = true
   }
 
-  disk {
-    # GitHub-runner scratch on the 4x Samsung 830 stripe (zpool `runners`,
-    # RAID0, sync=disabled - disposable data only). Size stays in the
-    # 300-400GiB band: Talos UserVolumeConfigs select disks by size range,
-    # scratch owns 400-500GiB.
-    datastore_id = "runners"
-    interface    = "scsi2"
-    size         = 350
-    iothread     = true
-    discard      = "on"
-    ssd          = true
-  }
+  # scsi2 (GitHub-runner scratch on the `runners` zpool) is intentionally absent:
+  # the 4x Samsung 830 stripe is being replaced by 2x 500GB SSDs, so the pool and
+  # its zvol are destroyed. Runner PVCs are parked on openebs-hostpath-ssd
+  # meanwhile. Restore this block, the Talos UserVolumeConfig at
+  # talos/pitower/node/worker-07/03-runners.yaml and its kubelet extraMount
+  # together - the Talos side selects the disk by size band.
 
   network_device {
     bridge = var.network_bridge
