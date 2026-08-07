@@ -14,6 +14,15 @@ mlflow:
 # storage stays disabled (default) since the backend store is Postgres, not
 # SQLite.
 
+# MLflow's DNS-rebinding guard (default: localhost + private IPs only)
+# rejects the public Host header "mlflow.wibrow.dev" that Envoy Gateway
+# forwards unchanged. envoy-internal is already the trust boundary for this
+# route (internal-only), so disable the middleware rather than allowlist
+# hosts — see https://mlflow.org/docs/latest/self-hosting/security/network/.
+server:
+  flag_options:
+    - disable_security_middleware
+
 service:
   type: ClusterIP
 
