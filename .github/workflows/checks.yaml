@@ -12,29 +12,34 @@ on:
 
 jobs:
   checks:
-    runs-on: ubuntu-latest
+    # home-ops-runners (kubernetes/apps/pitower/arc/runners) pins the
+    # cloudsnacks/actions-runner image, which bakes actionlint and tflint
+    # into its mise toolchain — no per-run fetch+verify for either. Python
+    # (for pre-commit itself) and terraform (for terraform_fmt) are still
+    # per-run: neither is a static, version-insensitive binary, so per that
+    # image's own convention they're left to setup-* actions, not baked in.
+    runs-on: home-ops
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Install actionlint
-        env:
-          # renovate: datasource=github-releases depName=rhysd/actionlint
-          ACTIONLINT_VERSION: 1.7.12
-        run: |
-          cd "$RUNNER_TEMP"
-          curl -fsSL -O "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
-          curl -fsSL -O "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_checksums.txt"
-          sha256sum --ignore-missing -c "actionlint_${ACTIONLINT_VERSION}_checksums.txt"
-          tar xzf "actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz" actionlint
-          sudo mv actionlint /usr/local/bin/actionlint
 
       - name: actionlint
         run: actionlint -color
 
-      # yamllint / end-of-file-fixer / trailing-whitespace / terraform fmt.
-      # terraform_validate is excluded (SKIP) — it needs `terraform init` per
-      # stack, which is what terraform-plan.yaml/terraform-proxmox.yaml
-      # already do against just the changed stack.
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          # renovate: datasource=github-releases depName=hashicorp/terraform
+          terraform_version: 1.15.8
+          terraform_wrapper: false
+
+      # yamllint / end-of-file-fixer / trailing-whitespace / terraform fmt /
+      # terraform_tflint. terraform_validate is excluded (SKIP) — it needs
+      # `terraform init` per stack, which is what
+      # terraform-plan.yaml/terraform-proxmox.yaml already do against just
+      # the changed stack.
       - uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
         env:
           SKIP: terraform_validate

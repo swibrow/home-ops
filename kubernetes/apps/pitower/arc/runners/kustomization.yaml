@@ -293,6 +293,34 @@ helmCharts:
       template:
         spec:
           serviceAccountName: home-ops-runners
+          # cloudsnacks' actions-runner build, not the base upstream image:
+          # same docker CLI/buildx, plus a mise-managed CLI toolchain
+          # (gh/hadolint/shellcheck/tflint/yq/actionlint) so checks.yaml's
+          # actionlint/tflint steps don't fetch+verify a binary on every PR.
+          # Only `containers` is overridden — initContainers/volumes are
+          # untouched, so the base values.yaml dind setup still applies (see
+          # garrison-runners above for why touching those lists requires
+          # repeating them).
+          containers:
+            - name: runner
+              image: ghcr.io/cloudsnacks/actions-runner:2.336.0-5
+              command: ["/home/runner/run.sh"]
+              env:
+                - name: DOCKER_HOST
+                  value: unix:///var/run/docker.sock
+                - name: RUNNER_WAIT_FOR_DOCKER_IN_SECONDS
+                  value: "120"
+              resources:
+                requests:
+                  cpu: 250m
+                  memory: 1Gi
+                limits:
+                  memory: 4Gi
+              volumeMounts:
+                - name: work
+                  mountPath: /home/runner/_work
+                - name: dind-sock
+                  mountPath: /var/run
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
