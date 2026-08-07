@@ -1,0 +1,35 @@
+# fullnameOverride keeps the Service name simple ("mlflow") for the HTTPRoute
+# backendRef, matching the release name instead of "mlflow-mlflow".
+fullnameOverride: mlflow
+
+mlflow:
+  backendStoreUriFrom:
+    secretKeyRef:
+      name: mlflow-db-secret
+      key: DB_URL
+
+# No artifact store configured: Claude Code / GenAI tracing writes trace
+# metadata (spans) into the backend store, not large run artifacts, so this
+# stays Postgres-only like Phoenix — no S3/MinIO tier needed for the trial.
+# storage stays disabled (default) since the backend store is Postgres, not
+# SQLite.
+
+service:
+  type: ClusterIP
+
+metrics:
+  enabled: true
+  path: /metrics
+serviceMonitor:
+  enabled: true
+
+# Picks up a tenant password rotation without a manual rollout.
+podAnnotations:
+  reloader.stakater.com/auto: "true"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 512Mi
+  limits:
+    memory: 2Gi

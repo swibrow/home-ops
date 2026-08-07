@@ -21,6 +21,7 @@ resources:
   - litellm.yaml
   - memini.yaml
   - miniflux.yaml
+  - mlflow.yaml
   - open-webui.yaml
   - paperless.yaml
   - phoenix.yaml

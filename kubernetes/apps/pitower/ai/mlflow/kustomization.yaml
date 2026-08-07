@@ -1,0 +1,31 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+#
+# Trial deployment evaluating MLflow as a Claude Code tracing backend, in
+# place of Phoenix. See reference_phoenix_claude_code_tracing memory for why:
+# Phoenix's coding-harness-tracing plugin collapses every repo into one
+# project, while MLflow's official claude-code plugin resolves the experiment
+# per-project from .claude/settings.json.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ai
+resources:
+  - httproute.yaml
+components:
+  - ../../../../components/cnpg-db-shared
+configMapGenerator:
+  - name: cnpg-db-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=mlflow
+      - SECRET_NAME=mlflow-db-secret
+      - CNPG_SECRET_KEY=ai-mlflow
+      - DB_SCHEME=postgresql
+helmCharts:
+  - name: mlflow
+    repo: oci://ghcr.io/mlflow/charts
+    version: 0.1.0
+    releaseName: mlflow
+    namespace: ai
+    valuesFile: values.yaml
