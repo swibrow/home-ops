@@ -41,6 +41,18 @@ config:
       title: memory
       query: round((1 - sum(node_memory_MemAvailable_bytes) / sum(node_memory_MemTotal_bytes)) * 100, 0.1)
       valueExpr: string(result) + "%"
+    - id: cpuavailable
+      title: cpu available
+      query: round((1 - cluster:node_cpu:ratio_rate5m) * 100, 0.1)
+      valueExpr: string(result) + "%"
+    - id: memavailable
+      title: memory available
+      query: round(sum(node_memory_MemAvailable_bytes) / sum(node_memory_MemTotal_bytes) * 100, 0.1)
+      valueExpr: string(result) + "%"
+    - id: diskavailable
+      title: disk available
+      query: round(sum(node_filesystem_avail_bytes{mountpoint="/",fstype!="tmpfs"}) / sum(node_filesystem_size_bytes{mountpoint="/",fstype!="tmpfs"}) * 100, 0.1)
+      valueExpr: string(result) + "%"
     - id: uptime
       title: uptime
       query: floor((time() - min(node_boot_time_seconds)) / 86400)
