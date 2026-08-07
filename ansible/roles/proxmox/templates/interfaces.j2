@@ -24,3 +24,17 @@ iface {{ proxmox_network_untagged_bridge }} inet manual
         bridge-ports {{ proxmox_network_iface }}
         bridge-stp off
         bridge-fd 0
+
+iface {{ proxmox_network_vm_iface }} inet manual
+
+# Dedicated 10G bridge for VM/CT guest traffic. Unlike {{ proxmox_network_iface }}'s trunk
+# (VLAN{{ proxmox_network_vlan }} tagged via {{ proxmox_network_iface }}.{{ proxmox_network_vlan }}), the switch port
+# {{ proxmox_network_vm_iface }} connects to sends VLAN{{ proxmox_network_vlan }} as its native/untagged VLAN - confirmed
+# by packet capture, so this bridges the raw interface with no VLAN
+# sub-interface. No host IP - this bridge only carries guest NICs, host
+# management traffic keeps riding {{ proxmox_network_bridge }} on the 1G {{ proxmox_network_iface }}.
+auto {{ proxmox_network_vm_bridge }}
+iface {{ proxmox_network_vm_bridge }} inet manual
+        bridge-ports {{ proxmox_network_vm_iface }}
+        bridge-stp off
+        bridge-fd 0

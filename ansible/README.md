@@ -400,6 +400,12 @@ console: `cp /etc/network/interfaces.<timestamp>~ /etc/network/interfaces && ifr
 Once confirmed, update `ansible/inventory/hosts.yaml`'s `proxmox-01` entry and `mise.toml`'s
 `PROXMOX_VE_ENDPOINT` to the new address, and consider a DHCP reservation to keep it stable.
 
+The same role also renders a second, VM-only bridge: `nic6` (10G, `i40e`) tagged VLAN20 →
+`vmbr2`, no host IP. Host management traffic stays on `vmbr0`/`nic1` (1G); VM/CT guest NICs
+(`terraform/proxmox`'s `network_bridge` variable) point at `vmbr2` instead. Applying the same
+`just ansible apply-network-proxmox-01` command picks up both bridges - adding `vmbr2` alongside
+the existing ones is a no-op for the SSH session since `nic1`/`vmbr0` aren't touched.
+
 ## Secrets
 
 ```sh
