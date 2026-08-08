@@ -9,7 +9,7 @@
     zpool create -f
     {% for k, v in item.pool_options.items() %}-o {{ k }}={{ v }} {% endfor %}
     {% for k, v in item.fs_options.items() %}-O {{ k }}={{ v }} {% endfor %}
-    {{ item.name }} {{ item.disks | join(' ') }}
+    {{ item.name }} {{ item.vdev_type | default('') }} {{ item.disks | join(' ') }}
   when: item.name not in proxmox_existing_pools.stdout_lines
   loop: "{{ proxmox_zfs_pools }}"
   loop_control:
@@ -26,7 +26,9 @@
     -pool {{ item.name }}
     -content {{ item.content | default('images') }}
     -sparse {{ '1' if item.sparse | default(true) else '0' }}
-  when: item.name not in (proxmox_storage_status.stdout_lines | map('split') | map('first') | list)
+  when:
+    - item.register_storage | default(true)
+    - item.name not in (proxmox_storage_status.stdout_lines | map('split') | map('first') | list)
   loop: "{{ proxmox_zfs_pools }}"
   loop_control:
     label: "{{ item.name }}"
