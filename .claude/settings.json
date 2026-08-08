@@ -1,0 +1,8 @@
+{
+  "env": {
+    "MLFLOW_CLAUDE_TRACING_ENABLED": "true",
+    "MLFLOW_TRACKING_URI": "https://mlflow.wibrow.dev",
+    "MLFLOW_EXPERIMENT_ID": "1",
+    "MLFLOW_EXPERIMENT_NAME": "home-ops"
+  }
+}
