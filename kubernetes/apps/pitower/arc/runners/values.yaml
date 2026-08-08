@@ -8,8 +8,19 @@ controllerServiceAccount:
   name: arc-gha-rs-controller
   namespace: arc
 
-# maxRunners left unset on purpose: the controller then hands the listener
-# math.MaxInt32, so scale-up is bounded only by cluster capacity, not by ARC.
+# maxRunners was left unset on the theory that scale-up is "bounded by cluster
+# capacity, not by ARC". That stopped being true once the work dir and
+# /var/lib/docker moved onto node-local hostpath PVCs: openebs hostpath only
+# creates a directory, so it reserves nothing and rejects nothing, and there is
+# no capacity signal left to push back on the listener.
+#
+# On 2026-08-08 home-ops sat at 15 runners, every one Pending, each claiming
+# 60Gi against a 458G pool on the single node that has the mount and each
+# needing its own init-pvc helper pod there. PVC binding hit "context deadline
+# exceeded" and the pods churned instead of running any jobs. Cap concurrency to
+# what worker-07 can actually provision; raise only alongside that node's
+# storage, not in response to a queue.
+maxRunners: 6
 minRunners: 0
 
 # No containerMode: the pod spec below is the chart's own dind-mode output
