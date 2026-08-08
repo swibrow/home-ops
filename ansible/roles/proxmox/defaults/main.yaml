@@ -17,7 +17,7 @@ proxmox_acme_directory: https://acme-v02.api.letsencrypt.org/directory
 # pool is absent, so changing options here does NOT alter an existing pool.
 #
 # `scratch` and `runners` hold rebuildable data only (no redundancy, consumer
-# SSDs without PLP). `photos` is the one pool here with real data on it:
+# SSDs without PLP). `media` is the one pool here with real data on it:
 # - scratch: single 500GB SanDisk in bay 8; write-heavy TSDB PVCs of worker-07.
 # - runners: single 500GB Samsung 850 EVO in bay 9; GitHub runner dind/work
 #   scratch. Replaces the 4x Samsung 830 128GB stripe (bays 4-7) destroyed on
@@ -47,11 +47,14 @@ proxmox_zfs_pools:
       compression: lz4
       atime: "off"
       sync: disabled
-  # The Immich photo library. 4x 600GB 10K SAS in bays 4-7, RAIDZ1 for ~1.64TiB
-  # usable - the only layout of these four that fits a 1TB library, since 2x
-  # mirror vdevs or RAIDZ2 give 1.09TiB. These are the disks evacuated from
-  # rpool's mirror-2/mirror-3 on 2026-08-06, so they are the same vintage as the
-  # four still in rpool.
+  # Bulk media, starting with the Immich photo library. 4x 600GB 10K SAS in bays
+  # 4-7, RAIDZ1 for 1.53TiB usable - the only layout of these four that fits a
+  # 1TB library, since 2x mirror vdevs or RAIDZ2 give 1.09TiB. These are the
+  # disks evacuated from rpool's mirror-2/mirror-3 on 2026-08-06, so they are the
+  # same vintage as the four still in rpool.
+  #
+  # Mounts at /media, shadowing the FHS removable-media directory. Harmless on
+  # this host (nothing mounts there) and consistent with scratch at /scratch.
   #
   # Served to the cluster as an NFS dataset, NOT as VM disks - hence
   # register_storage: false. recordsize=1M suits whole-photo reads and keeps
@@ -62,7 +65,7 @@ proxmox_zfs_pools:
   # manufactured 2011, 26471 power-on hours, 2 grown defects, 1299 non-medium
   # errors and 2 UNCORRECTED reads. Expect it to fail first. RAIDZ1 survives one
   # disk, so keep a 600GB SAS spare on hand and make sure scrubs are watched.
-  - name: photos
+  - name: media
     vdev_type: raidz1
     register_storage: false
     disks:
