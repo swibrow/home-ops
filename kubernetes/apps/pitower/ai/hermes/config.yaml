@@ -1,18 +1,22 @@
 model:
-  default: claude-sonnet-4-6
+  default: claude-sonnet
   provider: anthropic
 fallback_providers:
   - provider: anthropic
-    model: claude-haiku-4-5-20251001
+    model: claude-haiku
 providers:
   anthropic:
-    base_url: https://api.anthropic.com/
+    # Routed through litellm (ai/litellm) instead of api.anthropic.com directly,
+    # using a litellm virtual key rather than a real Anthropic key. Model names
+    # are litellm's own aliases (claude-sonnet/claude-haiku -> OpenRouter), not
+    # real Anthropic model ids, since litellm resolves on model_name.
+    base_url: http://litellm.ai.svc.cluster.local:4000/
     api_mode: anthropic_messages
     # hermes does NOT interpolate ${VAR} in config (that relies on Flux postBuild
     # substitution, unused here) and the provider requires the key inline. The init
-    # container substitutes this placeholder with the real ANTHROPIC_API_KEY (from
+    # container substitutes this placeholder with the real LITELLM_API_KEY (from
     # the `hermes` secret) before hermes starts — mirroring what Flux bakes in.
-    api_key: __ANTHROPIC_API_KEY__
+    api_key: __LITELLM_API_KEY__
 toolsets:
   - hermes-cli
 terminal:
@@ -59,20 +63,20 @@ mcp_servers:
 auxiliary:
   vision:
     provider: anthropic
-    model: claude-sonnet-4-6
+    model: claude-sonnet
   compression:
     provider: anthropic
-    model: claude-haiku-4-5-20251001
+    model: claude-haiku
     timeout: 180
   web_extract:
     provider: anthropic
-    model: claude-haiku-4-5-20251001
+    model: claude-haiku
     timeout: 120
   approval:
     provider: anthropic
-    model: claude-haiku-4-5-20251001
+    model: claude-haiku
     timeout: 60
   session_search:
     provider: anthropic
-    model: claude-haiku-4-5-20251001
+    model: claude-haiku
     timeout: 120

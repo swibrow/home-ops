@@ -14,6 +14,10 @@ controllers:
           ANONYMIZED_TELEMETRY: "false"
           BROWSER_USE_LOGGING_LEVEL: info
           KEEP_BROWSER_OPEN: "true"
+          # Routed through litellm (ai/litellm) instead of api.anthropic.com
+          # directly; the Anthropic SDK reads this env var natively. ANTHROPIC_API_KEY
+          # (from browser-use-secret) is now a litellm virtual key, not a real Anthropic key.
+          ANTHROPIC_BASE_URL: http://litellm.ai.svc.cluster.local:4000
           RESOLUTION: 1920x1080x24
           RESOLUTION_WIDTH: "1920"
           RESOLUTION_HEIGHT: "1080"

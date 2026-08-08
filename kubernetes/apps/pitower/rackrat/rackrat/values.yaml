@@ -27,8 +27,15 @@ controllers:
         args: ["alembic upgrade head && rackrat reference sync"]
         env: &env
           TZ: Europe/Zurich
-          RACKRAT_TEXT_MODEL: claude-sonnet-5
-          RACKRAT_VISION_MODEL: claude-opus-4-8
+          # Routed through litellm (ai/litellm) rather than api.anthropic.com
+          # directly; RACKRAT_ANTHROPIC_API_KEY (rackrat-secret, when populated
+          # in Infisical) should hold a litellm virtual key, not a real Anthropic
+          # key. Model names are litellm's own aliases, not real Anthropic ids —
+          # assumes rackrat's Anthropic client respects a base_url override the
+          # same way the official SDK does; verify against rackrat's own code.
+          RACKRAT_ANTHROPIC_BASE_URL: http://litellm.ai.svc.cluster.local:4000
+          RACKRAT_TEXT_MODEL: claude-sonnet
+          RACKRAT_VISION_MODEL: claude-opus
           # CHF per kWh — feeds tco_3yr, so a wrong value silently reorders
           # every ranking rather than failing.
           RACKRAT_ELECTRICITY_RATE: "0.28"

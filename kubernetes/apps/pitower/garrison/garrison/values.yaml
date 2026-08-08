@@ -70,8 +70,21 @@ secrets:
     # /garrison/MEMINI_API_KEY into garrison-runner-env: cross-raid memory.
     # A raid only uses it when its repo commits a memory.url to
     # .garrison/config.yaml — the key alone is inert.
+    #
+    # ANTHROPIC_BASE_URL/ANTHROPIC_MODEL/ANTHROPIC_CUSTOM_HEADERS route each
+    # raid's Claude Code through litellm (ai/litellm) for tracing while still
+    # billing the Max subscription via the forwarded CLAUDE_CODE_OAUTH_TOKEN —
+    # ANTHROPIC_CUSTOM_HEADERS must carry "x-litellm-api-key: Bearer <litellm
+    # virtual key>" verbatim (stored as the literal Infisical value). Do NOT
+    # add ANTHROPIC_API_KEY/ANTHROPIC_AUTH_TOKEN here — either would replace
+    # the subscription login and move billing off it. This only covers the
+    # runner/raid sortie pods; garrison-keep's own quest-enrichment agent and
+    # Guild Officer have no equivalent extension point in chart 0.54.0.
     runnerProviderKeys:
       - MEMINI_API_KEY
+      - ANTHROPIC_BASE_URL
+      - ANTHROPIC_MODEL
+      - ANTHROPIC_CUSTOM_HEADERS
 persistence:
   size: 5Gi
 networkPolicy:

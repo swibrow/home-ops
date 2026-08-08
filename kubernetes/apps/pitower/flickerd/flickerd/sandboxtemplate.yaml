@@ -7,8 +7,8 @@ kind: SandboxTemplate
 metadata:
   name: flickerd
 spec:
-  # Egress: DNS + HTTPS (Anthropic API, GitHub, Cloudflare R2) + the in-cluster
-  # otel-collector for traces/metrics.
+  # Egress: DNS + HTTPS (GitHub, Cloudflare R2) + the in-cluster otel-collector
+  # for traces/metrics + litellm (Claude Code's gateway, ai namespace).
   networkPolicy:
     egress:
       - to:
@@ -34,6 +34,16 @@ spec:
                 app.kubernetes.io/component: opentelemetry-collector
         ports:
           - port: 4318
+            protocol: TCP
+      - to:
+          - namespaceSelector:
+              matchLabels:
+                kubernetes.io/metadata.name: ai
+            podSelector:
+              matchLabels:
+                app.kubernetes.io/name: litellm
+        ports:
+          - port: 4000
             protocol: TCP
   podTemplate:
     metadata:
@@ -83,6 +93,21 @@ spec:
                 secretKeyRef:
                   name: flickerd-sandbox
                   key: CLAUDE_CODE_OAUTH_TOKEN
+            - name: LITELLM_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: flickerd-sandbox
+                  key: LITELLM_API_KEY
+            # Routes Claude Code through litellm for tracing while still billing
+            # the Max subscription: litellm forwards the CLAUDE_CODE_OAUTH_TOKEN
+            # carried in Authorization, so ANTHROPIC_API_KEY/ANTHROPIC_AUTH_TOKEN
+            # must NOT be set here (that would move billing off the subscription).
+            - name: ANTHROPIC_BASE_URL
+              value: http://litellm.ai.svc.cluster.local:4000
+            - name: ANTHROPIC_MODEL
+              value: claude-sonnet-max
+            - name: ANTHROPIC_CUSTOM_HEADERS
+              value: "x-litellm-api-key: Bearer $(LITELLM_API_KEY)"
           resources:
             requests:
               cpu: 250m
