@@ -12,9 +12,10 @@ proxmox_acme_email: sam.wibrow.wa@gmail.com
 proxmox_acme_plugin: cloudflare
 proxmox_acme_directory: https://acme-v02.api.letsencrypt.org/directory
 
-# ZFS pools created on the host and, unless `register_storage: false`, added as
-# Proxmox zfspool storage. Disks pinned by serial; creation only runs when the
-# pool is absent, so changing options here does NOT alter an existing pool.
+# ZFS pools created on the host and added as Proxmox zfspool storage. Disks
+# pinned by serial; creation only runs when the pool is absent, so changing
+# options here does NOT alter an existing pool - and neither `blocksize` nor any
+# other storage option is re-applied to a storage that already exists.
 #
 # `scratch` and `runners` hold rebuildable data only (no redundancy, consumer
 # SSDs without PLP). `media` is the one pool here with real data on it:
@@ -56,10 +57,13 @@ proxmox_zfs_pools:
   # Mounts at /media, shadowing the FHS removable-media directory. Harmless on
   # this host (nothing mounts there) and consistent with scratch at /scratch.
   #
-  # Served to the cluster as an NFS dataset, NOT as VM disks - hence
-  # register_storage: false. recordsize=1M suits whole-photo reads and keeps
-  # RAIDZ parity padding negligible; a zvol here would need volblocksize >=64K
-  # or effective capacity collapses toward mirror levels.
+  # blocksize=128k is load-bearing, not a tuning nicety: guest disks here are
+  # zvols on a 4-wide RAIDZ1 at ashift=12, where a small volblocksize loses a
+  # large fraction of the pool to parity padding. 128k keeps that near the
+  # nominal 25% and suits whole-photo reads. It applies only at storage-creation
+  # time, so a zvol cut before this was set keeps the old volblocksize - that is
+  # fixed only by recreating the zvol, never in place. recordsize=1M below
+  # governs plain datasets, which zvols ignore.
   #
   # bay 7 (Seagate ST9600204SS, scsi-35000c5003b1b98e3) is the weak member:
   # manufactured 2011, 26471 power-on hours, 2 grown defects, 1299 non-medium
@@ -67,7 +71,7 @@ proxmox_zfs_pools:
   # disk, so keep a 600GB SAS spare on hand and make sure scrubs are watched.
   - name: media
     vdev_type: raidz1
-    register_storage: false
+    blocksize: 128k
     disks:
       - /dev/disk/by-id/scsi-350000395982ac534
       - /dev/disk/by-id/scsi-350000395982acc68

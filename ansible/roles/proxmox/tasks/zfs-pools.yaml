@@ -26,9 +26,8 @@
     -pool {{ item.name }}
     -content {{ item.content | default('images') }}
     -sparse {{ '1' if item.sparse | default(true) else '0' }}
-  when:
-    - item.register_storage | default(true)
-    - item.name not in (proxmox_storage_status.stdout_lines | map('split') | map('first') | list)
+    {% if item.blocksize is defined %}-blocksize {{ item.blocksize }}{% endif %}
+  when: item.name not in (proxmox_storage_status.stdout_lines | map('split') | map('first') | list)
   loop: "{{ proxmox_zfs_pools }}"
   loop_control:
     label: "{{ item.name }}"

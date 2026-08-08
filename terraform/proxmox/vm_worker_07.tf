@@ -87,11 +87,31 @@ resource "proxmox_virtual_environment_vm" "talos_worker" {
   }
 
   # scsi2 (GitHub-runner scratch on the `runners` zpool) is intentionally absent:
-  # the 4x Samsung 830 stripe is being replaced by 2x 500GB SSDs, so the pool and
-  # its zvol are destroyed. Runner PVCs are parked on openebs-hostpath-ssd
-  # meanwhile. Restore this block, the Talos UserVolumeConfig at
-  # talos/pitower/node/worker-07/03-runners.yaml and its kubelet extraMount
-  # together - the Talos side selects the disk by size band.
+  # the 4x Samsung 830 stripe was replaced by a single 500GB 850 EVO, so the pool
+  # exists again but its zvol does not. Runner PVCs are parked on
+  # openebs-hostpath-ssd meanwhile. Restore this block, the Talos
+  # UserVolumeConfig at talos/pitower/node/worker-07/03-runners.yaml and its
+  # kubelet extraMount together - the Talos side selects the disk by size band.
+  # The slot stays reserved for runners, hence media below is scsi3 not scsi2.
+
+  disk {
+    # The Immich photo library, on the `media` zpool (4x 600GB 10K SAS, RAIDZ1,
+    # bays 4-7). 1200GiB of the pool's 1566GiB usable, leaving headroom so the
+    # pool never runs past ~77% - RAIDZ degrades badly when close to full. The
+    # volume is thin (sparse=1 on the storage), so this is a ceiling, not a
+    # reservation; grow it here and let the Talos volume's grow:true follow.
+    #
+    # Sized to clear the 1100-1300GiB band the Talos UserVolumeConfig selects on.
+    # cache=none, unlike scsi0: photos are bulk writes, not the sync-latency
+    # problem that made writeback worth its power-loss window on the rpool disk.
+    # discard=on matters here even though the pool is spinning - it returns
+    # deleted guest blocks to the thin zvol.
+    datastore_id = "media"
+    interface    = "scsi3"
+    size         = 1200
+    iothread     = true
+    discard      = "on"
+  }
 
   network_device {
     bridge = var.network_bridge
