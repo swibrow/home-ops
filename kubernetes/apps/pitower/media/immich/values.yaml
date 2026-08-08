@@ -15,6 +15,7 @@ controllers:
           IMMICH_PORT: &serverPort 2283
           IMMICH_MEDIA_LOCATION: /data
           IMMICH_MACHINE_LEARNING_URL: http://immich-machine-learning.media.svc.cluster.local:3003
+          IMMICH_CONFIG_FILE: /config/immich-config.json
           DB_VECTOR_EXTENSION: vectorchord
           REDIS_HOSTNAME: immich-dragonfly.media.svc.cluster.local
           DB_URL:
@@ -130,6 +131,15 @@ route:
             port: *serverPort
 
 persistence:
+  config:
+    type: secret
+    name: immich-config-secret
+    advancedMounts:
+      server:
+        app:
+          - path: /config/immich-config.json
+            subPath: immich-config.json
+            readOnly: true
   library:
     # pvc-library.yaml, on the media RAIDZ1 pool. Declared outside the chart so
     # the class could change at all - storageClassName is immutable on a bound
