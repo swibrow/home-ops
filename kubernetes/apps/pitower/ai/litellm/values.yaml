@@ -19,9 +19,13 @@ controllers:
       app:
         # non_root variant: prisma baked for UID 1000 (avoids the runtime
         # "Installing Prisma CLI" reinstall + NotConnectedError under non-root).
+        # Our canonical build (cloudsnacks/containers/images/litellm): same
+        # upstream base + the mlflow package added (upstream's venv has no
+        # pip; litellm[mlflow] pulls in the full `mlflow` client, needed by
+        # litellm_settings.success_callback/failure_callback: ["mlflow"] below).
         image:
-          repository: ghcr.io/berriai/litellm-non_root
-          tag: v1.95.0
+          repository: ghcr.io/cloudsnacks/litellm
+          tag: 1.0.0
         args:
           - --config
           - /config/config.yaml
@@ -48,6 +52,9 @@ controllers:
           AUTO_REDIRECT_UI_LOGIN_TO_SSO: "true"
           # preferred_username (short name) → maps this person to proxy_admin.
           PROXY_ADMIN_ID: sam
+          # Gateway-wide MLflow tracing (see litellm_settings in config.yaml).
+          MLFLOW_TRACKING_URI: https://mlflow.wibrow.dev
+          MLFLOW_EXPERIMENT_NAME: litellm-proxy
           # Connection string assembled by the cnpg-db component (DB_URL key).
           DATABASE_URL:
             valueFrom:

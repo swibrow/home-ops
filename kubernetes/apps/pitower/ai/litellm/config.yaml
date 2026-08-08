@@ -400,3 +400,9 @@ litellm_settings:
   drop_params: true
   num_retries: 2
   request_timeout: 600
+  # Every proxy request (all consumers: Claude Code, memini, hermes-agent, …)
+  # traced to MLflow. Separate from the per-repo Claude Code CLI tracing
+  # (project_mlflow_tracing_trial memory) — this is gateway-wide, one
+  # experiment ("litellm-proxy", set via MLFLOW_EXPERIMENT_NAME below).
+  success_callback: ["mlflow"]
+  failure_callback: ["mlflow"]
