@@ -61,8 +61,16 @@ jobs:
       - name: Decrypt Proxmox credentials
         env:
           AGE_SECRET_KEY: ${{ secrets.AGE_SECRET_KEY }}
-          # mise reads the age identity from this path by default; the repo age
-          # key is the x25519 recipient on mise.toml's encrypted values.
+          # mise reads the age identity from <config dir>/age.txt, and the
+          # config dir is NOT always ~/.config/mise: the home-ops runner image
+          # (ghcr.io/cloudsnacks/actions-runner, adopted in 690c1ef0) sets
+          # MISE_CONFIG_DIR=/opt/mise for its baked toolchain. That silently
+          # broke this step on 2026-08-07 - the key was written to
+          # ~/.config/mise/age.txt while mise looked in /opt/mise, giving
+          # "No age identities found for decryption". Pin the dir so the write
+          # target and the read target cannot drift apart again. Scoped to this
+          # step, so the image's own toolchain config is untouched elsewhere.
+          MISE_CONFIG_DIR: ${{ runner.temp }}/mise
           MISE_EXPERIMENTAL: "1"
           # `mise env` would otherwise install the whole [tools] block (talosctl,
           # kubectl, helm, ...) just to print the [env] block.
@@ -70,8 +78,8 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          install -d "$HOME/.config/mise"
-          printf '%s\n' "$AGE_SECRET_KEY" > "$HOME/.config/mise/age.txt"
+          install -d "$MISE_CONFIG_DIR"
+          printf '%s\n' "$AGE_SECRET_KEY" > "$MISE_CONFIG_DIR/age.txt"
 
           # mise auto-trusts configs in detected CI, but be explicit: an
           # untrusted mise.toml is silently skipped and the loop below would
