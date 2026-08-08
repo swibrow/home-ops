@@ -1,6 +1,5 @@
 controllers:
   server:
-    replicas: 0
     annotations:
       reloader.stakater.com/auto: "true"
     pod:
@@ -132,9 +131,12 @@ route:
 
 persistence:
   library:
-    accessMode: ReadWriteOnce
-    size: 100Gi
-    storageClass: openebs-hostpath
+    # pvc-library.yaml, on the media RAIDZ1 pool. Declared outside the chart so
+    # the class could change at all - storageClassName is immutable on a bound
+    # PVC. Migrated off openebs-hostpath 2026-08-08 (5152 files / 22.68 GB,
+    # rsync-verified); that class rides worker-07's EPHEMERAL partition on the
+    # spinning rpool and a Talos reinstall wipes it.
+    existingClaim: immich-library-media
     advancedMounts:
       server:
         app:
