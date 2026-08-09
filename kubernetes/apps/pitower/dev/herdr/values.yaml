@@ -1,0 +1,94 @@
+controllers:
+  herdr:
+    type: statefulset
+    replicas: 1
+    pod:
+      securityContext:
+        runAsUser: 1001
+        runAsGroup: 1001
+        runAsNonRoot: true
+        fsGroup: 1001
+        fsGroupChangePolicy: OnRootMismatch
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+    containers:
+      app:
+        image:
+          repository: ghcr.io/cloudsnacks/dev-desktop
+          tag: 1.1.0
+        # dev-desktop's default CMD starts Hyprland/Sunshine for GUI streaming;
+        # this pod reuses the same image purely for its CLI tooling (herdr,
+        # Claude Code, kubectl, ...) and runs sshd instead, since herdr's
+        # `--remote` mode attaches over plain SSH, not HTTP.
+        command:
+          - bash
+          - -c
+          - |
+            set -euo pipefail
+
+            mkdir -p /run/sshd /data/ssh
+            for t in ed25519 rsa; do
+              key="/data/ssh/ssh_host_${t}_key"
+              [ -f "${key}" ] || ssh-keygen -q -t "${t}" -f "${key}" -N ""
+            done
+
+            mkdir -p "${HOME}/.ssh"
+            printf '%s\n' "${AUTHORIZED_KEY}" > "${HOME}/.ssh/authorized_keys"
+            chmod 700 "${HOME}/.ssh"
+            chmod 600 "${HOME}/.ssh/authorized_keys"
+
+            cat > /tmp/sshd_config <<SSHD
+            Port 2222
+            HostKey /data/ssh/ssh_host_ed25519_key
+            HostKey /data/ssh/ssh_host_rsa_key
+            PidFile /tmp/sshd.pid
+            AuthorizedKeysFile ${HOME}/.ssh/authorized_keys
+            AllowUsers dev
+            PermitRootLogin no
+            PasswordAuthentication no
+            KbdInteractiveAuthentication no
+            UsePAM no
+            StrictModes no
+            Subsystem sftp internal-sftp
+            SSHD
+
+            exec /usr/sbin/sshd -D -e -f /tmp/sshd_config
+        env:
+          TZ: Europe/Zurich
+          HOME: /home/dev
+          DOTFILES_REPO: https://github.com/swibrow/dotfiles.git
+          # Public key only — SSH pubkeys are meant to be shared, so this is
+          # a plain env var rather than an ExternalSecret.
+          AUTHORIZED_KEY: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP0S+h68q6lzgN28d+QMj4mpDQx67wMssSvM5KXJx0EA"
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            memory: 4Gi
+
+service:
+  app:
+    controller: herdr
+    type: LoadBalancer
+    externalTrafficPolicy: Local
+    annotations:
+      lbipam.cilium.io/ips: "10.20.10.232"
+    ports:
+      ssh:
+        port: 22
+        targetPort: 2222
+
+persistence:
+  data:
+    existingClaim: herdr-data
+    globalMounts:
+      - path: /home/dev
+        subPath: home
+      - path: /data/ssh
+        subPath: ssh-host-keys
