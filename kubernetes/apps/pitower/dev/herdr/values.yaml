@@ -68,6 +68,57 @@ controllers:
             memory: 512Mi
           limits:
             memory: 4Gi
+      webterm:
+        # Browser access to the same box: same pod, same $HOME, so a browser
+        # session and an SSH session attach to the exact same herdr server.
+        image:
+          repository: ghcr.io/swibrow/webterm
+          tag: v1.0.0
+        workingDir: /home/dev
+        env:
+          TZ: Europe/Zurich
+          HOME: /home/dev
+          WEBTERM_LISTEN: ":8080"
+          WEBTERM_CMD: herdr
+          WEBTERM_AUTH: oidc
+          WEBTERM_PUBLIC_URL: https://term.wibrow.dev
+          WEBTERM_OIDC_ISSUER: https://idm.wibrow.dev/oauth2/openid/webterm
+          WEBTERM_OIDC_CLIENT_ID: webterm
+          WEBTERM_OIDC_GROUP: app_access
+        envFrom:
+          - secretRef:
+              name: webterm-secrets
+              optional: true
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+        probes:
+          readiness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /healthz
+                port: &webtermPort 8080
+              periodSeconds: 10
+          liveness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /healthz
+                port: *webtermPort
+              periodSeconds: 30
+              timeoutSeconds: 5
+              failureThreshold: 3
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            memory: 512Mi
 
 service:
   app:
@@ -80,24 +131,51 @@ service:
       ssh:
         port: 22
         targetPort: 2222
+  http:
+    controller: herdr
+    ports:
+      http:
+        port: 8080
+
+route:
+  app:
+    hostnames:
+      - term.wibrow.dev
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+    rules:
+      - backendRefs:
+          - identifier: http
+            port: 8080
 
 persistence:
-  data:
+  home:
     existingClaim: herdr-data
     globalMounts:
       - path: /home/dev
         subPath: home
-      - path: /data/ssh
-        subPath: ssh-host-keys
+  ssh-host-keys:
+    existingClaim: herdr-data
+    advancedMounts:
+      herdr:
+        app:
+          - path: /data/ssh
+            subPath: ssh-host-keys
   authorized-keys:
     type: configMap
     name: herdr-authorized-keys
-    globalMounts:
-      - path: /authorized_keys.d
-        readOnly: true
+    advancedMounts:
+      herdr:
+        app:
+          - path: /authorized_keys.d
+            readOnly: true
   # /run is owned by root in the base image; sshd's privsep preauth chroot
   # needs a writable /run/sshd, and the pod runs entirely as non-root.
   run-sshd:
     type: emptyDir
-    globalMounts:
-      - path: /run/sshd
+    advancedMounts:
+      herdr:
+        app:
+          - path: /run/sshd

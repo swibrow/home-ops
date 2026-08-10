@@ -6,6 +6,7 @@ namespace: dev
 resources:
   - pvc.yaml
   - configmap.yaml
+  - externalsecret.yaml
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm
