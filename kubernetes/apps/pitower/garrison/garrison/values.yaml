@@ -14,7 +14,7 @@ database:
   secret: garrison-db-secret
   secretKey: DB_URL
 keep:
-  image: ghcr.io/swibrow/garrison-keep:v0.54.4
+  image: ghcr.io/swibrow/garrison-keep:v0.55.0
   imagePullPolicy: IfNotPresent
 # ghcr packages stay private (the repo is private); ghcr-pull-secret is
 # fanned out to every namespace by security/external-secrets/ghcr-pull-secret.
