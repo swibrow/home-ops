@@ -20,7 +20,7 @@ keep:
 # fanned out to every namespace by security/external-secrets/ghcr-pull-secret.
 imagePullSecret: ghcr-pull-secret
 runner:
-  image: ghcr.io/swibrow/garrison-runner:v0.54.4
+  image: ghcr.io/swibrow/garrison-runner:v0.55.0
   namespace: garrison
 harness: claude
 launcher: sandbox
