@@ -58,7 +58,7 @@ spec:
       # container it can still see the image's own /home/dev.
       initContainers:
         - name: seed-home
-          image: ghcr.io/cloudsnacks/dev-desktop:1.0.0
+          image: ghcr.io/cloudsnacks/dev-desktop:1.1.0
           securityContext:
             runAsUser: 1001
           command: ["/bin/bash", "-c"]
@@ -91,7 +91,7 @@ spec:
               mountPath: /seed
       containers:
         - name: dev-desktop
-          image: ghcr.io/cloudsnacks/dev-desktop:1.0.0
+          image: ghcr.io/cloudsnacks/dev-desktop:1.1.0
           securityContext:
             # Kubernetes has no per-device cgroup API. Without privileged the
             # cgroup v2 eBPF device filter denies open() on /dev/dri/* and
