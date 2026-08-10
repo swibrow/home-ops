@@ -73,7 +73,7 @@ controllers:
         # session and an SSH session attach to the exact same herdr server.
         image:
           repository: ghcr.io/swibrow/webterm
-          tag: v1.0.0
+          tag: v1.1.1
         workingDir: /home/dev
         env:
           TZ: Europe/Zurich
@@ -119,7 +119,6 @@ controllers:
             memory: 128Mi
           limits:
             memory: 512Mi
-
 service:
   app:
     controller: herdr
@@ -136,7 +135,6 @@ service:
     ports:
       http:
         port: 8080
-
 route:
   app:
     hostnames:
@@ -149,7 +147,6 @@ route:
       - backendRefs:
           - identifier: http
             port: 8080
-
 persistence:
   home:
     existingClaim: herdr-data
