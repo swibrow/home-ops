@@ -1,0 +1,51 @@
+controllers:
+  dozzle:
+    strategy: Recreate
+    containers:
+      app:
+        image:
+          repository: docker.io/amir20/dozzle
+          tag: v10.7.0@sha256:f82ae07bb3e3b5f95955216fb85dcd26c2ccbdf8f0873a16e1c63b4ee0d7762f
+        env:
+          DOZZLE_MODE: k8s
+          TZ: Europe/Zurich
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities: {drop: ["ALL"]}
+        resources:
+          requests:
+            cpu: 10m
+            memory: 64Mi
+          limits:
+            memory: 256Mi
+    serviceAccount:
+      identifier: dozzle
+defaultPodOptions:
+  automountServiceAccountToken: true
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    fsGroupChangePolicy: OnRootMismatch
+
+service:
+  app:
+    controller: dozzle
+    ports:
+      http:
+        port: 8080
+
+route:
+  app:
+    enabled: true
+    hostnames:
+      - dozzle.wibrow.dev
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+
+serviceAccount:
+  dozzle: {}
