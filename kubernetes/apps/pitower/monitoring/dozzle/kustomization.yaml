@@ -5,6 +5,7 @@ kind: Kustomization
 namespace: monitoring
 resources:
   - rbac.yaml
+  - trafficpolicy.yaml
 
 helmCharts:
   - name: app-template
