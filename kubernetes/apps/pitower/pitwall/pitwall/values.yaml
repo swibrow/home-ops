@@ -31,7 +31,7 @@ controllers:
           # CI publishes :latest and :<git-sha> on every push to main; pin the
           # SHA and bump it to roll out.
           repository: ghcr.io/cloudsnacks/pitwall
-          tag: a4610dc5dc4155905a10c74f8d6f65f9dc09bb99
+          tag: 89d15a056f0fe60cd42670588085a7700d31717f
         env:
           TZ: Europe/Zurich
           DEAD_LETTER_PATH: /data/dead-letter.jsonl
