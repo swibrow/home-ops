@@ -29,12 +29,15 @@ user → Create API Key**. Requires controller version 9.0.108+; use `UNIFI_USER
 instead on older firmware. Create a dedicated Terraform admin with a **Limited Admin, Local Access
 Only** role rather than reusing your own account.
 
-Add these to the root `mise.toml`'s `[env]` block, age-encrypted like `PROXMOX_VE_API_TOKEN`:
+Add these to `terraform/mise.toml`'s `[env]` block, age-encrypted like `PROXMOX_VE_API_TOKEN`.
+They live in the nested config rather than the repo root so only commands run with cwd under
+`terraform/` resolve them - a shimmed command at the root would eagerly decrypt them and fail in
+jobs that have no age identity (52c43e8f):
 
 ```sh
-mise set --age-encrypt --file mise.toml UNIFI_API=https://10.20.0.1
-mise set --age-encrypt --file mise.toml UNIFI_API_KEY=<key>
-mise set --age-encrypt --file mise.toml UNIFI_INSECURE=true
+mise set --age-encrypt --file terraform/mise.toml UNIFI_API=https://10.20.0.1
+mise set --age-encrypt --file terraform/mise.toml UNIFI_API_KEY=<key>
+mise set --age-encrypt --file terraform/mise.toml UNIFI_INSECURE=true
 ```
 
 Confirm `UNIFI_API` against the gateway's actual LAN management address before the first apply -
@@ -55,7 +58,7 @@ on `Default`), so nothing was duplicated and the reservations never ran - they d
 To collect the IDs for a new resource, query the controller's REST API directly:
 
 ```sh
-eval "$(mise env -s bash)"
+eval "$(mise env -C terraform -s bash)"
 curl -sk -H "X-API-KEY: $UNIFI_API_KEY" "$UNIFI_API/proxy/network/api/s/default/rest/networkconf" \
   | jq -r '.data[] | [._id, .name, (.vlan//"-"), (.ip_subnet//"-")] | @tsv'
 curl -sk -H "X-API-KEY: $UNIFI_API_KEY" "$UNIFI_API/proxy/network/api/s/default/rest/user" \
@@ -76,7 +79,7 @@ plan there - it is read-only against the controller:
 
 ```sh
 cp terraform/unifi/*.tf /tmp/unifi-check/    # then edit the backend block
-eval "$(mise env -s bash)"
+eval "$(mise env -C terraform -s bash)"
 terraform -chdir=/tmp/unifi-check init && terraform -chdir=/tmp/unifi-check plan
 ```
 
