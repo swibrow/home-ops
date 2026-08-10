@@ -95,3 +95,9 @@ persistence:
     globalMounts:
       - path: /authorized_keys.d
         readOnly: true
+  # /run is owned by root in the base image; sshd's privsep preauth chroot
+  # needs a writable /run/sshd, and the pod runs entirely as non-root.
+  run-sshd:
+    type: emptyDir
+    globalMounts:
+      - path: /run/sshd
