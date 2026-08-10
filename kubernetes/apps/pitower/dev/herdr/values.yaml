@@ -33,7 +33,7 @@ controllers:
             done
 
             mkdir -p "${HOME}/.ssh"
-            printf '%s\n' "${AUTHORIZED_KEY}" > "${HOME}/.ssh/authorized_keys"
+            cp /authorized_keys.d/authorized_keys "${HOME}/.ssh/authorized_keys"
             chmod 700 "${HOME}/.ssh"
             chmod 600 "${HOME}/.ssh/authorized_keys"
 
@@ -57,9 +57,6 @@ controllers:
           TZ: Europe/Zurich
           HOME: /home/dev
           DOTFILES_REPO: https://github.com/swibrow/dotfiles.git
-          # Public key only — SSH pubkeys are meant to be shared, so this is
-          # a plain env var rather than an ExternalSecret.
-          AUTHORIZED_KEY: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP0S+h68q6lzgN28d+QMj4mpDQx67wMssSvM5KXJx0EA"
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -92,3 +89,9 @@ persistence:
         subPath: home
       - path: /data/ssh
         subPath: ssh-host-keys
+  authorized-keys:
+    type: configMap
+    name: herdr-authorized-keys
+    globalMounts:
+      - path: /authorized_keys.d
+        readOnly: true

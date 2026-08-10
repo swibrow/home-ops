@@ -1,0 +1,9 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: herdr-authorized-keys
+  namespace: dev
+data:
+  authorized_keys: |
+    ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP0S+h68q6lzgN28d+QMj4mpDQx67wMssSvM5KXJx0EA
