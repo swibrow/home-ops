@@ -123,7 +123,11 @@ service:
   app:
     controller: herdr
     type: LoadBalancer
-    externalTrafficPolicy: Local
+    # Cilium L2 announcements elect the announcing node independent of where
+    # the backend pod runs; externalTrafficPolicy: Local blackholes traffic
+    # whenever they land on different nodes (see docs/references memory:
+    # cilium-l2-etp-local). Cluster accepts SNAT'd client IPs instead, which
+    # is fine here since SSH auth is key-based, not IP-based.
     annotations:
       lbipam.cilium.io/ips: "10.20.10.232"
     ports:
