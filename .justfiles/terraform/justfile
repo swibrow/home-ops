@@ -50,3 +50,15 @@ plan-proxmox:
 # Apply the proxmox stack
 apply-proxmox:
     terraform -chdir={{ justfile_directory() }}/{{ TERRAFORM_WORKING_DIR }}/proxmox apply
+
+# Init the unifi stack (UniFi API credentials come from mise.toml's [env] - UNIFI_*)
+init-unifi:
+    terraform -chdir={{ justfile_directory() }}/{{ TERRAFORM_WORKING_DIR }}/unifi init
+
+# Plan the unifi stack
+plan-unifi:
+    terraform -chdir={{ justfile_directory() }}/{{ TERRAFORM_WORKING_DIR }}/unifi plan
+
+# Apply the unifi stack
+apply-unifi:
+    terraform -chdir={{ justfile_directory() }}/{{ TERRAFORM_WORKING_DIR }}/unifi apply

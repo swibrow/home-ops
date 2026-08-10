@@ -1,0 +1,141 @@
+name: Terraform UniFi
+
+# Split out from terraform-{plan,apply}.yaml because this stack can only run on
+# the in-cluster `home-ops` runner: the filipowm/unifi provider talks to the
+# Cloud Gateway's local API on the LAN, which a GitHub-hosted runner cannot reach.
+# Deliberately not path-triggered on this workflow file itself: renovate bumps
+# the MISE_VERSION pin below, and each bump would otherwise run a full
+# plan + apply with no terraform changes. Use workflow_dispatch after edits.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - terraform/unifi/**
+  push:
+    branches: [main]
+    paths:
+      - terraform/unifi/**
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Run a plan, an apply, or release a stale state lock
+        type: choice
+        default: plan
+        options: [plan, apply, unlock]
+      lock_id:
+        description: Lock ID to release (unlock only, from the "Error acquiring the state lock" output)
+        type: string
+        required: false
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+# Plan and apply share one S3 state lock, so serialise them. Applies must not be
+# cancelled mid-flight.
+concurrency:
+  group: terraform-unifi
+  cancel-in-progress: false
+
+jobs:
+  terraform:
+    name: UniFi
+    runs-on: home-ops
+    timeout-minutes: 30
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install mise
+        env:
+          # renovate: datasource=github-releases depName=jdx/mise
+          MISE_VERSION: v2026.8.2
+        run: |
+          set -euo pipefail
+          curl -fsSL https://mise.run | MISE_INSTALL_PATH="$HOME/.local/bin/mise" sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/mise" --version
+
+      - name: Decrypt UniFi credentials
+        env:
+          AGE_SECRET_KEY: ${{ secrets.AGE_SECRET_KEY }}
+          # mise reads the age identity from <config dir>/age.txt, and the
+          # config dir is NOT always ~/.config/mise: the home-ops runner image
+          # (ghcr.io/cloudsnacks/actions-runner, adopted in 690c1ef0) sets
+          # MISE_CONFIG_DIR=/opt/mise for its baked toolchain, so a key written
+          # to ~/.config/mise/age.txt is never read and mise reports
+          # "No age identities found for decryption". Pin the dir so the write
+          # target and the read target cannot drift apart.
+          MISE_CONFIG_DIR: ${{ runner.temp }}/mise
+          MISE_EXPERIMENTAL: "1"
+          # `mise env` would otherwise install the whole [tools] block (talosctl,
+          # kubectl, helm, ...) just to print the [env] block.
+          MISE_AUTO_INSTALL: "0"
+        run: |
+          set -euo pipefail
+          umask 077
+          install -d "$MISE_CONFIG_DIR"
+          printf '%s\n' "$AGE_SECRET_KEY" > "$MISE_CONFIG_DIR/age.txt"
+
+          # mise auto-trusts configs in detected CI, but be explicit: an
+          # untrusted mise.toml is silently skipped and the loop below would
+          # then fail on an empty endpoint rather than a missing key.
+          mise trust "${GITHUB_WORKSPACE}/mise.toml"
+
+          eval "$(mise env -s bash)"
+          for key in UNIFI_API UNIFI_API_KEY UNIFI_INSECURE; do
+            value="${!key:-}"
+            if [ -z "$value" ]; then
+              echo "::error::${key} missing from mise env — age decryption likely failed"
+              exit 1
+            fi
+            echo "::add-mask::${value}"
+            echo "${key}=${value}" >> "$GITHUB_ENV"
+          done
+
+      - name: Check UniFi API reachability
+        run: |
+          set -euo pipefail
+          # Unauthenticated probe against the controller root - any real HTTP
+          # response means we reached it. A connection or DNS failure here means
+          # the runner cannot resolve/route to the gateway on the LAN - fix that
+          # before blaming the plan.
+          code=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 15 \
+            "${UNIFI_API}/" || echo "000")
+          echo "HTTP ${code}"
+          if [ "$code" = "000" ]; then
+            echo "::error::UniFi API unreachable from this runner (DNS or LAN routing)"
+            exit 1
+          fi
+
+      - uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          aws-region: eu-central-2
+
+      - name: Plan
+        if: github.event_name == 'pull_request' || inputs.action == 'plan'
+        uses: dflook/terraform-plan@3f1559b085c5ceff68c3724c9b66c015a6c940cd # v3.0.0
+        with:
+          path: terraform/unifi
+          label: unifi
+
+      # A run killed mid-apply (runner death, node reboot) leaves its S3 lockfile
+      # behind and every later run stalls on it until the 30m timeout. Only the
+      # CI role can reach the state bucket, so the unlock has to happen here.
+      - name: Unlock state
+        if: inputs.action == 'unlock'
+        uses: dflook/terraform-unlock-state@eec38dcbe1341061e092afea7241836041614b25 # v3.0.0
+        with:
+          path: terraform/unifi
+          lock_id: ${{ inputs.lock_id }}
+
+      - name: Apply
+        if: github.event_name == 'push' || inputs.action == 'apply'
+        uses: dflook/terraform-apply@b7d589e72b3b2594f445627b351241d5c7dc78b6 # v3.0.0
+        with:
+          path: terraform/unifi
+          label: unifi
+          auto_approve: true
