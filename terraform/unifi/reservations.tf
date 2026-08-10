@@ -13,10 +13,9 @@ variable "reservations" {
   default = {}
 }
 
-# Imported from the live controller (see README.md's "Importing existing
-# config" section) - the pitower cluster nodes' static IPs, previously set by
-# hand per the old "set a UniFi reservation" notes in ansible/README.md and
-# ansible/inventory/hosts.yaml.
+# Adopted from the live controller (import blocks in imports.tf) - the pitower
+# cluster nodes' static IPs, previously set by hand per the old "set a UniFi
+# reservation" notes in ansible/README.md and ansible/inventory/hosts.yaml.
 locals {
   known_reservations = {
     worker-01 = { mac = "1c:83:41:40:88:41", fixed_ip = "10.20.10.1", network_id = unifi_network.servers.id }

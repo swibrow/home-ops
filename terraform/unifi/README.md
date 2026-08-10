@@ -8,11 +8,14 @@ local API, so this stack can only run from something on the LAN, same constraint
 
 ## Scope
 
-Currently just DHCP reservations (`reservations.tf`, `unifi_user` resources), replacing the manual
-"set a UniFi reservation" steps that `ansible/README.md` and `ansible/inventory/hosts.yaml`
-currently point at. The provider also supports networks/VLANs, firewall rules/groups, port
-forwards, DNS records, and WLANs - add `.tf` files for those as they're needed rather than
-scaffolding unused resources now.
+The five corporate networks (`networks.tf`) and the cluster-node DHCP reservations
+(`reservations.tf`, `unifi_user` resources), the latter replacing the manual "set a UniFi
+reservation" steps that `ansible/README.md` and `ansible/inventory/hosts.yaml` point at. The
+provider also supports firewall rules/groups, port forwards, DNS records, and WLANs - add `.tf`
+files for those as they're needed rather than scaffolding unused resources now.
+
+Everything here already existed on the controller and was adopted, not created - see
+[Adopting existing config](#adopting-existing-config).
 
 ## Credentials
 
@@ -36,6 +39,62 @@ mise set --age-encrypt --file mise.toml UNIFI_INSECURE=true
 
 Confirm `UNIFI_API` against the gateway's actual LAN management address before the first apply -
 it isn't recorded elsewhere in this repo.
+
+## Adopting existing config
+
+Every resource in this stack predates it, so nothing here should ever be *created* on a first
+apply - it has to be imported. `imports.tf` holds an `import` block per resource, keyed on the
+controller's Mongo ObjectID, which makes the adopting run part of the normal plan/apply rather
+than a pile of out-of-band `terraform import` commands.
+
+This is not theoretical: the first apply ran without them and tried to create all five networks.
+The controller rejected every one (`api.err.VlanUsed`, and `api.err.PdRequiresAssignedDhcpv6Wan`
+on `Default`), so nothing was duplicated and the reservations never ran - they depend on
+`unifi_network.servers.id`. Do not rely on that rejection as a safety net.
+
+To collect the IDs for a new resource, query the controller's REST API directly:
+
+```sh
+eval "$(mise env -s bash)"
+curl -sk -H "X-API-KEY: $UNIFI_API_KEY" "$UNIFI_API/proxy/network/api/s/default/rest/networkconf" \
+  | jq -r '.data[] | [._id, .name, (.vlan//"-"), (.ip_subnet//"-")] | @tsv'
+curl -sk -H "X-API-KEY: $UNIFI_API_KEY" "$UNIFI_API/proxy/network/api/s/default/rest/user" \
+  | jq -r '.data[] | select(.use_fixedip) | [._id, .mac, (.name//""), .fixed_ip] | @tsv'
+```
+
+(The reservation flag is `use_fixedip`, one `i` - `use_fixeddip` silently matches nothing.)
+
+The import blocks are kept after the adopting apply. They are no-ops once the resources are in
+state, and if the state object is ever lost they make the rebuild re-adopt rather than re-attempt
+creates.
+
+### Verifying before you merge
+
+The apply runs on merge to `main`, so validate the plan first. To do that without AWS state
+credentials, copy the stack to a scratch dir, swap `backend "s3"` for `backend "local" {}`, and
+plan there - it is read-only against the controller:
+
+```sh
+cp terraform/unifi/*.tf /tmp/unifi-check/    # then edit the backend block
+eval "$(mise env -s bash)"
+terraform -chdir=/tmp/unifi-check init && terraform -chdir=/tmp/unifi-check plan
+```
+
+A correct adopting plan is `16 to import, 0 to add, 11 to change, 0 to destroy` - the 11 being
+`name` / `network_id` / the two provider-side flags on the reservations. **Any "to add" on a
+`unifi_network` means an import block is missing or has the wrong ID.** Note that `terraform` on
+PATH may be the 1.6.6 in `~/bin`, which is below this stack's `required_version` and has no
+`for_each` in import blocks; use the mise 1.15.8 binary.
+
+### IPv6 defaults
+
+`networks.tf` pins `ipv6_ra_*` / `dhcp_v6_*` to the values the controller actually stores (0 /
+`false`). The provider schema defaults them to RFC lifetimes (86400/14400) and
+`dhcp_v6_dns_auto = true`, so leaving them unset makes adoption write those defaults back. That is
+inert on the four networks with `ipv6_interface_type = "none"`, but `Default` carries the ISP
+prefix delegation, where the same drift also flipped `ipv6_ra_enable` `true -> null` - dropping
+router advertisements on the main LAN. Pinning them keeps the network side of the plan a true
+no-op.
 
 ## Adding a reservation
 
