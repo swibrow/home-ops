@@ -44,6 +44,12 @@ metadata:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
+  name: flickerd-arm64-runners
+  namespace: arc-runners
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
   name: flickerd-runners
   namespace: arc-runners
 ---
@@ -56,6 +62,12 @@ metadata:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
+  name: garrison-arm64-runners
+  namespace: arc-runners
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
   name: garrison-runners
   namespace: arc-runners
 ---
@@ -63,6 +75,12 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: github-actions-tui-runners
+  namespace: arc-runners
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: goat-arm64-runners
   namespace: arc-runners
 ---
 apiVersion: v1
@@ -86,6 +104,12 @@ metadata:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
+  name: home-ops-arm64-runners
+  namespace: arc-runners
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
   name: home-ops-runners
   namespace: arc-runners
 ---
@@ -104,6 +128,12 @@ metadata:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
+  name: househunter-arm64-runners
+  namespace: arc-runners
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
   name: househunter-runners
   namespace: arc-runners
 ---
@@ -117,6 +147,12 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: money-runners
+  namespace: arc-runners
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rackrat-arm64-runners
   namespace: arc-runners
 ---
 apiVersion: v1
@@ -147,6 +183,12 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: trade-ops-runners
+  namespace: arc-runners
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: webterm-arm64-runners
   namespace: arc-runners
 ---
 apiVersion: v1

@@ -1,0 +1,123 @@
+# Common values for the arm64 runner scale sets on worker-08/09/10. These are
+# siblings of the amd64 sets in values.yaml — same chart, same GitHub App,
+# different node pool and storage class — registered under a `<repo>-arm64`
+# label so a workflow can pick the arch it wants with `runs-on`. Only repos
+# that actually build linux/arm64 artifacts get one; everything else stays on
+# the amd64 sets and there is nothing to select.
+githubConfigSecret: arc-github-app
+
+controllerServiceAccount:
+  name: arc-gha-rs-controller
+  namespace: arc
+
+# Three Pis with 3950m/3377Mi allocatable each carry every arm64 scale set
+# between them, so this cap is per scale set but the ceiling that matters is
+# the sum across them. Requests below are what actually bounds a burst: excess
+# runners sit Pending on the scheduler rather than pushing a 4GB node into OOM.
+maxRunners: 2
+minRunners: 0
+
+# Mirrors values.yaml's explicit dind pod spec (chart 0.14.2 helpers, k8s>=1.29
+# sidecar variant) rather than containerMode, for the same reason: /var/lib/docker
+# has to be relocatable. Two differences from the amd64 spec:
+#
+#   - openebs-hostpath, not openebs-hostpath-ssd/-runners. Those two classes
+#     point at worker-07's local pools; a PVC from either is unschedulable
+#     anywhere else. openebs-hostpath's BasePath (/var/mnt/extra/openebs/local)
+#     rides EPHEMERAL, which on these nodes is the single ~112Gi system disk —
+#     it reserves nothing, so the sizes below are advisory and maxRunners is
+#     the real limit.
+#   - no `dedicated=storage` toleration and no wibrow.dev/compute selector;
+#     worker-08/09/10 are untainted and unlabelled, so arch is the whole
+#     placement rule.
+#
+# The runner image is cloudsnacks/actions-runner, not the upstream one
+# values.yaml defaults to: every set here exists to build containers, and
+# upstream ghcr.io/actions/actions-runner ships no docker CLI or buildx — only
+# the socket the dind sidecar exposes. It publishes linux/arm64, as do
+# docker:dind and the openebs/linux-utils helper, so nothing else changes.
+# init-dind-externals stays on the upstream image; it only copies
+# /home/runner/externals.
+template:
+  spec:
+    automountServiceAccountToken: true
+    nodeSelector:
+      kubernetes.io/arch: arm64
+    initContainers:
+      - name: init-dind-externals
+        image: ghcr.io/actions/actions-runner:2.336.0
+        command: ["cp"]
+        args: ["-r", "/home/runner/externals/.", "/home/runner/tmpDir/"]
+        volumeMounts:
+          - name: dind-externals
+            mountPath: /home/runner/tmpDir
+      - name: dind
+        image: docker:dind
+        args:
+          - dockerd
+          - --host=unix:///var/run/docker.sock
+          - --group=$(DOCKER_GROUP_GID)
+        env:
+          - name: DOCKER_GROUP_GID
+            value: "123"
+        securityContext:
+          privileged: true
+        restartPolicy: Always
+        startupProbe:
+          exec:
+            command: ["docker", "info"]
+          initialDelaySeconds: 0
+          failureThreshold: 24
+          periodSeconds: 5
+        volumeMounts:
+          - name: work
+            mountPath: /home/runner/_work
+          - name: dind-sock
+            mountPath: /var/run
+          - name: dind-externals
+            mountPath: /home/runner/externals
+          - name: var-lib-docker
+            mountPath: /var/lib/docker
+    containers:
+      - name: runner
+        image: ghcr.io/cloudsnacks/actions-runner:2.336.0-5
+        command: ["/home/runner/run.sh"]
+        env:
+          - name: DOCKER_HOST
+            value: unix:///var/run/docker.sock
+          - name: RUNNER_WAIT_FOR_DOCKER_IN_SECONDS
+            value: "120"
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            memory: 2Gi
+        volumeMounts:
+          - name: work
+            mountPath: /home/runner/_work
+          - name: dind-sock
+            mountPath: /var/run
+    volumes:
+      - name: dind-sock
+        emptyDir: {}
+      - name: dind-externals
+        emptyDir: {}
+      - name: work
+        ephemeral:
+          volumeClaimTemplate:
+            spec:
+              accessModes: ["ReadWriteOnce"]
+              storageClassName: openebs-hostpath
+              resources:
+                requests:
+                  storage: 10Gi
+      - name: var-lib-docker
+        ephemeral:
+          volumeClaimTemplate:
+            spec:
+              accessModes: ["ReadWriteOnce"]
+              storageClassName: openebs-hostpath
+              resources:
+                requests:
+                  storage: 20Gi
