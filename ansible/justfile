@@ -74,6 +74,18 @@ deploy-garage-tls:
 facts-garage:
     ansible garage -m setup
 
+# Ping the homeassistant HAOS host over developer SSH (raw - HAOS has no python)
+ping-homeassistant:
+    ansible haos -m raw -a 'uname -a'
+
+# Dry-run the homeassistant playbook (PoE fan thresholds) and show pending state
+check-homeassistant:
+    ansible-playbook playbooks/homeassistant.yaml --check --diff
+
+# Apply the homeassistant playbook (PoE fan thresholds; host reboot required after)
+deploy-homeassistant:
+    ansible-playbook playbooks/homeassistant.yaml
+
 # Ping the proxmox-01 host over SSH
 ping-proxmox-01:
     ansible proxmox_01 -m ping

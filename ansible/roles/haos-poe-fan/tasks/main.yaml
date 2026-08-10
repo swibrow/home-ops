@@ -1,0 +1,32 @@
+---
+# HAOS host = busybox, no python, no sudo: raw module only, become off.
+# No dtoverlay=rpi-poe line needed - the HAT EEPROM auto-loads the overlay;
+# bare dtparam lines adjust its exported fan thresholds.
+# Fails loudly if config.txt is not where expected, instead of silently skipping.
+- name: Check whether config.txt already sets PoE fan thresholds
+  ansible.builtin.raw: test -f /mnt/boot/config.txt && { grep -c poe_fan_temp /mnt/boot/config.txt || true; }
+  register: haos_poe_fan_current
+  changed_when: false
+  check_mode: false
+
+# /mnt/boot (hassos-boot vfat) is mounted rw,sync by HAOS - no remount needed,
+# and remounting ro afterwards would diverge from the host default.
+- name: Append PoE fan thresholds to config.txt
+  ansible.builtin.raw: >-
+    printf '%s\n'
+    ''
+    '# PoE HAT fan thresholds (ansible/roles/haos-poe-fan)'
+    {% for t in haos_poe_fan_temps %}
+    'dtparam=poe_fan_temp{{ loop.index0 }}={{ t }}'
+    {% endfor %}
+    >> /mnt/boot/config.txt &&
+    sync
+  when: haos_poe_fan_current.stdout | trim == "0"
+
+- name: Report pending reboot
+  ansible.builtin.debug:
+    msg: >-
+      PoE fan thresholds are not yet active in config.txt - after deploy, they
+      take effect on the next HAOS host reboot (Settings -> System -> power
+      menu -> "Reboot system", or `ha host reboot` from the SSH addon).
+  when: haos_poe_fan_current.stdout | trim == "0"

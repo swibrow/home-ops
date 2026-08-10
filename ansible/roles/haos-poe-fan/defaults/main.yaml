@@ -1,0 +1,6 @@
+---
+# Fan trip points in millidegrees C, same curve as the Talos Pi workers
+# (talos/pitower/extensions/rpi-poe.yaml). Index N is the trip for fan step N;
+# firmware defaults are 40/45/50/55 C, which keeps the fan near max at normal
+# ~50 C idle temps.
+haos_poe_fan_temps: [50000, 60000, 70000, 80000]

@@ -1,0 +1,9 @@
+# HAOS is an appliance: no python, no sudo, raw-only roles. Connects over the
+# developer SSH (port 22222), which must be enabled once via the USB CONFIG
+# stick - see the homeassistant runbook in the README.
+- name: homeassistant HAOS host (PoE fan thresholds)
+  hosts: haos
+  gather_facts: false
+  become: false
+  roles:
+    - haos-poe-fan

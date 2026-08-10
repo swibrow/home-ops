@@ -26,6 +26,18 @@ all:
           # user, so ansible_user is root (SSH key injected by terraform/proxmox).
           ansible_host: garage-01.servers.local
           ansible_user: root
+    haos:
+      hosts:
+        homeassistant:
+          # Home Assistant OS (Pi 4 + PoE HAT) on the IoT network. Uses the HAOS
+          # *developer* SSH on port 22222 (root, key-only), enabled once via the
+          # USB CONFIG stick - see the homeassistant runbook in the README. The
+          # port-22 SSH addon is a container with no access to the boot partition.
+          ansible_host: homeassistant.iot
+          ansible_port: 22222
+          ansible_user: root
+          # Appliance host: busybox shell, no python, no sudo - raw module only.
+          ansible_become: false
     proxmox_01:
       hosts:
         proxmox-01:

@@ -20,6 +20,7 @@ ansible/
 │   ├── nut.yaml           # NUT role only
 │   ├── ovh-vps.yaml       # fail2ban + oha + towonel-hub + otel-agent (what `just ansible deploy-ovh-vps` runs)
 │   ├── proxmox-01.yaml    # fail2ban + proxmox (what `just ansible deploy-proxmox-01` runs)
+│   ├── homeassistant.yaml # HAOS PoE fan thresholds (what `just ansible deploy-homeassistant` runs)
 │   └── garage.yaml        # Garage S3 role only (what `just ansible deploy-garage` runs)
 └── roles/
     ├── network/           # VLAN sub-interfaces as NetworkManager connections
@@ -29,7 +30,8 @@ ansible/
     ├── towonel-hub/       # towonel tunnel hub (systemd-managed docker run)
     ├── otel-agent/        # host metrics/logs/traces -> pitower's otel-collector (pinned binary)
     ├── garage/            # Garage S3 node (pinned binary + systemd; layout/bucket/key bootstrap)
-    └── proxmox/           # Proxmox VE repo config (no-subscription, no enterprise)
+    ├── proxmox/           # Proxmox VE repo config (no-subscription, no enterprise)
+    └── haos-poe-fan/      # PoE HAT fan thresholds in HAOS config.txt (raw-only)
 ```
 
 ## Usage
@@ -44,6 +46,10 @@ just ansible deploy-nut  # apply only the NUT role
 just ansible ping-ovh-vps    # SSH reachability (ovh-vps)
 just ansible check-ovh-vps   # dry-run + diff (fail2ban + oha + towonel-hub)
 just ansible deploy-ovh-vps  # apply (fail2ban + oha + towonel-hub)
+
+just ansible ping-homeassistant    # SSH reachability (HAOS dev SSH, port 22222)
+just ansible check-homeassistant   # dry-run (PoE fan thresholds)
+just ansible deploy-homeassistant  # apply (PoE fan thresholds; reboot HAOS after)
 
 just ansible ping-proxmox-01    # SSH reachability (proxmox-01)
 just ansible check-proxmox-01   # dry-run + diff (fail2ban + proxmox repo config)
@@ -358,6 +364,78 @@ journalctl -u otel-agent -f     # scrape/export cycles; watch for 401s or journa
 Then in pitower: query VictoriaMetrics for `host_name="ovh-vps"` series, and VictoriaLogs
 (`vm.wibrow.dev` / Grafana Explore) for `host.name:ovh-vps` to confirm `towonel-hub.service` /
 `fail2ban` lines are arriving.
+
+## `homeassistant` (HAOS) runbook
+
+Home Assistant OS on a Raspberry Pi 4 with the official PoE HAT, on the IoT network
+(`homeassistant.iot`). HAOS is an appliance: the host has **no python and no sudo**, so the
+`haos-poe-fan` role uses only `raw` tasks (and `--check` therefore skips the append task -
+the "Report pending reboot" output tells you whether a change is pending).
+
+The role appends the same PoE fan thresholds the Talos Pi workers use
+(`talos/pitower/extensions/rpi-poe.yaml`: on at 50 C instead of the firmware-default 40 C)
+to `config.txt` on the boot partition. That file is only reachable from the **HAOS host**,
+not from the port-22 SSH addon container, and it is read at boot - so applying needs host
+SSH plus a reboot. `config.txt` lives on the shared `hassos-boot` partition, so the change
+survives HAOS updates (boot slots A/B only cover the OS itself).
+
+### 1. One-time: enable HAOS developer SSH (port 22222)
+
+**Via the web terminal (no USB, no physical access).** The *official* Terminal & SSH addon
+is sandboxed (no docker), so this needs the community **Advanced SSH & Web Terminal**
+addon with Protection mode off:
+
+1. Settings → Add-ons → Add-on Store → install **Advanced SSH & Web Terminal**.
+2. Configuration tab: add the same SSH public key under `ssh` → `authorized_keys`.
+   Info tab: toggle **Protection mode OFF** (this is what grants docker access). If the
+   official SSH addon is running, stop it first or the port-22 bind conflicts.
+3. Start the addon, open its Web UI terminal, and run:
+
+   ```sh
+   KEY=$(head -1 ~/.ssh/authorized_keys)
+   docker run --rm --privileged --pid=host -v /:/host alpine chroot /host /bin/sh -c "
+     mkdir -p /root/.ssh &&
+     echo '$KEY' >> /root/.ssh/authorized_keys &&
+     chmod 700 /root/.ssh && chmod 600 /root/.ssh/authorized_keys &&
+     systemctl enable --now dropbear
+   "
+   ```
+
+   (`dropbear` is HAOS's port-22222 host sshd; it only starts once
+   `/root/.ssh/authorized_keys` exists. If the unit name ever changes, check with
+   `... chroot /host systemctl list-unit-files | grep -iE 'ssh|dropbear'`.)
+4. Verify from the workstation: `ssh -p 22222 root@homeassistant.iot` lands in the HAOS
+   host shell (`#` busybox prompt), not the Alpine addon container.
+5. Afterwards, re-enable Protection mode (or stop/uninstall the advanced addon and
+   restart the official one) - docker access is no longer needed.
+
+**Via USB (fallback, physical access):** format a stick as FAT, label it exactly `CONFIG`,
+put the SSH public key in a root-level file named `authorized_keys` (no extension, LF line
+endings), plug it in, then Settings → System → Hardware → ⋮ → **Import from USB** (or
+reboot).
+
+### 2. Deploy
+
+```sh
+just ansible ping-homeassistant
+just ansible check-homeassistant && just ansible deploy-homeassistant
+```
+
+Then reboot the host (Settings → System → power menu → **Reboot system**, or
+`ha host reboot` from the addon SSH). A host reboot restarts Home Assistant and everything
+it runs - pick a quiet moment.
+
+### 3. Verify
+
+After the reboot, from the addon SSH (port 22, works without the dev SSH):
+
+```sh
+for h in /sys/class/hwmon/hwmon*; do echo "$h: $(cat $h/name)"; done   # expect rpi_poe + pwmfan
+cat /sys/class/thermal/thermal_zone0/temp                              # ~50-55000 idle
+```
+
+The fan should now be silent below 50 C and step up at 50/60/70/80 C. On the Talos Pis the
+same curve idles at the first (quietest) step around 51-54 C.
 
 ## `proxmox-01` node runbook
 
