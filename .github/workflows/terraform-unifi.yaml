@@ -83,8 +83,13 @@ jobs:
           # untrusted mise.toml is silently skipped and the loop below would
           # then fail on an empty endpoint rather than a missing key.
           mise trust "${GITHUB_WORKSPACE}/mise.toml"
+          mise trust "${GITHUB_WORKSPACE}/terraform/mise.toml"
 
-          eval "$(mise env -s bash)"
+          # Credentials live in terraform/mise.toml, not the root config, so
+          # that `checks.yaml`'s actionlint step (which runs a mise-shimmed
+          # binary from the repo root) never resolves this [env] block and
+          # attempts to decrypt secrets it doesn't need.
+          eval "$(mise env -C "${GITHUB_WORKSPACE}/terraform" -s bash)"
           for key in UNIFI_API UNIFI_API_KEY UNIFI_INSECURE; do
             value="${!key:-}"
             if [ -z "$value" ]; then

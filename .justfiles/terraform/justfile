@@ -39,26 +39,44 @@ environment environment:
         echo "Working on {{ environment }} in ${dir}"
     done
 
-# Init the proxmox stack (Proxmox API credentials come from mise.toml's [env] - PROXMOX_VE_*)
+# Init the proxmox stack (Proxmox API credentials come from terraform/mise.toml's [env] - PROXMOX_VE_*)
 init-proxmox:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    eval "$(mise env -C {{ justfile_directory() }}/{{ TERRAFORM_WORKING_DIR }} -s bash)"
     terraform -chdir={{ justfile_directory() }}/{{ TERRAFORM_WORKING_DIR }}/proxmox init
 
 # Plan the proxmox stack
 plan-proxmox:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    eval "$(mise env -C {{ justfile_directory() }}/{{ TERRAFORM_WORKING_DIR }} -s bash)"
     terraform -chdir={{ justfile_directory() }}/{{ TERRAFORM_WORKING_DIR }}/proxmox plan
 
 # Apply the proxmox stack
 apply-proxmox:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    eval "$(mise env -C {{ justfile_directory() }}/{{ TERRAFORM_WORKING_DIR }} -s bash)"
     terraform -chdir={{ justfile_directory() }}/{{ TERRAFORM_WORKING_DIR }}/proxmox apply
 
-# Init the unifi stack (UniFi API credentials come from mise.toml's [env] - UNIFI_*)
+# Init the unifi stack (UniFi API credentials come from terraform/mise.toml's [env] - UNIFI_*)
 init-unifi:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    eval "$(mise env -C {{ justfile_directory() }}/{{ TERRAFORM_WORKING_DIR }} -s bash)"
     terraform -chdir={{ justfile_directory() }}/{{ TERRAFORM_WORKING_DIR }}/unifi init
 
 # Plan the unifi stack
 plan-unifi:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    eval "$(mise env -C {{ justfile_directory() }}/{{ TERRAFORM_WORKING_DIR }} -s bash)"
     terraform -chdir={{ justfile_directory() }}/{{ TERRAFORM_WORKING_DIR }}/unifi plan
 
 # Apply the unifi stack
 apply-unifi:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    eval "$(mise env -C {{ justfile_directory() }}/{{ TERRAFORM_WORKING_DIR }} -s bash)"
     terraform -chdir={{ justfile_directory() }}/{{ TERRAFORM_WORKING_DIR }}/unifi apply
