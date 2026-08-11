@@ -9,12 +9,6 @@
 defaultPodOptions:
   imagePullSecrets:
     - name: ghcr-pull-secret
-  nodeSelector:
-    # The image is published amd64-only, so the arm64 Pis (worker-08/09/10)
-    # fail the pull with "no match for platform in manifest". Nothing else
-    # pins this pod (the /data PVC is ceph-block), so the scheduler is free
-    # to land it there. Drop this once the image ships linux/arm64.
-    kubernetes.io/arch: amd64
   securityContext:
     # The image is distroless nonroot; fsGroup makes the ceph-block /data
     # volume writable for the dead-letter file.
