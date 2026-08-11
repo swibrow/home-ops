@@ -86,13 +86,22 @@ resource "proxmox_virtual_environment_vm" "talos_worker" {
     ssd          = true
   }
 
-  # scsi2 (GitHub-runner scratch on the `runners` zpool) is intentionally absent:
-  # the 4x Samsung 830 stripe was replaced by a single 500GB 850 EVO, so the pool
-  # exists again but its zvol does not. Runner PVCs are parked on
-  # openebs-hostpath-ssd meanwhile. Restore this block, the Talos
-  # UserVolumeConfig at talos/pitower/node/worker-07/03-runners.yaml and its
-  # kubelet extraMount together - the Talos side selects the disk by size band.
-  # The slot stays reserved for runners, hence media below is scsi3 not scsi2.
+  disk {
+    # GitHub-runner scratch on the `runners` zpool - now a single 500GB Samsung
+    # 850 EVO in bay 9, not the old 4x 830 stripe. Consumer TLC with no PLP and
+    # no redundancy, and the pool runs sync=disabled, so this holds only
+    # per-job throwaway data (runner work dirs + dind's /var/lib/docker).
+    #
+    # 350GiB, not the pool's full ~450GiB: the Talos UserVolumeConfig picks
+    # disks by size band and 400-500GiB already belongs to scratch (scsi1).
+    # Growing past 400GiB means widening both selectors in the same change.
+    datastore_id = "runners"
+    interface    = "scsi2"
+    size         = 350
+    iothread     = true
+    discard      = "on"
+    ssd          = true
+  }
 
   disk {
     # The Immich photo library, on the `media` zpool (4x 600GB 10K SAS, RAIDZ1,
