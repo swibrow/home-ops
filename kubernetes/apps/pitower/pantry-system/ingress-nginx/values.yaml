@@ -10,6 +10,13 @@ controller:
     # Wildcard cert for *.apps.cloudsnacks.dev + api; tenant Ingresses carry no
     # tls section, so everything terminates against this default cert.
     default-ssl-certificate: pantry-system/pantry-wildcard-tls
+  config:
+    # The towonel agent prepends PROXY v2 to origin connections (same reason
+    # envoy-external's ClientTrafficPolicy sets proxyProtocol) -- without this
+    # nginx sees the header as garbage bytes and answers a plaintext 400.
+    # Direct in-cluster curls to the controller must send the header too
+    # (curl --haproxy-protocol).
+    use-proxy-protocol: "true"
   resources:
     requests:
       cpu: 100m
