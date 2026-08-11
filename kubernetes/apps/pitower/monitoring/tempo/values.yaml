@@ -1,6 +1,9 @@
 ---
 fullnameOverride: tempo
 
+# TEMPORARY: paused for the TSDB move to openebs-hostpath-ssd.
+replicas: 0
+
 nodeSelector:
   wibrow.dev/compute: "true"
 

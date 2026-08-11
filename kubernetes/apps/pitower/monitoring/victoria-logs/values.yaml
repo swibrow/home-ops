@@ -3,7 +3,7 @@ fullnameOverride: victoria-logs
 server:
   enabled: true
   fullnameOverride: victoria-logs
-  replicaCount: 1
+  replicaCount: 0 # TEMPORARY: paused for the TSDB move to openebs-hostpath-ssd
   nodeSelector:
     wibrow.dev/compute: "true"
   retentionPeriod: 14d
