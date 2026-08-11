@@ -238,11 +238,6 @@ prometheus:
     podMonitorSelectorNilUsesHelmValues: false
     probeSelectorNilUsesHelmValues: false
     scrapeConfigSelectorNilUsesHelmValues: false
-    # TEMPORARY: paused for the TSDB move from openebs-hostpath to
-    # openebs-hostpath-ssd. Must live in git, not a kubectl scale - these apps
-    # auto-sync, so any commit landing mid-migration re-applies the manifest
-    # and restarts the pod onto the volume being copied.
-    replicas: 0
     enableAdminAPI: true
     walCompression: true
     retentionSize: 50GB
@@ -257,7 +252,7 @@ prometheus:
     storageSpec:
       volumeClaimTemplate:
         spec:
-          storageClassName: openebs-hostpath
+          storageClassName: openebs-hostpath-ssd
           resources:
             requests:
               storage: 50Gi

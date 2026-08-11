@@ -2,7 +2,7 @@ fullnameOverride: victoria-metrics
 
 server:
   enabled: true
-  replicaCount: 0 # TEMPORARY: paused for the TSDB move to openebs-hostpath-ssd
+  replicaCount: 1
   nodeSelector:
     wibrow.dev/compute: "true"
   retentionPeriod: 2y
@@ -16,7 +16,7 @@ server:
     enabled: true
     accessModes:
       - ReadWriteOnce
-    storageClassName: openebs-hostpath
+    storageClassName: openebs-hostpath-ssd
     size: 100Gi
   service:
     servicePort: 8428
