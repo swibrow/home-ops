@@ -32,9 +32,9 @@ minRunners: 0
 # pod - same disposable semantics as the emptyDirs they replace. Re-diff
 # against the chart helpers on chart upgrades.
 #
-# Temporarily on openebs-hostpath-ssd (zpool `scratch`) while the `runners`
-# zpool is rebuilt onto the 500GB EVOs; revert to openebs-hostpath-runners
-# once the new pool and scsi2 are back.
+# openebs-hostpath-runners is zpool `runners` (single 500GB 850 EVO, bay 9),
+# kept separate from `scratch` so a runner burst cannot fill the disk under
+# the monitoring TSDBs, which reserve nothing on a hostpath class.
 template:
   spec:
     automountServiceAccountToken: true
@@ -110,7 +110,7 @@ template:
           volumeClaimTemplate:
             spec:
               accessModes: ["ReadWriteOnce"]
-              storageClassName: openebs-hostpath-ssd
+              storageClassName: openebs-hostpath-runners
               resources:
                 requests:
                   storage: 20Gi
@@ -119,7 +119,7 @@ template:
           volumeClaimTemplate:
             spec:
               accessModes: ["ReadWriteOnce"]
-              storageClassName: openebs-hostpath-ssd
+              storageClassName: openebs-hostpath-runners
               resources:
                 requests:
                   storage: 40Gi
