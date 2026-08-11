@@ -87,23 +87,6 @@ resource "proxmox_virtual_environment_vm" "talos_worker" {
   }
 
   disk {
-    # GitHub-runner scratch on the `runners` zpool - now a single 500GB Samsung
-    # 850 EVO in bay 9, not the old 4x 830 stripe. Consumer TLC with no PLP and
-    # no redundancy, and the pool runs sync=disabled, so this holds only
-    # per-job throwaway data (runner work dirs + dind's /var/lib/docker).
-    #
-    # 350GiB, not the pool's full ~450GiB: the Talos UserVolumeConfig picks
-    # disks by size band and 400-500GiB already belongs to scratch (scsi1).
-    # Growing past 400GiB means widening both selectors in the same change.
-    datastore_id = "runners"
-    interface    = "scsi2"
-    size         = 350
-    iothread     = true
-    discard      = "on"
-    ssd          = true
-  }
-
-  disk {
     # The Immich photo library, on the `media` zpool (4x 600GB 10K SAS, RAIDZ1,
     # bays 4-7). 1200GiB of the pool's 1566GiB usable, leaving headroom so the
     # pool never runs past ~77% - RAIDZ degrades badly when close to full. The
@@ -120,6 +103,39 @@ resource "proxmox_virtual_environment_vm" "talos_worker" {
     size         = 1200
     iothread     = true
     discard      = "on"
+  }
+
+  disk {
+    # GitHub-runner scratch on the `runners` zpool - now a single 500GB Samsung
+    # 850 EVO in bay 9, not the old 4x 830 stripe. Consumer TLC with no PLP and
+    # no redundancy, and the pool runs sync=disabled, so this holds only
+    # per-job throwaway data (runner work dirs + dind's /var/lib/docker).
+    #
+    # 350GiB, not the pool's full ~450GiB: the Talos UserVolumeConfig picks
+    # disks by size band and 400-500GiB already belongs to scratch (scsi1).
+    # Growing past 400GiB means widening both selectors in the same change.
+    #
+    # THIS BLOCK MUST STAY LAST. `disk` is a list, and terraform diffs list
+    # elements by position - the position in this file, not the interface
+    # number. State holds [scsi0, scsi1, scsi3], so a new block declared in
+    # scsi-slot order (ahead of media's scsi3) lands at index 2 and shifts
+    # media to index 3. Terraform then reads that as "index 2 changed from
+    # media to runners" and plans an in-place rewrite of the media disk
+    # (scsi3 -> scsi2, 1200 -> 350, datastore media -> runners) plus a
+    # replacement 1200GiB media disk. That is the Immich photo library.
+    #
+    # It was planned and auto-applied on 2026-08-11, and only missed
+    # destroying the library because Proxmox errored on the new zvol's device
+    # link partway through - after writing a phantom scsi2 disk into state and
+    # blanking media's path_in_datastore, which had to be repaired by hand.
+    # Appended last, the first three blocks line up with state and this one is
+    # a pure add.
+    datastore_id = "runners"
+    interface    = "scsi2"
+    size         = 350
+    iothread     = true
+    discard      = "on"
+    ssd          = true
   }
 
   network_device {
