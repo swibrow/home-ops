@@ -115,14 +115,19 @@ resource "proxmox_virtual_environment_vm" "talos_worker" {
     # disks by size band and 400-500GiB already belongs to scratch (scsi1).
     # Growing past 400GiB means widening both selectors in the same change.
     #
-    # THIS BLOCK MUST STAY LAST, out of interface order. The provider matches
-    # disk blocks by position, not by `interface`, so putting scsi2 in slot
-    # order ahead of scsi3 makes terraform plan an in-place rewrite of the
-    # media disk (scsi3 -> scsi2, 1200 -> 350, datastore media -> runners) and
-    # a fresh 1200GiB media disk after it. That plan ran on 2026-08-11 and only
-    # missed destroying the Immich library because Proxmox errored partway.
+    # scsi4, NOT the scsi2 slot this disk used to occupy. The provider keys
+    # `disk` blocks by interface order, not by their order in this file, and
+    # diffs them positionally against state. State holds [scsi0, scsi1, scsi3],
+    # so introducing a scsi2 sorts it into index 2 and every later disk shifts
+    # down: terraform then plans an in-place rewrite of the media disk
+    # (scsi3 -> scsi2, 1200 -> 350, datastore media -> runners) plus a
+    # replacement 1200GiB media disk. That is the Immich photo library. It was
+    # planned and auto-applied on 2026-08-11 and only missed destroying the
+    # library because Proxmox errored on the new zvol's device link partway
+    # through. Moving this block around the file does not help - only an
+    # interface that sorts after every existing one does.
     datastore_id = "runners"
-    interface    = "scsi2"
+    interface    = "scsi4"
     size         = 350
     iothread     = true
     discard      = "on"
