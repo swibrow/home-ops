@@ -1,0 +1,88 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pantry-operator
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - endpoints
+  - events
+  - limitranges
+  - persistentvolumeclaims
+  - pods
+  - resourcequotas
+  - secrets
+  - serviceaccounts
+  - services
+  verbs:
+  - '*'
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - replicasets
+  - statefulsets
+  verbs:
+  - '*'
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  - networkpolicies
+  verbs:
+  - '*'
+- apiGroups:
+  - pantry.cloudsnacks.dev
+  resources:
+  - apps
+  - tenants
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - pantry.cloudsnacks.dev
+  resources:
+  - apps/finalizers
+  - tenants/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - pantry.cloudsnacks.dev
+  resources:
+  - apps/status
+  - tenants/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  verbs:
+  - '*'
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterrolebindings
+  - clusterroles
+  - rolebindings
+  - roles
+  verbs:
+  - '*'

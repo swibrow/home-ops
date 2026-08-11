@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+# CRDs and operator-clusterrole.yaml are vendored from cloudsnacks/pantry
+# (config/crd, config/rbac); re-copy after `make manifests` there.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: pantry-system
+resources:
+  - pantry.cloudsnacks.dev_tenants.yaml
+  - pantry.cloudsnacks.dev_apps.yaml
+  - operator-clusterrole.yaml
+  - operator.yaml
+  - api.yaml
+  - certificate.yaml
+  - dnsendpoint.yaml
+  - externalsecret.yaml

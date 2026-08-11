@@ -1,0 +1,108 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pantry-api
+  namespace: pantry-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pantry-api
+rules:
+  - apiGroups: ["pantry.cloudsnacks.dev"]
+    resources: ["tenants", "apps"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "create", "update", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pantry-api
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: pantry-api
+subjects:
+  - kind: ServiceAccount
+    name: pantry-api
+    namespace: pantry-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pantry-api
+  namespace: pantry-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pantry-api
+  template:
+    metadata:
+      labels:
+        app: pantry-api
+    spec:
+      serviceAccountName: pantry-api
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: api
+          image: ghcr.io/cloudsnacks/pantry-api:0.1.0
+          env:
+            - name: PANTRY_ADMIN_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: pantry-admin-token
+                  key: token
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pantry-api
+  namespace: pantry-system
+spec:
+  selector:
+    app: pantry-api
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pantry-api
+  namespace: pantry-system
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: api.pantry.cloudsnacks.dev
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: pantry-api
+                port:
+                  number: 80

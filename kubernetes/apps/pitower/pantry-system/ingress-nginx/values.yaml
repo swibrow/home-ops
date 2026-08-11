@@ -1,0 +1,22 @@
+# Dedicated controller for pantry: vcluster-synced tenant Ingresses use class
+# nginx, which Envoy Gateway can't serve. ClusterIP only -- reached via the
+# towonel agent (TLS passthrough from the VPS edge), never a LoadBalancer.
+fullnameOverride: pantry-ingress-nginx
+controller:
+  replicaCount: 2
+  service:
+    type: ClusterIP
+  extraArgs:
+    # Wildcard cert for *.apps.cloudsnacks.dev + api; tenant Ingresses carry no
+    # tls section, so everything terminates against this default cert.
+    default-ssl-certificate: pantry-system/pantry-wildcard-tls
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+  # Helm-hook cert Jobs don't re-sync cleanly under Argo's kustomize rendering,
+  # and the only Ingress author here is the pantry operator.
+  admissionWebhooks:
+    enabled: false

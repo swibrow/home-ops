@@ -1,0 +1,60 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pantry-operator
+  namespace: pantry-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pantry-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: pantry-operator
+subjects:
+  - kind: ServiceAccount
+    name: pantry-operator
+    namespace: pantry-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pantry-operator
+  namespace: pantry-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pantry-operator
+  template:
+    metadata:
+      labels:
+        app: pantry-operator
+    spec:
+      serviceAccountName: pantry-operator
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: operator
+          image: ghcr.io/cloudsnacks/pantry-operator:0.1.0
+          env:
+            - name: PANTRY_APPS_DOMAIN
+              value: apps.cloudsnacks.dev
+          resources:
+            requests:
+              cpu: 50m
+              memory: 96Mi
+            limits:
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081

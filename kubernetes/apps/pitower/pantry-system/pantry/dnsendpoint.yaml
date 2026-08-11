@@ -1,0 +1,22 @@
+---
+# Unproxied CNAMEs: traffic must reach the towonel hub edge as raw TLS so SNI
+# routing works; Cloudflare proxying would terminate TLS at Cloudflare.
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: pantry
+  namespace: pantry-system
+spec:
+  endpoints:
+    - dnsName: "*.apps.cloudsnacks.dev"
+      recordType: CNAME
+      targets: ["tunnel.wibrow.dev"]
+      providerSpecific:
+        - name: external-dns.alpha.kubernetes.io/cloudflare-proxied
+          value: "false"
+    - dnsName: "api.pantry.cloudsnacks.dev"
+      recordType: CNAME
+      targets: ["tunnel.wibrow.dev"]
+      providerSpecific:
+        - name: external-dns.alpha.kubernetes.io/cloudflare-proxied
+          value: "false"
