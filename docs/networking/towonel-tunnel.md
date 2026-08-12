@@ -77,7 +77,12 @@ env:
   TOWONEL_AGENT_HEALTH_LISTEN_ADDR: 0.0.0.0:9090
   TOWONEL_AGENT_SERVICES: |
     [
-      {"hostname":"*.wibrow.dev","origin":"envoy-external.networking.svc.cluster.local:443"}
+      {"hostname":"*.wibrow.dev","origin":"envoy-external.networking.svc.cluster.local:443"},
+      {"hostname":"propagit.dev","origin":"envoy-external.networking.svc.cluster.local:443"},
+      {"hostname":"*.propagit.dev","origin":"envoy-external.networking.svc.cluster.local:443"},
+      {"hostname":"*.cloudsnacks.dev","origin":"envoy-external.networking.svc.cluster.local:443"},
+      {"hostname":"*.apps.cloudsnacks.dev","origin":"envoy-external.networking.svc.cluster.local:443"},
+      {"hostname":"api.pantry.cloudsnacks.dev","origin":"envoy-external.networking.svc.cluster.local:443"}
     ]
   TOWONEL_INVITE_TOKEN:
     valueFrom:
@@ -86,8 +91,21 @@ env:
         key: TOWONEL_INVITE_TOKEN
 ```
 
-A single wildcard service covers every public hostname, so adding a public app needs no tunnel
-change — only an HTTPRoute with `parentRefs` to `envoy-external`.
+Every origin is the same — `envoy-external` — so this list exists only to tell the edge which SNI
+values belong to this tenant. Each zone's first-level wildcard is listed, so adding an app under
+`*.wibrow.dev`, `*.propagit.dev`, or `*.cloudsnacks.dev` needs no tunnel change, just an HTTPRoute
+with `parentRefs` to `envoy-external`. Anything **deeper** than one label needs its own entry.
+Hostnames are added agent-side; the hub needs no action.
+
+!!! warning "An unlisted hostname fails at the VPS, not in Envoy"
+    The edge matches the ClientHello SNI against this list and nothing else. A hostname that is not
+    covered gets its TLS handshake dropped at the VPS (`curl` reports `SSL_ERROR_SYSCALL`) and never
+    reaches the cluster — a cert on `envoy-external` and a working DNS record are not enough.
+
+    Wildcards match a single label. `*.cloudsnacks.dev` covers `pitwall.cloudsnacks.dev` but **not**
+    `foo.apps.cloudsnacks.dev`, which is why `*.apps.cloudsnacks.dev` and the two-label
+    `api.pantry.cloudsnacks.dev` are listed separately. `pitwall.cloudsnacks.dev` shipped with a
+    cert, a listener, and DNS, and stayed unreachable until the zone wildcard was added.
 
 The deployment runs 2 replicas with an HPA to 4 on 75% CPU (`hpa.yaml`), non-root with a read-only
 root filesystem and all capabilities dropped.
@@ -121,6 +139,18 @@ passthrough the edge depends on:
 The wildcard means an unmatched subdomain still reaches the edge and hits the `envoy-external`
 fallback 404 route rather than returning NXDOMAIN.
 
+The other zones on the tunnel get their records the same way, from three places:
+
+| Name | Record | Source |
+|:-----|:-------|:-------|
+| `propagit.dev`, `*.propagit.dev` | CNAME → `tunnel.wibrow.dev` | `towonel-agent/dnsendpoint.yaml` |
+| `*.apps.cloudsnacks.dev`, `api.pantry.cloudsnacks.dev` | CNAME → `tunnel.wibrow.dev` | `pantry-system/pantry/dnsendpoint.yaml` |
+| Anything else with an HTTPRoute on `envoy-external` | CNAME → `external.wibrow.dev` | `external-dns`, from the gateway's `external-dns.alpha.kubernetes.io/target` |
+
+The last row is why a route-only hostname such as `pitwall.cloudsnacks.dev` resolves without any
+DNSEndpoint: it chains through `external.wibrow.dev` to `tunnel.wibrow.dev`. It resolving proves
+nothing about the tunnel — the agent still has to advertise the SNI.
+
 !!! note "The apex is not on the tunnel"
     `wibrow.dev` is served entirely by a Cloudflare Worker route at the edge and has no origin. It
     keeps a **proxied** placeholder record (`AAAA 100::`, the IPv6 discard prefix) purely so the
@@ -145,6 +175,9 @@ curl -v https://tunnel.wibrow.dev/v1/health
 
 # Confirm DNS is unproxied — the answer must be the VPS IP, not a Cloudflare IP
 dig +short external.wibrow.dev
+
+# Is a hostname actually advertised to the edge? A 404 means yes, a TLS error means no
+curl -sS -o /dev/null -w '%{http_code}\n' https://myapp.wibrow.dev/
 ```
 
 ??? failure "Everything public returns 5xx"
@@ -155,6 +188,12 @@ dig +short external.wibrow.dev
     The tunnel is fine — the wildcard delivered the request and `envoy-external` had no matching
     HTTPRoute. Check the app's HTTPRoute `hostnames` and `parentRefs`.
 
+??? failure "TLS handshake error, no HTTP status at all"
+    The edge has no SNI mapping for that hostname. Check it against `TOWONEL_AGENT_SERVICES` above,
+    remembering that a wildcard only matches one label, and add an entry if nothing covers it.
+
 ??? failure "Cloudflare error page instead of the app"
-    The DNS record got proxied. `external-dns` applies `--cloudflare-proxied` globally, so every
-    towonel record needs the explicit `cloudflare-proxied: "false"` providerSpecific override.
+    The DNS record got proxied. `external-dns` runs without `--cloudflare-proxied`, so records
+    default to unproxied and only a `cloudflare-proxied: "true"` providerSpecific turns it on — the
+    explicit `"false"` on the towonel DNSEndpoints is belt-and-braces against that flag ever being
+    added. The one record that must stay proxied is the apex.

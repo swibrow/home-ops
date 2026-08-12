@@ -36,6 +36,7 @@ controllers:
               {"hostname":"*.wibrow.dev","origin":"envoy-external.networking.svc.cluster.local:443"},
               {"hostname":"propagit.dev","origin":"envoy-external.networking.svc.cluster.local:443"},
               {"hostname":"*.propagit.dev","origin":"envoy-external.networking.svc.cluster.local:443"},
+              {"hostname":"*.cloudsnacks.dev","origin":"envoy-external.networking.svc.cluster.local:443"},
               {"hostname":"*.apps.cloudsnacks.dev","origin":"envoy-external.networking.svc.cluster.local:443"},
               {"hostname":"api.pantry.cloudsnacks.dev","origin":"envoy-external.networking.svc.cluster.local:443"}
             ]
