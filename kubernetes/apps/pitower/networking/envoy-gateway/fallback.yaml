@@ -169,6 +169,7 @@ spec:
   # so this only serves subdomains with no matching app.
   hostnames:
     - "*.wibrow.dev"
+    - "*.apps.cloudsnacks.dev"
   rules:
     - filters:
         - type: ResponseHeaderModifier

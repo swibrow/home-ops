@@ -41,6 +41,9 @@ spec:
             name: propagit-dev-production-tls
           - group: ''
             kind: Secret
+            name: cloudsnacks-apps-production-tls
+          - group: ''
+            kind: Secret
             name: pitwall-cloudsnacks-dev-production-tls
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/gateway.networking.k8s.io/httproute_v1.json

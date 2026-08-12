@@ -29,6 +29,23 @@ spec:
     - "propagit.dev"
     - "*.propagit.dev"
 ---
+# pantry: *.apps.cloudsnacks.dev is a second-level wildcard, NOT covered by
+# *.cloudsnacks.dev, so both SANs are listed explicitly.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: "cloudsnacks-apps-production"
+  namespace: networking
+spec:
+  secretName: "cloudsnacks-apps-production-tls"
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+  commonName: "*.apps.cloudsnacks.dev"
+  dnsNames:
+    - "*.apps.cloudsnacks.dev"
+    - "api.pantry.cloudsnacks.dev"
+---
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
