@@ -40,10 +40,12 @@ spec:
         runAsNonRoot: true
       containers:
         - name: operator
-          image: ghcr.io/cloudsnacks/pantry-operator:0.1.0
+          image: ghcr.io/cloudsnacks/pantry-operator:0.2.0
           env:
             - name: PANTRY_APPS_DOMAIN
               value: apps.cloudsnacks.dev
+            - name: PANTRY_GATEWAY
+              value: networking/envoy-external
           resources:
             requests:
               cpu: 50m

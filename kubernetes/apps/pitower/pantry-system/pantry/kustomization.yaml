@@ -10,6 +10,5 @@ resources:
   - operator-clusterrole.yaml
   - operator.yaml
   - api.yaml
-  - certificate.yaml
   - dnsendpoint.yaml
   - externalsecret.yaml

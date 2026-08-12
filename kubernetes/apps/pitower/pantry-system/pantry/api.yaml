@@ -52,7 +52,7 @@ spec:
         runAsNonRoot: true
       containers:
         - name: api
-          image: ghcr.io/cloudsnacks/pantry-api:0.1.0
+          image: ghcr.io/cloudsnacks/pantry-api:0.2.0
           env:
             - name: PANTRY_ADMIN_TOKEN
               valueFrom:
@@ -88,21 +88,24 @@ spec:
     - port: 80
       targetPort: 8080
 ---
-apiVersion: networking.k8s.io/v1
-kind: Ingress
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
 metadata:
   name: pantry-api
   namespace: pantry-system
+  annotations:
+    # DNS is owned by the DNSEndpoint in this directory (unproxied CNAME to
+    # tunnel.wibrow.dev); without the opt-out, external-dns would fight it
+    # with a CNAME to external.wibrow.dev.
+    external-dns.alpha.kubernetes.io/controller: none
 spec:
-  ingressClassName: nginx
+  parentRefs:
+    - name: envoy-external
+      namespace: networking
+      sectionName: https
+  hostnames:
+    - api.pantry.cloudsnacks.dev
   rules:
-    - host: api.pantry.cloudsnacks.dev
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: pantry-api
-                port:
-                  number: 80
+    - backendRefs:
+        - name: pantry-api
+          port: 80

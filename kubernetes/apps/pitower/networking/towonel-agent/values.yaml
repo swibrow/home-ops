@@ -36,8 +36,8 @@ controllers:
               {"hostname":"*.wibrow.dev","origin":"envoy-external.networking.svc.cluster.local:443"},
               {"hostname":"propagit.dev","origin":"envoy-external.networking.svc.cluster.local:443"},
               {"hostname":"*.propagit.dev","origin":"envoy-external.networking.svc.cluster.local:443"},
-              {"hostname":"*.apps.cloudsnacks.dev","origin":"pantry-ingress-nginx-controller.pantry-system.svc.cluster.local:443"},
-              {"hostname":"api.pantry.cloudsnacks.dev","origin":"pantry-ingress-nginx-controller.pantry-system.svc.cluster.local:443"}
+              {"hostname":"*.apps.cloudsnacks.dev","origin":"envoy-external.networking.svc.cluster.local:443"},
+              {"hostname":"api.pantry.cloudsnacks.dev","origin":"envoy-external.networking.svc.cluster.local:443"}
             ]
           TOWONEL_INVITE_TOKEN:
             valueFrom:
