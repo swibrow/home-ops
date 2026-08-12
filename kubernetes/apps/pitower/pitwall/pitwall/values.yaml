@@ -10,19 +10,21 @@ defaultPodOptions:
   imagePullSecrets:
     - name: ghcr-pull-secret
   securityContext:
-    # The image is distroless nonroot; fsGroup makes the ceph-block /data
-    # volume writable for the dead-letter file.
+    # The image is distroless nonroot.
     runAsUser: 65532
     runAsGroup: 65532
-    fsGroup: 65532
-    fsGroupChangePolicy: OnRootMismatch
 
 controllers:
   pitwall:
-    # The SSE broker is in-memory: exactly one replica, and Recreate so two
-    # pods never run concurrently during a rollout (migrations also run on
-    # startup against the shared CNPG database).
-    strategy: Recreate
+    # Since v1.3.0 replicas scale horizontally: SSE fans out through
+    # Postgres NOTIFY, the dead-letter queue lives in Postgres, and cron
+    # jobs take advisory locks. Startup migrations serialize via
+    # golang-migrate's advisory lock, so rolling updates are safe.
+    replicas: 2
+    strategy: RollingUpdate
+    rollingUpdate:
+      unavailable: "0"
+      surge: 1
     annotations:
       reloader.stakater.com/auto: "true"
     containers:
@@ -31,10 +33,9 @@ controllers:
           # CI publishes :latest and :<git-sha> on every push to main; pin the
           # SHA and bump it to roll out.
           repository: ghcr.io/cloudsnacks/pitwall
-          tag: v1.2.1
+          tag: v1.3.0
         env:
           TZ: Europe/Zurich
-          DEAD_LETTER_PATH: /data/dead-letter.jsonl
           # The cnpg-db component emits DB_URL in pitwall-db-secret.
           DATABASE_URL:
             valueFrom:
@@ -75,14 +76,6 @@ controllers:
           capabilities:
             drop:
               - ALL
-
-persistence:
-  data:
-    # Declared via components/pvc (claim "pitwall") so backup tooling can come
-    # and go without ArgoCD pruning the volume.
-    existingClaim: pitwall
-    globalMounts:
-      - path: /data
 
 service:
   app:

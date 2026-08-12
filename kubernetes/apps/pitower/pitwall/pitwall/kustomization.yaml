@@ -7,7 +7,6 @@ resources:
   - externalsecret.yaml
 components:
   - ../../../../components/cnpg-db-shared
-  - ../../../../components/pvc
 configMapGenerator:
   - name: cnpg-db-config
     literals:
@@ -16,15 +15,6 @@ configMapGenerator:
       - CNPG_SECRET_KEY=shared-pitwall
       # pgx accepts both postgres:// and postgresql://; keep the template's default.
       - DB_SCHEME=postgresql
-  # Persists the dead-letter queue (webhook events received during a database
-  # outage) across pod restarts.
-  - name: pvc-config
-    options:
-      disableNameSuffixHash: true
-    literals:
-      - APP_NAME=pitwall-pvc
-      - CLAIM_NAME=pitwall
-      - STORAGE_SIZE=1Gi
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm
