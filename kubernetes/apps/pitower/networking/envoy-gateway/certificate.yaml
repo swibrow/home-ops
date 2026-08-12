@@ -28,3 +28,17 @@ spec:
   dnsNames:
     - "propagit.dev"
     - "*.propagit.dev"
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: "pitwall-cloudsnacks-dev-production"
+  namespace: networking
+spec:
+  secretName: "pitwall-cloudsnacks-dev-production-tls"
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+  commonName: "pitwall.cloudsnacks.dev"
+  dnsNames:
+    - "pitwall.cloudsnacks.dev"

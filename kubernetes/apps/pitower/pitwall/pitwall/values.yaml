@@ -87,7 +87,7 @@ service:
 route:
   app:
     hostnames:
-      - pitwall.wibrow.dev
+      - pitwall.cloudsnacks.dev
     parentRefs:
       # External: GitHub webhook deliveries come in from the internet.
       - name: envoy-external
