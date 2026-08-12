@@ -95,7 +95,43 @@ Every origin is the same — `envoy-external` — so this list exists only to te
 values belong to this tenant. Each zone's first-level wildcard is listed, so adding an app under
 `*.wibrow.dev`, `*.propagit.dev`, or `*.cloudsnacks.dev` needs no tunnel change, just an HTTPRoute
 with `parentRefs` to `envoy-external`. Anything **deeper** than one label needs its own entry.
-Hostnames are added agent-side; the hub needs no action.
+
+!!! danger "A new pattern must also be granted on the hub"
+    This list is only half the story. The hub keeps its own allowlist of hostname patterns per
+    tenant, carried on the invite, and rejects anything else:
+
+    ```
+    hub returned 403 (hostname_not_owned):
+    tenant is not authorized for hostname: *.cloudsnacks.dev
+    ```
+
+    The agent logs that at WARN, keeps running, and simply serves one hostname fewer, so the
+    Deployment, the ReplicaSet, and ArgoCD all stay green. The edge's `dynamic route update applied`
+    line reports the count the **hub** accepted — compare it against `invite get`, not against the
+    values file.
+
+    Grant a pattern on the VPS, then restart the agent, which only publishes TLS policy at session
+    start (`invite remove-hostname` undoes a grant):
+
+    ```sh
+    sudo docker exec -e TOWONEL_HUB_OPERATOR_API_KEY_PATH=/data/operator.key towonel \
+      towonel invite add-hostnames --id <invite-id> --hostnames '*.example.dev'
+
+    kubectl -n networking rollout restart deploy/towonel-agent
+    ```
+
+    Expect a few seconds of failures on the *new* hostname after the restart: the edge drops the old
+    agent session up to ~30s after the new ones register, and until then a connection can still land
+    on a session that predates the grant.
+
+    This allowlist lives in the hub's SQLite DB (`/data/hub.db`), not in git or the Ansible role, so
+    it is the one part of the tunnel that config management will not reproduce on a rebuild.
+
+    !!! bug "`409 hostname_conflict` can be a lie"
+        Adding a zone wildcard alongside narrower patterns already on the invite returns
+        `409 (hostname_conflict): hostname is already reserved by an active invite` — but the
+        reservation is created anyway. Always re-read `invite get` before acting on that error;
+        retrying or working around it will have you fixing something that already applied.
 
 !!! warning "An unlisted hostname fails at the VPS, not in Envoy"
     The edge matches the ClientHello SNI against this list and nothing else. A hostname that is not
@@ -105,7 +141,8 @@ Hostnames are added agent-side; the hub needs no action.
     Wildcards match a single label. `*.cloudsnacks.dev` covers `pitwall.cloudsnacks.dev` but **not**
     `foo.apps.cloudsnacks.dev`, which is why `*.apps.cloudsnacks.dev` and the two-label
     `api.pantry.cloudsnacks.dev` are listed separately. `pitwall.cloudsnacks.dev` shipped with a
-    cert, a listener, and DNS, and stayed unreachable until the zone wildcard was added.
+    cert, a listener, and DNS, and stayed unreachable until `*.cloudsnacks.dev` was both listed here
+    and granted on the hub.
 
 The deployment runs 2 replicas with an HPA to 4 on 75% CPU (`hpa.yaml`), non-root with a read-only
 root filesystem and all capabilities dropped.
@@ -189,8 +226,18 @@ curl -sS -o /dev/null -w '%{http_code}\n' https://myapp.wibrow.dev/
     HTTPRoute. Check the app's HTTPRoute `hostnames` and `parentRefs`.
 
 ??? failure "TLS handshake error, no HTTP status at all"
-    The edge has no SNI mapping for that hostname. Check it against `TOWONEL_AGENT_SERVICES` above,
-    remembering that a wildcard only matches one label, and add an entry if nothing covers it.
+    The edge has no SNI mapping for that hostname. Two causes, in order of likelihood:
+
+    1. Nothing in `TOWONEL_AGENT_SERVICES` covers it — remember a wildcard matches one label only.
+    2. It *is* listed, but the hub rejected it as `hostname_not_owned`. The agent logs the 403 at
+       WARN and carries on, so the deployment looks healthy:
+
+       ```sh
+       kubectl logs -n networking -l app.kubernetes.io/name=towonel-agent | grep publish_tls
+       ```
+
+       Compare the accepted count in the edge's `dynamic route update applied` line against the
+       number of entries in `TOWONEL_AGENT_SERVICES` — a mismatch means a pattern was refused.
 
 ??? failure "Cloudflare error page instead of the app"
     The DNS record got proxied. `external-dns` runs without `--cloudflare-proxied`, so records
