@@ -1,8 +1,5 @@
 controllers:
   server:
-    # Held at 0 for the library move to the NAS: the delta rsync and its
-    # verification need /data quiescent. Back to 1 once verified.
-    replicas: 0
     annotations:
       reloader.stakater.com/auto: "true"
     pod:
