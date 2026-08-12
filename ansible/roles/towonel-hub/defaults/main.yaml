@@ -20,6 +20,21 @@ towonel_hub_acme_email: sam.wibrow@gmail.com
 towonel_hub_internal_port: 8443
 towonel_hub_caddy_tls_port: 18443
 
+# The hub authorizes tunnel hostnames per tenant through the invite allowlist, and
+# rejects anything else with 403 hostname_not_owned -- the agent's own
+# TOWONEL_AGENT_SERVICES list is advisory. Kept here because the allowlist lives in
+# the hub's SQLite DB, which nothing else in this repo reproduces. Must stay a
+# superset of TOWONEL_AGENT_SERVICES in
+# kubernetes/apps/pitower/networking/towonel-agent/values.yaml.
+towonel_hub_invite_name: pitower-agent
+towonel_hub_invite_hostnames:
+  - "*.wibrow.dev"
+  - propagit.dev
+  - "*.propagit.dev"
+  - "*.cloudsnacks.dev"
+  - "*.apps.cloudsnacks.dev"
+  - api.pantry.cloudsnacks.dev
+
 towonel_hub_data_dir: "/var/lib/docker/volumes/{{ towonel_hub_volume }}/_data"
 towonel_hub_caddyfile_path: /etc/towonel/Caddyfile
 towonel_hub_uid: 10001

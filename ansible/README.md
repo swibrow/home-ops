@@ -317,11 +317,37 @@ present a valid cert just reproduces the same failure differently. Each invite i
 identity (`towonel invite create` doesn't reissue in place), so the old tenant is orphaned once the
 agent switches — clean it up with `towonel tenant remove` once the new one is confirmed working.
 
+### Granting a hostname pattern
+
+The hub decides which hostnames a tenant may serve, from the allowlist on its invite. A pattern the
+agent advertises but the hub has not granted comes back as `403 hostname_not_owned`: the agent logs
+it at WARN, keeps serving the rest, and the hostname's TLS handshake is dropped at the VPS while
+ArgoCD and the Deployment stay green.
+
+The list is reconciled by the role from `towonel_hub_invite_hostnames` (`defaults/main.yaml`), so add
+patterns there rather than by hand, and keep it a superset of `TOWONEL_AGENT_SERVICES` in
+`kubernetes/apps/pitower/networking/towonel-agent/values.yaml`. The role reads the invite by name,
+adds what is missing, removes what is not in config, and then re-reads to confirm — `add-hostnames`
+can answer `409 hostname_conflict` while having applied the change, so its exit status is not
+evidence.
+
+A grant does not reach a running agent, which publishes TLS policy only at session start:
+
+```sh
+just ansible deploy-ovh-vps
+kubectl --context=admin@pitower -n networking rollout restart deploy/towonel-agent
+```
+
+Expect a few seconds of failures on the new hostname afterwards — the edge drops the old agent
+session up to ~30s after the new ones register.
+
 ### Verify
 
 ```sh
 systemctl status towonel-hub
 docker logs -f towonel                                    # caddy ACME issuance / bootstrap attempts
+docker exec -e TOWONEL_HUB_OPERATOR_API_KEY_PATH=/data/operator.key towonel \
+  towonel invite get --id <invite-id>                     # the granted hostname allowlist
 docker exec towonel curl -fsS http://127.0.0.1:8443/v1/health   # hub, plain HTTP inside the netns
 curl -v https://tunnel.wibrow.dev/v1/health                     # from off-VPS: Caddy's real cert + SNI routing
 kubectl --context=admin@pitower -n networking logs -l app.kubernetes.io/instance=towonel-agent

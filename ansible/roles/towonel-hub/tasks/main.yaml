@@ -73,3 +73,55 @@
     daemon_reload: true
     enabled: true
     state: started
+
+# Creating an invite stays manual: the token it prints has to reach Infisical by
+# hand. This only reconciles the hostname patterns on an invite that exists.
+# Granting a new pattern does not reach a running agent -- it publishes TLS policy
+# at session start only, so follow this with
+# `kubectl -n networking rollout restart deploy/towonel-agent`.
+- name: Reconcile the invite hostname allowlist
+  ansible.builtin.shell:
+    executable: /bin/bash
+    cmd: |
+      set -euo pipefail
+
+      hub() {
+        docker exec -e TOWONEL_HUB_OPERATOR_API_KEY_PATH=/data/operator.key \
+          {{ towonel_hub_container_name }} towonel "$@"
+      }
+      granted() {
+        hub invite get --id "$1" \
+          | sed -n 's/^[[:space:]]*Hostnames:[[:space:]]*//p' \
+          | tr -d '[:space:]' | tr ',' '\n' | sed '/^$/d' | sort -u
+      }
+
+      id=$(hub invite list | awk '$2 == "{{ towonel_hub_invite_name }}" { print $1 }')
+      if [[ -z "$id" ]]; then
+        echo "no invite named {{ towonel_hub_invite_name }} on this hub" >&2
+        exit 1
+      fi
+
+      desired=$(printf '%s\n' {{ towonel_hub_invite_hostnames | map('quote') | join(' ') }} | sort -u)
+      current=$(granted "$id")
+      missing=$(comm -23 <(echo "$desired") <(echo "$current"))
+      extra=$(comm -13 <(echo "$desired") <(echo "$current"))
+      if [[ -z "$missing$extra" ]]; then
+        exit 0
+      fi
+
+      # add-hostnames can answer 409 hostname_conflict and still apply the change,
+      # so its exit status proves nothing either way -- the re-read below decides.
+      if [[ -n "$missing" ]]; then
+        hub invite add-hostnames --id "$id" --hostnames "$(echo "$missing" | paste -sd,)" || true
+      fi
+      while read -r pattern; do
+        [[ -n "$pattern" ]] && hub invite remove-hostname --id "$id" --hostname "$pattern"
+      done <<< "$extra"
+
+      if [[ -n "$(comm -3 <(echo "$desired") <(granted "$id"))" ]]; then
+        echo "allowlist still differs from config after reconcile" >&2
+        exit 1
+      fi
+      echo CHANGED
+  register: towonel_hub_allowlist
+  changed_when: "'CHANGED' in towonel_hub_allowlist.stdout"

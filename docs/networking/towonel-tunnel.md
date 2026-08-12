@@ -110,28 +110,21 @@ with `parentRefs` to `envoy-external`. Anything **deeper** than one label needs 
     line reports the count the **hub** accepted — compare it against `invite get`, not against the
     values file.
 
-    Grant a pattern on the VPS, then restart the agent, which only publishes TLS policy at session
-    start (`invite remove-hostname` undoes a grant):
+    The allowlist itself lives in the hub's SQLite DB (`/data/hub.db`), but it is reconciled from
+    `towonel_hub_invite_hostnames` in the `towonel-hub` role, so grant a pattern by editing that list
+    — keeping it a superset of `TOWONEL_AGENT_SERVICES` — and applying the role. The agent then needs
+    a restart, because it publishes TLS policy only at session start:
 
     ```sh
-    sudo docker exec -e TOWONEL_HUB_OPERATOR_API_KEY_PATH=/data/operator.key towonel \
-      towonel invite add-hostnames --id <invite-id> --hostnames '*.example.dev'
-
+    just ansible deploy-ovh-vps
     kubectl -n networking rollout restart deploy/towonel-agent
     ```
 
     Expect a few seconds of failures on the *new* hostname after the restart: the edge drops the old
     agent session up to ~30s after the new ones register, and until then a connection can still land
-    on a session that predates the grant.
-
-    This allowlist lives in the hub's SQLite DB (`/data/hub.db`), not in git or the Ansible role, so
-    it is the one part of the tunnel that config management will not reproduce on a rebuild.
-
-    !!! bug "`409 hostname_conflict` can be a lie"
-        Adding a zone wildcard alongside narrower patterns already on the invite returns
-        `409 (hostname_conflict): hostname is already reserved by an active invite` — but the
-        reservation is created anyway. Always re-read `invite get` before acting on that error;
-        retrying or working around it will have you fixing something that already applied.
+    on a session that predates the grant. The runbook in `ansible/README.md` has the manual
+    `invite get` / `add-hostnames` / `remove-hostname` equivalents, and why `409 hostname_conflict`
+    from `add-hostnames` does not mean the change was rejected.
 
 !!! warning "An unlisted hostname fails at the VPS, not in Envoy"
     The edge matches the ClientHello SNI against this list and nothing else. A hostname that is not
