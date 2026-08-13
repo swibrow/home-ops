@@ -26,13 +26,21 @@ spec:
     allowed: true
   scheduleDefaults:
     timezone: Europe/Zurich
+  parameters:
+    epoch:
+      # Epochs advance on "20 blobs or 10.5 MB, minimum 24h". The blob and size
+      # thresholds are passed within minutes here, so the 24h minimum is the
+      # only thing gating advancement, and ~19 hourly policies write roughly
+      # 150 index blobs an hour: a full-length epoch accumulates ~3.6k of them
+      # and every repository open has to read the lot. A 4h floor holds the
+      # steady state near 600, well under the count kopia warns at.
+      minDuration: 4h
   maintenance:
-    # kopiur defaults quick maintenance to every 6h, but the repository's own
-    # Quick Cycle interval is 1h. Quick is what advances epochs and compacts
-    # the index blobs each snapshot writes; running it 6x slower than the repo
-    # expects let ~19 hourly policies pile up 3.5k index blobs between epoch
-    # advances, past the count where kopia warns about degraded performance.
-    # Full stays daily — it rewrites contents and takes minutes.
+    # Quick maintenance is what actually advances an eligible epoch and
+    # compacts the settled one, and kopiur defaults it to 6h: longer than the
+    # 4h epoch floor above, which would leave epochs sitting eligible but
+    # unadvanced. The repository's own Quick Cycle interval is already 1h, so
+    # match it. Full stays daily; it rewrites contents and takes minutes.
     schedule:
       quick:
         cron: "0 * * * *"
