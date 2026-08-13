@@ -53,32 +53,36 @@ resource "proxmox_virtual_environment_vm" "talos_worker" {
     interface    = "scsi0"
     size         = var.talos_worker.disk
     iothread     = true
-    # rpool is 8x 600GB 10K SAS spinning disks (4 mirror vdevs, no SLOG), so with
-    # the default cache=none every guest sync write waits on a seek - measured
-    # 14.65ms avg write latency here vs 0.4-0.6ms on the NVMe control planes, at
-    # the same ~350 write IOPS. writeback lets the host absorb writes in its ARC
-    # (128GiB, on 755GiB of RAM) instead. The power-loss window this opens is
-    # covered by the UPS + dual PSU.
+    # writeback dates from when rpool was four 10K SAS spinners with no SLOG:
+    # cache=none made every guest sync write wait on a seek (14.65ms here vs
+    # 0.4-0.6ms on the NVMe control planes at the same ~350 write IOPS), so the
+    # host absorbed them in ARC instead. Its companion hack, sync=disabled on
+    # the backing zvol, was removed on 2026-08-13 along with the ansible
+    # `proxmox_zfs_volume_properties` loop that set it.
     #
-    # writeback alone only got this to ~11ms; the rest of the fix is sync=disabled
-    # on the backing zvol, which is NOT settable from here (Proxmox exposes no
-    # per-VM knob - it is a host-side ZFS dataset property). It lives in the
-    # ansible proxmox role as proxmox_zfs_volume_properties, and that is where the
-    # measurements and the durability trade-off are written up.
-    #
-    # If this disk is ever recreated, the new zvol defaults back to sync=standard
-    # and write latency silently returns to ~11ms. Rerun the ansible proxmox role
-    # after any recreate.
+    # rpool is now six enterprise SAS SSDs with power-loss protection, so the
+    # premise is gone: a real fsync is cheap. writeback is kept for now only
+    # because changing cache mode needs a full VM stop+start (it is fixed at
+    # QEMU process start - `qm set` merely queues it, see `qm pending 200`),
+    # and because it still helps bulk/compaction throughput. It is worth
+    # revisiting: on PLP flash it mostly buys RAM churn while reopening a
+    # host-crash window the drives were bought to close.
     cache = "writeback"
   }
 
   disk {
-    # Scratch disk on the single 500GB SATA SSD in bay 8 (zpool `scratch`,
-    # Proxmox storage `scratch`). No redundancy and no PLP - holds only
-    # rebuildable write-heavy data (TSDB PVCs) to keep their WAL churn off the
-    # spinning rpool. cache=none: the SSD doesn't need the host page cache and
-    # writeback would just burn ARC-adjacent RAM.
-    datastore_id = "scratch"
+    # TSDB scratch: prometheus, victoria-metrics, victoria-logs and tempo, via
+    # the openebs-hostpath-ssd class on Talos user volume `scratch`.
+    #
+    # Was the single 500GB SATA SSD in bay 8 (zpool `scratch`), which existed
+    # only to keep WAL churn off a spinning rpool. rpool is six enterprise SAS
+    # SSDs since 2026-08-13, so the tier has no reason to exist and the bay is
+    # wanted for the garage raidz1. cache=none is kept: the host page cache buys
+    # nothing here and writeback would just burn ARC-adjacent RAM.
+    #
+    # Size must stay in the 400-500GiB band - the Talos UserVolumeConfig picks
+    # this disk by size, not by name. See talos/pitower/node/worker-07/.
+    datastore_id = var.disk_storage
     interface    = "scsi1"
     size         = 450
     iothread     = true
@@ -87,31 +91,26 @@ resource "proxmox_virtual_environment_vm" "talos_worker" {
   }
 
   disk {
-    # GitHub-runner scratch on the `runners` zpool - now a single 500GB Samsung
-    # 850 EVO in bay 9, not the old 4x 830 stripe. Consumer TLC with no PLP and
-    # no redundancy, and the pool runs sync=disabled, so this holds only
-    # per-job throwaway data (runner work dirs + dind's /var/lib/docker).
+    # GitHub-runner scratch: per-job work dirs and dind's /var/lib/docker,
+    # nothing that must survive a power cut. Was the 500GB Samsung 850 EVO in
+    # bay 9 (zpool `runners`, sync=disabled on consumer TLC); folded onto rpool
+    # 2026-08-13 to free the bay for the garage raidz1.
     #
-    # 350GiB, not the pool's full ~450GiB: the Talos UserVolumeConfig picks
-    # disks by size band and 400-500GiB already belongs to scratch (scsi1).
-    # Growing past 400GiB means widening both selectors in the same change.
+    # 350GiB is deliberate, not spare-capacity rounding: the Talos
+    # UserVolumeConfig picks disks by SIZE BAND, and 400-500GiB already belongs
+    # to scratch (scsi1). Growing this past 400GiB means widening both
+    # selectors in the same change. See talos/pitower/node/worker-07/.
     #
-    # THIS BLOCK MUST STAY LAST. `disk` is a list, and terraform diffs list
-    # elements by position - the position in this file, not the interface
-    # number. State holds [scsi0, scsi1, scsi3], so a new block declared in
-    # scsi-slot order (ahead of media's scsi3) lands at index 2 and shifts
-    # media to index 3. Terraform then reads that as "index 2 changed from
-    # media to runners" and plans an in-place rewrite of the media disk
-    # (scsi3 -> scsi2, 1200 -> 350, datastore media -> runners) plus a
-    # replacement 1200GiB media disk. That is the Immich photo library.
-    #
-    # It was planned and auto-applied on 2026-08-11, and only missed
-    # destroying the library because Proxmox errored on the new zvol's device
-    # link partway through - after writing a phantom scsi2 disk into state and
-    # blanking media's path_in_datastore, which had to be repaired by hand.
-    # Appended last, the first three blocks line up with state and this one is
-    # a pure add.
-    datastore_id = "runners"
+    # DO NOT REORDER THE DISK BLOCKS. `disk` is a list and terraform diffs its
+    # elements by position in this file, not by interface number. On 2026-08-11
+    # a block inserted in scsi-slot order shifted every later element by one;
+    # terraform read that as "this index changed datastore" and planned an
+    # in-place rewrite of the disk holding the Immich photo library, plus a
+    # replacement. It auto-applied, and only missed destroying the library
+    # because Proxmox errored on the new zvol's device link partway through -
+    # leaving a phantom disk in state and a blanked path_in_datastore to repair
+    # by hand. Append new disks; never insert.
+    datastore_id = var.disk_storage
     interface    = "scsi2"
     size         = 350
     iothread     = true
