@@ -53,21 +53,24 @@ resource "proxmox_virtual_environment_vm" "talos_worker" {
     interface    = "scsi0"
     size         = var.talos_worker.disk
     iothread     = true
-    # writeback dates from when rpool was four 10K SAS spinners with no SLOG:
-    # cache=none made every guest sync write wait on a seek (14.65ms here vs
-    # 0.4-0.6ms on the NVMe control planes at the same ~350 write IOPS), so the
-    # host absorbed them in ARC instead. Its companion hack, sync=disabled on
-    # the backing zvol, was removed on 2026-08-13 along with the ansible
-    # `proxmox_zfs_volume_properties` loop that set it.
+    # cache=none, matching scsi1/scsi2. writeback dated from when rpool was
+    # four 10K SAS spinners with no SLOG: cache=none made every guest sync
+    # write wait on a seek (14.65ms here vs 0.4-0.6ms on the NVMe control
+    # planes at the same ~350 write IOPS), so the host absorbed them in ARC
+    # instead. Its companion hack, sync=disabled on the backing zvol, was
+    # removed on 2026-08-13. rpool is six enterprise SAS SSDs with power-loss
+    # protection since then, so a real fsync is cheap and writeback only bought
+    # RAM churn plus a host-crash window the drives were bought to close.
     #
-    # rpool is now six enterprise SAS SSDs with power-loss protection, so the
-    # premise is gone: a real fsync is cheap. writeback is kept for now only
-    # because changing cache mode needs a full VM stop+start (it is fixed at
-    # QEMU process start - `qm set` merely queues it, see `qm pending 200`),
-    # and because it still helps bulk/compaction throughput. It is worth
-    # revisiting: on PLP flash it mostly buys RAM churn while reopening a
-    # host-crash window the drives were bought to close.
-    cache = "writeback"
+    # discard=on + ssd=1: without discard the guest's freed blocks never
+    # returned to ZFS, which is how this zvol reached 495G of a 1000G disk with
+    # ~341G of it containerd image cache kubelet never GCs.
+    #
+    # All three take effect at QEMU process start, so changing them needs a
+    # full VM stop+start - `qm set` merely queues them, see `qm pending 200`.
+    cache   = "none"
+    discard = "on"
+    ssd     = true
   }
 
   disk {
