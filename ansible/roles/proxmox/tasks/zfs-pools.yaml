@@ -9,7 +9,10 @@
     zpool create -f
     {% for k, v in item.pool_options.items() %}-o {{ k }}={{ v }} {% endfor %}
     {% for k, v in item.fs_options.items() %}-O {{ k }}={{ v }} {% endfor %}
-    {{ item.name }} {{ item.vdev_type | default('') }} {{ item.disks | join(' ') }}
+    {{ item.name }}
+    {% if item.vdevs is defined %}
+    {% for v in item.vdevs %}{{ v.type | default('') }} {{ v.disks | join(' ') }} {% endfor %}
+    {% else %}{{ item.vdev_type | default('') }} {{ item.disks | join(' ') }}{% endif %}
   when: item.name not in proxmox_existing_pools.stdout_lines
   loop: "{{ proxmox_zfs_pools }}"
   loop_control:
