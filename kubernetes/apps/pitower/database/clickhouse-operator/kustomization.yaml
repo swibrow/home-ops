@@ -8,7 +8,7 @@ resources:
 helmCharts:
   - name: altinity-clickhouse-operator
     repo: https://docs.altinity.com/clickhouse-operator/
-    version: 0.27.2
+    version: 0.27.3
     releaseName: clickhouse-operator
     includeCRDs: true
     namespace: database
