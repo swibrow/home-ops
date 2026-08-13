@@ -23,6 +23,14 @@ proxmox_acme_directory: https://acme-v02.api.letsencrypt.org/directory
 # in bays 4-7 make way for the SAS SSDs. Its entry is removed rather than
 # commented out on purpose - creation is create-if-absent, so leaving it would
 # let the next role run silently rebuild the pool on those disks.
+#
+# The SAS SSDs get NO entry here either. A short-lived `flash` pool was defined
+# for them; they now become rpool itself, one `zpool replace` per member, since
+# PVE already keeps boot and guest data in one pool (`local-zfs` IS
+# `rpool/data`). That means no reinstall and no root send/recv, but it also puts
+# them outside this list - rpool is not role-managed. Leaving the `flash` entry
+# would have been worse than dead config: create-if-absent would build a pool on
+# the very disks rpool is being resilvered onto.
 # - scratch: single 500GB SanDisk in bay 8; write-heavy TSDB PVCs of worker-07.
 # - runners: single 500GB Samsung 850 EVO in bay 9; GitHub runner dind/work
 #   scratch. Replaces the 4x Samsung 830 128GB stripe (bays 4-7) destroyed on
@@ -52,45 +60,6 @@ proxmox_zfs_pools:
       compression: lz4
       atime: "off"
       sync: disabled
-  # The SAS SSD pool: 800GB Ultrastar drives, striped 2-way mirrors. Mirrors
-  # rather than raidz because this is the performance tier and a 16K
-  # volblocksize carries no padding tax on a mirror - on 6-wide raidz2 at
-  # ashift=12 a 16K block costs 50% overhead against the nominal 33%, which
-  # would have eaten the capacity that made parity attractive in the first
-  # place. ashift=12 matches these drives' 4096-byte physical block (they
-  # report 512e).
-  #
-  # Members are paired to STAGGER WEAR, deliberately not by model. They arrived
-  # between 48% and 73% through their rated endurance, and putting the two
-  # most-worn in one mirror would age both members of a vdev out together.
-  # Pairing by model would only have bought write speed on one vdev, and with
-  # a single SS530 in the first batch it would not even have done that.
-  #
-  # No `sync: disabled` here, unlike runners: these are PLP drives, so a real
-  # fsync is cheap and crash consistency is worth keeping. The rpool hack in
-  # proxmox_zfs_volume_properties comes out once the guest disks land here.
-  #
-  # Starts as two mirrors (bays 4-7). The third goes into bays 2-3 once rpool
-  # vacates them; creation here is create-if-absent and will NOT widen an
-  # existing pool, so that one is `zpool add flash mirror <by-id> <by-id>` by
-  # hand, same as the runners caveat above.
-  - name: flash
-    blocksize: 16k
-    vdevs:
-      - type: mirror
-        disks:
-          - /dev/disk/by-id/scsi-35000cca09c017658 # HUSMM SS300, 72% used
-          - /dev/disk/by-id/scsi-35000cca09c0132d4 # HUSMM SS300, 48% used
-      - type: mirror
-        disks:
-          - /dev/disk/by-id/scsi-35000cca09c017510 # HUSMM SS300, 73% used
-          - /dev/disk/by-id/scsi-35000cca0a670c98c # WUSTR SS530, 48% used
-    pool_options:
-      ashift: "12"
-      autotrim: "on"
-    fs_options:
-      compression: lz4
-      atime: "off"
 
 # ZFS dataset properties applied to guest zvols. rpool is 4x 600GB 10K SAS
 # spinning (2 mirror vdevs since 2026-08-06, no SLOG), so sync writes cost a
