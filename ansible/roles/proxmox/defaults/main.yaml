@@ -17,49 +17,27 @@ proxmox_acme_directory: https://acme-v02.api.letsencrypt.org/directory
 # options here does NOT alter an existing pool - and neither `blocksize` nor any
 # other storage option is re-applied to a storage that already exists.
 #
-# `scratch` and `runners` hold rebuildable data only (no redundancy, consumer
-# SSDs without PLP). The `media` RAIDZ1 pool that used to sit here was dissolved
-# on 2026-08-13: the photo library moved to the NAS and its four 600GB spinners
-# in bays 4-7 make way for the SAS SSDs. Its entry is removed rather than
-# commented out on purpose - creation is create-if-absent, so leaving it would
-# let the next role run silently rebuild the pool on those disks.
+# EMPTY ON PURPOSE, and entries are deleted rather than commented out. Creation
+# is create-if-absent, so a leftover entry does not sit inert - the next role run
+# rebuilds that pool on the disks it names. Three pools came out this way:
 #
-# The SAS SSDs get NO entry here either. A short-lived `flash` pool was defined
-# for them; they now become rpool itself, one `zpool replace` per member, since
-# PVE already keeps boot and guest data in one pool (`local-zfs` IS
-# `rpool/data`). That means no reinstall and no root send/recv, but it also puts
-# them outside this list - rpool is not role-managed. Leaving the `flash` entry
-# would have been worse than dead config: create-if-absent would build a pool on
-# the very disks rpool is being resilvered onto.
-# - scratch: single 500GB SanDisk in bay 8; write-heavy TSDB PVCs of worker-07.
-# - runners: single 500GB Samsung 850 EVO in bay 9; GitHub runner dind/work
-#   scratch. Replaces the 4x Samsung 830 128GB stripe (bays 4-7) destroyed on
-#   2026-08-07. sync=disabled at pool level: nothing on it needs to survive a
-#   crash, runner pods just respawn.
+# - `media` (2026-08-13): RAIDZ1 over four 600GB spinners in bays 4-7. The photo
+#   library moved to the NAS and the bays went to the SAS SSDs.
+# - `scratch` + `runners` (2026-08-13): single consumer SATA SSDs in bays 8-9,
+#   no redundancy, no PLP, holding worker-07's TSDB PVCs and GitHub runner work
+#   dirs. They existed only to keep write-heavy churn off a spinning rpool. Both
+#   zvols were moved onto rpool with `qm move-disk` and the bays freed for the
+#   garage raidz1. Re-adding either entry would recreate a pool on disks that
+#   are no longer in the chassis.
 #
-# A second EVO was planned for this pool but is not seated. Adding it later is
-# `zpool add runners <by-id>` by hand - creation here is create-if-absent and
-# will not widen an existing pool.
-proxmox_zfs_pools:
-  - name: scratch
-    disks:
-      - /dev/disk/by-id/ata-SanDisk_SD7SB2Q512G1001_153141400183
-    pool_options:
-      ashift: "12"
-      autotrim: "on"
-    fs_options:
-      compression: lz4
-      atime: "off"
-  - name: runners
-    disks:
-      - /dev/disk/by-id/ata-Samsung_SSD_850_EVO_500GB_S21JNSAG160704R
-    pool_options:
-      ashift: "12"
-      autotrim: "on"
-    fs_options:
-      compression: lz4
-      atime: "off"
-      sync: disabled
+# The six SAS SSDs get no entry either: they ARE rpool, and rpool is not
+# role-managed. PVE keeps boot and guest data in one pool (`local-zfs` IS
+# `rpool/data`), so they were folded in with `zpool replace` per member rather
+# than made into a separate pool.
+#
+# `garage` (raidz1 over four Toshiba AL13SEB600, bays 6-9) belongs here once
+# those disks are seated - a single vdev, so `vdev_type: raidz1` plus `disks`.
+proxmox_zfs_pools: []
 
 # `proxmox_zfs_volume_properties` and the task that consumed it were removed on
 # 2026-08-13. Both existed for a single override, `sync: disabled` on
