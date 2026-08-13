@@ -16,13 +16,6 @@ machine:
           - rbind
           - rshared
           - rw
-      - destination: /var/mnt/media
-        type: bind
-        source: /var/mnt/media
-        options:
-          - rbind
-          - rshared
-          - rw
       - destination: /var/mnt/runners
         type: bind
         source: /var/mnt/runners
