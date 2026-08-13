@@ -1,8 +1,9 @@
 ---
-# 450GiB scsi1 disk on proxmox-01's single-SSD `scratch` zpool (bay 8 SanDisk,
-# no PLP, no redundancy) - holds only rebuildable write-heavy data so TSDB WAL
-# churn stays off the spinning rpool. Size-range selector: the only other disk
-# is the 1000GiB system disk.
+# 450GiB scsi1 disk, a zvol on proxmox-01's rpool (6x 800GB SAS SSD, 3 mirrors,
+# sync=standard). The standalone `scratch` zpool it used to live on is gone, so
+# the old "rebuildable data only" caveat no longer applies - this is mirrored
+# enterprise flash with PLP. Size-range selector: the only other disk in this
+# band is the 1000GiB system disk.
 apiVersion: v1alpha1
 kind: UserVolumeConfig
 name: scratch
