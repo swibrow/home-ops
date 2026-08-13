@@ -64,15 +64,6 @@
 - name: Provision ZFS pools and Proxmox storage
   ansible.builtin.include_tasks: zfs-pools.yaml
 
-- name: Set ZFS properties on guest zvols
-  community.general.zfs:
-    name: "{{ item.dataset }}"
-    state: present
-    extra_zfs_properties: "{{ item.properties }}"
-  loop: "{{ proxmox_zfs_volume_properties }}"
-  loop_control:
-    label: "{{ item.dataset }} {{ item.properties }}"
-
 - name: Configure Let's Encrypt for the web UI
   ansible.builtin.include_tasks: acme.yaml
   when: proxmox_acme_enabled

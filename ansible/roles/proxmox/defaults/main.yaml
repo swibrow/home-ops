@@ -61,29 +61,14 @@ proxmox_zfs_pools:
       atime: "off"
       sync: disabled
 
-# ZFS dataset properties applied to guest zvols. rpool is 4x 600GB 10K SAS
-# spinning (2 mirror vdevs since 2026-08-06, no SLOG), so sync writes cost a
-# seek. Measured on
-# vm-200 (worker-07): 21-33 MB/s of ZIL traffic and 27-103 zil_commit/s were
-# driving 90-127 MB/s of physical spindle writes against a guest writing only
-# 12-16 MB/s. sync=disabled dropped that to 6.3 MB/s and took guest write
-# latency 11.26ms -> 2.67ms, because WAL rewrites of the same blocks now
-# coalesce in ARC within the txg instead of each being forced out.
-#
-# The trade: the guest loses up to one txg (~5s) of acknowledged writes on host
-# power loss. Accepted here - the node's local disk holds TSDBs (prometheus,
-# victoria-metrics, victoria-logs, tempo) which just re-scrape, plus media that
-# kopiur backs up. The ceph mons that used to make this unsafe now live on
-# worker-01/02/03. Postgres is the one workload this is wrong for.
-#
-# NOT expressible in terraform: Proxmox has no per-VM setting for it, it is a
-# host-side ZFS dataset property. Also note a zvol recreated by terraform comes
-# back as sync=standard, silently restoring the 11ms - rerun this playbook after
-# any VM disk recreate.
-proxmox_zfs_volume_properties:
-  - dataset: rpool/data/vm-200-disk-1
-    properties:
-      sync: disabled
+# `proxmox_zfs_volume_properties` and the task that consumed it were removed on
+# 2026-08-13. Both existed for a single override, `sync: disabled` on
+# rpool/data/vm-200-disk-1, which bought worker-07 11.26ms -> 2.67ms writes while
+# rpool was four 10K spinners with no SLOG - at the cost of losing up to one txg
+# (~5s) of acknowledged writes on host power loss. rpool is now six enterprise
+# SAS SSDs with power-loss protection, so a real fsync is cheap and there is
+# nothing left to trade crash consistency for. Re-add the loop if a host-side
+# zvol property is ever needed again; it is not expressible in terraform.
 
 # Host management stays on the 1G nic1 trunk (vmbr0/vmbr1). VM/CT guest
 # traffic gets its own bridge on the 10G nic6 port, tagged VLAN20 the same way
