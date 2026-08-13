@@ -15,7 +15,14 @@ NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true
-ReadWritePaths={{ garage_data_root }}
+# ProtectSystem=strict makes the whole filesystem read-only to this unit, so
+# EVERY path garage writes must be listed here. garage_data_dir is listed
+# separately because it is no longer under garage_data_root: when the object
+# blocks moved to /data on 2026-08-13 and only the root stayed allowlisted,
+# garage got EROFS on every block write and returned 503 to all S3 PUTs, which
+# silently failed the entire kopiur backup fleet. If either dir ever moves
+# again, this line moves with it.
+ReadWritePaths={{ garage_data_root }} {{ garage_data_dir }}
 
 [Install]
 WantedBy=multi-user.target
