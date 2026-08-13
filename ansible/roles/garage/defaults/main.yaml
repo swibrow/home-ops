@@ -15,11 +15,21 @@ garage_group: garage
 garage_install_path: /usr/local/bin/garage
 garage_config_path: /etc/garage.toml
 
-# /var/lib/garage is the dedicated ZFS mount point created by terraform/proxmox
-# (ct_garage.tf) - keep meta and data under it so both ride that dataset.
+# Meta and data are deliberately on DIFFERENT tiers, both mounted by
+# terraform/proxmox (ct_garage.tf).
+#
+# - /var/lib/garage (mp0, rpool) is six enterprise SAS SSDs. The LMDB metadata
+#   engine does small random writes, which is the access pattern spinning rust
+#   is worst at, so it stays here. It is only ~255M.
+# - /data (mp1, the `garage` raidz1 over four 10K SAS spinners) holds the object
+#   blocks, which are large sequential reads and writes - exactly what those
+#   disks are good for, and where 1.53T of capacity is worth having.
+#
+# Putting both on the raidz1 would make S3 writes crawl on metadata; putting
+# both on rpool wastes SSD on bulk objects. Moved 2026-08-13.
 garage_data_root: /var/lib/garage
 garage_meta_dir: "{{ garage_data_root }}/meta"
-garage_data_dir: "{{ garage_data_root }}/data"
+garage_data_dir: /data
 
 # Single node for now. A second replica on the Synology NAS is planned (see
 # terraform/proxmox/README.md); raising this to 3 is a MAJOR change that needs
@@ -43,9 +53,16 @@ garage_admin_bind_addr: "127.0.0.1:3903"
 
 # Cluster layout, applied once on a fresh node (guarded on an empty layout).
 garage_zone: dc1
-# Advertised capacity - below the 500G dataset to leave metadata/LMDB and ZFS
-# headroom.
-garage_capacity: "450G"
+# Advertised capacity, sized against the DATA tier (/data, the 1000G subvol on
+# the 1.53T garage raidz1), not the metadata tier. Held below the subvol's
+# refquota to leave ZFS headroom - a pool driven to 100% is where raidz1 gets
+# slow and hard to recover.
+#
+# Changing this does NOT take effect on its own: the role applies the layout
+# only on a fresh node (guarded on an empty layout). Re-advertising is a manual
+# `garage layout assign -c <cap> <node-id>` followed by `garage layout apply
+# -version <n>`.
+garage_capacity: "900G"
 
 # Buckets to ensure exist. "Just bootstrap it" - one bucket, wire real
 # consumers later by extending this list.

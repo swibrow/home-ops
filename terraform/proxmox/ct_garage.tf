@@ -48,13 +48,33 @@ resource "proxmox_virtual_environment_container" "garage" {
     size         = var.garage.root_disk
   }
 
-  # Garage's metadata (LMDB) and data blocks both live under /var/lib/garage.
-  # Kept off the rootfs so the container can be rebuilt without touching data,
-  # and so the dataset can be snapshotted/replicated on its own.
+  # Garage's METADATA tier. The LMDB engine does small random writes, the worst
+  # possible pattern for spinning rust, so it stays on rpool (six enterprise SAS
+  # SSDs). It is small - ~255M against this 500G dataset. Kept off the rootfs so
+  # the container can be rebuilt without touching it, and so the dataset can be
+  # snapshotted on its own.
   mount_point {
     volume = var.disk_storage
     size   = "${var.garage.data_disk}G"
     path   = "/var/lib/garage"
+    backup = false
+  }
+
+  # Garage's DATA tier: S3 object blocks, on the `garage` raidz1 over four 10K
+  # SAS spinners. Large sequential IO is what those disks are good at, and it is
+  # where the capacity is (1.53T pool). Splitting the tiers is deliberate -
+  # putting LMDB here would make S3 writes crawl, and putting objects on rpool
+  # would burn SSD on bulk storage.
+  #
+  # APPEND ONLY. `mount_point` is a list and terraform diffs it by position, the
+  # same trap documented at length in vm_worker_07.tf - inserting a block ahead
+  # of an existing one makes terraform read it as "this mount changed volume"
+  # and rewrite the wrong dataset. This one was added 2026-08-13 after the data
+  # was already copied and verified, so terraform adopts rather than creates.
+  mount_point {
+    volume = "garage"
+    size   = "1000G"
+    path   = "/data"
     backup = false
   }
 
