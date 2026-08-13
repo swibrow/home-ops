@@ -141,15 +141,14 @@ persistence:
             subPath: immich-config.json
             readOnly: true
   library:
-    # On the NAS since 2026-08-12. Previously pvc-library.yaml on the `media`
-    # RAIDZ1 pool, which is being dissolved: those four 600GB spinners are
-    # making way for the SAS SSDs. The export already maps root through
-    # (no_root_squash), which this needs - immich runs as uid 0 and owns its
-    # whole /data tree.
+    # On the NAS since 2026-08-12. Previously PVC immich-library-media on the
+    # `media` RAIDZ1 pool, now dissolved: those four 600GB spinners made way
+    # for the SAS SSDs. The export maps root through (no_root_squash), which
+    # this needs - immich runs as uid 0 and owns its whole /data tree.
     #
-    # pvc-library.yaml stays declared for now as the rollback path; the PVC is
-    # reclaimPolicy: Retain, so the old copy survives until it is pruned
-    # deliberately.
+    # Do NOT switch this back to -aHAX if it ever moves again: -X fails on
+    # every file against NFS with lsetxattr security.selinux, and rsync then
+    # exits 23. -aH --numeric-ids is correct here.
     type: nfs
     server: data
     path: /volume1/media/immich
