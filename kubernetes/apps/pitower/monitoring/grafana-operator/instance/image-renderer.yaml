@@ -24,7 +24,7 @@ spec:
         runAsGroup: 472
       containers:
         - name: image-renderer
-          image: docker.io/grafana/grafana-image-renderer:v5.12.0
+          image: docker.io/grafana/grafana-image-renderer:v5.12.1
           ports:
             - name: http
               containerPort: 8081
