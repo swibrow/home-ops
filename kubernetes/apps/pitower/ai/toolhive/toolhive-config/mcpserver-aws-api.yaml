@@ -74,6 +74,11 @@ spec:
   # (workload container is named "mcp").
   podTemplateSpec:
     spec:
+      # The upstream image is Amazon Linux, whose arm64 glibc requires ARMv8.2-a
+      # with crypto extensions (Graviton 2+). The arm64 nodes are Raspberry Pis
+      # (ARMv8-A), so the runtime aborts with a fatal glibc error before main().
+      nodeSelector:
+        kubernetes.io/arch: amd64
       containers:
         - name: mcp
           volumeMounts:
