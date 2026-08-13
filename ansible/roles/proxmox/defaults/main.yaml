@@ -18,7 +18,11 @@ proxmox_acme_directory: https://acme-v02.api.letsencrypt.org/directory
 # other storage option is re-applied to a storage that already exists.
 #
 # `scratch` and `runners` hold rebuildable data only (no redundancy, consumer
-# SSDs without PLP). `media` is the one pool here with real data on it:
+# SSDs without PLP). The `media` RAIDZ1 pool that used to sit here was dissolved
+# on 2026-08-13: the photo library moved to the NAS and its four 600GB spinners
+# in bays 4-7 make way for the SAS SSDs. Its entry is removed rather than
+# commented out on purpose - creation is create-if-absent, so leaving it would
+# let the next role run silently rebuild the pool on those disks.
 # - scratch: single 500GB SanDisk in bay 8; write-heavy TSDB PVCs of worker-07.
 # - runners: single 500GB Samsung 850 EVO in bay 9; GitHub runner dind/work
 #   scratch. Replaces the 4x Samsung 830 128GB stripe (bays 4-7) destroyed on
@@ -48,41 +52,6 @@ proxmox_zfs_pools:
       compression: lz4
       atime: "off"
       sync: disabled
-  # Bulk media, starting with the Immich photo library. 4x 600GB 10K SAS in bays
-  # 4-7, RAIDZ1 for 1.53TiB usable - the only layout of these four that fits a
-  # 1TB library, since 2x mirror vdevs or RAIDZ2 give 1.09TiB. These are the
-  # disks evacuated from rpool's mirror-2/mirror-3 on 2026-08-06, so they are the
-  # same vintage as the four still in rpool.
-  #
-  # Mounts at /media, shadowing the FHS removable-media directory. Harmless on
-  # this host (nothing mounts there) and consistent with scratch at /scratch.
-  #
-  # blocksize=128k is load-bearing, not a tuning nicety: guest disks here are
-  # zvols on a 4-wide RAIDZ1 at ashift=12, where a small volblocksize loses a
-  # large fraction of the pool to parity padding. 128k keeps that near the
-  # nominal 25% and suits whole-photo reads. It applies only at storage-creation
-  # time, so a zvol cut before this was set keeps the old volblocksize - that is
-  # fixed only by recreating the zvol, never in place. recordsize=1M below
-  # governs plain datasets, which zvols ignore.
-  #
-  # bay 7 (Seagate ST9600204SS, scsi-35000c5003b1b98e3) is the weak member:
-  # manufactured 2011, 26471 power-on hours, 2 grown defects, 1299 non-medium
-  # errors and 2 UNCORRECTED reads. Expect it to fail first. RAIDZ1 survives one
-  # disk, so keep a 600GB SAS spare on hand and make sure scrubs are watched.
-  - name: media
-    vdev_type: raidz1
-    blocksize: 128k
-    disks:
-      - /dev/disk/by-id/scsi-350000395982ac534
-      - /dev/disk/by-id/scsi-350000395982acc68
-      - /dev/disk/by-id/scsi-350000395982aca04
-      - /dev/disk/by-id/scsi-35000c5003b1b98e3
-    pool_options:
-      ashift: "12"
-    fs_options:
-      compression: lz4
-      atime: "off"
-      recordsize: 1M
 
 # ZFS dataset properties applied to guest zvols. rpool is 4x 600GB 10K SAS
 # spinning (2 mirror vdevs since 2026-08-06, no SLOG), so sync writes cost a

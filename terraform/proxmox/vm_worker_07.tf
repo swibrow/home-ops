@@ -87,25 +87,6 @@ resource "proxmox_virtual_environment_vm" "talos_worker" {
   }
 
   disk {
-    # The Immich photo library, on the `media` zpool (4x 600GB 10K SAS, RAIDZ1,
-    # bays 4-7). 1200GiB of the pool's 1566GiB usable, leaving headroom so the
-    # pool never runs past ~77% - RAIDZ degrades badly when close to full. The
-    # volume is thin (sparse=1 on the storage), so this is a ceiling, not a
-    # reservation; grow it here and let the Talos volume's grow:true follow.
-    #
-    # Sized to clear the 1100-1300GiB band the Talos UserVolumeConfig selects on.
-    # cache=none, unlike scsi0: photos are bulk writes, not the sync-latency
-    # problem that made writeback worth its power-loss window on the rpool disk.
-    # discard=on matters here even though the pool is spinning - it returns
-    # deleted guest blocks to the thin zvol.
-    datastore_id = "media"
-    interface    = "scsi3"
-    size         = 1200
-    iothread     = true
-    discard      = "on"
-  }
-
-  disk {
     # GitHub-runner scratch on the `runners` zpool - now a single 500GB Samsung
     # 850 EVO in bay 9, not the old 4x 830 stripe. Consumer TLC with no PLP and
     # no redundancy, and the pool runs sync=disabled, so this holds only
