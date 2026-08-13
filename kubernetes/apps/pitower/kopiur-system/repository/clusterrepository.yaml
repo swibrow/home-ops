@@ -26,3 +26,17 @@ spec:
     allowed: true
   scheduleDefaults:
     timezone: Europe/Zurich
+  maintenance:
+    # kopiur defaults quick maintenance to every 6h, but the repository's own
+    # Quick Cycle interval is 1h. Quick is what advances epochs and compacts
+    # the index blobs each snapshot writes; running it 6x slower than the repo
+    # expects let ~19 hourly policies pile up 3.5k index blobs between epoch
+    # advances, past the count where kopia warns about degraded performance.
+    # Full stays daily — it rewrites contents and takes minutes.
+    schedule:
+      quick:
+        cron: "0 * * * *"
+        jitter: 10m
+      full:
+        cron: "0 3 * * *"
+        jitter: 1h
