@@ -35,9 +35,40 @@ proxmox_acme_directory: https://acme-v02.api.letsencrypt.org/directory
 # `rpool/data`), so they were folded in with `zpool replace` per member rather
 # than made into a separate pool.
 #
-# `garage` (raidz1 over four Toshiba AL13SEB600, bays 6-9) belongs here once
-# those disks are seated - a single vdev, so `vdev_type: raidz1` plus `disks`.
-proxmox_zfs_pools: []
+# `garage` is the bulk/capacity tier: RAIDZ1 over four Toshiba AL13SEB600 10K
+# SAS in bays 6-9. 2.17T raw, 1.53T usable - noticeably under the 1.64T that
+# 3/4-of-raw predicts, because the ZFS slop reserve takes the rest.
+#
+# recordsize 1M suits S3 object data (it is a ceiling, not a fixed allocation,
+# so small objects are not padded). ashift 12 even though these report 512/512
+# native: it costs a little on small blocks and keeps the door open to 4Kn
+# replacements. No autotrim - spinners.
+#
+# Content is `rootdir` ONLY, deliberately narrower than the role default of
+# `images`: this pool exists for garage's S3 data via an LXC mountpoint, and
+# allowing `images` would invite a stray VM disk onto spinning rust that the
+# whole 2026-08 rebuild was about getting off.
+#
+# The four disks are all ~77,800 power-on hours (8.9y) with 0 uncorrected
+# errors. `scsi-350000395982acc68` (bay 8) has 1 grown defect where the others
+# have 0 - it is the one to watch. A fifth AL13SEB600, 64N0A0D1FRD3
+# (`scsi-350000395982ac534`), is out of chassis as a cold spare. RAIDZ1
+# survives exactly one failure; keep it that way.
+proxmox_zfs_pools:
+  - name: garage
+    content: rootdir
+    vdev_type: raidz1
+    disks:
+      - /dev/disk/by-id/scsi-350000395982aca50 # 64O0A00ZFRD3, bay 6
+      - /dev/disk/by-id/scsi-350000395982acb7c # 64O0A018FRD3, bay 7
+      - /dev/disk/by-id/scsi-350000395982acc68 # 64O0A01EFRD3, bay 8, 1 grown defect
+      - /dev/disk/by-id/scsi-350000395982aca04 # 64O0A00UFRD3, bay 9
+    pool_options:
+      ashift: "12"
+    fs_options:
+      compression: lz4
+      atime: "off"
+      recordsize: 1M
 
 # `proxmox_zfs_volume_properties` and the task that consumed it were removed on
 # 2026-08-13. Both existed for a single override, `sync: disabled` on
