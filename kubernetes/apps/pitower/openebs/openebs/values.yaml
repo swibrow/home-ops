@@ -11,6 +11,21 @@ localpv-provisioner:
     name: openebs-hostpath
     isDefaultClass: false
     basePath: *hostPath
+    # Hostpath PVCs otherwise reserve nothing: the requested size is a label,
+    # not a limit, so any one PVC can consume the whole mount. That is why
+    # worker-07 used to keep GitHub runners on a separate disk from the
+    # monitoring TSDBs - a runner burst could starve them. Both now share
+    # /var/mnt/extra, so the guarantee has to come from the filesystem instead.
+    #
+    # With no grace, the usage limit is exactly the PVC's requested storage.
+    # Requires the backing mount to carry 'prjquota' - verified on all ten
+    # nodes: EPHEMERAL sets projectQuotaSupport by default, and worker-07's
+    # dedicated `extra` volume sets it explicitly.
+    #
+    # Applies at provision time only; PVCs created before this stay unlimited
+    # until recreated.
+    xfsQuota:
+      enabled: true
 
 openebs-crds:
   csi:
