@@ -11,8 +11,8 @@ controllerServiceAccount:
 # maxRunners was left unset on the theory that scale-up is "bounded by cluster
 # capacity, not by ARC". That stopped being true once the work dir and
 # /var/lib/docker moved onto node-local hostpath PVCs: openebs hostpath only
-# creates a directory, so it reserves nothing and rejects nothing, and there is
-# no capacity signal left to push back on the listener.
+# creates a directory, so it reserves nothing, and there is no capacity signal
+# to push back on the listener.
 #
 # On 2026-08-08 home-ops sat at 15 runners, every one Pending, each claiming
 # 60Gi against a 458G pool on the single node that has the mount and each
@@ -20,6 +20,12 @@ controllerServiceAccount:
 # exceeded" and the pods churned instead of running any jobs. Cap concurrency to
 # what worker-07 can actually provision; raise only alongside that node's
 # storage, not in response to a queue.
+#
+# XFS project quotas now cap each claim, so a single runaway job can no longer
+# eat the volume - but quotas limit, they do not reserve, so the sum of claims
+# can still exceed the disk and this cap is still what prevents that. At 6 the
+# worst case is 360Gi of runner claims alongside 190Gi of TSDBs and 100Gi of app
+# PVCs, against an 800G volume.
 maxRunners: 6
 minRunners: 0
 
@@ -27,14 +33,17 @@ minRunners: 0
 # (chart 0.14.2 helpers, k8s>=1.29 sidecar variant) written out explicitly.
 # Reason: containerMode.type=dind generates the dind container with no way to
 # relocate /var/lib/docker, which is where per-job image pulls land. Here both
-# the work dir and docker storage live on ephemeral PVCs from an SSD-backed
-# storage class instead of the spinning rpool. PVCs are born and die with the
-# pod - same disposable semantics as the emptyDirs they replace. Re-diff
+# the work dir and docker storage live on ephemeral PVCs rather than emptyDirs,
+# so they are born and die with the pod but stay off the system disk. Re-diff
 # against the chart helpers on chart upgrades.
 #
-# openebs-hostpath-runners is zpool `runners` (single 500GB 850 EVO, bay 9),
-# kept separate from `scratch` so a runner burst cannot fill the disk under
-# the monitoring TSDBs, which reserve nothing on a hostpath class.
+# These used to come from openebs-hostpath-runners, a separate disk kept apart
+# from the monitoring TSDBs so a runner burst could not fill the disk under
+# them. Both now share worker-07's `extra` volume: that separation stopped
+# meaning anything once both disks became zvols on the same rpool, and the
+# guarantee comes from XFS project quotas instead - openebs-hostpath enforces
+# each PVC's requested size as a hard limit, so a runaway job fills its own
+# 20Gi/40Gi claim and nothing else.
 template:
   spec:
     automountServiceAccountToken: true
@@ -110,7 +119,7 @@ template:
           volumeClaimTemplate:
             spec:
               accessModes: ["ReadWriteOnce"]
-              storageClassName: openebs-hostpath-runners
+              storageClassName: openebs-hostpath
               resources:
                 requests:
                   storage: 20Gi
@@ -119,7 +128,7 @@ template:
           volumeClaimTemplate:
             spec:
               accessModes: ["ReadWriteOnce"]
-              storageClassName: openebs-hostpath-runners
+              storageClassName: openebs-hostpath
               resources:
                 requests:
                   storage: 40Gi

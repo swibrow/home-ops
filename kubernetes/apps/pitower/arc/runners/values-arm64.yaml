@@ -21,12 +21,13 @@ minRunners: 0
 # sidecar variant) rather than containerMode, for the same reason: /var/lib/docker
 # has to be relocatable. Two differences from the amd64 spec:
 #
-#   - openebs-hostpath, not openebs-hostpath-ssd/-runners. Those two classes
-#     point at worker-07's local pools; a PVC from either is unschedulable
-#     anywhere else. openebs-hostpath's BasePath (/var/mnt/extra/openebs/local)
-#     rides EPHEMERAL, which on these nodes is the single ~112Gi system disk —
-#     it reserves nothing, so the sizes below are advisory and maxRunners is
-#     the real limit.
+#   - openebs-hostpath's BasePath (/var/mnt/extra/openebs/local) rides EPHEMERAL
+#     on these nodes, which is the single ~112Gi system disk. The amd64 set now
+#     uses this same class, but there /var/mnt/extra is worker-07's dedicated
+#     800G `extra` volume - same class, different backing per node.
+#     XFS project quotas cap each claim to its requested size, but quotas do not
+#     reserve, so the sizes below still cannot fail scheduling and maxRunners
+#     remains the real limit - which matters more here, on a ~112Gi disk.
 #   - no `dedicated=storage` toleration and no wibrow.dev/compute selector;
 #     worker-08/09/10 are untainted and unlabelled, so arch is the whole
 #     placement rule.
