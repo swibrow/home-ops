@@ -1,0 +1,44 @@
+# yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpserver_v1beta1.json
+# Excalidraw MCP backend — renders hand-drawn diagrams and returns them as an MCP App
+# (an interactive ui:// HTML resource), plus .excalidraw export and checkpoint reload.
+# Self-contained: it draws into its own bundled canvas and does NOT touch the
+# excalidraw instance at draw.wibrow.dev (that image is the plain static app, it has
+# no backend to drive). Needs no egress and holds no credentials. Unauthenticated and
+# in-cluster only; auth is enforced at the vMCP edge, ingress locked to the two vMCP
+# pods (networkpolicy.yaml).
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServer
+metadata:
+  name: excalidraw
+spec:
+  # Upstream (excalidraw/excalidraw-mcp) publishes no container image and no npm
+  # package, so this is built from the git tag by cloudsnacks/containers
+  # (images/excalidraw-mcp). That repo's tags drop the upstream `v` prefix.
+  image: ghcr.io/cloudsnacks/excalidraw-mcp:0.3.2
+  transport: streamable-http
+  # The server serves /mcp on :3001 (PORT, bound 0.0.0.0 with no host allowlist, so
+  # the proxy's Host rewrite passes); the ToolHive proxy fronts it on 8080.
+  proxyPort: 8080
+  mcpPort: 3001
+  groupRef:
+    name: mcp-tools
+  # Checkpoints are files under os.tmpdir(), and the store mkdirs at startup — under
+  # ToolHive's read-only rootfs that fails before the listener comes up. The CRD
+  # `volumes` field is hostPath-only, so the emptyDir goes via podTemplateSpec
+  # (workload container is named "mcp").
+  podTemplateSpec:
+    spec:
+      containers:
+        - name: mcp
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      memory: 256Mi

@@ -28,6 +28,7 @@ resources:
   - mcpserver-terraform.yaml
   - mcpserver-context7.yaml
   - mcpserver-database-toolbox.yaml
+  - mcpserver-excalidraw.yaml
   - generator-github.yaml
   - cronjob-github-token.yaml
   - networkpolicy.yaml
