@@ -240,7 +240,13 @@ prometheus:
     scrapeConfigSelectorNilUsesHelmValues: false
     enableAdminAPI: true
     walCompression: true
-    retentionSize: 50GB
+    # retentionSize sat at 50GB against a 50Gi PVC, leaving nothing for the WAL
+    # or compaction scratch. openebs-hostpath now enforces the PVC size as a
+    # hard XFS project quota, so an overrun means failed writes rather than
+    # borrowed space - hence the headroom. Time retention was inherited from
+    # the chart default; pin it so both bounds are explicit.
+    retention: 10d
+    retentionSize: 40GB
     # Ceiling, not a squeeze: 7d peak working set is ~3.9Gi and the cgroup holds
     # ~4.4Gi of page cache for the 50Gi TSDB. Sizing this below the sum would
     # evict that cache and push compaction back onto worker-07's local disk.
@@ -252,7 +258,7 @@ prometheus:
     storageSpec:
       volumeClaimTemplate:
         spec:
-          storageClassName: openebs-hostpath-ssd
+          storageClassName: openebs-hostpath
           resources:
             requests:
               storage: 50Gi

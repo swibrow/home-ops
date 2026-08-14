@@ -16,8 +16,12 @@ server:
     enabled: true
     accessModes:
       - ReadWriteOnce
-    storageClassName: openebs-hostpath-ssd
-    size: 100Gi
+    storageClassName: openebs-hostpath
+    # 150Gi, not 100Gi: openebs-hostpath now enforces the requested size as a
+    # hard XFS project quota, and 2y of retention already occupies 81G. At
+    # 100Gi VictoriaMetrics would start failing writes rather than silently
+    # overrunning. Thin-provisioned, so the headroom costs nothing until used.
+    size: 150Gi
   service:
     servicePort: 8428
     type: ClusterIP
