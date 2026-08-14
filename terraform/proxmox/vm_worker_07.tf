@@ -74,35 +74,23 @@ resource "proxmox_virtual_environment_vm" "talos_worker" {
   }
 
   disk {
-    # TSDB scratch: prometheus, victoria-metrics, victoria-logs and tempo, via
-    # the openebs-hostpath-ssd class on Talos user volume `scratch`.
+    # Consolidated data volume: Talos user volume `extra`, mounted /var/mnt/extra,
+    # backing the cluster-wide openebs-hostpath class. This is the ONLY non-system
+    # disk - every worker-07 PVC lives here.
     #
-    # Was the single 500GB SATA SSD in bay 8 (zpool `scratch`), which existed
-    # only to keep WAL churn off a spinning rpool. rpool is six enterprise SAS
-    # SSDs since 2026-08-13, so the tier has no reason to exist and the bay is
-    # wanted for the garage raidz1. cache=none is kept: the host page cache buys
-    # nothing here and writeback would just burn ARC-adjacent RAM.
+    # Replaced scsi1 (`scratch`, TSDBs) and scsi2 (`runners`), removed 2026-08-14.
+    # Those existed to keep TSDB WAL churn and runner bursts on separate spindles,
+    # which stopped meaning anything on 2026-08-13 when all three became zvols on
+    # the same SAS SSD rpool. Runner bursts are now held off the TSDBs by XFS
+    # project quotas (UserVolumeConfig filesystem.projectQuotaSupport), which is a
+    # stronger guarantee than separate disks gave: a runaway job fills its own
+    # claim and stops.
     #
-    # Size must stay in the 400-500GiB band - the Talos UserVolumeConfig picks
-    # this disk by size, not by name. See talos/pitower/node/worker-07/.
-    datastore_id = var.disk_storage
-    interface    = "scsi1"
-    size         = 450
-    iothread     = true
-    discard      = "on"
-    ssd          = true
-  }
-
-  disk {
-    # GitHub-runner scratch: per-job work dirs and dind's /var/lib/docker,
-    # nothing that must survive a power cut. Was the 500GB Samsung 850 EVO in
-    # bay 9 (zpool `runners`, sync=disabled on consumer TLC); folded onto rpool
-    # 2026-08-13 to free the bay for the garage raidz1.
+    # 800G covers the worst case with ~23% headroom: 100Gi of app PVCs, 190Gi of
+    # TSDBs, and a 360Gi full runner burst (6 x 60Gi, capped by ARC maxRunners).
     #
-    # 350GiB is deliberate, not spare-capacity rounding: the Talos
-    # UserVolumeConfig picks disks by SIZE BAND, and 400-500GiB already belongs
-    # to scratch (scsi1). Growing this past 400GiB means widening both
-    # selectors in the same change. See talos/pitower/node/worker-07/.
+    # No size band needed - the volume selector is `!system_disk`, so this is
+    # simply "the disk that is not scsi0".
     #
     # DO NOT REORDER THE DISK BLOCKS. `disk` is a list and terraform diffs its
     # elements by position in this file, not by interface number. On 2026-08-11
@@ -113,30 +101,6 @@ resource "proxmox_virtual_environment_vm" "talos_worker" {
     # because Proxmox errored on the new zvol's device link partway through -
     # leaving a phantom disk in state and a blanked path_in_datastore to repair
     # by hand. Append new disks; never insert.
-    datastore_id = var.disk_storage
-    interface    = "scsi2"
-    size         = 350
-    iothread     = true
-    discard      = "on"
-    ssd          = true
-  }
-
-  disk {
-    # Consolidated data volume: Talos user volume `extra`, mounted /var/mnt/extra,
-    # backing the cluster-wide openebs-hostpath class. Replaces scsi1 (scratch)
-    # and scsi2 (runners) - all three were zvols on the same rpool since the
-    # 2026-08-13 SSD rebuild, so the "tiers" were the same media reached by three
-    # paths. Runner bursts are held off the TSDBs by XFS project quotas
-    # (UserVolumeConfig filesystem.projectQuotaSupport) instead of by separate
-    # spindles.
-    #
-    # 800G covers the worst case with ~23% headroom: 100Gi of existing PVCs,
-    # 190Gi of TSDBs, and a 360Gi full runner burst (6 x 60Gi). Quotas make those
-    # hard bounds rather than estimates.
-    #
-    # No size band needed - the volume selector is `!system_disk`, so this is
-    # simply "the disk that is not scsi0". Appended, never inserted; see the
-    # scsi2 block above for why that matters.
     datastore_id = var.disk_storage
     interface    = "scsi3"
     size         = 800
