@@ -16,16 +16,16 @@
 # monitoring TSDBs. With project quotas the openebs-hostpath class enforces each
 # PVC's requested size as a hard limit instead.
 #
-# The size band is temporary. Once the scratch (scsi1) and runners (scsi2) disks
-# are removed this should become `match: '!system_disk'`, since sdd will then be
-# the only non-system disk - but while all three exist that expression is
-# ambiguous and could select the wrong disk.
+# scsi3 is the only non-system disk since scratch (scsi1) and runners (scsi2)
+# were removed on 2026-08-14, so the selector needs no size band - which also
+# means disk sizes are no longer coupled to selector ranges the way scratch and
+# runners were to each other.
 apiVersion: v1alpha1
 kind: UserVolumeConfig
 name: extra
 provisioning:
   diskSelector:
-    match: disk.size > 700u * GiB && disk.size < 900u * GiB
+    match: '!system_disk'
   minSize: 700GiB
   grow: true
 filesystem:

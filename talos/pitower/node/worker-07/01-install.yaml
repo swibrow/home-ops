@@ -6,20 +6,3 @@ machine:
   kubelet:
     extraConfig:
       maxPods: 250
-    # Appends to all/01-general.yaml's extraMounts (topf merges lists by
-    # appending, verified via topf render).
-    extraMounts:
-      - destination: /var/mnt/scratch
-        type: bind
-        source: /var/mnt/scratch
-        options:
-          - rbind
-          - rshared
-          - rw
-      - destination: /var/mnt/runners
-        type: bind
-        source: /var/mnt/runners
-        options:
-          - rbind
-          - rshared
-          - rw
