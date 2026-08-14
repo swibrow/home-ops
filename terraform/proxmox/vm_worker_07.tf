@@ -121,6 +121,31 @@ resource "proxmox_virtual_environment_vm" "talos_worker" {
     ssd          = true
   }
 
+  disk {
+    # Consolidated data volume: Talos user volume `extra`, mounted /var/mnt/extra,
+    # backing the cluster-wide openebs-hostpath class. Replaces scsi1 (scratch)
+    # and scsi2 (runners) - all three were zvols on the same rpool since the
+    # 2026-08-13 SSD rebuild, so the "tiers" were the same media reached by three
+    # paths. Runner bursts are held off the TSDBs by XFS project quotas
+    # (UserVolumeConfig filesystem.projectQuotaSupport) instead of by separate
+    # spindles.
+    #
+    # 800G covers the worst case with ~23% headroom: 100Gi of existing PVCs,
+    # 190Gi of TSDBs, and a 360Gi full runner burst (6 x 60Gi). Quotas make those
+    # hard bounds rather than estimates.
+    #
+    # No size band needed - the volume selector is `!system_disk`, so this is
+    # simply "the disk that is not scsi0". Appended, never inserted; see the
+    # scsi2 block above for why that matters.
+    datastore_id = var.disk_storage
+    interface    = "scsi3"
+    size         = 800
+    iothread     = true
+    cache        = "none"
+    discard      = "on"
+    ssd          = true
+  }
+
   network_device {
     bridge = var.network_bridge
     model  = "virtio"
