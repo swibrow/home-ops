@@ -15,7 +15,7 @@ controllers:
       app:
         image:
           repository: docker.io/kanidm/server
-          tag: 1.11.0
+          tag: 1.11.1
         env:
           KANIDM_DOMAIN: idm.wibrow.dev
           KANIDM_ORIGIN: https://idm.wibrow.dev
