@@ -3,8 +3,21 @@ machine:
     extraArgs:
       rotate-server-certificates: true
     extraConfig:
+      # These thresholds are a PERCENTAGE of the filesystem, so a bigger disk
+      # means a bigger cache: 60% of worker-07's 997Gi is a 598Gi high-water
+      # mark it had never reached, so image GC had simply never run there. It
+      # sat at 322Gi of imageFs while referencing only ~57Gi of images - the
+      # rest was unreferenced garbage.
       imageGCHighThresholdPercent: 60
       imageGCLowThresholdPercent: 50
+      # Age-based eviction is the actual fix: it bounds the cache by how long an
+      # image has gone unused rather than by disk size, so it behaves the same
+      # on the 112Gi Pis and on worker-07's 1000G disk. The percentage
+      # thresholds above stay as a backstop for sudden fill.
+      #
+      # Note a kubelet restart resets tracked image age, so after any node
+      # reboot the full week must elapse again before anything qualifies.
+      imageMaximumGCAge: 168h
     extraMounts:
       - destination: /var/mnt/extra
         type: bind

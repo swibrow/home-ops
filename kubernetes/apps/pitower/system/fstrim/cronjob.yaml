@@ -1,0 +1,82 @@
+---
+# Talos never issues discards, so blocks freed inside the guest are never
+# returned to ZFS on proxmox-01. Nothing in the stack does it for us:
+#
+#   - EPHEMERAL and the `extra` user volume are XFS mounted WITHOUT the
+#     `discard` option, so there is no online discard.
+#   - Talos ships no fstrim binary and no trim timer.
+#
+# Left alone this only ever grows. On 2026-08-13 worker-07's three zvols had
+# accumulated 173G of blocks the guest had already freed; a single manual
+# fstrim returned all of it (vm-200-disk-1 alone went 535G -> 312G). It cost
+# 22s for the 1000G volume, with no pod restarts and no node flap.
+#
+# worker-07 only: it is the sole node backed by Proxmox zvols. The other nodes
+# are bare metal or Pis where the guest/host distinction does not exist.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: fstrim
+spec:
+  schedule: "0 4 * * 0" # Sundays 04:00, after etcd-defrag at 03:00
+  timeZone: Europe/Zurich
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 1800
+      ttlSecondsAfterFinished: 86400
+      template:
+        spec:
+          restartPolicy: Never
+          nodeSelector:
+            kubernetes.io/hostname: worker-07
+          tolerations:
+            - key: dedicated
+              operator: Equal
+              value: storage
+              effect: NoSchedule
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+            runAsNonRoot: false
+          containers:
+            - name: fstrim
+              # util-linux, and so fstrim, is in the debian base image.
+              image: docker.io/library/debian:stable-slim@sha256:1710bde34461551a19a47c787885ec9ad7058d9a5bead2affb8d088fa2f8502b
+              command: ["/bin/sh", "-c"]
+              # FITRIM is an ioctl on the mount, so it reaches the real
+              # filesystem through the hostPath bind. Both mounts are trimmed:
+              # /var is the system disk (containerd image cache churns hardest)
+              # and /var/mnt/extra is the data volume holding every PVC.
+              args:
+                - |
+                  set -eu
+                  for m in /host/var /host/extra; do
+                    echo "trimming $m"
+                    fstrim -v "$m"
+                  done
+              securityContext:
+                privileged: true
+              resources:
+                requests:
+                  cpu: 25m
+                  memory: 64Mi
+                limits:
+                  memory: 128Mi
+              volumeMounts:
+                - name: var
+                  mountPath: /host/var
+                - name: extra
+                  mountPath: /host/extra
+          volumes:
+            - name: var
+              hostPath:
+                path: /var
+                type: Directory
+            - name: extra
+              hostPath:
+                path: /var/mnt/extra
+                type: Directory
