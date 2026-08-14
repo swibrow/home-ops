@@ -1,0 +1,33 @@
+---
+# 800GiB scsi3 disk, a zvol on proxmox-01's rpool (6x 800GB SAS SSD, 3 mirrors,
+# sync=standard). Mounted at /var/mnt/extra, which is the cluster-wide
+# openebs-hostpath basePath - so on this node that class is backed by a
+# dedicated disk instead of sharing EPHEMERAL, while every other node keeps
+# /var/mnt/extra as a plain directory. No storage class change is needed.
+#
+# This consolidates what used to be three PVC locations on worker-07: the
+# EPHEMERAL /var/mnt/extra directory, the `scratch` volume (TSDBs) and the
+# `runners` volume. Those two existed to keep TSDB WAL churn and runner bursts
+# on separate spindles, which stopped meaning anything on 2026-08-13 when all
+# three became zvols on the same rpool.
+#
+# projectQuotaSupport is what replaces that physical separation: hostpath PVCs
+# reserve nothing by default, so a runner burst could fill the disk under the
+# monitoring TSDBs. With project quotas the openebs-hostpath class enforces each
+# PVC's requested size as a hard limit instead.
+#
+# The size band is temporary. Once the scratch (scsi1) and runners (scsi2) disks
+# are removed this should become `match: '!system_disk'`, since sdd will then be
+# the only non-system disk - but while all three exist that expression is
+# ambiguous and could select the wrong disk.
+apiVersion: v1alpha1
+kind: UserVolumeConfig
+name: extra
+provisioning:
+  diskSelector:
+    match: disk.size > 700u * GiB && disk.size < 900u * GiB
+  minSize: 700GiB
+  grow: true
+filesystem:
+  type: xfs
+  projectQuotaSupport: true
