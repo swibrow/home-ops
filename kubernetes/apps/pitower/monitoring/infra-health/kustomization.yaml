@@ -1,0 +1,9 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: monitoring
+# Its own app dir, so a bad rule change shows up as one ArgoCD app OutOfSync
+# rather than tangled into kube-prometheus-stack.
+resources:
+  - prometheusrule.yaml

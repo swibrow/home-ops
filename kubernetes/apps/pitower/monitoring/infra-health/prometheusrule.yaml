@@ -1,0 +1,320 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/monitoring.coreos.com/prometheusrule_v1.json
+#
+# infra:component:up is the keystone of the status page: one metric family that
+# every tier folds into, so the page and the dashboard ask a single question
+# instead of learning a dozen exporters' conventions.
+#
+#   infra:component:up{tier, component, exposure, scope}   ratio in [0,1]
+#     1            operational
+#     0            down
+#     0 < v < 1    degraded (k of n healthy)
+#     absent       unknown - no evidence either way
+#
+# Absent and zero are deliberately different. The status page renders "no data"
+# rather than "down" for absent, and infra:component:stale exists so a dead
+# exporter alerts as a dead exporter instead of as a dead estate.
+#
+# Fan-out groups take identity from the source series via max by (...), never
+# `or vector(0)` - that would collapse N components into a single unlabelled
+# series. Singletons do the opposite: exactly one series, so `or on() vector(0)`
+# is a safe fail-closed default and the rule's own labels re-attach identity
+# that vector(0) cannot carry.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: infra-health
+spec:
+  groups:
+    - name: infra.health.fanout
+      interval: 30s
+      rules:
+        # --- app tier, from gatus ------------------------------------------
+        # tier/exposure/scope already ride the metric via extra-labels
+        # inherited from the two Gateway objects; component comes from the
+        # endpoint name.
+        #
+        # The multiplication is load-bearing.
+        # gatus_results_endpoint_success is a gauge that keeps its last value
+        # if gatus stops probing, so a wedged gatus would report all 77
+        # endpoints permanently green. Gating on its own scrape turns that
+        # silent lie into an honest zero.
+        - record: infra:component:up
+          expr: |
+            max by (tier, component, exposure, scope) (
+              label_replace(
+                gatus_results_endpoint_success{job="gatus"},
+                "component", "$1", "name", "(.*)"
+              )
+            )
+            * on () group_left ()
+            max(up{job="gatus"})
+
+        # --- everything blackbox probes ------------------------------------
+        # The Probe CRs already attach tier/component/exposure/scope, so this
+        # is a straight passthrough. Covers node, host, network, dns, service,
+        # platform (etcd, control-plane VIP) and edge (TLS) in one rule.
+        - record: infra:component:up
+          expr: |
+            max by (tier, component, exposure, scope) (
+              probe_success{job=~"blackbox-.*"}
+            )
+
+        # --- node tier, Kubernetes' own view -------------------------------
+        # Distinct scope from the ICMP probe on purpose: a node that pings but
+        # is NotReady is a kubelet problem, one that does neither is a power or
+        # network problem. Keeping both lets the dashboard tell them apart.
+        - record: infra:component:up
+          expr: |
+            max by (component) (
+              label_replace(
+                kube_node_status_condition{condition="Ready", status="true"},
+                "component", "$1", "node", "(.*)"
+              )
+            )
+          labels:
+            tier: node
+            exposure: none
+            scope: cluster
+
+        # --- storage tier, CNPG clusters -----------------------------------
+        # job is database/<cluster>; the cluster label is the global "pitower"
+        # and grouping on it would merge all three into one.
+        - record: infra:component:up
+          expr: |
+            min by (component) (
+              label_replace(cnpg_collector_up, "component", "cnpg-$1", "job", "database/(.*)")
+            )
+          labels:
+            tier: storage
+            exposure: internal
+            scope: cluster
+
+        # --- backup tier, kopiur -------------------------------------------
+        # kopiur_snapshotpolicy_last_backup_success is a BOOLEAN, not a
+        # timestamp - verified 1 on all 19 policies. Treating it as a unix time
+        # (time() - x < window) would make every policy read as down forever.
+        # The per-snapshot timestamp series is
+        # kopiur_snapshot_last_success_timestamp_seconds, which is keyed by
+        # snapshot name rather than policy and is not what belongs here.
+        - record: infra:component:up
+          expr: |
+            max by (component) (
+              label_replace(
+                kopiur_snapshotpolicy_last_backup_success,
+                "component", "kopiur-$1", "policy", "(.*)"
+              )
+            )
+          labels:
+            tier: backup
+            exposure: none
+            scope: cluster
+
+        # --- backup tier, CNPG barman --------------------------------------
+        # barman_cloud_* rather than cnpg_collector_*: the latter is inert
+        # under the barman-cloud plugin and reads a flat 0. Base backups run
+        # 02:00/02:30/04:00, so 26h is a full cycle plus slack.
+        - record: infra:component:up
+          expr: |
+            max by (component) (
+              label_replace(
+                (time() - barman_cloud_cloudnative_pg_io_last_available_backup_timestamp) < bool 93600,
+                "component", "barman-$1", "job", "database/(.*)"
+              )
+            )
+          labels:
+            tier: backup
+            exposure: none
+            scope: cluster
+
+        # --- domain tier ---------------------------------------------------
+        # 30 days of registration runway. gatus already carries tier=domain.
+        - record: infra:component:up
+          expr: |
+            max by (tier, component, exposure, scope) (
+              label_replace(
+                gatus_results_domain_expiration_seconds > bool 2592000,
+                "component", "$1", "name", "(.*)"
+              )
+            )
+
+    - name: infra.health.singletons
+      interval: 30s
+      rules:
+        # --- edge ----------------------------------------------------------
+        - record: infra:component:up
+          expr: |
+            clamp_max(sum(kube_deployment_status_replicas_available{namespace="networking", deployment="towonel-agent"}), 1)
+              or on () vector(0)
+          labels:
+            tier: edge
+            component: towonel-agent
+            exposure: none
+            scope: cluster
+        - record: infra:component:up
+          expr: |
+            clamp_max(sum(kube_deployment_status_replicas_available{namespace="networking", deployment="envoy-external"}), 1)
+              or on () vector(0)
+          labels:
+            tier: edge
+            component: gateway-external
+            exposure: public
+            scope: cluster
+        - record: infra:component:up
+          expr: |
+            clamp_max(sum(kube_deployment_status_replicas_available{namespace="networking", deployment="envoy-internal"}), 1)
+              or on () vector(0)
+          labels:
+            tier: edge
+            component: gateway-internal
+            exposure: internal
+            scope: cluster
+
+        # --- platform ------------------------------------------------------
+        - record: infra:component:up
+          expr: min(up{job="apiserver"}) or on () vector(0)
+          labels:
+            tier: platform
+            component: kube-apiserver
+            exposure: none
+            scope: cluster
+        - record: infra:component:up
+          expr: min(up{job="kube-etcd"}) or on () vector(0)
+          labels:
+            tier: platform
+            component: etcd
+            exposure: none
+            scope: cluster
+        - record: infra:component:up
+          expr: min(up{job="kube-prometheus-stack-prometheus"}) or on () vector(0)
+          labels:
+            tier: platform
+            component: prometheus
+            exposure: internal
+            scope: cluster
+        # Fractional on purpose: this is the one component where "mostly fine"
+        # is the normal state and a hard 0/1 would be either always red or
+        # useless. It renders as degraded rather than down.
+        - record: infra:component:up
+          expr: |
+            (count(argocd_app_info{sync_status="Synced", health_status="Healthy"}) / count(argocd_app_info))
+              or on () vector(0)
+          labels:
+            tier: platform
+            component: gitops
+            exposure: internal
+            scope: cluster
+
+        # --- storage -------------------------------------------------------
+        # garage_* after the ScrapeConfig prefix relabel. Both must hold: the
+        # cluster can be "healthy" in layout terms while unavailable to serve.
+        - record: infra:component:up
+          expr: |
+            (min(garage_cluster_available) * min(garage_cluster_healthy)) or on () vector(0)
+          labels:
+            tier: storage
+            component: garage
+            exposure: internal
+            scope: lan
+        # ceph_health_status is 0 OK / 1 WARN / 2 ERR. WARN is deliberately
+        # half rather than down - a rebalancing cluster still serves.
+        - record: infra:component:up
+          expr: |
+            clamp_min(1 - (max(ceph_health_status) / 2), 0) or on () vector(0)
+          labels:
+            tier: storage
+            component: rook-ceph
+            exposure: none
+            scope: cluster
+
+        # --- host ----------------------------------------------------------
+        - record: infra:component:up
+          expr: min(pve_up{id=~"node/.+"}) or on () vector(0)
+          labels:
+            tier: host
+            component: proxmox-ve
+            exposure: none
+            scope: lan
+
+    # Evidence-missing, as distinct from evidence-of-failure. Alerts route on
+    # this so "the exporter died" never pages as "the estate died".
+    - name: infra.health.staleness
+      interval: 60s
+      rules:
+        - record: infra:component:stale
+          expr: absent(gatus_results_endpoint_success)
+          labels:
+            tier: app
+            component: gatus
+        - record: infra:component:stale
+          expr: absent(probe_success{job="blackbox-icmp"})
+          labels:
+            tier: node
+            component: blackbox
+        - record: infra:component:stale
+          expr: absent(garage_cluster_healthy)
+          labels:
+            tier: storage
+            component: garage
+        - record: infra:component:stale
+          expr: absent(barman_cloud_cloudnative_pg_io_last_available_backup_timestamp)
+          labels:
+            tier: backup
+            component: barman
+        - record: infra:component:stale
+          expr: absent(kopiur_snapshotpolicy_last_backup_success)
+          labels:
+            tier: backup
+            component: kopiur
+        # gatus holds its last gauge value indefinitely, so `up` being 1 is not
+        # proof it is still probing. No result recorded in 15m means the config
+        # is wedged even though the process looks healthy.
+        #
+        # Scoped to tier="app" because the domain endpoints probe every 6h by
+        # necessity - RDAP registries rate-limit - so on a 15m window they
+        # legitimately record nothing and an unscoped rule flags all three as
+        # permanently wedged. Verified: unscoped flags 3, scoped flags 0.
+        - record: infra:component:stale
+          expr: |
+            max by (component) (
+              label_replace(
+                (sum by (name) (increase(gatus_results_total{tier="app"}[15m])) == bool 0),
+                "component", "$1", "name", "(.*)"
+              )
+            )
+          labels:
+            tier: app
+
+    # What the status page and kromgo actually query.
+    - name: infra.health.rollup
+      interval: 30s
+      rules:
+        - record: infra:tier:up_ratio
+          expr: avg by (tier) (infra:component:up)
+        - record: infra:tier:down_count
+          expr: count by (tier) (infra:component:up == 0) or on () vector(0)
+        # Public availability is measured from the WAN vantage only. Until the
+        # ovh-vps prober lands there is no scope="wan" probe series, so this is
+        # intentionally empty rather than quietly reporting LAN reachability as
+        # if it proved the tunnel works.
+        - record: infra:public:up_ratio
+          expr: avg(infra:component:up{exposure="public", scope="wan"})
+        # The single green/amber/red bit. Excludes tier=app so one broken side
+        # project does not make the whole estate read as down.
+        - record: infra:overall:up
+          expr: |
+            min(infra:component:up{tier=~"edge|platform|storage|backup|node|network|dns|host"})
+        - record: infra:overall:down_count
+          expr: count(infra:component:up == 0) or on () vector(0)
+        - record: infra:overall:degraded_count
+          expr: count(infra:component:up > 0 < 1) or on () vector(0)
+
+    # Uptime history. Recorded at 5m and replicated into VictoriaMetrics by the
+    # existing remoteWrite, because Prometheus itself only retains 10 days.
+    - name: infra.health.history
+      interval: 5m
+      rules:
+        - record: infra:component:up:avg_over_time_1h
+          expr: avg_over_time(infra:component:up[1h])
+        - record: infra:component:up:avg_over_time_24h
+          expr: avg_over_time(infra:component:up[24h])
