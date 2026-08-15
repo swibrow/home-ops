@@ -1,0 +1,25 @@
+---
+modules:
+  # Matches the in-cluster module of the same name so a LAN result and a WAN
+  # result for the same hostname are directly comparable; the difference
+  # between them is the tunnel's health.
+  http_2xx:
+    prober: http
+    timeout: 10s
+    http:
+      valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+      follow_redirects: true
+      preferred_ip_protocol: ip4
+      ip_protocol_fallback: false
+
+  # The wildcard catch-all canary. A 404 carrying our own body proves the whole
+  # ingress chain is alive independently of any single app being healthy, which
+  # makes it the cleanest single indicator of tunnel health.
+  http_404_expected:
+    prober: http
+    timeout: 10s
+    http:
+      valid_status_codes: [404]
+      fail_if_body_not_matches_regexp: ["pitower"]
+      preferred_ip_protocol: ip4
+      ip_protocol_fallback: false

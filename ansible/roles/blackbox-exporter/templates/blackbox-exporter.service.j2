@@ -1,0 +1,26 @@
+[Unit]
+Description=Prometheus blackbox_exporter (WAN vantage for pitower)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ blackbox_exporter_user }}
+Group={{ blackbox_exporter_group }}
+ExecStart={{ blackbox_exporter_install_path }} \
+  --config.file={{ blackbox_exporter_config_path }} \
+  --web.listen-address={{ blackbox_exporter_listen_address }}
+Restart=always
+RestartSec=5
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+# No NET_RAW: only HTTP modules are configured here. ICMP from the VPS would
+# say nothing useful, since the home network does not answer pings from the
+# internet and should not start.
+CapabilityBoundingSet=
+
+[Install]
+WantedBy=multi-user.target

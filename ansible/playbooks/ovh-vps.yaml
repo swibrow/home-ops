@@ -1,9 +1,12 @@
 ---
-- name: ovh-vps node (fail2ban + oha + towonel-hub + otel-agent)
+- name: ovh-vps node (fail2ban + oha + towonel-hub + blackbox + otel-agent)
   hosts: ovh_vps
   become: true
   roles:
     - fail2ban
     - oha
     - towonel-hub
+    # Before otel-agent: the agent scrapes this exporter over loopback, so it
+    # should exist before the agent is configured to poll it.
+    - blackbox-exporter
     - otel-agent

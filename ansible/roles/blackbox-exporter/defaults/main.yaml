@@ -1,0 +1,30 @@
+---
+# blackbox_exporter on the public VPS, providing the WAN vantage point.
+#
+# Everything the cluster probes internally resolves through the LAN, where
+# *.wibrow.dev answers with the envoy-external LoadBalancer address directly.
+# That path never crosses the tunnel, so an in-cluster probe reports green
+# through a total tunnel, ISP or Cloudflare outage. Probing from here traverses
+# Caddy -> towonel hub -> tunnel -> towonel agent -> envoy-external, which is
+# the path a real visitor takes and the only one that can prove it works.
+blackbox_exporter_version: "0.28.0"
+blackbox_exporter_install_path: /usr/local/bin/blackbox_exporter
+blackbox_exporter_user: blackbox
+blackbox_exporter_group: blackbox
+blackbox_exporter_config_dir: /etc/blackbox_exporter
+blackbox_exporter_config_path: "{{ blackbox_exporter_config_dir }}/blackbox.yml"
+
+# Loopback only. This host is on the public internet, so the exporter is never
+# exposed; the otel-agent already running here scrapes it over localhost and
+# ships the results out through the existing authenticated OTLP pipeline.
+blackbox_exporter_listen_address: "127.0.0.1:9115"
+
+# sha256 of the upstream blackbox_exporter-<version>.linux-<arch>.tar.gz asset,
+# from that release's own sha256sums.txt.
+blackbox_exporter_checksums:
+  amd64: sha256:caf5d242fb1cf6d5cb678f3f799f22703d4fafea26b03dcbbd7e1f1825e06329
+  arm64: sha256:63312be0983d85e5109710a7dc93df3051157ae581853fa3655d171cc1b2806e
+
+blackbox_exporter_arch_map:
+  x86_64: amd64
+  aarch64: arm64

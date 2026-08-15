@@ -33,3 +33,30 @@ otel_agent_journald_units:
   - towonel-hub.service
   - fail2ban.service
   - ssh.service
+
+# Scrape the local blackbox_exporter (see the blackbox-exporter role) and ship
+# the results through this same OTLP pipeline. The exporter listens on
+# loopback, so nothing new is exposed on a public host and no inbound firewall
+# rule is needed - which also means no dependency on the home WAN address,
+# which is dynamic.
+otel_agent_blackbox_enabled: true
+otel_agent_blackbox_address: "127.0.0.1:9115"
+
+# The WAN vantage target list. Deliberately a handful of flagship hostnames
+# rather than all ~40: every one of these crosses the tunnel on every scrape,
+# and the canary below already proves the shared path. Probing everything from
+# here would multiply tunnel traffic to prove the same fact repeatedly.
+otel_agent_blackbox_targets:
+  - https://chat.wibrow.dev
+  - https://git.wibrow.dev
+  - https://photos.wibrow.dev
+  - https://ntfy.wibrow.dev
+  - https://home.wibrow.dev
+  - https://propagit.dev
+  - https://pitwall.cloudsnacks.dev
+
+# Hits a subdomain with no route so the wildcard catch-all answers. A 404
+# carrying our own body proves tunnel + gateway + fallback filter are all alive
+# without depending on any single app being healthy, which makes this the
+# cleanest single indicator of whether the public path works.
+otel_agent_blackbox_canary: https://gatus-canary.wibrow.dev

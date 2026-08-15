@@ -23,6 +23,67 @@ receivers:
         endpoint: 127.0.0.1:4317
       http:
         endpoint: 127.0.0.1:4318
+{% if otel_agent_blackbox_enabled %}
+  # WAN-vantage probes. scope="wan" is the load-bearing label: it is what
+  # separates "the service answers on the LAN" from "the service answers to the
+  # internet", and only the latter may be published as public availability.
+  #
+  # job and instance become resource attributes across OTLP, so the identity
+  # this pipeline must preserve is carried in ordinary labels (component, tier,
+  # exposure, scope) which survive as metric attributes.
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: blackbox-wan
+          scrape_interval: 60s
+          scrape_timeout: 30s
+          metrics_path: /probe
+          params:
+            module: [http_2xx]
+          static_configs:
+            - targets:
+{% for target in otel_agent_blackbox_targets %}
+                - {{ target }}
+{% endfor %}
+              labels:
+                tier: app
+                exposure: public
+                scope: wan
+                probe_source: ovh-vps
+          relabel_configs:
+            - source_labels: [__address__]
+              target_label: __param_target
+            - source_labels: [__param_target]
+              target_label: instance
+            - source_labels: [__param_target]
+              regex: "https://([^/]+).*"
+              target_label: component
+              replacement: "$1"
+            - target_label: __address__
+              replacement: {{ otel_agent_blackbox_address }}
+        - job_name: blackbox-wan-canary
+          scrape_interval: 60s
+          scrape_timeout: 30s
+          metrics_path: /probe
+          params:
+            module: [http_404_expected]
+          static_configs:
+            - targets:
+                - {{ otel_agent_blackbox_canary }}
+              labels:
+                tier: edge
+                component: tunnel
+                exposure: public
+                scope: wan
+                probe_source: ovh-vps
+          relabel_configs:
+            - source_labels: [__address__]
+              target_label: __param_target
+            - source_labels: [__param_target]
+              target_label: instance
+            - target_label: __address__
+              replacement: {{ otel_agent_blackbox_address }}
+{% endif %}
 
 processors:
   memory_limiter:
@@ -49,7 +110,7 @@ service:
   extensions: [health_check]
   pipelines:
     metrics:
-      receivers: [hostmetrics]
+      receivers: [hostmetrics{% if otel_agent_blackbox_enabled %}, prometheus{% endif %}]
       processors: [memory_limiter, resource, batch]
       exporters: [otlphttp]
     logs:
