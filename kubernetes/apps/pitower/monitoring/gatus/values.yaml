@@ -140,6 +140,19 @@ service:
       http:
         port: 8080
 
+# Gatus serves /metrics on the same port as the UI, gated by `metrics: true`
+# in configmap.yaml. gatus_results_endpoint_success is the per-endpoint 0/1
+# gauge that the infra:component:up rules fold into the app tier.
+serviceMonitor:
+  app:
+    serviceName: gatus
+    endpoints:
+      - port: http
+        scheme: http
+        path: /metrics
+        interval: 30s
+        scrapeTimeout: 10s
+
 route:
   app:
     enabled: true

@@ -10,6 +10,12 @@ data:
       type: postgres
       path: "postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=disable"
 
+    # Exposes gatus_results_endpoint_success (0/1) plus the certificate and
+    # domain expiration gauges on /metrics, scraped by servicemonitor.yaml.
+    # This makes the sidecar's auto-discovered endpoints the app tier's health
+    # signal in Prometheus, so no Probe CRs have to restate the same hostnames.
+    metrics: true
+
     ui:
       title: Pitower Status
       header: Pitower Status
@@ -31,6 +37,54 @@ data:
         group: Infrastructure
         url: https://gatus-canary.wibrow.dev
         interval: 5m
+        extra-labels:
+          tier: edge
+          component: fallback-404
+          exposure: public
+          scope: lan
         conditions:
           - "[STATUS] == 404"
           - "[BODY] == pat(*pitower*)"
+
+      # Domain registration expiry. [DOMAIN_EXPIRATION] does an RDAP lookup
+      # (WHOIS fallback), which is why the interval is 6h rather than the 5m
+      # default -- registries rate-limit, and gatus's own docs warn against
+      # anything under 5m. This replaces a dedicated domain-expiry exporter.
+      - name: wibrow.dev
+        group: Domains
+        url: https://wibrow.dev
+        interval: 6h
+        extra-labels:
+          tier: domain
+          component: wibrow.dev
+          exposure: public
+          scope: wan
+        conditions:
+          - "[DOMAIN_EXPIRATION] > 720h"
+          - "[CERTIFICATE_EXPIRATION] > 336h"
+      - name: propagit.dev
+        group: Domains
+        url: https://propagit.dev
+        interval: 6h
+        extra-labels:
+          tier: domain
+          component: propagit.dev
+          exposure: public
+          scope: wan
+        conditions:
+          - "[DOMAIN_EXPIRATION] > 720h"
+          - "[CERTIFICATE_EXPIRATION] > 336h"
+      - name: cloudsnacks.dev
+        group: Domains
+        # No route serves the cloudsnacks.dev apex; pitwall is the live host on
+        # the zone, and the domain expiry check is what this endpoint is for.
+        url: https://pitwall.cloudsnacks.dev
+        interval: 6h
+        extra-labels:
+          tier: domain
+          component: cloudsnacks.dev
+          exposure: public
+          scope: wan
+        conditions:
+          - "[DOMAIN_EXPIRATION] > 720h"
+          - "[CERTIFICATE_EXPIRATION] > 336h"

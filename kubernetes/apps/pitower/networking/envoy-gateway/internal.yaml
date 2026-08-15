@@ -9,6 +9,14 @@ metadata:
   annotations:
     external-dns.alpha.kubernetes.io/target: &hostname internal.wibrow.dev
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    # See external.yaml for how this inherits onto every child HTTPRoute.
+    # These hosts are LAN-only by design, so scope: lan is the whole truth
+    # here and they never contribute to the public availability figure.
+    gatus.home-operations.com/endpoint: |
+      extra-labels:
+        tier: app
+        exposure: internal
+        scope: lan
 spec:
   gatewayClassName: envoy
   infrastructure:
