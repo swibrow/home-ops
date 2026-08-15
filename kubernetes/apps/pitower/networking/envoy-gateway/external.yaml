@@ -11,7 +11,15 @@ metadata:
     # The gatus sidecar merges a Gateway's endpoint annotation into every
     # HTTPRoute that parents to it (parent first, child wins), so setting
     # extra-labels here labels all of this gateway's routes at once instead of
-    # touching ~35 app values files. These become Prometheus labels on
+    # touching ~35 app values files.
+    #
+    # Editing this annotation requires restarting gatus to take effect. The
+    # sidecar watches HTTPRoutes only and reads the parent Gateway on demand
+    # through a TTL cache, so a Gateway-only change fires no reconcile and the
+    # rendered config keeps the old labels indefinitely. Nothing reports an
+    # error; the labels just silently stay stale until something else touches
+    # an HTTPRoute. After changing it:
+    #   kubectl -n monitoring rollout restart deploy/gatus These become Prometheus labels on
     # gatus_results_endpoint_success, which infra:component:up folds together.
     #
     # scope: lan is deliberate and not a placeholder. The LAN resolver answers
