@@ -293,12 +293,19 @@ spec:
           expr: avg by (tier) (infra:component:up)
         - record: infra:tier:down_count
           expr: count by (tier) (infra:component:up == 0) or on () vector(0)
-        # Public availability is measured from the WAN vantage only. Until the
-        # ovh-vps prober lands there is no scope="wan" probe series, so this is
-        # intentionally empty rather than quietly reporting LAN reachability as
-        # if it proved the tunnel works.
+        # Public availability means "reachable from the internet", so it is
+        # restricted to the WAN vantage AND to tiers that represent a served
+        # service. tier=domain is excluded deliberately: those endpoints carry
+        # scope="wan" because registration is an internet-side fact, but a
+        # domain's expiry says nothing about whether anything answers on it,
+        # and letting them in made this read 0.33 while every service was up.
+        #
+        # No service-tier scope="wan" series exists until the ovh-vps prober
+        # lands, so this is empty for now - which is honest. Reporting LAN
+        # reachability here would claim the tunnel works when nothing tested it.
         - record: infra:public:up_ratio
-          expr: avg(infra:component:up{exposure="public", scope="wan"})
+          expr: |
+            avg(infra:component:up{exposure="public", scope="wan", tier=~"app|service|edge"})
         # The single green/amber/red bit. Excludes tier=app so one broken side
         # project does not make the whole estate read as down.
         - record: infra:overall:up

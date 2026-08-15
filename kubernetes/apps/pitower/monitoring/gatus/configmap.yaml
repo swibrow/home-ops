@@ -76,9 +76,11 @@ data:
           - "[CERTIFICATE_EXPIRATION] > 336h"
       - name: cloudsnacks.dev
         group: Domains
-        # No route serves the cloudsnacks.dev apex; pitwall is the live host on
-        # the zone, and the domain expiry check is what this endpoint is for.
-        url: https://pitwall.cloudsnacks.dev
+        # Must be the registrable apex. [DOMAIN_EXPIRATION] derives the RDAP
+        # lookup from the URL's host, so pointing this at a subdomain makes the
+        # lookup fail and the gauge report 0, which reads as an expiry
+        # 106752 days in the past rather than as an error.
+        url: https://cloudsnacks.dev
         interval: 6h
         extra-labels:
           tier: domain
