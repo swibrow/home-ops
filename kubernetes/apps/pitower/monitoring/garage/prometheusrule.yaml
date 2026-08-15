@@ -1,0 +1,97 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/monitoring.coreos.com/prometheusrule_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: garage
+spec:
+  groups:
+    - name: garage.rules
+      rules:
+        # garage is the single destination for BOTH backup tiers - kopiur's 19
+        # snapshot policies and CNPG's barman WAL archiving - and it runs
+        # replication_factor 1. Losing it loses the ability to take backups and
+        # the backups themselves, so absence of metrics is itself critical.
+        - alert: GarageAbsent
+          annotations:
+            summary: >-
+              garage has disappeared from Prometheus target discovery; both the
+              kopiur and CNPG backup tiers are unmonitored.
+          expr: |
+            absent(garage_cluster_healthy)
+          for: 15m
+          labels:
+            severity: critical
+
+        - alert: GarageUnavailable
+          annotations:
+            summary: >-
+              garage cannot serve requests; kopiur snapshots and CNPG WAL
+              archiving are both blocked.
+          expr: |
+            garage_cluster_available == 0
+          for: 5m
+          labels:
+            severity: critical
+            notify: ntfy
+
+        - alert: GarageDegraded
+          annotations:
+            summary: >-
+              garage reports unhealthy, or fewer storage nodes connected than
+              the layout expects.
+          expr: |
+            garage_cluster_healthy == 0
+              or garage_cluster_storage_nodes_ok < garage_cluster_storage_nodes
+          for: 15m
+          labels:
+            severity: critical
+
+        # Capacity is advertised at 900G against a 1000G subvol on the raidz1.
+        # A pool driven to 100% is where raidz1 gets slow and hard to recover,
+        # so warn well before the advertised ceiling is the binding constraint.
+        - alert: GarageCapacityLow
+          annotations:
+            summary: >-
+              garage volume {{ $labels.volume }} is below 15% free.
+          expr: |
+            (garage_local_disk_avail / garage_local_disk_total) < 0.15
+          for: 30m
+          labels:
+            severity: warning
+
+        - alert: GarageCapacityCritical
+          annotations:
+            summary: >-
+              garage volume {{ $labels.volume }} is below 7% free; backups will
+              start failing.
+          expr: |
+            (garage_local_disk_avail / garage_local_disk_total) < 0.07
+          for: 10m
+          labels:
+            severity: critical
+            notify: ntfy
+
+        # Backup growth is steady rather than spiky, so a linear projection is
+        # a fair model here and buys two weeks of notice instead of ten minutes.
+        - alert: GarageCapacityExhaustionPredicted
+          annotations:
+            summary: >-
+              garage volume {{ $labels.volume }} is projected to fill within 14
+              days at the current rate.
+          expr: |
+            predict_linear(garage_local_disk_avail[24h], 14 * 86400) < 0
+          for: 2h
+          labels:
+            severity: warning
+
+        - alert: GarageResyncErrors
+          annotations:
+            summary: >-
+              garage has {{ $value }} errored resync blocks; this should be zero
+              on a healthy cluster and means block data is unreadable.
+          expr: |
+            block_resync_errored_blocks > 0
+          for: 30m
+          labels:
+            severity: warning

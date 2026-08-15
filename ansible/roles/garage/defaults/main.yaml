@@ -55,9 +55,16 @@ garage_s3_web_root_domain: ".web.garage.wibrow.dev"
 # unmonitored single point of failure in the estate.
 #
 # admin_token does NOT gate /metrics - metrics_token does, and garage.toml.j2
-# already sets it (falling back to admin_token when garage_metrics_token is
-# undefined). Define a distinct garage_metrics_token in vars/secrets.sops.yaml
-# so a scrape credential cannot also drive cluster admin operations.
+# already sets it, falling back to admin_token when garage_metrics_token is
+# undefined. That fallback is what runs here: Prometheus scrapes with the admin
+# token rather than a separate credential.
+#
+# The trade-off is deliberate. It avoids a third copy of a secret to keep in
+# sync (host, SOPS, Infisical) at the cost of giving a read-only scrape a token
+# that can also drive cluster admin operations. The listener is reachable from
+# VLAN 20 only, never the internet. To tighten it later, set a distinct
+# garage_metrics_token in vars/secrets.sops.yaml and update
+# /monitoring/garage/METRICS_TOKEN in Infisical to match.
 garage_admin_bind_addr: "[::]:3903"
 
 # Cluster layout, applied once on a fresh node (guarded on an empty layout).

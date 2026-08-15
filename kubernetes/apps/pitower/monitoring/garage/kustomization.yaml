@@ -1,0 +1,12 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: monitoring
+# Scrape-only app: garage runs as an LXC on proxmox-01 (terraform/proxmox,
+# vmid 210), not in the cluster, so there is no workload here - just the
+# ScrapeConfig that pulls its native /metrics endpoint and the alerts on it.
+resources:
+  - externalsecret.yaml
+  - scrapeconfig.yaml
+  - prometheusrule.yaml

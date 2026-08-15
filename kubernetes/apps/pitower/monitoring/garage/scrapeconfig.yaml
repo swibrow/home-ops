@@ -1,0 +1,35 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/monitoring.coreos.com/scrapeconfig_v1alpha1.json
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: garage
+spec:
+  # garage-01 holds a DHCP lease on VLAN 20, so target the name rather than the
+  # address. scrapeConfigSelectorNilUsesHelmValues is already false, so this is
+  # picked up without touching the kube-prometheus-stack values.
+  staticConfigs:
+    - targets:
+        - garage-01.servers.local:3903
+      labels:
+        tier: storage
+        component: garage
+        exposure: internal
+        scope: lan
+  metricsPath: /metrics
+  scrapeInterval: 60s
+  authorization:
+    type: Bearer
+    credentials:
+      name: garage-metrics-secret
+      key: METRICS_TOKEN
+  metricRelabelings:
+    # Garage emits cluster_healthy, cluster_available, cluster_storage_nodes and
+    # friends with no product prefix at all. In a TSDB that also holds
+    # kube-state-metrics, etcd and Ceph, a bare `cluster_healthy` reads like a
+    # Kubernetes metric and will be picked up by the wrong dashboard eventually.
+    # Namespace them on ingest so the name says where they came from.
+    - sourceLabels: [__name__]
+      regex: "(cluster_.*)"
+      targetLabel: __name__
+      replacement: "garage_$1"
