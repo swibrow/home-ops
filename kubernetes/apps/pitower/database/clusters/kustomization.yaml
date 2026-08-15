@@ -9,6 +9,7 @@ resources:
   - immich.yaml
   - shared.yaml
   - ai.yaml
+  - prometheusrule.yaml
 patches:
   - path: patches/affinity.yaml
     target:

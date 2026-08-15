@@ -1,0 +1,107 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/monitoring.coreos.com/prometheusrule_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: cnpg-backups
+spec:
+  groups:
+    - name: cnpg-backups.rules
+      rules:
+        # Backup freshness had no alert at all until now, on the only copy of
+        # every Postgres tenant.
+        #
+        # The metric name matters more than it looks. These clusters archive
+        # through the barman-cloud CNPG-I plugin (database/barman-cloud-plugin),
+        # and under the plugin the in-tree
+        # cnpg_collector_last_available_backup_timestamp is still exported but
+        # never updated -- it reads a flat 0 on all six series here, verified
+        # 2026-08-15. An alert written against it would be permanently silent
+        # while looking perfectly reasonable in review. The live series are the
+        # plugin's own barman_cloud_cloudnative_pg_io_* metrics, already
+        # scraped via monitoring.enablePodMonitor on each Cluster.
+        #
+        # Cluster identity is in `job` (database/shared, database/ai,
+        # database/immich), NOT in `cluster` -- that label is the global
+        # "pitower" applied by the scrape config, so grouping on it would
+        # collapse all three clusters into one series and mask two of them.
+        # Both replicas export the same timestamp, hence max by (job).
+
+        # Base backups run 02:00 / 02:30 / 04:00 daily, so a healthy cluster is
+        # never more than ~24h stale; 26h is that plus slack for a long run.
+        - alert: CNPGBackupStale
+          annotations:
+            summary: >-
+              {{ $labels.job }} has no successful barman backup in over 26h.
+              s3://cnpg/ on garage is the only copy and garage runs
+              replication_factor 1.
+          expr: |
+            (time() - max by (job) (barman_cloud_cloudnative_pg_io_last_available_backup_timestamp)) > 93600
+          for: 30m
+          labels:
+            severity: critical
+
+        - alert: CNPGBackupNeverRan
+          annotations:
+            summary: >-
+              {{ $labels.job }} has never produced a barman backup; there is
+              nothing to restore from.
+          expr: |
+            max by (job) (barman_cloud_cloudnative_pg_io_last_available_backup_timestamp) == 0
+          for: 1h
+          labels:
+            severity: critical
+
+        - alert: CNPGBackupFailing
+          annotations:
+            summary: >-
+              {{ $labels.job }} last backup FAILED more recently than it last
+              succeeded.
+          expr: |
+            max by (job) (barman_cloud_cloudnative_pg_io_last_failed_backup_timestamp)
+              > max by (job) (barman_cloud_cloudnative_pg_io_last_available_backup_timestamp)
+          for: 15m
+          labels:
+            severity: critical
+
+        # WAL archiving is continuous and independent of the nightly base
+        # backup: it can fail for hours while last_available_backup_timestamp
+        # still looks recent, silently shrinking the recoverable window.
+        - alert: CNPGWALArchiveFailing
+          annotations:
+            summary: >-
+              WAL archiving is failing on {{ $labels.job }}; point-in-time
+              recovery is going stale even though base backups look current.
+            description: >-
+              Usually the garage S3 endpoint (s3.wibrow.dev) or its certbot-issued
+              certificate, which cert-manager does not manage.
+          expr: |
+            increase(cnpg_pg_stat_archiver_failed_count[30m]) > 0
+          for: 15m
+          labels:
+            severity: critical
+
+        - alert: CNPGRecoveryWindowShrinking
+          annotations:
+            summary: >-
+              PITR window for {{ $labels.job }} is under 7 days against a 30d
+              retention policy; WAL retention or archiving is misbehaving.
+          expr: |
+            (time() - max by (job) (barman_cloud_cloudnative_pg_io_first_recoverability_point)) < 604800
+          for: 1h
+          labels:
+            severity: warning
+
+        # Mirrors the KopiurPolicyMetricsAbsent pattern: every rule above
+        # evaluates a metric the plugin publishes, so they all go quiet rather
+        # than fire if the plugin stops exporting.
+        - alert: CNPGBackupMetricsAbsent
+          annotations:
+            summary: >-
+              No barman backup metrics are being scraped, so every CNPG backup
+              alert is silently inert.
+          expr: |
+            absent(barman_cloud_cloudnative_pg_io_last_available_backup_timestamp)
+          for: 30m
+          labels:
+            severity: critical
