@@ -26,50 +26,50 @@ data:
             description: Cluster CPU usage
             widget:
               type: customapi
-              url: https://kromgo.wibrow.dev/cluster_cpu?format=json
+              url: https://kromgo.wibrow.dev/badges/cpu?format=json
               refreshInterval: 60000
               mappings:
-                - field: message
+                - field: value
                   label: Usage
         - Memory:
             icon: mdi-memory
             description: Cluster memory usage
             widget:
               type: customapi
-              url: https://kromgo.wibrow.dev/cluster_memory?format=json
+              url: https://kromgo.wibrow.dev/badges/memory?format=json
               refreshInterval: 60000
               mappings:
-                - field: message
+                - field: value
                   label: Usage
         - Nodes:
             icon: mdi-server
             description: Kubernetes nodes
             widget:
               type: customapi
-              url: https://kromgo.wibrow.dev/cluster_nodes?format=json
+              url: https://kromgo.wibrow.dev/badges/nodes?format=json
               refreshInterval: 300000
               mappings:
-                - field: message
+                - field: value
                   label: Nodes
         - Pods:
             icon: mdi-cube-outline
             description: Running pods
             widget:
               type: customapi
-              url: https://kromgo.wibrow.dev/cluster_pods_running?format=json
+              url: https://kromgo.wibrow.dev/badges/pods?format=json
               refreshInterval: 60000
               mappings:
-                - field: message
+                - field: value
                   label: Running
         - Ceph Health:
             icon: ceph.svg
             description: Rook/Ceph status
             widget:
               type: customapi
-              url: https://kromgo.wibrow.dev/ceph_health?format=json
+              url: https://kromgo.wibrow.dev/badges/cephhealth?format=json
               refreshInterval: 60000
               mappings:
-                - field: message
+                - field: value
                   label: Status
     - Media:
         - Jellyfin:

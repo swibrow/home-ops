@@ -63,6 +63,14 @@ config:
       query: count(ALERTS{alertstate="firing",severity=~"critical|warning"}) OR on() vector(0)
       valueExpr: string(int(result))
       colorExpr: 'result == 0.0 ? "green" : "red"'
+    - id: cephhealth
+      title: ceph
+      # ceph_health_status: 0 = HEALTH_OK, 1 = HEALTH_WARN, 2 = HEALTH_ERR.
+      # -1 sentinel so a missing mgr scrape renders "unknown" rather than an
+      # empty badge, which would be indistinguishable from healthy.
+      query: max(ceph_health_status) OR on() vector(-1)
+      valueExpr: 'result < 0.0 ? "unknown" : result == 0.0 ? "OK" : result == 1.0 ? "WARN" : "ERR"'
+      colorExpr: 'result < 0.0 ? "lightgrey" : result == 0.0 ? "green" : result == 1.0 ? "orange" : "red"'
 
   graphs:
     - id: cpu
