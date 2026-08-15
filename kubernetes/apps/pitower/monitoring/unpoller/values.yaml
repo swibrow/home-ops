@@ -1,0 +1,69 @@
+controllers:
+  unpoller:
+    strategy: RollingUpdate
+    annotations:
+      reloader.stakater.com/auto: "true"
+    containers:
+      app:
+        image:
+          repository: ghcr.io/unpoller/unpoller
+          tag: v3.4.1
+        env:
+          TZ: Europe/Zurich
+          # VLAN-20 address of the gateway, the same VLAN the cluster is on, so
+          # the scrape path does not depend on cross-VLAN routing to the native
+          # LAN staying up. external-dns-unifi talks to the same box on
+          # 192.168.0.1; both were verified reachable from a pod.
+          UP_UNIFI_CONTROLLER_0_URL: https://10.20.0.1
+          # UniFi serves its own self-signed cert on the LAN address.
+          UP_UNIFI_CONTROLLER_0_VERIFY_SSL: "false"
+          UP_UNIFI_CONTROLLER_0_SAVE_SITES: "true"
+          # The WAN throughput history. This is why there is no separate
+          # speedtest exporter: a dedicated one saturates the uplink on every
+          # run and corrupts the latency metrics it shares a Prometheus with.
+          # The controller runs its own test on its own schedule and unpoller
+          # just reports it.
+          UP_UNIFI_CONTROLLER_0_SAVE_SPEEDTEST: "true"
+          # DPI is per-client per-application and explodes cardinality for data
+          # nothing here consumes.
+          UP_UNIFI_CONTROLLER_0_SAVE_DPI: "false"
+          UP_UNIFI_CONTROLLER_0_SAVE_EVENTS: "false"
+          UP_UNIFI_CONTROLLER_0_SAVE_ALARMS: "false"
+          UP_UNIFI_CONTROLLER_0_SAVE_ANOMALIES: "false"
+          UP_UNIFI_CONTROLLER_0_SAVE_IDS: "false"
+          UP_INFLUXDB_DISABLE: "true"
+          UP_LOKI_DISABLE: "true"
+          UP_PROMETHEUS_DISABLE: "false"
+          UP_PROMETHEUS_HTTP_LISTEN: 0.0.0.0:9130
+          UP_PROMETHEUS_NAMESPACE: unpoller
+          UP_UNIFI_CONTROLLER_0_API_KEY:
+            valueFrom:
+              secretKeyRef:
+                name: unpoller-secret
+                key: UNIFI_API_KEY
+        resources:
+          requests:
+            cpu: 25m
+            memory: 64Mi
+          limits:
+            memory: 256Mi
+
+service:
+  app:
+    controller: unpoller
+    ports:
+      http:
+        port: 9130
+
+serviceMonitor:
+  app:
+    serviceName: unpoller
+    endpoints:
+      - port: http
+        scheme: http
+        path: /metrics
+        # unpoller polls the controller synchronously on scrape rather than in
+        # the background, so the scrape is only as fast as the controller
+        # answers. 30s with a 10s timeout produces intermittent failed scrapes.
+        interval: 60s
+        scrapeTimeout: 45s
