@@ -1,0 +1,99 @@
+fullnameOverride: blackbox-exporter
+
+# ICMP needs a raw socket. The chart's default drops ALL capabilities, which
+# makes every icmp probe fail with "socket: permission denied" - and because
+# the physical tier is probed entirely by ICMP, the failure mode is the whole
+# node/host/network tier reading as uniformly down rather than an obvious
+# error. The chart documents this in its own values comment.
+#
+# runAsNonRoot stays true: runc applies the capability set to the container's
+# initial process directly, so NET_RAW is effective for uid 1000 without
+# needing root or file capabilities.
+securityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: ["ALL"]
+    add: ["NET_RAW"]
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 64Mi
+  limits:
+    memory: 192Mi
+
+serviceMonitor:
+  # blackbox's own liveness. Probe CRs live in separate files; the chart's
+  # target list is deliberately unused so targets stay reviewable per tier.
+  selfMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+
+config:
+  modules:
+    # Both gateways serve real Let's Encrypt certs, so verification stays on -
+    # a bad cert here is a genuine fault, not noise to suppress.
+    http_2xx:
+      prober: http
+      timeout: 10s
+      http:
+        valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+        follow_redirects: true
+        preferred_ip_protocol: ip4
+        ip_protocol_fallback: false
+
+    # For endpoints that legitimately answer non-2xx at the bare host: the
+    # garage S3 root returns 403 unauthenticated and the towonel hub returns
+    # 404 for an unrouted name. Both are healthy responses; only a 5xx or a
+    # failed connection is a real fault. A 2xx-only module would report these
+    # permanently down.
+    http_any_non5xx:
+      prober: http
+      timeout: 10s
+      http:
+        valid_status_codes: [200, 201, 204, 301, 302, 303, 307, 308, 400, 401, 403, 404]
+        follow_redirects: false
+        preferred_ip_protocol: ip4
+        ip_protocol_fallback: false
+
+    icmp:
+      prober: icmp
+      timeout: 5s
+      icmp:
+        preferred_ip_protocol: ip4
+
+    tcp_connect:
+      prober: tcp
+      timeout: 5s
+      tcp:
+        preferred_ip_protocol: ip4
+
+    # Cert-only check for TLS endpoints we should not send an HTTP request to.
+    # This is what surfaces probe_ssl_earliest_cert_expiry for s3.wibrow.dev,
+    # whose certificate is issued by certbot on garage-01 rather than
+    # cert-manager, so nothing else in the cluster can see it expire.
+    tls_connect:
+      prober: tcp
+      timeout: 5s
+      tcp:
+        tls: true
+        preferred_ip_protocol: ip4
+
+    # Resolution health through whatever resolver the pod is handed. The
+    # Ubiquiti gateway DNATs all port-53 traffic to itself, so in practice
+    # this is a health check of the UniFi resolver, which everything on the
+    # LAN depends on and nothing currently watches.
+    dns_soa:
+      prober: dns
+      timeout: 5s
+      dns:
+        query_name: wibrow.dev
+        query_type: SOA
+        preferred_ip_protocol: ip4
+        validate_answer_rrs:
+          fail_if_not_matches_regexp: [".*"]

@@ -1,0 +1,166 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/monitoring.coreos.com/probe_v1.json
+# Physical-layer reachability. This is the tier that answers "is the box on the
+# network at all", which Kubernetes cannot tell you: a node stays Ready for up
+# to five minutes after it stops existing.
+#
+# The Cilium LoadBalancer VIPs (10.20.10.238/.239) are deliberately NOT here.
+# They are L2-announced addresses with no ICMP responder - verified not
+# pingable while answering TCP/443 - so probing them would be permanently red.
+# They are covered by the HTTP and TCP probes instead.
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: icmp-nodes
+spec:
+  jobName: blackbox-icmp
+  interval: 30s
+  scrapeTimeout: 10s
+  module: icmp
+  prober:
+    url: blackbox-exporter.monitoring.svc.cluster.local:9115
+    scheme: http
+    path: /probe
+  targets:
+    staticConfig:
+      static:
+        - 10.20.10.1
+        - 10.20.10.2
+        - 10.20.10.3
+        - 10.20.10.4
+        - 10.20.10.5
+        - 10.20.10.6
+        - 10.20.10.7
+        - 10.20.10.8
+        - 10.20.10.9
+        - 10.20.10.10
+      labels:
+        tier: node
+        exposure: none
+        scope: lan
+      relabelingConfigs:
+        # Two rules, ordered least-specific first, so .10 is not rendered as
+        # "worker-010" by a single greedy pattern. This is the only place the
+        # address-to-name mapping lives, so everything downstream keys on
+        # `component` and never on an IP.
+        - sourceLabels: [__param_target]
+          regex: "10\\.20\\.10\\.(\\d)"
+          targetLabel: component
+          replacement: "worker-0$1"
+        - sourceLabels: [__param_target]
+          regex: "10\\.20\\.10\\.(\\d\\d)"
+          targetLabel: component
+          replacement: "worker-$1"
+        # Hardware class, so a Pi can carry a different threshold to a server.
+        - sourceLabels: [__param_target]
+          regex: "10\\.20\\.10\\.(8|9|10)"
+          targetLabel: hw
+          replacement: "rpi-arm64"
+        - sourceLabels: [__param_target]
+          regex: "10\\.20\\.10\\.7"
+          targetLabel: hw
+          replacement: "proxmox-vm"
+---
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: icmp-control-plane-vip
+spec:
+  jobName: blackbox-icmp
+  interval: 30s
+  scrapeTimeout: 10s
+  module: icmp
+  prober:
+    url: blackbox-exporter.monitoring.svc.cluster.local:9115
+  targets:
+    staticConfig:
+      # The kube-apiserver VIP. Unlike the Cilium LB IPs this one does answer
+      # ICMP, because it is a Talos-managed VIP held by a real control-plane
+      # node rather than an L2 announcement.
+      static:
+        - 10.20.10.0
+      labels:
+        tier: platform
+        component: control-plane-vip
+        exposure: none
+        scope: lan
+---
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: icmp-network
+spec:
+  jobName: blackbox-icmp
+  interval: 30s
+  scrapeTimeout: 10s
+  module: icmp
+  prober:
+    url: blackbox-exporter.monitoring.svc.cluster.local:9115
+  targets:
+    staticConfig:
+      # Same gateway on two interfaces. Probing both distinguishes "the gateway
+      # is down" from "VLAN 20 routing broke", which look identical from one
+      # address. The TP-Link PoE switch and the access points are not here:
+      # they hold no reservations and unpoller covers them properly.
+      static:
+        - 10.20.0.1
+        - 192.168.0.1
+      labels:
+        tier: network
+        exposure: none
+        scope: lan
+      relabelingConfigs:
+        - sourceLabels: [__param_target]
+          regex: "10\\.20\\.0\\.1"
+          targetLabel: component
+          replacement: "unifi-gateway-vlan20"
+        - sourceLabels: [__param_target]
+          regex: "192\\.168\\.0\\.1"
+          targetLabel: component
+          replacement: "unifi-gateway-lan"
+---
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: icmp-hosts
+spec:
+  jobName: blackbox-icmp
+  interval: 30s
+  scrapeTimeout: 10s
+  module: icmp
+  prober:
+    url: blackbox-exporter.monitoring.svc.cluster.local:9115
+  targets:
+    staticConfig:
+      # Everything off-cluster that the estate depends on and nothing watched.
+      static:
+        - proxmox-01.servers.local
+        - garage-01.servers.local
+        - 10.20.85.197
+        - 10.20.10.100
+        - homeassistant.iot
+      labels:
+        tier: host
+        exposure: none
+        scope: lan
+      relabelingConfigs:
+        - sourceLabels: [__param_target]
+          regex: "proxmox-01.*"
+          targetLabel: component
+          replacement: "proxmox-01"
+        - sourceLabels: [__param_target]
+          regex: "garage-01.*"
+          targetLabel: component
+          replacement: "garage-01"
+        - sourceLabels: [__param_target]
+          regex: "10\\.20\\.85\\.197"
+          targetLabel: component
+          replacement: "nut-01"
+        - sourceLabels: [__param_target]
+          regex: "10\\.20\\.10\\.100"
+          targetLabel: component
+          replacement: "synology-data"
+        - sourceLabels: [__param_target]
+          regex: "homeassistant.*"
+          targetLabel: component
+          replacement: "homeassistant"

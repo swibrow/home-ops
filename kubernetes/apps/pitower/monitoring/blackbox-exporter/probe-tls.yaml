@@ -1,0 +1,40 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/monitoring.coreos.com/probe_v1.json
+# Certificate expiry for TLS endpoints cert-manager cannot see.
+#
+# s3.wibrow.dev is the important one. Its certificate is issued by certbot on
+# garage-01 (ansible role garage-tls) via LE DNS-01, so it appears in no
+# Certificate resource and no cert-manager dashboard. Both backup tiers - every
+# kopiur snapshot and all CNPG WAL archiving - fail the moment it lapses, and
+# nothing was watching it.
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: tls-offcluster
+spec:
+  jobName: blackbox-tls
+  interval: 5m
+  scrapeTimeout: 15s
+  module: tls_connect
+  prober:
+    url: blackbox-exporter.monitoring.svc.cluster.local:9115
+    scheme: http
+    path: /probe
+  targets:
+    staticConfig:
+      static:
+        - s3.wibrow.dev:443
+        - tunnel.wibrow.dev:443
+      labels:
+        tier: edge
+        exposure: public
+        scope: lan
+      relabelingConfigs:
+        - sourceLabels: [__param_target]
+          regex: "s3\\..*"
+          targetLabel: component
+          replacement: "garage-s3-tls"
+        - sourceLabels: [__param_target]
+          regex: "tunnel\\..*"
+          targetLabel: component
+          replacement: "towonel-hub-tls"

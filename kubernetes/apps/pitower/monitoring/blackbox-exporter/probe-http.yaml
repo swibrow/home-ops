@@ -1,0 +1,47 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/monitoring.coreos.com/probe_v1.json
+# Hostnames with no HTTPRoute, so the gatus sidecar cannot discover them.
+#
+# This list is deliberately short. The gap was recomputed against the live
+# cluster rather than taken from documentation: argocd, garrison, goat and
+# memini all have routes now and are already covered by gatus, so probing them
+# here would only duplicate. appset.argocd.wibrow.dev is excluded because it
+# resolves to nothing and has no route - it is declared in argocd-values.yaml
+# but never exposed, so a probe would be permanently red.
+#
+# Recompute the gap with:
+#   kubectl get httproute -A -o jsonpath='{range .items[*]}{range .spec.hostnames[*]}{@}{"\n"}{end}{end}' | sort -u
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: http-undiscovered
+spec:
+  jobName: blackbox-http
+  interval: 60s
+  scrapeTimeout: 15s
+  # Both targets answer a healthy non-2xx at the bare host: garage's S3 root
+  # returns 403 unauthenticated, the towonel hub returns 404 for an unrouted
+  # name. A 2xx-only module would mark both permanently down.
+  module: http_any_non5xx
+  prober:
+    url: blackbox-exporter.monitoring.svc.cluster.local:9115
+    scheme: http
+    path: /probe
+  targets:
+    staticConfig:
+      static:
+        - https://s3.wibrow.dev
+        - https://tunnel.wibrow.dev
+      labels:
+        tier: service
+        exposure: public
+        scope: lan
+      relabelingConfigs:
+        - sourceLabels: [__param_target]
+          regex: "https://s3\\..*"
+          targetLabel: component
+          replacement: "garage-s3-endpoint"
+        - sourceLabels: [__param_target]
+          regex: "https://tunnel\\..*"
+          targetLabel: component
+          replacement: "towonel-hub"

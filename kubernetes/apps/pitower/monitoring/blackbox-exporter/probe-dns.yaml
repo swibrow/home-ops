@@ -1,0 +1,40 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/monitoring.coreos.com/probe_v1.json
+# DNS resolution health.
+#
+# The Ubiquiti gateway DNATs all port-53 traffic to its own resolver, so
+# everything on the LAN - including every pod, since CoreDNS forwards to the
+# node resolver - depends on it and nothing watched it. Probing 1.1.1.1 as a
+# control separates "the UniFi resolver is broken" from "the internet is down",
+# which look identical from a single target.
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: dns-resolution
+spec:
+  jobName: blackbox-dns
+  interval: 60s
+  scrapeTimeout: 10s
+  module: dns_soa
+  prober:
+    url: blackbox-exporter.monitoring.svc.cluster.local:9115
+    scheme: http
+    path: /probe
+  targets:
+    staticConfig:
+      static:
+        - 10.20.0.1
+        - 1.1.1.1
+      labels:
+        tier: dns
+        exposure: none
+        scope: lan
+      relabelingConfigs:
+        - sourceLabels: [__param_target]
+          regex: "10\\.20\\.0\\.1"
+          targetLabel: component
+          replacement: "unifi-resolver"
+        - sourceLabels: [__param_target]
+          regex: "1\\.1\\.1\\.1"
+          targetLabel: component
+          replacement: "upstream-control"

@@ -1,0 +1,88 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/monitoring.coreos.com/probe_v1.json
+# Service ports that carry real dependencies but speak no HTTP, so neither
+# gatus nor an HTTP probe can see them. Every one of these was unchecked.
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: tcp-services
+spec:
+  jobName: blackbox-tcp
+  interval: 60s
+  scrapeTimeout: 10s
+  module: tcp_connect
+  prober:
+    url: blackbox-exporter.monitoring.svc.cluster.local:9115
+    scheme: http
+    path: /probe
+  targets:
+    staticConfig:
+      static:
+        # The LDAP listener on envoy-internal. Jellyfin and anything else
+        # authenticating against kanidm over LDAPS depends on it, and nothing
+        # checked it. Note this VIP answers TCP but not ICMP.
+        - 10.20.10.238:389
+        # NUT upsd. Until the exporter lands in a later phase this at least
+        # proves the UPS daemon is alive.
+        - 10.20.85.197:3493
+        # Garage S3 and web, probed direct rather than through s3.wibrow.dev,
+        # so a failure here points at garage and not at TLS or DNS.
+        - garage-01.servers.local:3900
+        - garage-01.servers.local:3902
+        # The NFS export every media app mounts.
+        - 10.20.10.100:2049
+      labels:
+        tier: service
+        exposure: internal
+        scope: lan
+      relabelingConfigs:
+        - sourceLabels: [__param_target]
+          regex: ".*:389"
+          targetLabel: component
+          replacement: "ldap-listener"
+        - sourceLabels: [__param_target]
+          regex: ".*:3493"
+          targetLabel: component
+          replacement: "nut-upsd"
+        - sourceLabels: [__param_target]
+          regex: ".*:3900"
+          targetLabel: component
+          replacement: "garage-s3"
+        - sourceLabels: [__param_target]
+          regex: ".*:3902"
+          targetLabel: component
+          replacement: "garage-web"
+        - sourceLabels: [__param_target]
+          regex: ".*:2049"
+          targetLabel: component
+          replacement: "synology-nfs"
+---
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: tcp-etcd
+spec:
+  jobName: blackbox-tcp
+  interval: 60s
+  scrapeTimeout: 10s
+  module: tcp_connect
+  prober:
+    url: blackbox-exporter.monitoring.svc.cluster.local:9115
+  targets:
+    staticConfig:
+      # etcd's metrics port is already scraped, but a scrape failure and a
+      # dead listener look different: this separates "etcd is not answering"
+      # from "the metrics endpoint changed shape".
+      static:
+        - 10.20.10.1:2381
+        - 10.20.10.2:2381
+        - 10.20.10.3:2381
+      labels:
+        tier: platform
+        exposure: none
+        scope: lan
+      relabelingConfigs:
+        - sourceLabels: [__param_target]
+          regex: "10\\.20\\.10\\.(\\d):2381"
+          targetLabel: component
+          replacement: "etcd-worker-0$1"
