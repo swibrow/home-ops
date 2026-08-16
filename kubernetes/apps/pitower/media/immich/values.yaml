@@ -1,5 +1,9 @@
 controllers:
   server:
+    # Temporary, for the library move off the failing NAS: held at 0 so the
+    # delta rsync runs against a quiescent /data. Restored in the same commit
+    # that repoints persistence.library at the PVC.
+    replicas: 0
     annotations:
       reloader.stakater.com/auto: "true"
     pod:
