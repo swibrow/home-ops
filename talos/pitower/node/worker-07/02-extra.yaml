@@ -16,16 +16,18 @@
 # monitoring TSDBs. With project quotas the openebs-hostpath class enforces each
 # PVC's requested size as a hard limit instead.
 #
-# scsi3 is the only non-system disk since scratch (scsi1) and runners (scsi2)
-# were removed on 2026-08-14, so the selector needs no size band - which also
-# means disk sizes are no longer coupled to selector ranges the way scratch and
-# runners were to each other.
+# The size band is back as of 2026-08-16. From 2026-08-14 this was a bare
+# `!system_disk`, which was correct while scsi3 was the only non-system disk;
+# adding scsi4 for the photo library (04-media.yaml) makes that match two disks,
+# and a bare selector would let the two volumes race for whichever enumerates
+# first. Disk sizes are coupled to selector ranges again: 700-900GiB is this
+# volume, 1100-1300GiB is `media`, and the system disk is 1000GiB.
 apiVersion: v1alpha1
 kind: UserVolumeConfig
 name: extra
 provisioning:
   diskSelector:
-    match: '!system_disk'
+    match: '!system_disk && disk.size > 700u * GiB && disk.size < 900u * GiB'
   minSize: 700GiB
   grow: true
 filesystem:

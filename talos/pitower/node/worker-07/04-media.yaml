@@ -1,0 +1,29 @@
+---
+# 1200GiB scsi4 disk on proxmox-01's `garage` zpool (4x 600GB Toshiba 10K SAS,
+# RAIDZ1, bays 6-9) - the Immich photo library, back on the host as of
+# 2026-08-16 because the Synology is failing.
+#
+# Unlike `extra` this holds data that cannot be rebuilt by pulling an image
+# again, which is why it is the one volume on redundant disks. Treat the
+# redundancy as thin: RAIDZ1 survives exactly one failure, these drives are all
+# ~8.9 years powered on, and bay 8 already carries a grown defect. The off-host
+# copy (Apple Photos) is what actually protects the library.
+#
+# Size-band selector, and the bands are why the disk sizes are what they are:
+# 700-900GiB is `extra`, 1000GiB is the system disk, 1100-1300GiB is this one.
+# See 02-extra.yaml - its selector had to regain a band for this to be
+# unambiguous.
+#
+# No projectQuotaSupport: this volume backs a single claim through
+# openebs-hostpath-media, so there is nothing to fence off from anything else.
+# `extra` needs quotas because it is shared by every other PVC on the node.
+apiVersion: v1alpha1
+kind: UserVolumeConfig
+name: media
+provisioning:
+  diskSelector:
+    match: disk.size > 1100u * GiB && disk.size < 1300u * GiB
+  minSize: 1100GiB
+  grow: true
+filesystem:
+  type: xfs

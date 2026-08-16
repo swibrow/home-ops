@@ -4,5 +4,19 @@ machine:
   install:
     disk: /dev/sda
   kubelet:
+    # Only /var/mnt/media here. This list is APPENDED to the one in
+    # all/01-general.yaml, not merged by destination and not replaced, so
+    # repeating /var/mnt/extra produces a duplicate entry rather than a no-op.
+    # Verified with `topf render`. Needed because openebs-hostpath-media hands
+    # pods a hostPath under /var/mnt/media, and kubelet can only serve a path it
+    # can see in its own mount namespace.
+    extraMounts:
+      - destination: /var/mnt/media
+        type: bind
+        source: /var/mnt/media
+        options:
+          - rbind
+          - rshared
+          - rw
     extraConfig:
       maxPods: 250
