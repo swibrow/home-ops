@@ -1,9 +1,5 @@
 controllers:
   server:
-    # Temporary, for the library move off the failing NAS: held at 0 so the
-    # delta rsync runs against a quiescent /data. Restored in the same commit
-    # that repoints persistence.library at the PVC.
-    replicas: 0
     annotations:
       reloader.stakater.com/auto: "true"
     pod:
@@ -145,17 +141,22 @@ persistence:
             subPath: immich-config.json
             readOnly: true
   library:
-    # On the NAS since 2026-08-12. Previously PVC immich-library-media on the
-    # `media` RAIDZ1 pool, now dissolved: those four 600GB spinners made way
-    # for the SAS SSDs. The export maps root through (no_root_squash), which
-    # this needs - immich runs as uid 0 and owns its whole /data tree.
+    # Back on the host since 2026-08-16, on the `garage` RAIDZ1 via
+    # openebs-hostpath-media (worker-07 /var/mnt/media, scsi4). It lived on the
+    # NAS from 2026-08-12 until the Synology started failing.
     #
-    # Do NOT switch this back to -aHAX if it ever moves again: -X fails on
-    # every file against NFS with lsetxattr security.selinux, and rsync then
-    # exits 23. -aH --numeric-ids is correct here.
-    type: nfs
-    server: data
-    path: /volume1/media/immich
+    # The claim is pvc-library.yaml, not a storageClass block here, because
+    # storageClassName is immutable and the claim had to be populated while
+    # this still pointed at NFS. Reverting to the NAS is this block in its
+    # previous `type: nfs, server: data, path: /volume1/media/immich` form.
+    #
+    # The mount path stays /data, so the absolute paths immich stores in
+    # Postgres still resolve and no DB work was needed.
+    #
+    # If it ever moves again, over NFS use `-aH --numeric-ids` and NOT -aHAX:
+    # -X fails on every file with lsetxattr security.selinux and rsync exits
+    # 23. Between two local filesystems -X is fine.
+    existingClaim: immich-library-media
     advancedMounts:
       server:
         app:
