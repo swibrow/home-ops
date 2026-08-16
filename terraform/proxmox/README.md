@@ -64,15 +64,33 @@ edit `mise.toml` by hand with a freshly age-encrypted value).
 ## Usage
 
 The S3 state backend (shared by every `terraform/*` stack, not just this one) needs AWS
-credentials that `aws login --profile wibrow` alone doesn't provide - that populates a
-`login_session`, which Terraform's AWS SDK can't consume directly. Use the `wibrow-tf` profile
-instead (already in `~/.aws/config`, wraps `wibrow`'s session via `credential_process`):
+credentials. Use `pitower-tf`, which needs no SSO session at all:
 
 ```sh
-AWS_PROFILE=wibrow-tf just tf::init-proxmox
-AWS_PROFILE=wibrow-tf just tf::plan-proxmox
-AWS_PROFILE=wibrow-tf just tf::apply-proxmox
+AWS_PROFILE=pitower-tf just tf::init-proxmox
+AWS_PROFILE=pitower-tf just tf::plan-proxmox
+AWS_PROFILE=pitower-tf just tf::apply-proxmox
 ```
+
+That profile runs `scripts/aws-oidc-credential-process.sh`, which mints a token for the
+`terraform-state` ServiceAccount in the `system` namespace and trades it for temporary
+credentials through the cluster's IAM OIDC provider — the same federation the ACK and toolhive
+roles use, driven from a laptop instead of from a pod. The only local credential is the Talos
+admin cert already in your kubeconfig; no AWS access key exists on disk. The role
+(`terraform/bootstrap/aws_iam_terraform_state.tf`) can read and write exactly two state keys,
+`proxmox.tfstate` and `unifi.tfstate`.
+
+It follows that this only works for stacks that use AWS as a state backend and nothing else.
+`bootstrap`, `general`, `alexa` and `loadtest` manage real AWS resources and still need
+`wibrow-tf`, which wraps an `aws login --profile wibrow` session via `credential_process`
+(`aws login` alone populates a `login_session`, which Terraform's AWS SDK cannot consume).
+
+Two failure modes worth recognising, because neither says what it means:
+
+- `InvalidIdentityToken` — the JWKS published at `pitower/kubernetes/openid/v1/jwks` no longer
+  matches the cluster's signing keys. Re-copy it from `kubectl get --raw /openid/v1/jwks`.
+- `AccessDenied` on `sts:AssumeRoleWithWebIdentity` — the token was signed and verified fine; the
+  role's trust policy rejected its `sub` or `aud`.
 
 ## CI
 
