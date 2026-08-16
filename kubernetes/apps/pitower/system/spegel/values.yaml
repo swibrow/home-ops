@@ -1,5 +1,14 @@
 spegel:
   containerdRegistryConfigPath: /etc/cri/conf.d/hosts
+  # Content served by digest is content-addressed and therefore arch-safe, but
+  # tag resolution is not: any peer may answer a tag lookup, and since the arm64
+  # Pis (worker-08/09/10) joined, an amd64 node asking for a tag could be handed
+  # an arm64 peer's platform manifest. That poisoned worker-02's containerd cache
+  # on 2026-08-15 - external-secrets and rackrat both died with `exec format
+  # error` from images that ran fine on other amd64 nodes, and the dead
+  # external-secrets webhook then failed closed and blocked 45 ArgoCD apps.
+  # Tag->digest resolution now goes upstream; spegel still serves the blobs.
+  resolveTags: false
 
 serviceMonitor:
   enabled: true

@@ -5,6 +5,11 @@ metadata:
   namespace: dev
 spec:
   replicas: 1
+  # Dragonfly's arm64 build needs ARMv8.2 (LSE atomics); worker-08/09/10 are
+  # Cortex-A72 (Pi 4, ARMv8.0, no `atomics` in /proc/cpuinfo Features), so the
+  # correct-arch image still dies on SIGILL there. Keep it on amd64.
+  nodeSelector:
+    kubernetes.io/arch: amd64
   # Dragonfly reserves ~256Mi per io thread and refuses to start unless the memory
   # limit exceeds threads*256Mi. 1 thread (needs 256Mi) under a 512Mi limit leaves
   # comfortable headroom — plenty for a small Forgejo cache/queue/session workload.

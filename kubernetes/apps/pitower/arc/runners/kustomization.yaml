@@ -202,7 +202,7 @@ helmCharts:
                 volumeClaimTemplate:
                   spec:
                     accessModes: ["ReadWriteOnce"]
-                    storageClassName: openebs-hostpath-runners
+                    storageClassName: openebs-hostpath
                     resources:
                       requests:
                         storage: 40Gi
