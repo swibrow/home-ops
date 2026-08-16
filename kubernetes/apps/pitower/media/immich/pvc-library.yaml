@@ -1,0 +1,26 @@
+---
+# The photo library, on the `garage` RAIDZ1 pool via openebs-hostpath-media.
+#
+# Declared here rather than through the chart's persistence.library block
+# because storageClassName is immutable - and because it has to exist and be
+# populated while persistence.library is still pointing at the NFS export. The
+# cutover is then a one-line edit of values.yaml, and rolling back is the same
+# line in reverse.
+#
+# The class is reclaimPolicy: Retain, so deleting this claim leaves the photos
+# on disk rather than reclaiming them.
+#
+# 1000Gi is a label, not a reservation: openebs-hostpath-media sets no XFS
+# project quota, so this claim can use the whole 1200GiB volume. Size the volume,
+# not the claim.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: immich-library-media
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: openebs-hostpath-media
+  resources:
+    requests:
+      storage: 1000Gi
