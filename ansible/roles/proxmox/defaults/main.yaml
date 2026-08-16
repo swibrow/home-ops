@@ -44,10 +44,22 @@ proxmox_acme_directory: https://acme-v02.api.letsencrypt.org/directory
 # native: it costs a little on small blocks and keeps the door open to 4Kn
 # replacements. No autotrim - spinners.
 #
-# Content is `rootdir` ONLY, deliberately narrower than the role default of
-# `images`: this pool exists for garage's S3 data via an LXC mountpoint, and
-# allowing `images` would invite a stray VM disk onto spinning rust that the
-# whole 2026-08 rebuild was about getting off.
+# Content was `rootdir` ONLY until 2026-08-16, to keep stray VM disks off
+# spinning rust. `images` is back deliberately: the Synology is failing and the
+# Immich photo library has to come off it, and this raidz1 is the only redundant
+# bulk storage left in the chassis. It takes exactly one zvol, worker-07's
+# scsi4, and the reason the old rule existed still holds for anything else.
+#
+# `blocksize: 128k` is required, not tuning. Zvols on a 4-wide raidz1 at
+# ashift=12 lose a large fraction of the pool to parity padding at the PVE
+# default volblocksize; 128k brings that to a couple of percent. It applies at
+# zvol-creation time only, so a zvol cut before this exists keeps the old
+# volblocksize and can only be fixed by recreating it.
+#
+# Neither key reaches a storage that already exists - registration is
+# create-if-absent, same as pool creation. Both were applied live with
+# `pvesm set garage --content rootdir,images --blocksize 128k`; this entry is
+# what makes a rebuilt host match.
 #
 # The four disks are all ~77,800 power-on hours (8.9y) with 0 uncorrected
 # errors. `scsi-350000395982acc68` (bay 8) has 1 grown defect where the others
@@ -56,7 +68,8 @@ proxmox_acme_directory: https://acme-v02.api.letsencrypt.org/directory
 # survives exactly one failure; keep it that way.
 proxmox_zfs_pools:
   - name: garage
-    content: rootdir
+    content: rootdir,images
+    blocksize: 128k
     vdev_type: raidz1
     disks:
       - /dev/disk/by-id/scsi-350000395982aca50 # 64O0A00ZFRD3, bay 6

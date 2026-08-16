@@ -110,6 +110,42 @@ resource "proxmox_virtual_environment_vm" "talos_worker" {
     ssd          = true
   }
 
+  disk {
+    # The Immich photo library: Talos user volume `media`, mounted /var/mnt/media,
+    # backing openebs-hostpath-media. Appended 2026-08-16 because the Synology is
+    # failing and /data had to come off NFS.
+    #
+    # This is the ONE disk that does not live on rpool. It is on the `garage`
+    # raidz1 (4x 600GB Toshiba 10K SAS, bays 6-9) because that is the only
+    # redundant bulk storage in the chassis, and because photos are the only
+    # thing here that is not rebuildable from an image pull. It is also the only
+    # disk backed by spinners, hence ssd = false - the guest should schedule it
+    # as rotational.
+    #
+    # The `garage` storage needs `blocksize 128k` set BEFORE this zvol is cut,
+    # or parity padding on a 4-wide raidz1 eats a large fraction of the pool.
+    # volblocksize is fixed at creation; a wrong one is only fixable by
+    # recreating the zvol. See ansible/roles/proxmox/defaults/main.yaml.
+    #
+    # 1200GiB restores the historical `media` size band (1100-1300GiB) that the
+    # Talos volume selector keys on. It is thin, and it overcommits the pool -
+    # 1200GiB here plus garage's 1000G subvol refquota against 1.53T usable. Only
+    # ~62G of photos exist today so this is fine now, but a real 1TB import
+    # cannot coexist with garage's advertised 900G. Cut garage's layout capacity
+    # before importing at scale, and watch the pool, not the guest filesystem: if
+    # the pool fills, the zvol takes IO errors and xfs shuts down.
+    #
+    # DO NOT REORDER THE DISK BLOCKS - see the note on scsi3 above. Appended
+    # last on purpose; interface order is not file order.
+    datastore_id = "garage"
+    interface    = "scsi4"
+    size         = 1200
+    iothread     = true
+    cache        = "none"
+    discard      = "on"
+    ssd          = false
+  }
+
   network_device {
     bridge = var.network_bridge
     model  = "virtio"
