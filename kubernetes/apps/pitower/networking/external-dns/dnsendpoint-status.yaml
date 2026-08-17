@@ -1,0 +1,29 @@
+---
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: status
+  namespace: networking
+spec:
+  endpoints:
+    # status.wibrow.dev is served by the Cloudflare Worker in workers/status,
+    # not by anything in the cluster, so this is the same Worker-only-hostname
+    # placeholder the apex uses: proxied AAAA 100:: (the IPv6 discard prefix).
+    # Proxied is mandatory - a Worker route only fires on proxied traffic, and
+    # unproxied 100:: is an unroutable black hole.
+    #
+    # An exact record beats the *.wibrow.dev wildcard, so this is also what
+    # stops status.wibrow.dev from falling through to the towonel hub and the
+    # envoy-external fallback 404.
+    #
+    # ORDERING: external-dns runs policy: sync and previously owned a CNAME for
+    # this name from the gatus HTTPRoute. Let it delete that record (gatus is
+    # now up.wibrow.dev) and settle on this AAAA before `wrangler deploy` binds
+    # the Worker route, or the route attaches to a name that still resolves to
+    # the tunnel.
+    - dnsName: "status.wibrow.dev"
+      recordType: AAAA
+      targets: ["100::"]
+      providerSpecific:
+        - name: external-dns.alpha.kubernetes.io/cloudflare-proxied
+          value: "true"

@@ -365,3 +365,20 @@ spec:
   configMapRef:
     name: grafana-dashboards-ci
     key: arc-runners.json
+---
+# Status folder ----------------------------------------------------------------
+# The operator view behind status.wibrow.dev: same infra:* series the public
+# page reads through kromgo, but per component rather than rolled up per tier.
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: infra-health
+  namespace: monitoring
+spec:
+  folder: Status
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  configMapRef:
+    name: grafana-dashboards-status
+    key: infra-health.json

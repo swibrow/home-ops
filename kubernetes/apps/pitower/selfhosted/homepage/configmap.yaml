@@ -216,8 +216,12 @@ data:
     - Monitoring:
         - Gatus:
             icon: gatus.svg
+            href: https://up.wibrow.dev
+            description: Per-endpoint uptime
+        - Status page:
+            icon: mdi-check-network
             href: https://status.wibrow.dev
-            description: Status monitoring
+            description: Public status page
         - Grafana:
             icon: grafana.svg
             href: https://grafana.wibrow.dev

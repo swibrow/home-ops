@@ -83,3 +83,7 @@ dist/
 
 .secrets/
 .gstack/
+
+# Node / Cloudflare Workers (workers/)
+node_modules/
+.wrangler/

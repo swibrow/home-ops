@@ -135,6 +135,7 @@ nav:
   - Monitoring:
       - monitoring/index.md
       - Prometheus Stack: monitoring/prometheus-stack.md
+      - Status Page: monitoring/status-page.md
       - Grafana: monitoring/grafana.md
       - Loki: monitoring/loki.md
       - Fluent Bit: monitoring/fluent-bit.md

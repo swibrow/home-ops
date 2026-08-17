@@ -1,0 +1,38 @@
+name: Deploy Status Worker
+
+# Manual only, deliberately.
+#
+# status.wibrow.dev is a Worker-only hostname whose DNS record is created by
+# external-dns, and the Worker route cannot bind a name the cluster still owns
+# a CNAME for. A push trigger would race that reconciliation on the very commit
+# that moves gatus off the name. Add `push: paths: [workers/status/**]` once the
+# record has settled and the KV namespace id is in wrangler.jsonc.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: home-ops
+    defaults:
+      run:
+        working-directory: workers/status
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      - run: bun run typecheck
+
+      - run: bun test
+
+      - uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          workingDirectory: workers/status

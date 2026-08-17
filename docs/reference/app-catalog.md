@@ -103,10 +103,12 @@ Complete catalog of all applications deployed in the cluster, organized by categ
 | Name | Chart/Image | Gateway | URL | Description |
 |:-----|:------------|:--------|:----|:------------|
 | fluent-bit | fluent-bit (Helm) | -- | -- | Log collector and forwarder |
-| gatus | app-template | internal | `status.wibrow.dev` | Uptime monitoring and status page |
+| gatus | app-template | external | `up.wibrow.dev` | Per-endpoint uptime monitoring |
 | grafana | grafana (Helm) | external | `grafana.example.com` | Metrics visualization and dashboards |
 | kube-prometheus-stack | kube-prometheus-stack (Helm) | external | `prometheus.example.com` | Prometheus, Alertmanager, and node exporters |
 | loki | loki (Helm) | -- | -- | Log aggregation system |
+| nut-exporter | app-template | -- | -- | UPS telemetry from nut-01 (one scrape per device) |
+| unpoller | app-template | -- | -- | UniFi network, device and WAN metrics |
 
 ---
 

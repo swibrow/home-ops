@@ -63,6 +63,110 @@ config:
       query: count(ALERTS{alertstate="firing",severity=~"critical|warning"}) OR on() vector(0)
       valueExpr: string(int(result))
       colorExpr: 'result == 0.0 ? "green" : "red"'
+    # --- status.wibrow.dev -------------------------------------------------
+    # The Cloudflare Worker behind status.wibrow.dev reads these server-side;
+    # they are the only route by which infra:* leaves the cluster. Every one
+    # carries an `or on() vector(-1)` sentinel so a missing series renders
+    # "unknown" instead of an empty badge, which the Worker cannot tell apart
+    # from healthy. Ids are prefixed `status_`/`tier_` so the Worker can be
+    # pointed at a stable contract rather than at ad-hoc badge names.
+    - id: status_public
+      title: public availability
+      # The headline number: what fraction of publicly-exposed services answer
+      # from the WAN vantage on ovh-vps. Fed only by scope="wan" series, so it
+      # is a statement about the internet path, not about the LAN.
+      query: infra:public:up_ratio * 100 OR on() vector(-1)
+      valueExpr: 'result < 0.0 ? "unknown" : humanizeFloat(math.round(result)) + "%"'
+      colorExpr: 'result < 0.0 ? "lightgrey" : result >= 100.0 ? "green" : result >= 50.0 ? "orange" : "red"'
+    - id: status_health
+      title: internal health
+      # min() across every non-app tier, so this is deliberately unforgiving:
+      # one degraded backup reads as an outage. Kept as the secondary signal
+      # for that reason - the page leads with status_public.
+      query: infra:overall:up OR on() vector(-1)
+      valueExpr: 'result < 0.0 ? "unknown" : result >= 1.0 ? "operational" : result > 0.0 ? "degraded" : "outage"'
+      colorExpr: 'result < 0.0 ? "lightgrey" : result >= 1.0 ? "green" : result > 0.0 ? "orange" : "red"'
+    - id: status_down
+      title: components down
+      query: infra:overall:down_count OR on() vector(-1)
+      valueExpr: 'result < 0.0 ? "unknown" : string(int(result))'
+      colorExpr: 'result < 0.0 ? "lightgrey" : result == 0.0 ? "green" : "red"'
+    - id: status_degraded
+      title: components degraded
+      query: infra:overall:degraded_count OR on() vector(-1)
+      valueExpr: 'result < 0.0 ? "unknown" : string(int(result))'
+      colorExpr: 'result < 0.0 ? "lightgrey" : result == 0.0 ? "green" : "orange"'
+    - id: status_stale
+      title: signals stale
+      # Evidence-missing, counted separately from evidence-of-failure. A page
+      # that shows 0 down while 4 exporters are dead is lying by omission.
+      query: count(infra:component:stale == 1) OR on() vector(0)
+      valueExpr: string(int(result))
+      colorExpr: 'result == 0.0 ? "green" : "orange"'
+
+    # Per-tier rollups. One badge each rather than one badge listing them all,
+    # because a kromgo endpoint resolves to a single scalar by design.
+    - id: tier_app
+      title: apps
+      query: infra:tier:up_ratio{tier="app"} * 100 OR on() vector(-1)
+      valueExpr: &tierValue 'result < 0.0 ? "unknown" : humanizeFloat(math.round(result)) + "%"'
+      colorExpr: &tierColor 'result < 0.0 ? "lightgrey" : result >= 100.0 ? "green" : result >= 50.0 ? "orange" : "red"'
+    - id: tier_edge
+      title: edge
+      query: infra:tier:up_ratio{tier="edge"} * 100 OR on() vector(-1)
+      valueExpr: *tierValue
+      colorExpr: *tierColor
+    - id: tier_platform
+      title: platform
+      query: infra:tier:up_ratio{tier="platform"} * 100 OR on() vector(-1)
+      valueExpr: *tierValue
+      colorExpr: *tierColor
+    - id: tier_node
+      title: nodes
+      query: infra:tier:up_ratio{tier="node"} * 100 OR on() vector(-1)
+      valueExpr: *tierValue
+      colorExpr: *tierColor
+    - id: tier_storage
+      title: storage
+      query: infra:tier:up_ratio{tier="storage"} * 100 OR on() vector(-1)
+      valueExpr: *tierValue
+      colorExpr: *tierColor
+    - id: tier_backup
+      title: backups
+      query: infra:tier:up_ratio{tier="backup"} * 100 OR on() vector(-1)
+      valueExpr: *tierValue
+      colorExpr: *tierColor
+    - id: tier_network
+      title: network
+      query: infra:tier:up_ratio{tier="network"} * 100 OR on() vector(-1)
+      valueExpr: *tierValue
+      colorExpr: *tierColor
+    - id: tier_dns
+      title: dns
+      query: infra:tier:up_ratio{tier="dns"} * 100 OR on() vector(-1)
+      valueExpr: *tierValue
+      colorExpr: *tierColor
+    - id: tier_host
+      title: hosts
+      query: infra:tier:up_ratio{tier="host"} * 100 OR on() vector(-1)
+      valueExpr: *tierValue
+      colorExpr: *tierColor
+    - id: tier_service
+      title: services
+      query: infra:tier:up_ratio{tier="service"} * 100 OR on() vector(-1)
+      valueExpr: *tierValue
+      colorExpr: *tierColor
+    - id: tier_power
+      title: power
+      query: infra:tier:up_ratio{tier="power"} * 100 OR on() vector(-1)
+      valueExpr: *tierValue
+      colorExpr: *tierColor
+    - id: tier_domain
+      title: domains
+      query: infra:tier:up_ratio{tier="domain"} * 100 OR on() vector(-1)
+      valueExpr: *tierValue
+      colorExpr: *tierColor
+
     - id: cephhealth
       title: ceph
       # ceph_health_status: 0 = HEALTH_OK, 1 = HEALTH_WARN, 2 = HEALTH_ERR.

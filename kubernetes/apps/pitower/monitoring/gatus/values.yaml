@@ -156,8 +156,13 @@ serviceMonitor:
 route:
   app:
     enabled: true
+    # status.wibrow.dev now belongs to the Cloudflare Worker in workers/status
+    # (a proxied AAAA 100:: record; see networking/external-dns/dnsendpoint-status.yaml).
+    # external-dns runs policy: sync, so dropping the hostname here is what
+    # releases the record - the Worker route cannot bind a name the cluster
+    # still owns a CNAME for. Gatus keeps the per-endpoint detail view.
     hostnames:
-      - status.wibrow.dev
+      - up.wibrow.dev
     parentRefs:
       - name: envoy-external
         namespace: networking

@@ -55,3 +55,8 @@ configMapGenerator:
       - dashboards/arc-runners.json
     options:
       disableNameSuffixHash: true
+  - name: grafana-dashboards-status
+    files:
+      - dashboards/infra-health.json
+    options:
+      disableNameSuffixHash: true

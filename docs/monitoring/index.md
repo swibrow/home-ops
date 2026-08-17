@@ -82,7 +82,8 @@ metadata:
 |:--------|:----|:--------|
 | Prometheus | `https://prometheus.example.com` | envoy-internal |
 | Grafana | `https://grafana.example.com` | envoy-external |
-| Gatus | `https://status.wibrow.dev` | envoy-internal |
+| Gatus | `https://up.wibrow.dev` | envoy-external |
+| Status page | `https://status.wibrow.dev` | Cloudflare Worker (no origin) |
 
 ## Key Design Decisions
 

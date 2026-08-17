@@ -1,0 +1,32 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "wibrow-status",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-14",
+  "observability": { "enabled": true },
+
+  // status.wibrow.dev is a Worker-only hostname: the DNS record is a proxied
+  // AAAA 100:: placeholder created by external-dns (see
+  // kubernetes/apps/pitower/networking/external-dns/dnsendpoint-status.yaml),
+  // with no origin behind it. Deploy only after external-dns has removed the
+  // old gatus CNAME for this name.
+  "routes": [{ "pattern": "status.wibrow.dev/*", "zone_name": "wibrow.dev" }],
+
+  // Keeps KV warm so the page is served entirely from storage on a healthy day
+  // and already holds a recent reading the moment an outage starts.
+  "triggers": { "crons": ["* * * * *"] },
+
+  "vars": {
+    "KROMGO_ORIGIN": "https://kromgo.wibrow.dev"
+  },
+
+  // Create once with `wrangler kv namespace create STATUS_SNAPSHOT` and paste
+  // the returned id here - see README.md. The deploy fails loudly until then,
+  // which is preferable to a Worker that silently has nowhere to remember.
+  "kv_namespaces": [
+    {
+      "binding": "SNAPSHOT",
+      "id": "REPLACE_WITH_KV_NAMESPACE_ID"
+    }
+  ]
+}

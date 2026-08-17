@@ -6,6 +6,7 @@ namespace: networking
 resources:
   - externalsecret.yaml
   - dnsendpoint.yaml
+  - dnsendpoint-status.yaml
 
 helmCharts:
   - name: external-dns

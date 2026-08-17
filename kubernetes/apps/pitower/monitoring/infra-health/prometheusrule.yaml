@@ -60,6 +60,23 @@ spec:
               probe_success{job=~"blackbox-.*"}
             )
 
+        # --- WAN vantage, blackbox on ovh-vps ------------------------------
+        # Same shape as the rule above but a separate rule because these arrive
+        # over OTLP, not by scrape: the collector's own job label wins and the
+        # prober's becomes exported_job, so job=~"blackbox-.*" never matches
+        # them. Without this the series exist and look right in a browser while
+        # infra:public:up_ratio stays empty, which is the one number the status
+        # page leads with.
+        #
+        # No `* on () max(up{...})` gate here. These are pushed, so a dead
+        # ovh-vps agent stops the series rather than freezing it, and staleness
+        # is handled below as evidence-missing instead of as a false zero.
+        - record: infra:component:up
+          expr: |
+            max by (tier, component, exposure, scope) (
+              probe_success{exported_job=~"blackbox-wan.*"}
+            )
+
         # --- node tier, Kubernetes' own view -------------------------------
         # Distinct scope from the ICMP probe on purpose: a node that pings but
         # is NotReady is a kubelet problem, one that does neither is a power or
@@ -126,6 +143,29 @@ spec:
             tier: backup
             exposure: none
             scope: cluster
+
+        # --- power tier, NUT -----------------------------------------------
+        # flag="OL" is "on line power". Reading a UPS on battery as down is the
+        # point: mains is gone and there is a finite clock running, which is
+        # exactly the kind of thing a status page should be shouting about.
+        #
+        # The `ups` label comes from the ServiceMonitor's relabeling, not from
+        # the exporter - it stamps none, so both devices would otherwise share
+        # one series. A UPS whose driver has lost its device produces no series
+        # at all, which reads as unknown rather than as down; that is what the
+        # staleness rule below is for.
+        - record: infra:component:up
+          expr: |
+            max by (component) (
+              label_replace(
+                network_ups_tools_ups_status{flag="OL"},
+                "component", "ups-$1", "ups", "(.*)"
+              )
+            )
+          labels:
+            tier: power
+            exposure: none
+            scope: lan
 
         # --- domain tier ---------------------------------------------------
         # 30 days of registration runway. gatus already carries tier=domain.
@@ -251,11 +291,32 @@ spec:
           labels:
             tier: node
             component: blackbox
+        # The only vantage outside the house. If it goes quiet,
+        # infra:public:up_ratio silently empties rather than dropping, so the
+        # page would show "no public data" with nothing explaining why.
+        - record: infra:component:stale
+          expr: absent(probe_success{exported_job="blackbox-wan"})
+          labels:
+            tier: app
+            component: blackbox-wan
         - record: infra:component:stale
           expr: absent(garage_cluster_healthy)
           labels:
             tier: storage
             component: garage
+        # Per UPS, because the failure that matters here is one device dropping
+        # off while the other keeps reporting - an unscoped absent() would stay
+        # 0 throughout and hide it.
+        - record: infra:component:stale
+          expr: absent(network_ups_tools_ups_status{ups="eaton", flag="OL"})
+          labels:
+            tier: power
+            component: ups-eaton
+        - record: infra:component:stale
+          expr: absent(network_ups_tools_ups_status{ups="cyberpower", flag="OL"})
+          labels:
+            tier: power
+            component: ups-cyberpower
         - record: infra:component:stale
           expr: absent(barman_cloud_cloudnative_pg_io_last_available_backup_timestamp)
           labels:
@@ -300,9 +361,11 @@ spec:
         # domain's expiry says nothing about whether anything answers on it,
         # and letting them in made this read 0.33 while every service was up.
         #
-        # No service-tier scope="wan" series exists until the ovh-vps prober
-        # lands, so this is empty for now - which is honest. Reporting LAN
-        # reachability here would claim the tunnel works when nothing tested it.
+        # Fed entirely by the ovh-vps vantage, which is the point: every one of
+        # these probes crossed the internet, the tunnel and the gateway to get
+        # its answer. Reporting LAN reachability here would claim the tunnel
+        # works when nothing tested it. If that vantage dies this goes empty
+        # rather than green - see infra:component:stale{component="blackbox-wan"}.
         - record: infra:public:up_ratio
           expr: |
             avg(infra:component:up{exposure="public", scope="wan", tier=~"app|service|edge"})
