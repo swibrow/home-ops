@@ -59,6 +59,24 @@ model_list:
       model: openai/text-embedding-3-small
       api_key: os.environ/OPENAI_API_KEY
 
+  # --- Local GPU (vast.ai, ephemeral) ---
+  # vLLM behind vast.ai's Instance Portal Caddy proxy, published over a
+  # Cloudflare *quick* tunnel. Two things make this deliberately throwaway:
+  # the trycloudflare hostname is regenerated every time cloudflared restarts,
+  # and the rental itself is short-lived. When either ends this entry starts
+  # returning connection errors — delete it rather than debugging it.
+  # The portal accepts `Authorization: Bearer $OPEN_BUTTON_TOKEN`, which is
+  # exactly what the openai/ provider sends, so api_key carries the portal
+  # token and no extra_headers are needed.
+  # Qwen3.5 is a reasoning model: it spends output tokens in message.reasoning
+  # before emitting content, so low max_tokens returns content:null with
+  # finish_reason:length. Callers need a few hundred tokens of headroom.
+  - model_name: vast-local
+    litellm_params:
+      model: openai/Qwen/Qwen3.5-9B
+      api_base: https://scale-wife-lancaster-defensive.trycloudflare.com/v1
+      api_key: os.environ/VAST_PORTAL_TOKEN
+
   # --- OpenRouter (named aliases, auto-curated from the live catalog) ---
   # Newest ~5 chat models per major provider so they show in the dropdown.
   # Any other OpenRouter model is still reachable by full id via the catch-all.
