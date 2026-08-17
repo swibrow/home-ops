@@ -68,12 +68,19 @@ model_list:
   # The portal accepts `Authorization: Bearer $OPEN_BUTTON_TOKEN`, which is
   # exactly what the openai/ provider sends, so api_key carries the portal
   # token and no extra_headers are needed.
-  # Qwen3.5 is a reasoning model: it spends output tokens in message.reasoning
+  # Qwen3.8 is a reasoning model: it spends output tokens in message.reasoning
   # before emitting content, so low max_tokens returns content:null with
   # finish_reason:length. Callers need a few hundred tokens of headroom.
+  # Serving AWQ-INT4 on 2x RTX 3090 — Ampere has no FP8 tensor cores, and the
+  # 24 GB instance disk is smaller than the 28.7 GiB official FP8 checkpoint,
+  # so INT4 is the only variant that fits at all.
+  # `model` must match vLLM's --served-model-name or every call 404s.
+  # NOT a shared backend: --max-num-seqs 2, because the hybrid Gated DeltaNet
+  # layers hold a fixed recurrent state per sequence regardless of context
+  # length. Concurrent callers queue rather than run in parallel.
   - model_name: vast-local
     litellm_params:
-      model: openai/Qwen/Qwen3.5-9B
+      model: openai/qwen3.8-27b
       api_base: https://scale-wife-lancaster-defensive.trycloudflare.com/v1
       api_key: os.environ/VAST_PORTAL_TOKEN
 
