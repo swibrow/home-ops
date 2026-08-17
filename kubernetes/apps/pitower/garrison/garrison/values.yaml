@@ -16,6 +16,27 @@ database:
 keep:
   image: ghcr.io/swibrow/garrison-keep:v0.55.1
   imagePullPolicy: IfNotPresent
+  # The keep's own agents through litellm, same as the raids. Plain routing
+  # only — the virtual key rides in ANTHROPIC_CUSTOM_HEADERS from the secret
+  # store (secrets.externalSecrets.keepProviderKeys below), and no
+  # ANTHROPIC_API_KEY/ANTHROPIC_AUTH_TOKEN, so billing stays on the Max
+  # subscription's CLAUDE_CODE_OAUTH_TOKEN.
+  # NOTE: requires chart >= the release carrying keep.extraEnv/keep.models —
+  # until the version above is bumped past it, these keys are inert.
+  extraEnv:
+    ANTHROPIC_BASE_URL: https://litellm.wibrow.dev
+    ANTHROPIC_MODEL: claude-sonnet-max
+  # Model ids the wartable's pickers offer, served on GET /healthz. These are
+  # litellm's aliases (ai/litellm config.yaml), not Anthropic ids — the
+  # picker's built-in list would offer models litellm 400s on. The
+  # openrouter-backed aliases (claude-opus/sonnet/haiku/fable, no -max) stay
+  # available through the picker's "Custom…" field; they bill OpenRouter
+  # rather than the Max subscription, which is why they are not listed here.
+  models:
+    - claude-opus-max
+    - claude-sonnet-max
+    - claude-haiku-max
+    - claude-fable-max
 # ghcr packages stay private (the repo is private); ghcr-pull-secret is
 # fanned out to every namespace by security/external-secrets/ghcr-pull-secret.
 imagePullSecret: ghcr-pull-secret
@@ -77,13 +98,25 @@ secrets:
     # ANTHROPIC_CUSTOM_HEADERS must carry "x-litellm-api-key: Bearer <litellm
     # virtual key>" verbatim (stored as the literal Infisical value). Do NOT
     # add ANTHROPIC_API_KEY/ANTHROPIC_AUTH_TOKEN here — either would replace
-    # the subscription login and move billing off it. This only covers the
-    # runner/raid sortie pods; garrison-keep's own quest-enrichment agent and
-    # Guild Officer have no equivalent extension point in chart 0.54.0.
+    # the subscription login and move billing off it.
+    #
+    # ANTHROPIC_BASE_URL is the litellm.wibrow.dev hostname, not the
+    # ai/litellm ClusterIP: runner sandboxes are fenced out of private ranges
+    # (networkPolicy below), and the envoy-internal:443 rule is what makes the
+    # hostname reachable. A cluster-local URL here would silently fail.
     runnerProviderKeys:
       - MEMINI_API_KEY
       - ANTHROPIC_BASE_URL
       - ANTHROPIC_MODEL
+      - ANTHROPIC_CUSTOM_HEADERS
+    # The keep-side mirror: the keep pod runs agents of its own (quest
+    # enrichment, LFG, explore, the Guild Officer), so without this it is the
+    # one surface still calling api.anthropic.com directly while every raid
+    # goes through litellm. Routing itself is non-secret and lives in
+    # keep.extraEnv; only the virtual key comes from the secret store.
+    # NOTE: requires chart >= the release carrying keepProviderKeys — until
+    # the version above is bumped past it, this key is inert.
+    keepProviderKeys:
       - ANTHROPIC_CUSTOM_HEADERS
 persistence:
   size: 5Gi
