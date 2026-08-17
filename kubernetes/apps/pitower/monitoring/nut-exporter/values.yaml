@@ -1,0 +1,91 @@
+controllers:
+  nut-exporter:
+    strategy: RollingUpdate
+    containers:
+      app:
+        image:
+          repository: ghcr.io/druggeri/nut_exporter
+          # Tags carry no leading "v" - ghcr has 3.3.0, not v3.3.0.
+          tag: 3.3.0
+        env:
+          TZ: Europe/Zurich
+          # nut-01, on VLAN 20 only (no native-LAN address). See
+          # ansible/inventory/hosts.yaml - this is DHCP-assigned and wants a
+          # UniFi reservation to stay put.
+          NUT_EXPORTER_SERVER: 10.20.85.197
+          NUT_EXPORTER_SERVERPORT: "3493"
+        # No credentials, deliberately. upsd permits reading variables without
+        # LOGIN, and the read-only user this was originally scoped to would
+        # have granted nothing extra. Verified against nut-01: an unauthenticated
+        # scrape returns the full variable set.
+        probes:
+          liveness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                # The exporter's own metrics, not /ups_metrics: probing the
+                # latter would restart the pod whenever a UPS goes quiet, which
+                # is exactly the event this exporter exists to report.
+                path: /metrics
+                port: 9199
+              initialDelaySeconds: 10
+              periodSeconds: 30
+              timeoutSeconds: 5
+              failureThreshold: 3
+          readiness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /metrics
+                port: 9199
+              initialDelaySeconds: 5
+              periodSeconds: 30
+              timeoutSeconds: 5
+              failureThreshold: 3
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            memory: 64Mi
+
+service:
+  app:
+    controller: nut-exporter
+    ports:
+      http:
+        port: 9199
+
+# One endpoint per UPS. The exporter talks to a single device per scrape,
+# selected by the `ups` query parameter, and - despite what its README says -
+# stamps no `ups` label on the result. Without the relabeling below both
+# devices would produce identical series and silently overwrite each other.
+serviceMonitor:
+  app:
+    serviceName: nut-exporter
+    endpoints:
+      - port: http
+        scheme: http
+        path: /ups_metrics
+        params:
+          ups: ["eaton"]
+        interval: 60s
+        # A driver that has lost its device takes ~10s to time out rather than
+        # failing fast, so the timeout has to clear that to avoid turning a
+        # dead UPS into a dead scrape of the healthy one.
+        scrapeTimeout: 30s
+        relabelings:
+          - targetLabel: ups
+            replacement: eaton
+      - port: http
+        scheme: http
+        path: /ups_metrics
+        params:
+          ups: ["cyberpower"]
+        interval: 60s
+        scrapeTimeout: 30s
+        relabelings:
+          - targetLabel: ups
+            replacement: cyberpower
