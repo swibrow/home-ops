@@ -188,6 +188,12 @@ metadata:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
+  name: vast-ai-operator-runners
+  namespace: arc-runners
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
   name: webterm-arm64-runners
   namespace: arc-runners
 ---

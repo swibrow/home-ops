@@ -534,6 +534,19 @@ helmCharts:
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.14.2
+    releaseName: vast-ai-operator-runners
+    namespace: arc-runners
+    valuesFile: values.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/cloudsnacks/vast-ai-operator
+      runnerScaleSetName: vast-ai-operator
+      template:
+        spec:
+          serviceAccountName: vast-ai-operator-runners
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.14.2
     releaseName: webterm-arm64-runners
     namespace: arc-runners
     valuesFile: values-arm64.yaml
