@@ -25,8 +25,8 @@
   // which is preferable to a Worker that silently has nowhere to remember.
   "kv_namespaces": [
     {
-      "binding": "SNAPSHOT",
-      "id": "REPLACE_WITH_KV_NAMESPACE_ID"
+      "binding": "STATUS_SNAPSHOT",
+      "id": "ed3dd1f97da54642800187567a3125ac"
     }
   ]
 }
