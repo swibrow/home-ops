@@ -414,6 +414,39 @@ model_list:
       model: openrouter/qwen/qwen3.8-max
       api_key: os.environ/OPENROUTER_API_KEY
 
+  - model_name: deepseek-v4-pro-0813
+    litellm_params:
+      model: openrouter/deepseek/deepseek-v4-pro-0813
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: gemini-3.7-flash
+    litellm_params:
+      model: openrouter/google/gemini-3.7-flash
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: gemini-3.7-flash:batch
+    litellm_params:
+      model: openrouter/google/gemini-3.7-flash:batch
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: nemotron-3.5-lightning
+    litellm_params:
+      model: openrouter/nvidia/nemotron-3.5-lightning
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: qwen3.8-2.4t-a95b
+    litellm_params:
+      model: openrouter/qwen/qwen3.8-2.4t-a95b
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: qwen3.8-27b
+    litellm_params:
+      model: openrouter/qwen/qwen3.8-27b
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: grok-4.6
+    litellm_params:
+      model: openrouter/x-ai/grok-4.6
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: glm-5.3
+    litellm_params:
+      model: openrouter/z-ai/glm-5.3
+      api_key: os.environ/OPENROUTER_API_KEY
+
   # --- OpenRouter (catch-all passthrough) ---
   # Reach any other OpenRouter model by full id, e.g. openrouter/google/gemma-4-31b-it
   - model_name: "*"
