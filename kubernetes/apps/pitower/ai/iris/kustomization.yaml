@@ -1,0 +1,55 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+#
+# Iris — a second Hermes Agent, sized for a non-GitOps operator. Unlike ai/hermes,
+# whose config.yaml is rewritten from this repo on every boot, Iris's config is owned
+# by the dashboard UI: the configMap below is a FIRST-BOOT SEED only. Everything the
+# dashboard can write (model, providers, memory provider, skills, MCP servers, cron,
+# messaging platforms, .env keys) is hers to change at https://iris.wibrow.dev and
+# lives on the PVC. Editing config.yaml here after the volume exists does nothing.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ai
+resources:
+  - externalsecret.yaml
+components:
+  - ../../../../components/pvc
+  - ../../../../components/kopiur
+configMapGenerator:
+  - name: iris-config-seed
+    options:
+      disableNameSuffixHash: true
+    files:
+      - config.yaml=config.yaml
+  - name: pvc-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=iris-pvc
+      - CLAIM_NAME=iris
+      - STORAGE_SIZE=5Gi
+  - name: kopiur-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=iris-kopiur
+      - CLAIM_NAME=iris
+patches:
+  # hermes writes its data as uid 10000 (top-level dir is 0700); the kopiur mover must match to read it.
+  - target:
+      kind: SnapshotPolicy
+      name: iris-kopiur
+    patch: |
+      - op: replace
+        path: /spec/mover/securityContext/runAsUser
+        value: 10000
+      - op: replace
+        path: /spec/mover/securityContext/runAsGroup
+        value: 10000
+helmCharts:
+  - name: app-template
+    repo: oci://ghcr.io/bjw-s-labs/helm
+    version: 5.0.1
+    releaseName: iris
+    namespace: ai
+    valuesFile: values.yaml

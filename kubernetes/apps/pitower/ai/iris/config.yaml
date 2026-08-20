@@ -1,0 +1,77 @@
+# FIRST-BOOT SEED ONLY. The init container copies this onto the PVC exactly once,
+# when /opt/data/config.yaml does not yet exist. After that the dashboard owns it
+# (PUT /api/config deep-merges onto the on-disk file) and changes made here are
+# never applied. To reset Iris to these defaults, delete /opt/data/config.yaml and
+# restart the pod.
+model:
+  default: claude-sonnet
+  provider: anthropic
+fallback_providers:
+  - provider: anthropic
+    model: claude-haiku
+providers:
+  anthropic:
+    # Routed through litellm (ai/litellm), so the model names are litellm's own
+    # aliases rather than real Anthropic model ids. She can point this anywhere
+    # else from the dashboard's Providers tab.
+    base_url: http://litellm.ai.svc.cluster.local:4000/
+    api_mode: anthropic_messages
+    # hermes does not interpolate ${VAR} and the provider needs the key inline;
+    # the init container substitutes this placeholder on the seed copy only.
+    api_key: __LITELLM_API_KEY__
+toolsets:
+  - hermes-cli
+terminal:
+  backend: local
+  cwd: /opt/data/workspace
+  timeout: 180
+  persistent_shell: true
+memory:
+  # Built-in memory (on her PVC). Deliberately NOT memini: that provider ships as
+  # an out-of-tree plugin that would have to be vendored here and version-matched
+  # to the memini server, which is the GitOps coupling this deployment avoids.
+  # The other plugin providers baked into the image (mem0, supermemory, honcho, …)
+  # are selectable from the dashboard's Memory tab.
+  auto_migrate: true
+compression:
+  enabled: true
+  threshold: 0.50
+  target_ratio: 0.20
+  protect_last_n: 20
+agent:
+  max_turns: 90
+  gateway_timeout: 1800
+  restart_drain_timeout: 60
+  api_max_retries: 2
+  reasoning_effort: medium
+streaming:
+  enabled: false
+security:
+  redact_secrets: true
+privacy:
+  redact_pii: true
+platform_toolsets:
+  cli:
+    - hermes-cli
+  telegram:
+    - hermes-telegram
+auxiliary:
+  vision:
+    provider: anthropic
+    model: claude-sonnet
+  compression:
+    provider: anthropic
+    model: claude-haiku
+    timeout: 180
+  web_extract:
+    provider: anthropic
+    model: claude-haiku
+    timeout: 120
+  approval:
+    provider: anthropic
+    model: claude-haiku
+    timeout: 60
+  session_search:
+    provider: anthropic
+    model: claude-haiku
+    timeout: 120

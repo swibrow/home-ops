@@ -1,0 +1,179 @@
+defaultPodOptions:
+  securityContext:
+    fsGroup: 10000
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile:
+      type: RuntimeDefault
+
+controllers:
+  iris:
+    annotations:
+      # Picks up secret rotations (OIDC client secret, Telegram token). The config
+      # seed configMap is inert after the first boot, so a change there restarts
+      # the pod without changing anything she sees.
+      reloader.stakater.com/auto: "true"
+    replicas: 1
+    strategy: Recreate
+    type: deployment
+    initContainers:
+      init:
+        image:
+          repository: docker.io/library/alpine
+          tag: "3.24"
+        envFrom:
+          - secretRef:
+              name: iris
+        command:
+          - /bin/sh
+          - -c
+          - |
+            set -eu
+            # Seed the config ONCE. ai/hermes overwrites its config on every boot,
+            # which makes git authoritative; here the dashboard is authoritative, so
+            # an existing file is left strictly alone. Key chars are [A-Za-z0-9_-]
+            # only, so '|' is a safe sed delimiter.
+            if [ ! -f /opt/data/config.yaml ]; then
+              sed "s|__LITELLM_API_KEY__|${LITELLM_API_KEY}|g" /tmp/config.yaml > /opt/data/config.yaml
+              chown 10000:10000 /opt/data/config.yaml
+            fi
+            mkdir -p /opt/data/workspace
+            chown -R 10000:10000 /opt/data/workspace
+    containers:
+      app:
+        image: &image
+          repository: nousresearch/hermes-agent
+          tag: v2026.8.13@sha256:68e15ae2a6d894d0ccbd9f8aacbbe13d4d28fa5dc9b6a303970b67bb2499b1a6
+        # No --no-supervise: the image auto-starts a supervised `main-hermes`
+        # service on boot, and opting out makes the legacy shim fight it for the
+        # gateway lock and take down the whole s6 stack.
+        args: ["gateway", "run"]
+        env:
+          HERMES_HOME: /opt/data
+          HOME: /opt/data
+          TZ: Europe/Zurich
+        envFrom:
+          - secretRef:
+              name: iris
+        resources:
+          requests:
+            cpu: 14m
+            memory: 167Mi
+          limits:
+            memory: 2Gi
+        ports:
+          - containerPort: &port 8642
+            name: http
+            protocol: TCP
+      dashboard:
+        image: *image
+        args: ["dashboard", "--host", "0.0.0.0"]
+        env:
+          TZ: Europe/Zurich
+          GATEWAY_HEALTH_URL: http://localhost:8642
+          HERMES_HOME: /opt/data
+          HOME: /opt/data
+          # Kanidm is the ONLY auth provider (no basic_auth in the config seed), so
+          # an unauthenticated page load redirects straight into the OIDC flow
+          # instead of rendering a chooser.
+          HERMES_DASHBOARD_OIDC_ISSUER: https://idm.wibrow.dev/oauth2/openid/iris
+          HERMES_DASHBOARD_OIDC_CLIENT_ID: iris
+          # Default is "openid profile email", but her Kanidm person has no mail
+          # attribute set. The plugin only needs `sub`, so drop the email scope
+          # rather than depend on how Kanidm handles a granted-but-unpopulated
+          # claim. Remove this once the account has a mail address.
+          HERMES_DASHBOARD_OIDC_SCOPES: "openid profile"
+          # Envoy Gateway terminates TLS upstream; without this hermes builds the
+          # OAuth callback URL from the (plain-HTTP) request it actually receives,
+          # so the redirect_uri sent to Kanidm is http:// and gets rejected as a
+          # mismatch against the registered https:// redirect URL.
+          HERMES_DASHBOARD_PUBLIC_URL: https://iris.wibrow.dev
+        envFrom:
+          - secretRef:
+              name: iris
+        resources:
+          requests:
+            cpu: 15m
+            memory: 144Mi
+          limits:
+            memory: 1Gi
+        ports:
+          - containerPort: &dashboardPort 9119
+            name: http
+            protocol: TCP
+      codeserver:
+        image:
+          repository: ghcr.io/coder/code-server
+          tag: 4.132.0@sha256:b88ed46a6ace76a0294a17a24f39aa88032ed0a3692c3d8ab5433b47ab57ccbf
+        args:
+          - --auth
+          - none
+          - --user-data-dir
+          - /home/node/.vscode
+          - --extensions-dir
+          - /home/node/.vscode
+          - --port
+          - "12321"
+          - /opt/data
+        env:
+          TZ: Europe/Zurich
+        resources:
+          requests:
+            cpu: 10m
+            memory: 72Mi
+          limits:
+            memory: 1Gi
+        ports:
+          - containerPort: &codeserverPort 12321
+            name: codeserver
+            protocol: TCP
+
+service:
+  app:
+    controller: iris
+    ports:
+      http:
+        port: *port
+      codeserver:
+        port: *codeserverPort
+  dashboard:
+    controller: iris
+    ports:
+      http:
+        port: *dashboardPort
+
+route:
+  app:
+    hostnames:
+      - iris.wibrow.dev
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+    rules:
+      - backendRefs:
+          - identifier: dashboard
+            port: http
+  codeserver:
+    hostnames:
+      - iris-code.wibrow.dev
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+    rules:
+      - backendRefs:
+          - identifier: app
+            port: codeserver
+
+persistence:
+  config:
+    existingClaim: iris
+    globalMounts:
+      - path: /opt/data
+  configmap:
+    type: configMap
+    name: iris-config-seed
+    defaultMode: 0755
+    globalMounts:
+      - path: /tmp/config.yaml
+        subPath: config.yaml
