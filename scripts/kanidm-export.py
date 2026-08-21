@@ -26,7 +26,7 @@ import subprocess
 import sys
 
 # Groups whose account-policy attributes we emit (extend as needed).
-POLICY_GROUPS = ["idm_all_persons"]
+POLICY_GROUPS = ["idm_all_persons", "idm_all_accounts", "app_access"]
 
 # Default values — only emit a command when the live value diverges from the default.
 DEFAULTS = {
