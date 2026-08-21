@@ -3,7 +3,7 @@ image:
   rootless: true
   registry: code.forgejo.org
   repository: forgejo/forgejo
-  tag: 16.0.2-rootless
+  tag: 16.0.3-rootless
 
 # Use the PVC created by components/pvc as "forgejo"
 persistence:
