@@ -119,7 +119,7 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           # renovate: datasource=github-releases depName=cli/cli
-          GH_VERSION: v2.97.0
+          GH_VERSION: v2.98.0
         run: |
           set -euo pipefail
           install -d "$HOME/.local/bin"
