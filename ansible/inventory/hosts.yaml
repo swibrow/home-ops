@@ -33,7 +33,14 @@ all:
           # *developer* SSH on port 22222 (root, key-only), enabled once via the
           # USB CONFIG stick - see the homeassistant runbook in the README. The
           # port-22 SSH addon is a container with no access to the boot partition.
-          ansible_host: homeassistant.iot
+          # Pinned by the `homeassistant` DHCP reservation in
+          # terraform/unifi/reservations.tf, on the tagged iot VLAN (101) that
+          # the haos-network role configures. An IP rather than the
+          # homeassistant.iot name: the iot search domain only resolves from
+          # networks using the VLAN-101 DNS, and the cutover run has to reach
+          # the host over its *old* untagged address anyway
+          # (-e ansible_host=192.168.0.155).
+          ansible_host: 10.101.13.61
           ansible_port: 22222
           ansible_user: root
           # Appliance host: busybox shell, no python, no sudo - raw module only.

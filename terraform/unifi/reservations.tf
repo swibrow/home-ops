@@ -30,6 +30,14 @@ locals {
     worker-10 = { mac = "dc:a6:32:46:b2:ba", fixed_ip = "10.20.10.10", network_id = unifi_network.servers.id }
     ai-01     = { mac = "b0:82:e2:a2:df:33", fixed_ip = "10.20.10.11", network_id = unifi_network.servers.id, note = "3090 GPU / LLM node" }
     data      = { mac = "00:11:32:0c:91:0c", fixed_ip = "10.20.10.100", network_id = unifi_network.servers.id }
+
+    # HAOS Pi 4. Pinned on the iot VLAN because two things resolve it by name:
+    # the Envoy Gateway Backend behind ha.wibrow.dev
+    # (kubernetes/apps/pitower/home-automation/home-assistant/service.yaml) and
+    # the button-plus MQTT broker URL (iot/button-plus/office-device-config.json), which
+    # hardcodes this exact address. DHCP comes from the tagged vlan101 link, so
+    # the MAC is end0's - a VLAN sub-interface inherits its parent's.
+    homeassistant = { mac = "dc:a6:32:4f:ee:a9", fixed_ip = "10.101.13.61", network_id = unifi_network.iot.id, note = "HAOS Pi 4 + PoE HAT, tagged VLAN 101 on end0" }
   }
 }
 

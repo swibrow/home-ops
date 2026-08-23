@@ -1,0 +1,59 @@
+---
+# HAOS host = busybox, no python, no sudo: raw module only, become off.
+# `--raw-json` is compact (no spaces), so a VLAN already configured on any
+# interface shows up literally as "vlan":{"id":101.
+- name: Read host network state
+  ansible.builtin.raw: ha network info --raw-json
+  register: haos_network_info
+  changed_when: false
+  check_mode: false
+
+- name: Create the tagged VLAN interface
+  ansible.builtin.raw: >-
+    ha network vlan {{ haos_network_parent }} {{ haos_network_vlan_id }}
+    --ipv4-method auto --ipv6-method disabled
+  when: haos_network_info.stdout is not search('"vlan":\{"id":' ~ haos_network_vlan_id)
+
+# The gate on the whole cutover: end0 is only stripped once the VLAN holds a
+# real iot lease. If the switch port ever stops trunking VLAN 101, this fails
+# after a minute with end0 untouched and the host still reachable. Skipped under
+# --check, where the create task above did not run and end0.101 does not exist.
+- name: Wait for the VLAN interface to take an iot lease
+  ansible.builtin.raw: ip -4 -oneline address show {{ haos_network_vlan_interface }}
+  register: haos_network_vlan_addr
+  changed_when: false
+  when: not ansible_check_mode
+  until: haos_network_vlan_addr.stdout | default('') is search('inet ' ~ haos_network_vlan_prefix)
+  retries: 12
+  delay: 5
+
+# Stripping end0 kills this SSH session (ansible_host is still the old untagged
+# address on the cutover run), so schedule it and return: a task that loses its
+# own transport reports "connection lost" whether or not it worked. Idempotency
+# is keyed off the live address, so re-runs over the new address skip it.
+- name: Read the parent link address
+  ansible.builtin.raw: ip -4 -oneline address show {{ haos_network_parent }}
+  register: haos_network_parent_addr
+  changed_when: false
+  check_mode: false
+
+- name: Strip the IP from the parent link (carrier only)
+  ansible.builtin.raw: >-
+    nohup sh -c 'sleep 3; ha network update {{ haos_network_parent }}
+    --ipv4-method disabled --ipv6-method disabled' >/dev/null 2>&1 &
+    echo scheduled
+  when:
+    - not ansible_check_mode
+    - haos_network_parent_addr.stdout | trim != ''
+
+- name: Report the address change
+  ansible.builtin.debug:
+    msg: >-
+      {{ haos_network_parent }} is being stripped in the background - the host
+      drops off {{ haos_network_parent_addr.stdout.split()[3] | default('the untagged LAN') }}
+      and keeps only its {{ haos_network_vlan_interface }} address
+      ({{ haos_network_vlan_addr.stdout.split()[3] | default('unknown') }}).
+      Reach it at the inventory's ansible_host from here on.
+  when:
+    - not ansible_check_mode
+    - haos_network_parent_addr.stdout | trim != ''

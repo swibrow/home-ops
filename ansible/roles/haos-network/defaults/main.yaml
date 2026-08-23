@@ -1,0 +1,19 @@
+---
+# HAOS moves onto the tagged iot VLAN: end0 keeps carrier so it can tag frames
+# but holds no IP on the untagged LAN, and vlan101 owns the address and the
+# default route. Same shape as the `network` role's VLAN-20 cutover, but driven
+# through the Supervisor's `ha network` CLI - the HAOS host ships no nmcli, and
+# its NetworkManager profiles are Supervisor-owned (hand-written .nmconnection
+# files get overwritten).
+haos_network_parent: end0
+haos_network_vlan_id: 101
+
+# NetworkManager names a VLAN link <parent>.<id>. Asserted (by waiting for an
+# address on it) before end0 is stripped, so a rename surfaces as a failed play
+# instead of a headless box with no route.
+haos_network_vlan_interface: end0.101
+
+# The iot network is 10.101.0.0/16 (terraform/unifi/networks.tf). Matching the
+# prefix - not just "any address" - keeps the cutover from firing on a lease
+# handed out by the wrong VLAN.
+haos_network_vlan_prefix: 10.101.

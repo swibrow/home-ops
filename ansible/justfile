@@ -86,6 +86,13 @@ check-homeassistant:
 deploy-homeassistant:
     ansible-playbook playbooks/homeassistant.yaml
 
+# Move HAOS onto the tagged iot VLAN 101 (no automatic rollback - recover from
+# the HA UI's Network page if it breaks. A "connection lost" result is expected;
+# pass the host's current untagged address on the cutover run, e.g.
+# `just ansible::apply-network-homeassistant 192.168.0.155`.)
+apply-network-homeassistant host='':
+    ansible-playbook playbooks/homeassistant-network.yaml {{ if host == '' { '' } else { '-e ansible_host=' + host } }}
+
 # Ping the proxmox-01 host over SSH
 ping-proxmox-01:
     ansible proxmox_01 -m ping

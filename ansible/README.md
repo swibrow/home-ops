@@ -21,6 +21,7 @@ ansible/
 │   ├── ovh-vps.yaml       # fail2ban + oha + towonel-hub + otel-agent (what `just ansible deploy-ovh-vps` runs)
 │   ├── proxmox-01.yaml    # fail2ban + proxmox (what `just ansible deploy-proxmox-01` runs)
 │   ├── homeassistant.yaml # HAOS PoE fan thresholds (what `just ansible deploy-homeassistant` runs)
+│   ├── homeassistant-network.yaml # HAOS onto tagged iot VLAN 101 (severs its own SSH)
 │   └── garage.yaml        # Garage S3 role only (what `just ansible deploy-garage` runs)
 └── roles/
     ├── network/           # VLAN sub-interfaces as NetworkManager connections
@@ -31,7 +32,8 @@ ansible/
     ├── otel-agent/        # host metrics/logs/traces -> pitower's otel-collector (pinned binary)
     ├── garage/            # Garage S3 node (pinned binary + systemd; layout/bucket/key bootstrap)
     ├── proxmox/           # Proxmox VE repo config (no-subscription, no enterprise)
-    └── haos-poe-fan/      # PoE HAT fan thresholds in HAOS config.txt (raw-only)
+    ├── haos-poe-fan/      # PoE HAT fan thresholds in HAOS config.txt (raw-only)
+    └── haos-network/      # HAOS onto the tagged iot VLAN 101 via `ha network` (raw-only)
 ```
 
 ## Usage
@@ -50,6 +52,7 @@ just ansible deploy-ovh-vps  # apply (fail2ban + oha + towonel-hub)
 just ansible ping-homeassistant    # SSH reachability (HAOS dev SSH, port 22222)
 just ansible check-homeassistant   # dry-run (PoE fan thresholds)
 just ansible deploy-homeassistant  # apply (PoE fan thresholds; reboot HAOS after)
+just ansible apply-network-homeassistant 192.168.0.155  # one-off: move onto iot VLAN 101
 
 just ansible ping-proxmox-01    # SSH reachability (proxmox-01)
 just ansible check-proxmox-01   # dry-run + diff (fail2ban + proxmox repo config)
@@ -394,8 +397,8 @@ Then in pitower: query VictoriaMetrics for `host_name="ovh-vps"` series, and Vic
 ## `homeassistant` (HAOS) runbook
 
 Home Assistant OS on a Raspberry Pi 4 with the official PoE HAT, on the IoT network
-(`homeassistant.iot`). HAOS is an appliance: the host has **no python and no sudo**, so the
-`haos-poe-fan` role uses only `raw` tasks (and `--check` therefore skips the append task -
+(VLAN 101, `10.101.13.61`). HAOS is an appliance: the host has **no python and no sudo**, so
+both roles use only `raw` tasks (and `--check` therefore skips `haos-poe-fan`'s append task -
 the "Report pending reboot" output tells you whether a change is pending).
 
 The role appends the same PoE fan thresholds the Talos Pi workers use
@@ -404,6 +407,38 @@ to `config.txt` on the boot partition. That file is only reachable from the **HA
 not from the port-22 SSH addon container, and it is read at boot - so applying needs host
 SSH plus a reboot. `config.txt` lives on the shared `hassos-boot` partition, so the change
 survives HAOS updates (boot slots A/B only cover the OS itself).
+
+### Networking (`haos-network` role)
+
+The host sits on the **tagged iot VLAN (101)**, not the untagged LAN: `end0` keeps carrier so it
+can tag frames but holds no IP of its own, and `end0.101` owns the address and the default route -
+the same shape as the `network` role's VLAN-20 cutover on `nut`. The mechanism differs, though:
+HAOS ships **no `nmcli`**, and its `/etc/NetworkManager/system-connections/` profiles are
+Supervisor-owned (hand-written `.nmconnection` files get overwritten), so the role drives the
+Supervisor's `ha network vlan` / `ha network update` CLI over `raw`.
+
+Its address is pinned by the `homeassistant` DHCP reservation in `terraform/unifi/reservations.tf`
+(`10.101.13.61` on `unifi_network.iot`, keyed on `end0`'s MAC - a VLAN sub-interface inherits its
+parent's). That address is not cosmetic: `iot/button-plus/office-device-config.json` hardcodes it
+as the MQTT broker URL, and the Envoy Gateway `Backend` behind `ha.wibrow.dev`
+(`kubernetes/apps/pitower/home-automation/home-assistant/service.yaml`) resolves `homeassistant.iot`
+to it. **Apply the reservation before the cutover** - it lands via CI on push to `main`.
+
+The uplink is Cloud Gateway Fiber **port 1**, which has no port override and so forwards all VLANs
+by default; nothing needs changing switch-side. The role gates the destructive half on that being
+true: it waits for `end0.101` to hold a `10.101.x` lease and fails with `end0` untouched if it
+never does.
+
+Run the cutover once, over the host's **current** untagged address:
+
+```sh
+just ansible apply-network-homeassistant 192.168.0.155
+```
+
+The last task severs its own SSH session, so a `connection lost` result there is expected. Afterwards
+the inventory's `ansible_host` (`10.101.13.61`) is the way in - the workstation LAN can reach the
+iot VLAN over TCP even though ICMP is filtered, so `ping` is not a useful reachability test.
+There is no automatic rollback: recover from the HA UI's Settings -> System -> Network page.
 
 ### 1. One-time: enable HAOS developer SSH (port 22222)
 
