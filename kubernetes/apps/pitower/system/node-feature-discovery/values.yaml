@@ -12,6 +12,10 @@ worker:
       operator: Equal
       value: media-home
       effect: NoSchedule
+    - key: dedicated
+      operator: Equal
+      value: gpu
+      effect: NoSchedule
   config:
     core:
       sources:

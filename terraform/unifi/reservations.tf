@@ -28,6 +28,7 @@ locals {
     worker-08 = { mac = "dc:a6:32:4f:95:ca", fixed_ip = "10.20.10.8", network_id = unifi_network.servers.id }
     worker-09 = { mac = "dc:a6:32:4f:ee:e2", fixed_ip = "10.20.10.9", network_id = unifi_network.servers.id }
     worker-10 = { mac = "dc:a6:32:46:b2:ba", fixed_ip = "10.20.10.10", network_id = unifi_network.servers.id }
+    ai-01     = { mac = "b0:82:e2:a2:df:33", fixed_ip = "10.20.10.11", network_id = unifi_network.servers.id, note = "3090 GPU / LLM node" }
     data      = { mac = "00:11:32:0c:91:0c", fixed_ip = "10.20.10.100", network_id = unifi_network.servers.id }
   }
 }

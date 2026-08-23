@@ -70,3 +70,9 @@ nodes:
     schematicId: "@extensions/rpi-poe.yaml"
     data:
       mac: "dc:a6:32:46:b2:ba" # ex-auth, UniFi pistack-03
+  - host: ai-01
+    ip: 10.20.10.11
+    role: worker
+    schematicId: "@extensions/nvidia.yaml"
+    data:
+      mac: "b0:82:e2:a2:df:33"

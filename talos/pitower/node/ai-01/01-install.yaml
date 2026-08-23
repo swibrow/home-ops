@@ -1,0 +1,23 @@
+machine:
+  nodeLabels:
+    feature.node.kubernetes.io/nvidia-gpu: "true"
+  install:
+    diskSelector:
+      # Two NVMe drives: a 1TB Gen4 boot disk and a faster 2TB drive reserved
+      # for LLM model storage (see 02-models.yaml). Size is the only reliable
+      # way to tell them apart - nvme0n1/nvme1n1 enumeration order isn't
+      # guaranteed.
+      size: "<= 1.5TB"
+      type: nvme
+  kernel:
+    modules:
+      - name: nvidia
+      - name: nvidia_uvm
+      - name: nvidia_drm
+      - name: nvidia_modeset
+  kubelet:
+    extraConfig:
+      registerWithTaints:
+        - key: dedicated
+          value: gpu
+          effect: NoSchedule

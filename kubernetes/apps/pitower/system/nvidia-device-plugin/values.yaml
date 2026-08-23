@@ -1,0 +1,19 @@
+runtimeClassName: nvidia
+
+nodeSelector:
+  feature.node.kubernetes.io/nvidia-gpu: "true"
+
+tolerations:
+  - key: dedicated
+    operator: Equal
+    value: gpu
+    effect: NoSchedule
+
+cdi:
+  # Known Talos v1.13 gap (siderolabs/talos#13021): the device plugin's CDI
+  # spec defaults hook paths to /usr/bin/nvidia-ctk, but the
+  # nvidia-container-toolkit extension installs to /usr/local/bin - the
+  # extensions validator rejects a /usr/bin symlink, and no fix has landed
+  # upstream. Without this, any pod requesting a nvidia.com/gpu limit fails
+  # with "fork/exec /usr/bin/nvidia-ctk: no such file or directory".
+  nvidiaHookPath: /usr/local/bin/nvidia-cdi-hook

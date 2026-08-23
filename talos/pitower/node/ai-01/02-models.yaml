@@ -1,0 +1,16 @@
+---
+# 2TB Samsung 9100 Pro NVMe, the faster of ai-01's two drives, reserved for
+# LLM model weights. Selected by size (> 1.5TiB) to exclude the 1TB Gen4 boot
+# disk claimed in 01-install.yaml. Mounted at /var/mnt/models - backs the
+# openebs-hostpath-models StorageClass (kubernetes/apps/pitower/openebs).
+apiVersion: v1alpha1
+kind: UserVolumeConfig
+name: models
+provisioning:
+  diskSelector:
+    match: 'disk.size > 1500u * GiB'
+  minSize: 1500GiB
+  grow: true
+filesystem:
+  type: xfs
+  projectQuotaSupport: true

@@ -1,0 +1,11 @@
+# df5f54079be6eb904a32d699587632e17441d81ec3fd9f40a86e400798168d82
+# curl -X POST --data-binary @nvidia.yaml https://factory.talos.dev/schematics
+customization:
+  systemExtensions:
+    officialExtensions:
+      - siderolabs/util-linux-tools
+      - siderolabs/amd-ucode
+      # Open kernel modules: NVIDIA's own guidance is Turing-and-later GPUs
+      # (RTX 3090 is Ampere) should use the open flavor over proprietary.
+      - siderolabs/nvidia-open-gpu-kernel-modules-production
+      - siderolabs/nvidia-container-toolkit-production
