@@ -6,6 +6,7 @@ namespace: openebs
 resources:
   - namespace.yaml
   - storageclass-media.yaml
+  - storageclass-models.yaml
 helmCharts:
   - name: openebs
     repo: https://openebs.github.io/openebs

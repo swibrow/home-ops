@@ -1,0 +1,35 @@
+---
+# Hostpath class on ai-01's `models` volume - the 2TB Samsung 9100 Pro NVMe
+# (Talos UserVolumeConfig `models`, /var/mnt/models) reserved for LLM model
+# weights and AI scratch space.
+#
+# Works despite ai-01's dedicated=gpu:NoSchedule taint: the localpv
+# provisioner copies the selected node's taints onto its helper pods as
+# tolerations, so provisioning/cleanup schedules fine. (The llmkube model
+# cache predates this class and stays on a static PV at
+# /var/mnt/models/llmkube - same disk, different subtree.)
+#
+# XFS quotas enforce per-PVC capacity (projectQuotaSupport is on for the
+# volume), since multiple AI apps will share this disk.
+#
+# Only ai-01 has the mount, so pair any PVC's consumer with a nodeSelector
+# (or GPU resource request) that lands it there.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: openebs-hostpath-models
+  annotations:
+    openebs.io/cas-type: local
+    cas.openebs.io/config: |
+      - name: StorageType
+        value: "hostpath"
+      - name: BasePath
+        value: "/var/mnt/models/openebs/local"
+      - name: XFSQuota
+        enabled: "true"
+        data:
+          softLimitGrace: "0%"
+          hardLimitGrace: "0%"
+provisioner: openebs.io/local
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
