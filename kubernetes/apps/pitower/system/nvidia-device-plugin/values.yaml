@@ -3,6 +3,22 @@ runtimeClassName: nvidia
 nodeSelector:
   feature.node.kubernetes.io/nvidia-gpu: "true"
 
+# The chart's default nodeAffinity matches NFD's bare
+# feature.node.kubernetes.io/pci-10de.present label. Our NFD config includes
+# "class" in pci deviceLabelFields, so it publishes the more specific
+# pci-0300_10de.present instead - the default affinity never matches, and
+# nodeSelector above never gets a chance to help since both are ANDed.
+# Replace the whole nodeSelectorTerms list with our own Talos-set label.
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: feature.node.kubernetes.io/nvidia-gpu
+              operator: In
+              values:
+                - "true"
+
 tolerations:
   - key: dedicated
     operator: Equal
