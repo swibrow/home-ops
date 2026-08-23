@@ -6,9 +6,9 @@
 # the live `rook-ceph` ones; setting cephConnections/clientProfiles would
 # collide. Only cephfs is deliberately disabled (no cephfs Driver CR).
 #
-# nodePlugin tolerations let the RBD CSI plugin run on the tainted media-home
-# (worker-04 / jellyfin) and storage nodes. Resources ported from the pre-1.20
-# operator Helm csi values.
+# nodePlugin tolerations let the RBD CSI plugin run on every dedicated=* node
+# (media-home, storage, gpu, ...) - it mounts volumes wherever pods land.
+# Resources ported from the pre-1.20 operator Helm csi values.
 operatorConfig:
   create: true
   name: ceph-csi-operator-config
@@ -22,12 +22,7 @@ operatorConfig:
     nodePlugin:
       tolerations: &nodePluginTolerations
         - key: dedicated
-          operator: Equal
-          value: media-home
-          effect: NoSchedule
-        - key: dedicated
-          operator: Equal
-          value: storage
+          operator: Exists
           effect: NoSchedule
         - key: node-issue
           operator: Equal

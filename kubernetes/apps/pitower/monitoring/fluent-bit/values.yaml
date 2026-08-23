@@ -1,7 +1,8 @@
+# Log collection runs on every node, dedicated=* taints included (this was
+# value: storage only, which silently dropped worker-04 and ai-01 logs).
 tolerations:
   - key: dedicated
-    operator: Equal
-    value: storage
+    operator: Exists
     effect: NoSchedule
 
 ## https://docs.fluentbit.io/manual/administration/configuring-fluent-bit/classic-mode/configuration-file
