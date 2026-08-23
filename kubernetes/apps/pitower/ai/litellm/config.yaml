@@ -1,4 +1,4 @@
-# LiteLLM proxy config — hosted providers only (no local inference).
+# LiteLLM proxy config — hosted providers + in-cluster GPU inference.
 # Provider keys are injected as env vars from the `litellm` secret
 # (Infisical /ai/litellm/*). LITELLM_MASTER_KEY + DATABASE_URL are read
 # from the environment automatically and are not referenced here.
@@ -83,6 +83,23 @@ model_list:
       model: openai/qwen3.8-27b
       api_base: https://scale-wife-lancaster-defensive.trycloudflare.com/v1
       api_key: os.environ/VAST_PORTAL_TOKEN
+
+  # --- Local GPU (ai-01, llmkube) ---
+  # Qwen3.8-27B UD-Q4_K_M on the RTX 3090 Ti, served by llama.cpp via the
+  # llmkube InferenceService (kubernetes/apps/pitower/ai/llmkube). 64K
+  # context, vision enabled, tool calling via --jinja. `qwen3.8-27b` is
+  # already the OpenRouter alias for the same weights, hence the -local name.
+  # llama-server has no auth and ignores the model field; the dummy api_key
+  # only satisfies the openai/ provider's client constructor.
+  # Reasoning model: thinking is on by default and billed as output tokens
+  # before content appears, so callers need max_tokens headroom (low values
+  # return content:null with finish_reason:length).
+  # Single slot (parallelSlots: 1): concurrent requests queue server-side.
+  - model_name: qwen3.8-27b-local
+    litellm_params:
+      model: openai/qwen38-27b
+      api_base: http://qwen38-27b.ai.svc.cluster.local:8080/v1
+      api_key: local
 
   # --- OpenRouter (named aliases, auto-curated from the live catalog) ---
   # Newest ~5 chat models per major provider so they show in the dropdown.
