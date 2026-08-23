@@ -1,0 +1,68 @@
+# Private RAG over Paperless-ngx: a sync job that mirrors the OCR'd documents
+# into an Open-WebUI knowledge base. Retrieval, embedding (LiteLLM ->
+# qwen3-embedding-local on ai-01) and storage (pgvector on the ai CNPG
+# cluster) are Open-WebUI's own; generation is the `paperless` workspace model
+# the job pins to qwen3.8-27b-local, so nothing leaves the cluster.
+# See sync.py for what each run asserts.
+defaultPodOptions:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+
+controllers:
+  sync:
+    type: cronjob
+    cronjob:
+      schedule: "*/30 * * * *"
+      timeZone: Europe/Zurich
+      concurrencyPolicy: Forbid
+      startingDeadlineSeconds: 300
+      backoffLimit: 1
+      # Each new document is embedded synchronously on CPU; a large first
+      # import can take a while, a steady-state run seconds.
+      activeDeadlineSeconds: 3600
+      successfulJobsHistory: 1
+      failedJobsHistory: 3
+    containers:
+      app:
+        image:
+          repository: docker.io/library/python
+          tag: 3.13-slim
+        command: ["python", "/app/sync.py"]
+        env:
+          PAPERLESS_URL: http://paperless.banking.svc.cluster.local:8000
+          PAPERLESS_PUBLIC_URL: https://paperless.wibrow.dev
+          OPEN_WEBUI_URL: http://open-webui.ai.svc.cluster.local:8080
+          # Open-WebUI calls this itself, hence the in-cluster LiteLLM address
+          # rather than the job's own.
+          EMBEDDING_BASE_URL: http://litellm.ai.svc.cluster.local:4000/v1
+          EMBEDDING_MODEL: qwen3-embedding-local
+          CHAT_MODEL: qwen3.8-27b-local
+          KNOWLEDGE_NAME: Paperless
+          TZ: Europe/Zurich
+        envFrom:
+          - secretRef:
+              name: paperless-rag
+        resources:
+          requests:
+            cpu: 10m
+            memory: 64Mi
+          limits:
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
+
+persistence:
+  script:
+    type: configMap
+    name: paperless-rag-sync
+    globalMounts:
+      - path: /app
+        readOnly: true

@@ -51,3 +51,9 @@ spec:
   name: open_webui
   owner: open_webui
   databaseReclaimPolicy: retain
+  # Open-WebUI's RAG vector store (VECTOR_DB=pgvector) lives in this database.
+  # It runs CREATE EXTENSION IF NOT EXISTS vector itself, but declaring it here
+  # keeps the dependency visible and survives a rebuild of the database.
+  extensions:
+    - name: vector
+      ensure: present

@@ -1,0 +1,72 @@
+---
+# Qwen3-Embedding-0.6B (Apache 2.0): 1024-dim multilingual embeddings for the
+# Paperless RAG corpus (OCR languages deu/eng/fra, see banking/paperless).
+# The only in-cluster embedding route: LiteLLM's other one (memini-embed) is
+# OpenAI, so documents would leave the cluster.
+#
+# Q8_0 is ~640 MB and runs on CPU. The RTX 3090 Ti is allocated whole to
+# qwen38-27b (nvidia.com/gpu 1 of 1, ~22 GB of 24 GB VRAM planned), so a second
+# GPU pod would never schedule; ai-01's 16 cores are otherwise idle and a
+# personal document corpus embeds in seconds there.
+apiVersion: inference.llmkube.dev/v1alpha1
+kind: Model
+metadata:
+  name: qwen3-embedding
+spec:
+  source: hf://Qwen/Qwen3-Embedding-0.6B-GGUF
+  files:
+    - Qwen3-Embedding-0.6B-Q8_0.gguf
+  format: gguf
+  quantization: Q8_0
+  hardware:
+    accelerator: cpu
+  # Downloader/staging init container.
+  resources:
+    cpu: "1"
+    memory: "1Gi"
+---
+apiVersion: inference.llmkube.dev/v1alpha1
+kind: InferenceService
+metadata:
+  name: qwen3-embedding
+spec:
+  modelRef: qwen3-embedding
+  runtime: llamacpp
+  # Same llama.cpp build as qwen38-27b, CPU flavour.
+  image: ghcr.io/ggml-org/llama.cpp:server-b10068
+  # Appends --embedding --pooling last; Qwen3-Embedding is last-token pooled.
+  mode: embedding
+  replicas: 1
+  endpoint:
+    port: 8080
+    type: ClusterIP
+  # 640 MB re-downloads in seconds, so no cache volume: the operator runs with
+  # modelCache.enabled=false and ignores claimName anyway (ModelCacheClaimIgnored
+  # event). ephemeralStorage budgets the emptyDir the weights land in.
+  modelCache:
+    persistence: Ephemeral
+  # Pinned next to the chat model: ai-01's cores sit idle while the GPU
+  # serves, and the general workers stay free of embedding bursts. No GPU is
+  # requested, only the taint needs tolerating.
+  nodeSelector:
+    kubernetes.io/hostname: ai-01
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: gpu
+      effect: NoSchedule
+  resources:
+    cpu: "4"
+    memory: "2Gi"
+    ephemeralStorage: 2Gi
+  # Pooled embeddings need the whole input inside one ubatch, so batch sizes
+  # match the context. 8K tokens is far above Open-WebUI's ~1000-char chunks.
+  contextSize: 8192
+  batchSize: 8192
+  uBatchSize: 8192
+  parallelSlots: 1
+  # llama.cpp defaults to every core; keep it at the CPU request so it does
+  # not starve qwen38-27b's prompt processing on the same node.
+  extraArgs:
+    - --threads
+    - "4"

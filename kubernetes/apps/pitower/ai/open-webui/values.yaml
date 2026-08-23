@@ -38,6 +38,18 @@ controllers:
               secretKeyRef:
                 name: open-webui-db-secret
                 key: DB_URL
+          # RAG vector store: pgvector in the same database (PGVECTOR_DB_URL
+          # defaults to DATABASE_URL). The ai cluster ships pgvector for memini
+          # and the open_webui tenant declares the extension; nothing was ever
+          # indexed in the default Chroma store on the PVC.
+          VECTOR_DB: pgvector
+          # Column width is fixed when document_chunk is first created and a
+          # later mismatch aborts startup. 1024 = Qwen3-Embedding-0.6B
+          # (qwen3-embedding-local via LiteLLM). Engine/model themselves are
+          # persisted config, so the paperless-rag sync job sets them through
+          # the admin API rather than env.
+          PGVECTOR_INITIALIZE_MAX_VECTOR_LENGTH: "1024"
+          PGVECTOR_INDEX_METHOD: hnsw
         envFrom:
           - secretRef:
               name: open-webui
