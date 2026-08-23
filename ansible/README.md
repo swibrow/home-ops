@@ -435,10 +435,19 @@ Run the cutover once, over the host's **current** untagged address:
 just ansible apply-network-homeassistant 192.168.0.155
 ```
 
-The last task severs its own SSH session, so a `connection lost` result there is expected. Afterwards
-the inventory's `ansible_host` (`10.101.13.61`) is the way in - the workstation LAN can reach the
-iot VLAN over TCP even though ICMP is filtered, so `ping` is not a useful reachability test.
-There is no automatic rollback: recover from the HA UI's Settings -> System -> Network page.
+The last task hands `end0`'s address away through the Supervisor, which is the very transport that
+run is using, so ansible marks the host **unreachable** at the end (`ignore_unreachable: true`) -
+expected, and not a failure. The change still lands; confirm it over the new address:
+
+```sh
+just ansible apply-network-homeassistant   # no argument: re-runs over ansible_host, expect 0 changed
+```
+
+Backgrounding that task to dodge the disconnect does not work - `nohup ... &` gets killed anyway when
+dropbear tears the session's process group down, which leaves `end0` addressed and the play falsely
+green. From then on the inventory's `ansible_host` (`10.101.13.61`) is the way in; the workstation LAN
+reaches the iot VLAN over TCP even though ICMP is filtered, so `ping` is not a useful reachability
+test. There is no automatic rollback: recover from the HA UI's Settings -> System -> Network page.
 
 ### 1. One-time: enable HAOS developer SSH (port 22222)
 

@@ -27,10 +27,14 @@
   retries: 12
   delay: 5
 
-# Stripping end0 kills this SSH session (ansible_host is still the old untagged
-# address on the cutover run), so schedule it and return: a task that loses its
-# own transport reports "connection lost" whether or not it worked. Idempotency
-# is keyed off the live address, so re-runs over the new address skip it.
+# `ha network update` hands the change to the Supervisor, which drops end0's
+# address - and on the one-time cutover run ansible_host IS that address, so
+# ansible loses its own transport mid-call and reports the host unreachable.
+# The change still lands; verify over the VLAN address afterwards. Do not try to
+# dodge this by backgrounding the command: `nohup ... &` was tried and the child
+# dies anyway when dropbear tears down the session's process group, leaving end0
+# addressed and the play falsely green. Idempotency is keyed off the live
+# address, so re-runs over the new address skip it and report cleanly.
 - name: Read the parent link address
   ansible.builtin.raw: ip -4 -oneline address show {{ haos_network_parent }}
   register: haos_network_parent_addr
@@ -39,21 +43,9 @@
 
 - name: Strip the IP from the parent link (carrier only)
   ansible.builtin.raw: >-
-    nohup sh -c 'sleep 3; ha network update {{ haos_network_parent }}
-    --ipv4-method disabled --ipv6-method disabled' >/dev/null 2>&1 &
-    echo scheduled
-  when:
-    - not ansible_check_mode
-    - haos_network_parent_addr.stdout | trim != ''
-
-- name: Report the address change
-  ansible.builtin.debug:
-    msg: >-
-      {{ haos_network_parent }} is being stripped in the background - the host
-      drops off {{ haos_network_parent_addr.stdout.split()[3] | default('the untagged LAN') }}
-      and keeps only its {{ haos_network_vlan_interface }} address
-      ({{ haos_network_vlan_addr.stdout.split()[3] | default('unknown') }}).
-      Reach it at the inventory's ansible_host from here on.
+    ha network update {{ haos_network_parent }}
+    --ipv4-method disabled --ipv6-method disabled --no-progress
+  ignore_unreachable: true
   when:
     - not ansible_check_mode
     - haos_network_parent_addr.stdout | trim != ''
