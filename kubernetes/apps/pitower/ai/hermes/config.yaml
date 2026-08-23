@@ -1,10 +1,21 @@
 model:
-  default: claude-sonnet
-  provider: anthropic
+  # Local Qwen3.8-27B on ai-01 (ai/llmkube), straight to llama.cpp rather than
+  # via litellm. llama.cpp's /v1/models does not advertise the context window,
+  # so it is pinned to the InferenceService's contextSize.
+  default: qwen38-27b
+  provider: qwen-local
+  context_length: 65536
 fallback_providers:
   - provider: anthropic
     model: claude-haiku
 providers:
+  qwen-local:
+    base_url: http://qwen38-27b.ai.svc.cluster.local:8080/v1
+    api_mode: chat_completions
+    # llama.cpp has no auth; hermes still wants a non-empty key.
+    api_key: local
+    # Single llama.cpp slot: concurrent requests queue server-side.
+    request_timeout_seconds: 900
   anthropic:
     # Routed through litellm (ai/litellm) instead of api.anthropic.com directly,
     # using a litellm virtual key rather than a real Anthropic key. Model names
