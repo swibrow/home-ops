@@ -1,0 +1,10 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Single ArgoCD app (pitower-ai-llmkube), same aggregation pattern as toolhive:
+# operator (wave 0, CRDs + controller) then the Model/InferenceService CRs
+# (wave 1) in one combined sync.
+resources:
+  - llmkube-operator
+  - llmkube-models

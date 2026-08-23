@@ -1,0 +1,20 @@
+---
+# The webhook chart templates self-generate a serving cert via `lookup`, which
+# is a no-op under kustomize's `helm template` rendering - every render would
+# mint a fresh cert and keep the app permanently out of sync. CRs are still
+# schema-validated by the CRDs; run with the admission webhook off.
+webhook:
+  enabled: false
+
+# No chart-managed cache PVC: a dynamically provisioned hostpath volume needs
+# the provisioner's helper pod on the target node, which ai-01's
+# dedicated=gpu:NoSchedule taint blocks (the pod would wait forever on an
+# unbound PVC). llmkube-models instead ships a static hostPath PV/PVC on
+# ai-01's 2TB NVMe (/var/mnt/models), referenced per InferenceService via
+# spec.modelCache.claimName.
+modelCache:
+  enabled: false
+
+prometheus:
+  inferencePodMonitor:
+    enabled: true

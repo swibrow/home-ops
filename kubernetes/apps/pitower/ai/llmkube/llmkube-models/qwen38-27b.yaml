@@ -1,0 +1,82 @@
+---
+# Qwen3.8-27B (Apache 2.0, released 2026-08-14): 27.78B dense multimodal,
+# 262K native context. Sized for ai-01's single RTX 3090 Ti (24GB):
+#
+#   UD-Q4_K_M weights   ~16.5 GB  (Unsloth dynamic quant - the recommended
+#                                  quality/size point for 24GB cards; official
+#                                  FP8 is 28.76GiB and doesn't fit, and Ampere
+#                                  has no FP8 kernels anyway)
+#   mmproj (F16)         ~1   GB  vision projector - image/video input
+#   KV cache 64K @q8_0   ~2   GB  (f16 would be ~4GB)
+#   CUDA/compute buffers ~2-3 GB
+#                        -------
+#                        ~22 GB
+#
+# hf:// source + repo-relative files: the operator resolves the repo listing
+# and stages each file into the claimName cache at first serve (no prefetch -
+# that targets the chart's shared cache, which is disabled here).
+apiVersion: inference.llmkube.dev/v1alpha1
+kind: Model
+metadata:
+  name: qwen38-27b
+spec:
+  source: hf://unsloth/Qwen3.8-27B-GGUF
+  files:
+    - Qwen3.8-27B-UD-Q4_K_M.gguf
+  mmproj: mmproj-F16.gguf
+  format: gguf
+  quantization: Q4_K_M
+  hardware:
+    accelerator: cuda
+    gpu:
+      enabled: true
+      count: 1
+      vendor: nvidia
+      layers: -1
+  # Downloader/staging init container.
+  resources:
+    cpu: "2"
+    memory: "4Gi"
+---
+apiVersion: inference.llmkube.dev/v1alpha1
+kind: InferenceService
+metadata:
+  name: qwen38-27b
+spec:
+  modelRef: qwen38-27b
+  runtime: llamacpp
+  replicas: 1
+  endpoint:
+    port: 8080
+    type: ClusterIP
+  modelCache:
+    claimName: llmkube-models
+  # Talos has no cluster-default NVIDIA runtime; without this the pod lands on
+  # ai-01 but sees no /dev/nvidia*.
+  runtimeClassName: nvidia
+  # The operator's automatic GPU toleration keys off nvidia.com/gpu; ai-01's
+  # taint is dedicated=gpu (and hardware.gpu.tolerationKey can't express a
+  # slash-less key), so tolerate it explicitly.
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: gpu
+      effect: NoSchedule
+  nodeSelector:
+    feature.node.kubernetes.io/nvidia-gpu: "true"
+  resources:
+    gpu: 1
+    cpu: "4"
+    memory: "8Gi"
+  # 64K shared by a single slot: concurrent requests queue server-side rather
+  # than splitting the window (llama.cpp divides ctx across --parallel slots,
+  # and 32K halves are too small for agentic runs). Raise parallelSlots only
+  # together with a context/VRAM rethink.
+  contextSize: 65536
+  parallelSlots: 1
+  # Flash attention (fine on Ampere) is required for the quantized V cache.
+  flashAttention: true
+  cacheTypeK: q8_0
+  cacheTypeV: q8_0
+  # Jinja chat template rendering - required for OpenAI-style tool calling.
+  jinja: true

@@ -1,0 +1,18 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ai
+
+# Wave 0: CRDs (shipped in the chart's templates/) + controller install ahead
+# of the Model/InferenceService CRs (llmkube-models, wave 1).
+commonAnnotations:
+  argocd.argoproj.io/sync-wave: "0"
+
+helmCharts:
+  - name: llmkube
+    repo: oci://ghcr.io/defilantech/charts
+    version: 0.9.19
+    releaseName: llmkube
+    namespace: ai
+    valuesFile: values.yaml
