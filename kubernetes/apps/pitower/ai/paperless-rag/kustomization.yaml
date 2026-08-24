@@ -1,0 +1,20 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ai
+resources:
+  - externalsecret.yaml
+configMapGenerator:
+  - name: paperless-rag-sync
+    options:
+      disableNameSuffixHash: true
+    files:
+      - sync.py
+helmCharts:
+  - name: app-template
+    repo: oci://ghcr.io/bjw-s-labs/helm
+    version: 5.1.0
+    releaseName: paperless-rag
+    namespace: ai
+    valuesFile: values.yaml

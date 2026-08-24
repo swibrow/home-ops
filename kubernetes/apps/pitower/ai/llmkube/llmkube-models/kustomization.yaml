@@ -11,3 +11,4 @@ commonAnnotations:
 resources:
   - modelstore.yaml
   - qwen38-27b.yaml
+  - qwen3-embedding.yaml

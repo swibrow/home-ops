@@ -100,6 +100,17 @@ model_list:
       model: openai/qwen38-27b
       api_base: http://qwen38-27b.ai.svc.cluster.local:8080/v1
       api_key: local
+  # Qwen3-Embedding-0.6B (1024-dim) on ai-01's CPU, same llmkube pattern
+  # (kubernetes/apps/pitower/ai/llmkube/llmkube-models/qwen3-embedding.yaml).
+  # The only embedding route that stays in-cluster; Open-WebUI's Paperless
+  # knowledge base embeds through it.
+  - model_name: qwen3-embedding-local
+    litellm_params:
+      model: openai/qwen3-embedding
+      api_base: http://qwen3-embedding.ai.svc.cluster.local:8080/v1
+      api_key: local
+    model_info:
+      mode: embedding
 
   # --- OpenRouter (named aliases, auto-curated from the live catalog) ---
   # Newest ~5 chat models per major provider so they show in the dropdown.
