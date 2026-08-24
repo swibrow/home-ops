@@ -41,14 +41,43 @@ spec:
       name_attribute_path: name
       use_pkce: "true"
       role_attribute_path: contains(groups[*], 'admins@idm.wibrow.dev') && 'Admin' || contains(groups[*], 'people@idm.wibrow.dev') && 'Viewer'
+  # Without this the operator gives grafana-data an emptyDir, so every pod
+  # rebuild (an operator bump is enough) drops the SQLite DB and sessions, and
+  # every dashboard reads empty until all ~60 GrafanaDashboards are re-imported.
+  persistentVolumeClaim:
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      storageClassName: ceph-block
+      resources:
+        requests:
+          storage: 5Gi
   deployment:
     spec:
       strategy:
         type: Recreate
       template:
         spec:
+          # RBD hands over a root-owned filesystem; the operator's default
+          # security context runs grafana as 10001, which could not write the
+          # DB without this (rbd CSI fsGroupPolicy is File).
+          securityContext:
+            fsGroup: 10001
+          volumes:
+            # Mounted over /var/lib/grafana below rather than replacing the
+            # operator's own grafana-data volume: a strategic merge would union
+            # the two sources onto one volume, and the API rejects that. The
+            # emptyDir stays declared but unmounted.
+            - name: grafana-db
+              persistentVolumeClaim:
+                claimName: grafana-pvc
           containers:
             - name: grafana
+              volumeMounts:
+                # Merge key is mountPath, so this retargets the operator's
+                # /var/lib/grafana mount at the PVC.
+                - mountPath: /var/lib/grafana
+                  name: grafana-db
               env:
                 - name: GF_INSTALL_PLUGINS
                   # This override wins over the operator's own GF_INSTALL_PLUGINS
