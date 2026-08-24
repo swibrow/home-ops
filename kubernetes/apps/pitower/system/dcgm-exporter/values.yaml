@@ -1,0 +1,27 @@
+---
+# Same placement contract as nvidia-device-plugin: NFD-labelled GPU nodes only
+# (ai-01 today), and the node's dedicated=gpu taint has to be tolerated or the
+# DaemonSet pod never lands.
+runtimeClassName: nvidia
+
+nodeSelector:
+  feature.node.kubernetes.io/nvidia-gpu: "true"
+
+tolerations:
+  - key: dedicated
+    operator: Equal
+    value: gpu
+    effect: NoSchedule
+
+# The exporter takes no nvidia.com/gpu resource - claiming one would hand it
+# the whole card and starve inference. Device visibility comes from the nvidia
+# runtime class instead, which only injects when these are set.
+extraEnv:
+  - name: NVIDIA_VISIBLE_DEVICES
+    value: all
+  - name: NVIDIA_DRIVER_CAPABILITIES
+    value: compute,utility
+
+serviceMonitor:
+  enabled: true
+  interval: 30s

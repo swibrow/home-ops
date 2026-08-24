@@ -18,3 +18,23 @@ modelCache:
 prometheus:
   inferencePodMonitor:
     enabled: true
+
+  # GPU alerts read DCGM_FI_DEV_* from apps/pitower/system/dcgm-exporter. The
+  # inference group (InferenceServiceDown, ControllerDown, + recording rules)
+  # is a separate call on what should page and stays off here.
+  prometheusRule:
+    enabled: true
+    rules:
+      gpu:
+        enabled: true
+        # 3090 Ti: 450W TGP, so the chart's 250W default fires on every
+        # sustained inference run. Alert only above the card's own ceiling.
+        powerLimitThreshold: 460
+        # A pegged GPU is the design point of a dedicated inference host, not
+        # an incident. The chart has no per-alert toggle, so the threshold is
+        # the only mute available for GPUHighUtilization - and the schema caps
+        # it at 100, which the `> threshold` expr can never exceed on a 0-100
+        # gauge. Temperature and power still catch a card in actual trouble.
+        highUtilizationThreshold: 100
+      inference:
+        enabled: false

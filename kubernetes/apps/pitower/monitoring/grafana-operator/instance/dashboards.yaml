@@ -132,6 +132,23 @@ spec:
       dashboards: grafana
   url: https://raw.githubusercontent.com/external-secrets/external-secrets/main/docs/snippets/dashboard.json
 ---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: nvidia-dcgm
+  namespace: monitoring
+spec:
+  folder: Infrastructure
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  datasources:
+    - datasourceName: Prometheus
+      inputName: DS_PROMETHEUS
+  grafanaCom:
+    id: 12239
+    revision: 2
+---
 # Networking folder ------------------------------------------------------------
 apiVersion: grafana.integreatly.org/v1beta1
 kind: GrafanaDashboard
