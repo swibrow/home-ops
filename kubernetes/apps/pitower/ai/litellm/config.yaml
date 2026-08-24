@@ -475,6 +475,11 @@ model_list:
       model: openrouter/z-ai/glm-5.3
       api_key: os.environ/OPENROUTER_API_KEY
 
+  - model_name: deepseek-v4-flash-vision-exp
+    litellm_params:
+      model: openrouter/deepseek/deepseek-v4-flash-vision-exp
+      api_key: os.environ/OPENROUTER_API_KEY
+
   # --- OpenRouter (catch-all passthrough) ---
   # Reach any other OpenRouter model by full id, e.g. openrouter/google/gemma-4-31b-it
   - model_name: "*"
