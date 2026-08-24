@@ -30,7 +30,7 @@ controllers:
       app:
         image:
           repository: docker.io/library/python
-          tag: 3.13-slim
+          tag: 3.14-slim
         command: ["python", "/app/sync.py"]
         env:
           PAPERLESS_URL: http://paperless.banking.svc.cluster.local:8000
