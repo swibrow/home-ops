@@ -37,16 +37,18 @@ cephClusterSpec:
       # the pools (size 3 / min_size 2) MUST be active+clean first; rotating
       # while PGs are undersized drops them to 1 replica and blocks client I/O.
       #
-      # keyType is pinned rather than inferred: replacing worker-01's disk minted
-      # osd.0 fresh under auth_preferred_cipher (aes256k) while osd.1/osd.2 were
-      # still aes, and Rook logs `failed to determine authoritative cephx key
-      # type for OSDs having key types [[aes256k aes]]` when it has to guess.
+      # Deliberately no daemon.keyType here. Setting it makes Rook run the mons
+      # with --mon-auth-emergency-allowed-ciphers, which raises a standing
+      # AUTH_EMERGENCY_CIPHERS_SET warning. It is worth pinning only to break a
+      # tie: a disk replacement mints the new OSD under auth_preferred_cipher
+      # while its peers are still aes, and Rook then logs `failed to determine
+      # authoritative cephx key type for OSDs having key types [[aes256k aes]]`.
+      # Pin it for that rotation, then take it back out.
       daemon:
         keyRotationPolicy: KeyGeneration
         keyGeneration: 2
-        keyType: aes256k
       # Do NOT rotate the CSI keys to aes256k yet, and do NOT set
-      # allowedCiphers: [aes256k] — both strand every RBD client. Gated on:
+      # allowedCiphers: [aes256k]; both strand every RBD client. Gated on:
       #   - Linux kernel >= 7.0 on all nodes (Talos ships 6.18.33 today)
       #   - ceph-csi >= v3.17.1 (running v3.17.0)
       # Until both clear, the remaining AUTH_INSECURE_* checks stay [WRN].
