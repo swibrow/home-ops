@@ -3,7 +3,7 @@ import { renderJson, renderPage } from "./render";
 
 export interface Env {
   /** Last-known-good snapshot. The only reason this page survives an outage. */
-  SNAPSHOT: KVNamespace;
+  STATUS_SNAPSHOT: KVNamespace;
   /** kromgo origin, e.g. https://kromgo.wibrow.dev. */
   KROMGO_ORIGIN: string;
 }
@@ -18,7 +18,7 @@ const KEY = "snapshot:v1";
 const FRESH_FOR_MS = 60 * 1000;
 
 async function readSnapshot(env: Env): Promise<Snapshot | null> {
-  return await env.SNAPSHOT.get<Snapshot>(KEY, "json");
+  return await env.STATUS_SNAPSHOT.get<Snapshot>(KEY, "json");
 }
 
 async function refresh(env: Env, now: number): Promise<Snapshot | null> {
@@ -26,7 +26,7 @@ async function refresh(env: Env, now: number): Promise<Snapshot | null> {
   // Only a successful fetch is ever written. A failed one must leave the
   // stored snapshot alone - overwriting it with nothing is how a status page
   // ends up blank at the exact moment it matters.
-  if (snapshot) await env.SNAPSHOT.put(KEY, JSON.stringify(snapshot));
+  if (snapshot) await env.STATUS_SNAPSHOT.put(KEY, JSON.stringify(snapshot));
   return snapshot;
 }
 
