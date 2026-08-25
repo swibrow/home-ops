@@ -11,8 +11,16 @@
 - name: Create the tagged VLAN interface
   ansible.builtin.raw: >-
     ha network vlan {{ haos_network_parent }} {{ haos_network_vlan_id }}
-    --ipv4-method auto --ipv6-method disabled
+    --ipv4-method auto --ipv6-method auto
   when: haos_network_info.stdout is not search('"vlan":\{"id":' ~ haos_network_vlan_id)
+
+- name: Enable IPv6 on the VLAN interface
+  ansible.builtin.raw: >-
+    ha network update {{ haos_network_vlan_interface }}
+    --ipv6-method auto --no-progress
+  when:
+    - haos_network_info.stdout is search('"vlan":\{"id":' ~ haos_network_vlan_id)
+    - haos_network_info.stdout is not search('"ipv6":\{"method":"auto"')
 
 # The gate on the whole cutover: end0 is only stripped once the VLAN holds a
 # real iot lease. If the switch port ever stops trunking VLAN 101, this fails

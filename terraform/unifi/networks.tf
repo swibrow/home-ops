@@ -6,10 +6,10 @@
 # The ipv6_* / dhcp_v6_* blocks below are not aspirational config: the provider
 # schema defaults them to RFC lifetimes (86400/14400) and dhcp_v6_dns_auto=true,
 # while this controller stores 0/false. Left unset, adoption would write those
-# defaults back on every network. Inert on the four with ipv6_interface_type
-# "none", but "Default" carries the ISP prefix delegation, where the same drift
-# would have flipped ipv6_ra_enable true -> null and dropped router
-# advertisements on the main LAN. Pin them to the live values instead.
+# defaults back on every network. Inert on the three with ipv6_interface_type
+# "none", but "Default" and "iot" carry a slice of the ISP prefix delegation,
+# where the same drift would have flipped ipv6_ra_enable true -> null and
+# dropped router advertisements. Pin them to the live values instead.
 
 resource "unifi_network" "default" {
   name    = "Default"
@@ -58,10 +58,11 @@ resource "unifi_network" "iot" {
   dhcp_stop    = "10.101.255.254"
   domain_name  = "iot"
 
-  dhcp_v6_dns_auto           = false
-  dhcp_v6_lease              = 0
-  ipv6_ra_preferred_lifetime = 0
-  ipv6_ra_valid_lifetime     = 0
+  # PD sub-prefix from the same ISP delegation as Default - needed for the
+  # Thread border router behind HA's Matter integration.
+  ipv6_interface_type    = "pd"
+  ipv6_ra_enable         = true
+  ipv6_ra_valid_lifetime = 0
 
   multicast_dns = true
 }
