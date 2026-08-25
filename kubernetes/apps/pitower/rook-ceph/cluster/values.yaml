@@ -181,7 +181,7 @@ cephClusterSpec:
           - name: "/dev/disk/by-id/ata-SanDisk_SD7SB2Q512G1001_153141400183"
       - name: "worker-02"
         devices:
-          - name: "/dev/disk/by-id/ata-SAMSUNG_MZ7PC128HAFU-000L5_S11VNSAD307242"
+          - name: "/dev/disk/by-id/ata-Samsung_SSD_850_EVO_500GB_S21JNSAG160704R"
       - name: "worker-03"
         devices:
           - name: "/dev/disk/by-id/ata-SAMSUNG_MZ7PC128HAFU-000L5_S11VNSAD307250"
