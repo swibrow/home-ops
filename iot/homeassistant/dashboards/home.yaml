@@ -642,6 +642,12 @@ views:
             name: Dimmer
             icon: mdi:ceiling-light
           - type: custom:bubble-card
+            card_type: button
+            entity: light.bedroom_juno_strip
+            button_type: slider
+            name: LED Strip
+            icon: mdi:led-strip-variant
+          - type: custom:bubble-card
             card_type: separator
             name: Climate
             icon: mdi:thermometer

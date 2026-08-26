@@ -1,0 +1,150 @@
+# Sunrise wake-up for the Govee H612A strip in Bedroom (juno).
+#
+# The strip has 10 addressable segments. Each frame gives every segment its own
+# point on a shared dawn gradient, offset by its position, so the light washes
+# along the strip instead of the whole thing brightening at once.
+#
+# Segment entities are assumed_state - HA never reads the strip back, so the
+# script is the only source of truth while it runs.
+
+input_boolean:
+  bedroom_juno_sunrise:
+    name: Bedroom Juno Sunrise
+    icon: mdi:weather-sunset-up
+
+script:
+  bedroom_juno_sunrise:
+    alias: Bedroom Juno - Sunrise
+    icon: mdi:weather-sunset-up
+    mode: restart
+    fields:
+      duration_minutes:
+        name: Duration
+        description: Total length of the sunrise.
+        default: 25
+        selector:
+          number: { min: 1, max: 90, step: 1, unit_of_measurement: min }
+      frames:
+        name: Frames
+        description: Number of animation steps. More frames = smoother, more traffic.
+        default: 75
+        selector:
+          number: { min: 10, max: 300, step: 5 }
+      spread:
+        name: Spread
+        description: >-
+          How far the segments lag behind each other. 0 = whole strip moves as
+          one, 1 = the last segment only starts as the first one finishes.
+        default: 0.6
+        selector:
+          number: { min: 0, max: 1, step: 0.05 }
+      reverse:
+        name: Reverse
+        description: Sweep from the last segment towards the first.
+        default: false
+        selector:
+          boolean:
+
+    sequence:
+      - variables:
+          seg_prefix: light.bedroom_juno_strip_segment_
+          segment_count: 10
+          n_frames: "{{ frames | default(75) | int }}"
+          mins: "{{ duration_minutes | default(25) | float }}"
+          sp: "{{ spread | default(0.6) | float }}"
+          rev: "{{ reverse | default(false) | bool }}"
+          # Dawn gradient: ember -> red -> orange -> amber -> warm daylight.
+          keyframes:
+            - [0.00, 60, 0, 0]
+            - [0.25, 255, 40, 0]
+            - [0.50, 255, 100, 10]
+            - [0.75, 255, 160, 60]
+            - [1.00, 255, 214, 150]
+
+      - variables:
+          interval: "{{ (mins | float * 60) / (n_frames | int) }}"
+
+      - alias: Start dark so the first frame has somewhere to rise from
+        action: light.turn_on
+        target:
+          entity_id: light.bedroom_juno_strip
+        data:
+          rgb_color: [60, 0, 0]
+          brightness: 1
+
+      - repeat:
+          count: "{{ n_frames | int }}"
+          sequence:
+            - variables:
+                frame: >-
+                  {% set p = repeat.index / (n_frames | int) %}
+                  {% set n = segment_count | int %}
+                  {% set kf = keyframes %}
+                  {% set ns = namespace(out=[]) %}
+                  {% for i in range(n) %}
+                    {% set pos = i / (n - 1) %}
+                    {% set pos = (1 - pos) if rev else pos %}
+                    {% set lv = (p * (1 + sp)) - (pos * sp) %}
+                    {% set lv = 0 if lv < 0 else (1 if lv > 1 else lv) %}
+                    {% set cns = namespace(c=[kf[-1][1], kf[-1][2], kf[-1][3]]) %}
+                    {% for j in range(kf | length - 1) %}
+                      {% if lv >= kf[j][0] and lv <= kf[j + 1][0] %}
+                        {% set span = kf[j + 1][0] - kf[j][0] %}
+                        {% set t = 0 if span == 0 else (lv - kf[j][0]) / span %}
+                        {% set cns.c = [
+                             (kf[j][1] + (kf[j + 1][1] - kf[j][1]) * t) | round | int,
+                             (kf[j][2] + (kf[j + 1][2] - kf[j][2]) * t) | round | int,
+                             (kf[j][3] + (kf[j + 1][3] - kf[j][3]) * t) | round | int ] %}
+                      {% endif %}
+                    {% endfor %}
+                    {% set br = (255 * (lv ** 2)) | round | int %}
+                    {% set br = 1 if br < 1 else br %}
+                    {% set ns.out = ns.out + [ {
+                         'e': seg_prefix ~ ('%03d' | format(i + 1)),
+                         'c': cns.c,
+                         'b': br } ] %}
+                  {% endfor %}
+                  {{ ns.out }}
+
+            - repeat:
+                for_each: "{{ frame }}"
+                sequence:
+                  - action: light.turn_on
+                    target:
+                      entity_id: "{{ repeat.item.e }}"
+                    data:
+                      rgb_color: "{{ repeat.item.c }}"
+                      brightness: "{{ repeat.item.b }}"
+
+            - delay:
+                seconds: "{{ interval | float | round(2) }}"
+
+automation:
+  - alias: Bedroom Juno - Sunrise (07:00)
+    id: bedroom_juno_sunrise
+    mode: single
+    triggers:
+      - trigger: time
+        at: "07:00:00"
+    conditions:
+      - condition: state
+        entity_id: input_boolean.bedroom_juno_sunrise
+        state: "on"
+    actions:
+      - action: script.bedroom_juno_sunrise
+
+  # The sunrise ends at full warm white and would otherwise stay there all day.
+  - alias: Bedroom Juno - Sunrise Off (08:00)
+    id: bedroom_juno_sunrise_off
+    mode: single
+    triggers:
+      - trigger: time
+        at: "08:00:00"
+    conditions:
+      - condition: state
+        entity_id: input_boolean.bedroom_juno_sunrise
+        state: "on"
+    actions:
+      - action: light.turn_off
+        target:
+          entity_id: light.bedroom_juno_strip

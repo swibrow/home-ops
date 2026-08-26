@@ -8,6 +8,7 @@ clusterRoleBinding:
   clusterRoleName: cluster-admin
 
 config:
+  inClusterContextName: pitower
   pluginsDir: /headlamp/plugins
   watchPlugins: true
   oidc:
