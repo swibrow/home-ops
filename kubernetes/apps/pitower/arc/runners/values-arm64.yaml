@@ -46,7 +46,7 @@ template:
       kubernetes.io/arch: arm64
     initContainers:
       - name: init-dind-externals
-        image: ghcr.io/actions/actions-runner:2.336.0
+        image: ghcr.io/actions/actions-runner:2.337.0
         command: ["cp"]
         args: ["-r", "/home/runner/externals/.", "/home/runner/tmpDir/"]
         volumeMounts:
