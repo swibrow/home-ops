@@ -44,7 +44,9 @@ metadata:
 spec:
   modelRef: qwen38-27b
   runtime: llamacpp
-  replicas: 1
+  # replicas is deliberately unset: KEDA owns it via the ScaledObject in
+  # qwen38-27b-autoscale.yaml and drives it between 0 and 1. Pinning it here
+  # would make ArgoCD fight the scaler on every sync.
   endpoint:
     port: 8080
     type: ClusterIP

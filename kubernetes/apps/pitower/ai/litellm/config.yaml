@@ -98,7 +98,10 @@ model_list:
   - model_name: qwen3.8-27b-local
     litellm_params:
       model: openai/qwen38-27b
-      api_base: http://qwen38-27b.ai.svc.cluster.local:8080/v1
+      # -scaled, not the Service: routes through the KEDA HTTP interceptor so
+      # an idle-scaled pod wakes on request instead of connection-refused.
+      # First call after an idle window blocks on a ~1-2 min cold start.
+      api_base: http://qwen38-27b-scaled.ai.svc.cluster.local:8080/v1
       api_key: local
   # Qwen3-Embedding-0.6B (1024-dim) on ai-01's CPU, same llmkube pattern
   # (kubernetes/apps/pitower/ai/llmkube/llmkube-models/qwen3-embedding.yaml).

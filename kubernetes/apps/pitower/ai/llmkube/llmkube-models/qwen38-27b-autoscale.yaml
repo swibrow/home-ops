@@ -1,0 +1,76 @@
+---
+# Idle scale-to-zero for the GPU. ai-01 has one RTX 3090 Ti and the device
+# plugin advertises nvidia.com/gpu: 1, so a running qwen38-27b holds the only
+# allocatable GPU whether or not it is serving - and llama.cpp keeps all 19GB
+# of weights + KV cache resident in VRAM at 0% utilisation. Releasing it on
+# idle is what frees the card for other GPU work.
+#
+# Alias for the interceptor: the KEDA HTTP interceptor demuxes backends by Host
+# header, so every scaled backend needs a hostname of its own. In-cluster
+# callers reach this one at qwen38-27b-scaled.ai.svc.cluster.local:8080, which
+# CNAMEs to the interceptor and presents that name as Host. (echo-server gets
+# the same effect from its public HTTPRoute hostname; there is no HTTPRoute
+# here - litellm and hermes call the Service directly.)
+apiVersion: v1
+kind: Service
+metadata:
+  name: qwen38-27b-scaled
+spec:
+  type: ExternalName
+  externalName: keda-add-ons-http-interceptor-proxy.system.svc.cluster.local
+---
+apiVersion: http.keda.sh/v1beta1
+kind: InterceptorRoute
+metadata:
+  name: qwen38-27b
+spec:
+  # The operator-owned Service in front of the llama.cpp pods.
+  target:
+    service: qwen38-27b
+    port: 8080
+  rules:
+    # Go clients send Host with the port; some send the short form. Match every
+    # spelling of the alias rather than depend on the interceptor normalising.
+    - hosts:
+        - qwen38-27b-scaled.ai.svc.cluster.local
+        - qwen38-27b-scaled.ai.svc.cluster.local:8080
+        - qwen38-27b-scaled.ai
+        - qwen38-27b-scaled
+  # parallelSlots: 1 - llama.cpp serves one request at a time and queues the
+  # rest, so a single in-flight request already saturates the backend.
+  scalingMetric:
+    concurrency:
+      targetValue: 1
+  timeouts:
+    # Cold start = pod schedule + llama.cpp loading ~17GB off the model cache
+    # PVC into VRAM. The interceptor holds the request open for this long.
+    readiness: 300s
+    # Prompt processing on a 64K context runs well past any default before the
+    # first token, and generation streams for minutes after.
+    responseHeader: 300s
+    request: 0s
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: qwen38-27b
+spec:
+  # Targets the InferenceService, NOT its Deployment: the llmkube operator
+  # reconciles Deployment replicas from the CR's spec.replicas and would undo
+  # anything KEDA wrote there. The CRD exposes a scale subresource
+  # (.spec.replicas / .status.replicas) and KEDA's ClusterRole already grants
+  # */scale, so it drives the CR directly and the operator follows.
+  scaleTargetRef:
+    name: qwen38-27b
+    kind: InferenceService
+    apiVersion: inference.llmkube.dev/v1alpha1
+  minReplicaCount: 0
+  maxReplicaCount: 1
+  # Idle window before the GPU is released, traded off against a ~1-2 min cold
+  # start on the next request.
+  cooldownPeriod: 900
+  triggers:
+    - type: external-push
+      metadata:
+        scalerAddress: keda-add-ons-http-external-scaler.system:9090
+        interceptorRoute: qwen38-27b

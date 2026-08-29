@@ -10,4 +10,5 @@ commonAnnotations:
 
 resources:
   - qwen38-27b.yaml
+  - qwen38-27b-autoscale.yaml
   - qwen3-embedding.yaml

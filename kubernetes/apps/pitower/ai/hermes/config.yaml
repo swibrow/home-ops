@@ -10,7 +10,9 @@ fallback_providers:
     model: claude-haiku
 providers:
   qwen-local:
-    base_url: http://qwen38-27b.ai.svc.cluster.local:8080/v1
+    # -scaled, not the Service: routes through the KEDA HTTP interceptor so an
+    # idle-scaled pod wakes on request instead of connection-refused.
+    base_url: http://qwen38-27b-scaled.ai.svc.cluster.local:8080/v1
     api_mode: chat_completions
     # llama.cpp has no auth; hermes still wants a non-empty key.
     api_key: local
