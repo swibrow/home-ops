@@ -1,0 +1,119 @@
+controllers:
+  comfyui:
+    annotations:
+      reloader.stakater.com/auto: "true"
+    # Recreate, not RollingUpdate: nvidia.com/gpu is a whole-number resource
+    # with exactly one on the node, so a new pod can never schedule beside the
+    # old one and a rolling update would deadlock.
+    strategy: Recreate
+    initContainers:
+      fetch-models:
+        image:
+          repository: docker.io/curlimages/curl
+          tag: 8.18.0
+        command:
+          - /bin/sh
+          - /scripts/fetch-models.sh
+    containers:
+      app:
+        image:
+          repository: ghcr.io/cloudsnacks/comfyui
+          tag: 0.34.0
+        args:
+          - --listen
+          - 0.0.0.0
+          - --port
+          - "8188"
+        resources:
+          requests:
+            cpu: "2"
+            memory: 8Gi
+          limits:
+            nvidia.com/gpu: 1
+            memory: 24Gi
+        probes:
+          liveness:
+            enabled: true
+          readiness:
+            enabled: true
+          startup:
+            enabled: true
+            spec:
+              # Torch + CUDA init before the HTTP server binds; the interceptor
+              # holds the waking request until this passes.
+              failureThreshold: 60
+              periodSeconds: 5
+defaultPodOptions:
+  # Talos has no cluster-default NVIDIA runtime; without this the pod lands on
+  # ai-01 but sees no /dev/nvidia*.
+  runtimeClassName: nvidia
+  nodeSelector:
+    feature.node.kubernetes.io/nvidia-gpu: "true"
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: gpu
+      effect: NoSchedule
+  securityContext:
+    runAsUser: 1001
+    runAsGroup: 1001
+    fsGroup: 1001
+    fsGroupChangePolicy: OnRootMismatch
+service:
+  app:
+    ports:
+      http:
+        port: 8188
+persistence:
+  models:
+    existingClaim: comfyui-models
+    advancedMounts:
+      comfyui:
+        fetch-models:
+          - path: /models
+        app:
+          - path: /opt/comfyui/models
+  data:
+    existingClaim: comfyui-data
+    advancedMounts:
+      comfyui:
+        app:
+          - path: /opt/comfyui/output
+            subPath: output
+          - path: /opt/comfyui/input
+            subPath: input
+          - path: /opt/comfyui/user
+            subPath: user
+  scripts:
+    type: configMap
+    name: comfyui-fetch-models
+    defaultMode: 0555
+    advancedMounts:
+      comfyui:
+        fetch-models:
+          - path: /scripts
+  # ComfyUI writes decoded frames here during a render; keep it off the image's
+  # read-only-ish layer and out of the replicated volume.
+  temp:
+    type: emptyDir
+    advancedMounts:
+      comfyui:
+        app:
+          - path: /opt/comfyui/temp
+route:
+  app:
+    enabled: true
+    hostnames:
+      - comfyui.wibrow.dev
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+    # Through the KEDA interceptor rather than straight to the Service, so the
+    # GPU is released on idle and a request wakes it. Cross-namespace backendRef
+    # needs the ReferenceGrant in the system namespace.
+    rules:
+      - backendRefs:
+          - name: keda-add-ons-http-interceptor-proxy
+            namespace: system
+            port: 8080

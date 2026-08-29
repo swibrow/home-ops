@@ -1,0 +1,43 @@
+---
+apiVersion: http.keda.sh/v1beta1
+kind: InterceptorRoute
+metadata:
+  name: comfyui
+spec:
+  target:
+    service: comfyui
+    port: 8188
+  rules:
+    - hosts:
+        - comfyui.wibrow.dev
+  scalingMetric:
+    concurrency:
+      targetValue: 1
+  timeouts:
+    # Pod schedule plus torch/CUDA init before the UI answers.
+    readiness: 300s
+    request: 0s
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: comfyui
+spec:
+  scaleTargetRef:
+    name: comfyui
+    kind: Deployment
+    apiVersion: apps/v1
+  minReplicaCount: 0
+  maxReplicaCount: 1
+  # An hour, far longer than the LLM's 15 minutes, because ComfyUI's HTTP
+  # contract lies about how busy it is: /prompt queues a job and returns a
+  # prompt_id immediately, so in-flight request count drops to zero while the
+  # GPU is still rendering. An open browser tab holds the /ws websocket and
+  # keeps the count above zero, but a headless API caller does not - and a short
+  # cooldown would scale the pod away mid-render.
+  cooldownPeriod: 3600
+  triggers:
+    - type: external-push
+      metadata:
+        scalerAddress: keda-add-ons-http-external-scaler.system:9090
+        interceptorRoute: comfyui

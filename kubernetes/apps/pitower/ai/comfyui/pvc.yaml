@@ -1,0 +1,28 @@
+---
+# Weights live on ai-01's 2TB NVMe: large, re-downloadable, and only ever read
+# by a pod pinned to that node anyway.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: comfyui-models
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: openebs-hostpath-models
+  resources:
+    requests:
+      storage: 200Gi
+---
+# Renders and saved workflows are the only irreplaceable data here, so they go
+# on replicated ceph rather than node-local disk.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: comfyui-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ceph-block
+  resources:
+    requests:
+      storage: 50Gi

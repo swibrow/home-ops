@@ -13,6 +13,9 @@ spec:
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
       namespace: selfhosted
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: ai
   to:
     - group: ""
       kind: Service
