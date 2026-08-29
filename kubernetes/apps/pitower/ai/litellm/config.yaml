@@ -483,6 +483,19 @@ model_list:
       model: openrouter/deepseek/deepseek-v4-flash-vision-exp
       api_key: os.environ/OPENROUTER_API_KEY
 
+  - model_name: qwen3.8-flash
+    litellm_params:
+      model: openrouter/qwen/qwen3.8-flash
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: glm-5.3-flash
+    litellm_params:
+      model: openrouter/z-ai/glm-5.3-flash
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: glm-5.3-flash:batch
+    litellm_params:
+      model: openrouter/z-ai/glm-5.3-flash:batch
+      api_key: os.environ/OPENROUTER_API_KEY
+
   # --- OpenRouter (catch-all passthrough) ---
   # Reach any other OpenRouter model by full id, e.g. openrouter/google/gemma-4-31b-it
   - model_name: "*"
