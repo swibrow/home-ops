@@ -6,14 +6,33 @@
 webhook:
   enabled: false
 
-# No chart-managed cache PVC: a dynamically provisioned hostpath volume needs
-# the provisioner's helper pod on the target node, which ai-01's
-# dedicated=gpu:NoSchedule taint blocks (the pod would wait forever on an
-# unbound PVC). llmkube-models instead ships a static hostPath PV/PVC on
-# ai-01's 2TB NVMe (/var/mnt/models), referenced per InferenceService via
-# spec.modelCache.claimName.
+# Weights cache on ai-01's 2TB NVMe via openebs-hostpath-models. The taint is
+# not an obstacle: the localpv provisioner copies the target node's taints onto
+# its helper pods, so dynamic provisioning schedules fine behind
+# dedicated=gpu:NoSchedule.
+#
+# `enabled` must stay true for any caching at all. With it false the chart
+# renders `--model-cache-path=`, which disables the cache subsystem wholesale -
+# including a per-InferenceService spec.modelCache.claimName, which the operator
+# then rejects with a ModelCacheClaimIgnored event and serves from an emptyDir
+# that re-downloads every weight on every pod restart.
+#
+# perService, NOT shared: in shared mode the chart mounts the one cache PVC into
+# the controller-manager pod too, and that pod has no dedicated=gpu toleration.
+# It would land on a general worker, become the WaitForFirstConsumer PVC's first
+# consumer, and pin the hostpath to a node with no /var/mnt/models - leaving the
+# ai-01 inference pods unable to bind it. perService gives the operator an
+# emptyDir instead and provisions one `<isvc>-model-cache` PVC per service that
+# binds on the serving node. The cost is no cross-model dedup, which is worth
+# nothing here: the chat and embedding models share no files.
 modelCache:
-  enabled: false
+  enabled: true
+  mode: perService
+  storageClass: openebs-hostpath-models
+  # Per-service, and XFS project quota makes it a hard limit. Roomy against
+  # today's ~17GB so a larger model does not need a values edit, but well under
+  # the disk so several services can coexist.
+  size: 200Gi
 
 prometheus:
   inferencePodMonitor:

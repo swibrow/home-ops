@@ -40,11 +40,6 @@ spec:
   endpoint:
     port: 8080
     type: ClusterIP
-  # 640 MB re-downloads in seconds, so no cache volume: the operator runs with
-  # modelCache.enabled=false and ignores claimName anyway (ModelCacheClaimIgnored
-  # event). ephemeralStorage budgets the emptyDir the weights land in.
-  modelCache:
-    persistence: Ephemeral
   # Pinned next to the chat model: ai-01's cores sit idle while the GPU
   # serves, and the general workers stay free of embedding bursts. No GPU is
   # requested, only the taint needs tolerating.
