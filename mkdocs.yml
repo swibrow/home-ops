@@ -161,6 +161,7 @@ nav:
       - Troubleshooting: operations/troubleshooting.md
       - Upgrades: operations/upgrades.md
       - CNPG Consolidation: operations/cnpg-consolidation.md
+      - Agent Sandbox v1 Upgrade: operations/agent-sandbox-v1-upgrade.md
   - CI/CD:
       - ci-cd/index.md
       - GitHub Actions: ci-cd/github-actions.md

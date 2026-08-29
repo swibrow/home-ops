@@ -2,18 +2,24 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-# Vendored from github.com/kubernetes-sigs/agent-sandbox release v0.5.0:
-#   manifest.yaml   -> controller.yaml   (core CRD, RBAC, ns, service)
+# Vendored from github.com/kubernetes-sigs/agent-sandbox release v1.0.0:
+#   sandbox.yaml    -> controller.yaml   (core CRD, RBAC, ns, service)
 #   extensions.yaml -> extensions.yaml   (3 extension CRDs, RBAC, controller Deployment)
 # On version bump, re-download both assets, then strip the duplicate Deployment from
 # controller.yaml (it is re-declared in extensions.yaml WITH the --extensions flag,
 # which enables the SandboxClaim/Template/WarmPool reconcilers):
-#   yq eval 'select(.kind != "Deployment")' manifest.yaml > controller.yaml
+#   yq eval 'select(.kind != "Deployment")' sandbox.yaml > controller.yaml
 # Renovate bumps the image tag in extensions.yaml automatically but NOT the vendored
 # manifests — re-run the above by hand on every version bump, or RBAC/CRDs drift from
 # the running image (as happened going from v0.4.6 to v0.5.0: missing CRD-patch
 # permission on the ClusterRole broke the controller for 7 days).
-#   controller image: registry.k8s.io/agent-sandbox/agent-sandbox-controller:v0.5.0
+#   controller image: registry.k8s.io/agent-sandbox/agent-sandbox-controller:v1.0.0
+# v1.0.0 dropped v1alpha1 and the conversion webhook, so the CRDs serve v1beta1 only.
+# The API server rejects that CRD apply while v1alpha1 is still in status.storedVersions
+# — run the storage migration (docs/agent-sandbox-v1-upgrade.md) BEFORE this syncs.
+# The webhook Service/Role/RoleBinding left this kustomization in the same bump and are
+# pruned by Argo CD; Secret/agent-sandbox-webhook-certs was controller-created, is not
+# tracked here, and has to be deleted by hand.
 # Resources carry their own namespace (agent-sandbox-system) + cluster-scoped CRDs,
 # so this kustomization deliberately does NOT set a namespace transformer.
 resources:

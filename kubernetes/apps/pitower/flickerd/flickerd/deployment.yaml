@@ -41,8 +41,6 @@ spec:
               value: https://flickerd.com
             - name: FLICKERD_NAMESPACE
               value: flickerd
-            - name: FLICKERD_SANDBOX_TEMPLATE
-              value: flickerd
             - name: FLICKERD_WARMPOOL
               value: flickerd
             - name: FLICKERD_CONCURRENCY
