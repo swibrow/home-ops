@@ -31,7 +31,7 @@ controllers:
       migrate:
         image:
           repository: ghcr.io/swibrow/ratcomps
-          tag: v0.3.0
+          tag: v0.3.1
         command: ["alembic"]
         args: ["upgrade", "head"]
         env: &dbEnv
@@ -50,7 +50,7 @@ controllers:
       app:
         image:
           repository: ghcr.io/swibrow/ratcomps
-          tag: v0.3.0
+          tag: v0.3.1
         # The image entrypoint is already uvicorn; only the app path is set here.
         args:
           - ratcomps.api:app
@@ -98,7 +98,7 @@ controllers:
       app:
         image:
           repository: ghcr.io/swibrow/rathunter
-          tag: v0.3.0
+          tag: v0.3.1
         # The image entrypoint is the `rathunter` CLI; `serve` is the dispatcher
         # loop. It replaces the old hourly scrape CronJob — the schedule now
         # lives in the `watches` table, not in cron.

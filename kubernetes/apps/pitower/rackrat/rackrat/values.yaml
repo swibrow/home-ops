@@ -28,7 +28,7 @@ controllers:
       app:
         image:
           repository: ghcr.io/swibrow/rackrat-web
-          tag: v0.3.0
+          tag: v0.3.1
         # The image entrypoint is already uvicorn; only the app path is set here.
         args:
           - rackrat_web.api:app
