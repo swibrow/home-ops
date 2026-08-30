@@ -1,77 +1,53 @@
-# rackrat — comps database for second-hand server hardware.
+# rackrat — the rack planner and host-vs-rent calculator.
 #
-# Two controllers off one image: the api Deployment (FastAPI + the rack planner
-# at /planner) and the hourly scrape CronJob. Image tags are patched by rackrat's
-# own CI on release (swibrow/rackrat .github/workflows/ci.yaml, deploy-pitower
-# job), which expects all three tag fields below to exist.
+# Look at what is *not* here: no database URL, no Infisical secretRef, no
+# marketplace credentials, no Anthropic key. This service reaches the market
+# through ratcomps (../rackrat-comps) over HTTP and holds nothing it could leak.
+# That is the point of the split, and it is why this image is a slim Python base
+# rather than the ~2GB Playwright one.
+#
+# It also starts and serves without ratcomps. The market pane comes up empty and
+# /market/status says why; the planner is still a planner.
+#
+# The image tag is patched by rackrat's own CI on release (swibrow/rackrat
+# .github/workflows/ci.yaml, deploy-pitower job), which expects the tag field
+# under controllers.web to exist.
 
-# A freshly published ghcr package is private by default, and both controllers
-# pull the same one. The ghcr-pull-secret ClusterExternalSecret already lands in
-# every namespace, so this only has to reference it.
+# A freshly published ghcr package is private by default. The ghcr-pull-secret
+# ClusterExternalSecret already lands in every namespace, so this only has to
+# reference it.
 defaultPodOptions:
   imagePullSecrets:
     - name: ghcr-pull-secret
 controllers:
-  api:
+  web:
     strategy: RollingUpdate
     annotations:
       reloader.stakater.com/auto: "true"
-    initContainers:
-      # Ordering matters: `reference sync` loads cpus.yaml/chassis.yaml into
-      # hardware_reference, so the tables have to exist first.
-      migrate:
-        image:
-          repository: ghcr.io/swibrow/rackrat
-          tag: v0.2.1
-        command: ["sh", "-c"]
-        args: ["alembic upgrade head && rackrat reference sync"]
-        env: &env
-          TZ: Europe/Zurich
-          # Routed through litellm (ai/litellm) rather than api.anthropic.com
-          # directly; RACKRAT_ANTHROPIC_API_KEY (rackrat-secret, when populated
-          # in Infisical) should hold a litellm virtual key, not a real Anthropic
-          # key. Model names are litellm's own aliases, not real Anthropic ids —
-          # assumes rackrat's Anthropic client respects a base_url override the
-          # same way the official SDK does; verify against rackrat's own code.
-          RACKRAT_ANTHROPIC_BASE_URL: http://litellm.ai.svc.cluster.local:4000
-          RACKRAT_TEXT_MODEL: claude-sonnet
-          RACKRAT_VISION_MODEL: claude-opus
-          # CHF per kWh — feeds tco_3yr, so a wrong value silently reorders
-          # every ranking rather than failing.
-          RACKRAT_ELECTRICITY_RATE: "0.28"
-          # Marketplace Insights (sold prices) is gated access; without it the
-          # eBay adapter contributes asking prices only.
-          RACKRAT_EBAY_INSIGHTS_ENABLED: "false"
-          # The cnpg-db component emits this as DB_URL; rackrat reads it under
-          # its own RACKRAT_ prefix (pydantic-settings env_prefix).
-          RACKRAT_DATABASE_URL:
-            valueFrom:
-              secretKeyRef:
-                name: rackrat-db-secret
-                key: DB_URL
-        envFrom: &envFrom
-          - secretRef:
-              name: rackrat-secret
-              # Every key in it is optional, so ESO emits no Secret at all while
-              # /rackrat is empty in Infisical. Without this the pods sit in
-              # CreateContainerConfigError instead of running degraded.
-              optional: true
     containers:
       app:
         image:
-          repository: ghcr.io/swibrow/rackrat
+          repository: ghcr.io/swibrow/rackrat-web
           tag: v0.2.1
-        # The image entrypoint is the `rackrat` CLI; the API is a different
-        # surface, so both command and args are replaced.
-        command: ["uvicorn"]
+        # The image entrypoint is already uvicorn; only the app path is set here.
         args:
-          - rackrat.api:app
+          - rackrat_web.api:app
           - --host
           - 0.0.0.0
           - --port
-          - "8000"
-        env: *env
-        envFrom: *envFrom
+          - "8080"
+        env:
+          TZ: Europe/Zurich
+          # In-cluster, same namespace. Both apps land in `rackrat` because the
+          # pitower ApplicationSet takes the namespace from the directory above
+          # this one.
+          RACKRAT_COMPS_URL: http://rackrat-comps.rackrat.svc.cluster.local:8000
+          # CHF per kWh and room overhead — these drive the power bill the
+          # break-even month is computed against, so a wrong value changes the
+          # host-or-rent verdict rather than failing.
+          RACKRAT_ELECTRICITY_RATE: "0.28"
+          RACKRAT_PUE: "1.15"
+          RACKRAT_AMORTISATION_YEARS: "3"
         probes:
           readiness:
             enabled: true
@@ -79,7 +55,7 @@ controllers:
             spec:
               httpGet:
                 path: /healthz
-                port: 8000
+                port: 8080
               initialDelaySeconds: 5
               periodSeconds: 10
           liveness:
@@ -88,55 +64,21 @@ controllers:
             spec:
               httpGet:
                 path: /healthz
-                port: 8000
+                port: 8080
               initialDelaySeconds: 15
               periodSeconds: 20
         resources:
           requests:
             cpu: 10m
-            memory: 57Mi
+            memory: 48Mi
           limits:
-            memory: 512Mi
-  scrape:
-    type: cronjob
-    cronjob:
-      # Suspended: a live scrape needs the Ricardo CDP endpoint and a Claude key,
-      # and until /rackrat is populated in Infisical every run just fails.
-      suspend: true
-      # Etiquette: at most one scrape per marketplace per hour. The offset is
-      # arbitrary but fixed — auctions close on the hour, and this catches the
-      # window where a realised price becomes visible.
-      schedule: "17 * * * *"
-      timeZone: Europe/Zurich
-      concurrencyPolicy: Forbid
-      startingDeadlineSeconds: 300
-      backoffLimit: 1
-      activeDeadlineSeconds: 900
-      successfulJobsHistory: 3
-      failedJobsHistory: 3
-    containers:
-      app:
-        image:
-          repository: ghcr.io/swibrow/rackrat
-          tag: v0.2.1
-        args: ["scrape", "ricardo:poweredge", "--alert"]
-        env: *env
-        envFrom: *envFrom
-        resources:
-          requests:
-            cpu: 250m
-            memory: 512Mi
-          limits:
-            # Headroom for Chromium: the Ricardo adapter drives a real browser,
-            # and the JSON-LD it parses only exists after the page runs.
-            cpu: "2"
-            memory: 2Gi
+            memory: 256Mi
 service:
   app:
-    controller: api
+    controller: web
     ports:
       http:
-        port: 8000
+        port: 8080
 route:
   app:
     enabled: true
@@ -149,4 +91,4 @@ route:
     rules:
       - backendRefs:
           - identifier: app
-            port: 8000
+            port: 8080

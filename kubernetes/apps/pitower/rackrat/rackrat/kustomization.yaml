@@ -3,19 +3,9 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: rackrat
-resources:
-  - externalsecret.yaml
-components:
-  - ../../../../components/cnpg-db-shared
-configMapGenerator:
-  - name: cnpg-db-config
-    literals:
-      - APP_NAME=rackrat
-      - SECRET_NAME=rackrat-db-secret
-      - CNPG_SECRET_KEY=shared-rackrat
-      # rackrat drives SQLAlchemy, which resolves a bare `postgresql://` to the
-      # psycopg2 dialect. Only psycopg 3 is installed, so the URL has to name it.
-      - DB_SCHEME=postgresql+psycopg
+# No resources and no components: the planner needs neither a database nor a
+# secret. The cnpg-db component and the Infisical ExternalSecret moved to
+# ../rackrat-comps along with the services that actually use them.
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm

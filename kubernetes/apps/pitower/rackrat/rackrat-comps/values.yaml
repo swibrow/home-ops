@@ -1,0 +1,159 @@
+# ratcomps + rathunter — the market half of rackrat.
+#
+# Two controllers off two images that share one database:
+#
+#   api     ratcomps, the comps/search API (and the Alembic migrate init)
+#   hunter  rathunter, the continuous discovery loop
+#
+# The rack planner is a separate app (../rackrat) that reaches this one over
+# HTTP. It holds no database credentials and none of the secrets below, which is
+# the whole point of the split.
+#
+# Image tags are patched by rackrat's own CI on release (swibrow/rackrat
+# .github/workflows/ci.yaml, deploy-pitower job), which expects all three tag
+# fields below to exist.
+
+# A freshly published ghcr package is private by default. The ghcr-pull-secret
+# ClusterExternalSecret already lands in every namespace, so this only has to
+# reference it.
+defaultPodOptions:
+  imagePullSecrets:
+    - name: ghcr-pull-secret
+controllers:
+  api:
+    strategy: RollingUpdate
+    annotations:
+      reloader.stakater.com/auto: "true"
+    initContainers:
+      # Just the schema now. The old `rackrat reference sync` step is gone with
+      # the hardware_reference table it populated — nothing ever read it back,
+      # and the YAML tables are loaded in-process. Migration 0003 drops it.
+      migrate:
+        image:
+          repository: ghcr.io/swibrow/ratcomps
+          tag: v0.2.1
+        command: ["alembic"]
+        args: ["upgrade", "head"]
+        env: &dbEnv
+          TZ: Europe/Zurich
+          # CHF per kWh — feeds tco_3yr, so a wrong value silently reorders
+          # every ranking rather than failing.
+          RACKRAT_ELECTRICITY_RATE: "0.28"
+          # The cnpg-db component emits this as DB_URL; rackrat reads it under
+          # its own RACKRAT_ prefix (pydantic-settings env_prefix).
+          RACKRAT_DATABASE_URL:
+            valueFrom:
+              secretKeyRef:
+                name: rackrat-db-secret
+                key: DB_URL
+    containers:
+      app:
+        image:
+          repository: ghcr.io/swibrow/ratcomps
+          tag: v0.2.1
+        # The image entrypoint is already uvicorn; only the app path is set here.
+        args:
+          - ratcomps.api:app
+          - --host
+          - 0.0.0.0
+          - --port
+          - "8000"
+        env: *dbEnv
+        probes:
+          readiness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /healthz
+                port: 8000
+              initialDelaySeconds: 5
+              periodSeconds: 10
+          liveness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /healthz
+                port: 8000
+              initialDelaySeconds: 15
+              periodSeconds: 20
+        resources:
+          requests:
+            cpu: 10m
+            memory: 64Mi
+          limits:
+            memory: 512Mi
+
+  hunter:
+    # Recreate, and exactly one replica. The per-marketplace rate budget
+    # (rathunter/schedule/budget.py) is held in process memory, so a second
+    # replica is a second budget and doubles the load on the marketplace —
+    # which is precisely the etiquette rule the budget exists to keep. A
+    # RollingUpdate would briefly run two for the same reason.
+    replicas: 1
+    strategy: Recreate
+    annotations:
+      reloader.stakater.com/auto: "true"
+    containers:
+      app:
+        image:
+          repository: ghcr.io/swibrow/rathunter
+          tag: v0.2.1
+        # The image entrypoint is the `rathunter` CLI; `serve` is the dispatcher
+        # loop. It replaces the old hourly scrape CronJob — the schedule now
+        # lives in the `watches` table, not in cron.
+        args: ["serve"]
+        env:
+          <<: *dbEnv
+          # Routed through litellm (ai/litellm) rather than api.anthropic.com
+          # directly; RACKRAT_ANTHROPIC_API_KEY (rackrat-secret, when populated
+          # in Infisical) should hold a litellm virtual key, not a real Anthropic
+          # key. Model names are litellm's own aliases, not real Anthropic ids.
+          RACKRAT_ANTHROPIC_BASE_URL: http://litellm.ai.svc.cluster.local:4000
+          RACKRAT_TEXT_MODEL: claude-sonnet
+          RACKRAT_VISION_MODEL: claude-opus
+          # Marketplace Insights (sold prices) is gated access; without it the
+          # eBay adapter contributes asking prices only.
+          RACKRAT_EBAY_INSIGHTS_ENABLED: "false"
+          # One request per marketplace per hour, shared across every watch on
+          # it. Lowering this is a decision about someone else's server.
+          RACKRAT_SCRAPE_INTERVAL_SECONDS: "3600"
+        envFrom:
+          - secretRef:
+              name: rackrat-secret
+              # Every key in it is optional, so ESO emits no Secret at all while
+              # /rackrat is empty in Infisical. Without this the pod sits in
+              # CreateContainerConfigError instead of running degraded.
+              optional: true
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            # Headroom for Chromium: the Ricardo adapter drives a real browser,
+            # and the JSON-LD it parses only exists after the page runs.
+            cpu: "2"
+            memory: 2Gi
+service:
+  app:
+    controller: api
+    ports:
+      http:
+        port: 8000
+route:
+  app:
+    enabled: true
+    hostnames:
+      - rackrat-comps.wibrow.dev
+    # Internal only. This API has no authentication and exposes the whole
+    # listings table; the planner reaches it in-cluster and does not need this
+    # route. It exists so /health/discovery is checkable from the LAN.
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+    rules:
+      - backendRefs:
+          - identifier: app
+            port: 8000
