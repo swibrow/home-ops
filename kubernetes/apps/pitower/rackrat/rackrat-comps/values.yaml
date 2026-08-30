@@ -31,7 +31,7 @@ controllers:
       migrate:
         image:
           repository: ghcr.io/swibrow/ratcomps
-          tag: v0.2.1
+          tag: v0.3.0
         command: ["alembic"]
         args: ["upgrade", "head"]
         env: &dbEnv
@@ -50,7 +50,7 @@ controllers:
       app:
         image:
           repository: ghcr.io/swibrow/ratcomps
-          tag: v0.2.1
+          tag: v0.3.0
         # The image entrypoint is already uvicorn; only the app path is set here.
         args:
           - ratcomps.api:app
@@ -84,7 +84,6 @@ controllers:
             memory: 64Mi
           limits:
             memory: 512Mi
-
   hunter:
     # Recreate, and exactly one replica. The per-marketplace rate budget
     # (rathunter/schedule/budget.py) is held in process memory, so a second
@@ -99,7 +98,7 @@ controllers:
       app:
         image:
           repository: ghcr.io/swibrow/rathunter
-          tag: v0.2.1
+          tag: v0.3.0
         # The image entrypoint is the `rathunter` CLI; `serve` is the dispatcher
         # loop. It replaces the old hourly scrape CronJob — the schedule now
         # lives in the `watches` table, not in cron.
