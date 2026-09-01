@@ -1,0 +1,27 @@
+---
+# API-key auth for the public atuin route. Atuin is a CLI-only sync client
+# with no browser/cookie jar, so an interactive Kanidm OIDC redirect at the
+# gateway would break `atuin login`/`atuin sync`. Instead clients send a
+# static key in the X-API-Key header (set via extra_headers in
+# ~/.config/atuin/config.toml — never Authorization, which atuin reserves for
+# its own session token); EG matches it against the atuin-apikeys Secret
+# (key = client id, value = the API key), populated from Infisical via
+# externalsecret.yaml.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/gateway.envoyproxy.io/securitypolicy_v1alpha1.json
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: atuin-gateway-api
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: atuin
+  apiKeyAuth:
+    credentialRefs:
+      - group: ""
+        kind: Secret
+        name: atuin-apikeys
+    extractFrom:
+      - headers:
+          - X-API-Key

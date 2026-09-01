@@ -1,0 +1,24 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: selfhosted
+resources:
+  - externalsecret.yaml
+  - securitypolicy.yaml
+components:
+  - ../../../../components/cnpg-db-shared
+configMapGenerator:
+  - name: cnpg-db-config
+    literals:
+      - APP_NAME=atuin
+      - SECRET_NAME=atuin-db-secret
+      - CNPG_SECRET_KEY=shared-atuin
+      - DB_SCHEME=postgresql
+helmCharts:
+  - name: app-template
+    repo: oci://ghcr.io/bjw-s-labs/helm
+    version: 5.1.0
+    releaseName: atuin
+    namespace: selfhosted
+    valuesFile: values.yaml

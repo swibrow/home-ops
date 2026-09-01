@@ -1,0 +1,77 @@
+---
+controllers:
+  atuin:
+    strategy: RollingUpdate
+    annotations:
+      reloader.stakater.com/auto: "true"
+
+    containers:
+      app:
+        image:
+          repository: ghcr.io/atuinsh/atuin
+          tag: 18.21.0
+        args:
+          - start
+        env:
+          ATUIN_HOST: 0.0.0.0
+          ATUIN_PORT: "8888"
+          # Open until the account is registered, then flip to "false" and
+          # commit — see /database/tenants/ATUIN_PASSWORD for the DB role.
+          ATUIN_OPEN_REGISTRATION: "true"
+          ATUIN_DB_URI:
+            valueFrom:
+              secretKeyRef:
+                name: atuin-db-secret
+                key: DB_URL
+        probes:
+          liveness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /healthz
+                port: 8888
+              initialDelaySeconds: 3
+              periodSeconds: 10
+              timeoutSeconds: 3
+              failureThreshold: 3
+          readiness:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /healthz
+                port: 8888
+              periodSeconds: 10
+          startup:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /healthz
+                port: 8888
+              failureThreshold: 30
+              periodSeconds: 10
+        resources:
+          requests:
+            cpu: 10m
+            memory: 64Mi
+          limits:
+            memory: 256Mi
+
+service:
+  app:
+    controller: atuin
+    ports:
+      http:
+        port: 8888
+
+route:
+  app:
+    enabled: true
+    hostnames:
+      - atuin.wibrow.dev
+    parentRefs:
+      - name: envoy-external
+        namespace: networking
+        sectionName: https
