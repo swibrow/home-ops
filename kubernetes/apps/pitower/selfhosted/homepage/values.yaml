@@ -7,7 +7,7 @@ controllers:
       app:
         image:
           repository: ghcr.io/gethomepage/homepage
-          tag: v2.1.2
+          tag: v2.2.0
         env:
           TZ: Europe/Zurich
           HOMEPAGE_ALLOWED_HOSTS: home.wibrow.dev,home.wibrow.dev
