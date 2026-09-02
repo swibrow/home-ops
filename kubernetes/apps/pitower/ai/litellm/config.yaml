@@ -496,6 +496,11 @@ model_list:
       model: openrouter/z-ai/glm-5.3-flash:batch
       api_key: os.environ/OPENROUTER_API_KEY
 
+  - model_name: claude-fable-5.1
+    litellm_params:
+      model: openrouter/anthropic/claude-fable-5.1
+      api_key: os.environ/OPENROUTER_API_KEY
+
   # --- OpenRouter (catch-all passthrough) ---
   # Reach any other OpenRouter model by full id, e.g. openrouter/google/gemma-4-31b-it
   - model_name: "*"
