@@ -7,7 +7,7 @@ controllers:
       app:
         image:
           repository: ghcr.io/unpoller/unpoller
-          tag: v5.2.1
+          tag: v5.2.2
         env:
           TZ: Europe/Zurich
           # VLAN-20 address of the gateway, the same VLAN the cluster is on, so
