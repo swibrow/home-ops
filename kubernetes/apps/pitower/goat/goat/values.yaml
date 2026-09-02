@@ -35,7 +35,7 @@ api:
     # PAT can read — the fallback for orgs without the GitHub App/webhooks.
     # Backfill 0 = full history on the first sweep; GITHUB_LOGIN scopes
     # /v1/stats/shipping to my own shipped changes by default.
-    GITHUB_SCAN_TARGETS: "user:swibrow,DND-IT,tx-pts-dai,20minuten"
+    GITHUB_SCAN_TARGETS: "user:swibrow,wibrow-dev,cloudsnacks"
     GITHUB_SCAN_BACKFILL_DAYS: "0"
     GITHUB_LOGIN: swibrow
     # Renovate concierge (weekday morning digest of bot PRs). owner/* expands
@@ -51,7 +51,7 @@ api:
     # Repos an agent may clone on demand into /data/workspace/checkouts via
     # mcp__sre__checkout_repo. This allowlist is the whole gate — anything not
     # matched here is refused.
-    REPO_CHECKOUT_ALLOWLIST: "swibrow/*,DND-IT/*,tx-pts-dai/*,20minuten/*"
+    REPO_CHECKOUT_ALLOWLIST: "swibrow/*,wibrow-dev/*,cloudsnacks/*"
     # The image's /app/providers.yaml declares the litellm provider with
     # `base_url: ${LITELLM_BASE_URL}`, interpolated from the process env (DB
     # settings rows do not reach it). Unset, base_url resolves empty, the
