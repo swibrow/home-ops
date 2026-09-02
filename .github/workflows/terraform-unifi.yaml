@@ -51,7 +51,7 @@ jobs:
       - name: Install mise
         env:
           # renovate: datasource=github-releases depName=jdx/mise
-          MISE_VERSION: v2026.8.16
+          MISE_VERSION: v2026.9.0
         run: |
           set -euo pipefail
           curl -fsSL https://mise.run | MISE_INSTALL_PATH="$HOME/.local/bin/mise" sh
