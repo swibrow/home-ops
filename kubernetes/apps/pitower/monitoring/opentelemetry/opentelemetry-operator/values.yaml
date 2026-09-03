@@ -7,7 +7,7 @@ manager:
   collectorImage:
     # The k8s distro lacks the "prometheus" exporter our pipeline uses; contrib has it.
     repository: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib
-    tag: "0.159.0"
+    tag: "0.160.0"
   resources:
     requests:
       cpu: 10m
