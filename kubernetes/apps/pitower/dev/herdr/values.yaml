@@ -73,7 +73,7 @@ controllers:
         # session and an SSH session attach to the exact same herdr server.
         image:
           repository: ghcr.io/swibrow/webterm
-          tag: v1.1.2
+          tag: v1.1.3
         workingDir: /home/dev
         env:
           TZ: Europe/Zurich
