@@ -501,6 +501,19 @@ model_list:
       model: openrouter/anthropic/claude-fable-5.1
       api_key: os.environ/OPENROUTER_API_KEY
 
+  - model_name: claude-fable-5.1:batch
+    litellm_params:
+      model: openrouter/anthropic/claude-fable-5.1:batch
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: gemini-3.8-flash
+    litellm_params:
+      model: openrouter/google/gemini-3.8-flash
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: gemini-3.8-flash:batch
+    litellm_params:
+      model: openrouter/google/gemini-3.8-flash:batch
+      api_key: os.environ/OPENROUTER_API_KEY
+
   # --- OpenRouter (catch-all passthrough) ---
   # Reach any other OpenRouter model by full id, e.g. openrouter/google/gemma-4-31b-it
   - model_name: "*"
