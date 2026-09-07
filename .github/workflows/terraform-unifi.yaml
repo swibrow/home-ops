@@ -122,7 +122,7 @@ jobs:
 
       - name: Plan
         if: github.event_name == 'pull_request' || inputs.action == 'plan'
-        uses: dflook/terraform-plan@3f1559b085c5ceff68c3724c9b66c015a6c940cd # v3.0.0
+        uses: dflook/terraform-plan@6c82d55cb6c21f54498dc4479d7491736b037ba4 # v3.0.1
         with:
           path: terraform/unifi
           label: unifi
@@ -132,14 +132,14 @@ jobs:
       # CI role can reach the state bucket, so the unlock has to happen here.
       - name: Unlock state
         if: inputs.action == 'unlock'
-        uses: dflook/terraform-unlock-state@eec38dcbe1341061e092afea7241836041614b25 # v3.0.0
+        uses: dflook/terraform-unlock-state@8f19c3feed5f20ca6f58e212df369429e5e2b07a # v3.0.1
         with:
           path: terraform/unifi
           lock_id: ${{ inputs.lock_id }}
 
       - name: Apply
         if: github.event_name == 'push' || inputs.action == 'apply'
-        uses: dflook/terraform-apply@b7d589e72b3b2594f445627b351241d5c7dc78b6 # v3.0.0
+        uses: dflook/terraform-apply@e8f63bf2f00c7b4fa798f0102bc406b04c789ee0 # v3.0.1
         with:
           path: terraform/unifi
           label: unifi
