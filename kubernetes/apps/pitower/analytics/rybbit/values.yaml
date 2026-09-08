@@ -206,9 +206,6 @@ persistence:
           - path: /etc/clickhouse-server/config.d/network.xml
             subPath: network.xml
             readOnly: true
-          - path: /etc/clickhouse-server/config.d/enable_json.xml
-            subPath: enable_json.xml
-            readOnly: true
           - path: /etc/clickhouse-server/config.d/logging_rules.xml
             subPath: logging_rules.xml
             readOnly: true
