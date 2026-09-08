@@ -1,0 +1,58 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: second-brain
+resources:
+  - pvc.yaml
+  - dragonfly.yaml
+components:
+  - ../../../../components/cnpg-db-shared
+  - ../../../../components/pvc
+  - ../../../../components/kopiur
+configMapGenerator:
+  - name: cnpg-db-config
+    literals:
+      - APP_NAME=affine
+      - SECRET_NAME=affine-db-secret
+      - CNPG_SECRET_KEY=shared-affine
+      - DB_SCHEME=postgresql
+  - name: pvc-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=affine-pvc
+      - CLAIM_NAME=affine-config
+      - STORAGE_SIZE=1Gi
+  - name: kopiur-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=affine-kopiur
+      - CLAIM_NAME=affine-config
+patches:
+  # The image has no USER directive and writes /root/.affine as uid 0; the
+  # kopiur mover must match to read it. The uploads PVC (pvc.yaml) is added as
+  # a second source so blobs are snapshotted under the same policy.
+  - target:
+      kind: SnapshotPolicy
+      name: affine-kopiur
+    patch: |
+      - op: replace
+        path: /spec/mover/securityContext/runAsUser
+        value: 0
+      - op: replace
+        path: /spec/mover/securityContext/runAsGroup
+        value: 0
+      - op: add
+        path: /spec/sources/-
+        value:
+          pvc:
+            name: affine-storage
+helmCharts:
+  - name: app-template
+    repo: oci://ghcr.io/bjw-s-labs/helm
+    version: 5.1.0
+    releaseName: affine
+    namespace: second-brain
+    valuesFile: values.yaml

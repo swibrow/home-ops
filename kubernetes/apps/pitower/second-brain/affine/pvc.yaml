@@ -1,0 +1,14 @@
+---
+# Uploaded blobs (images, attachments, AI-generated files). Kept apart from the
+# config PVC so the small config volume (private.key, config.json) is not
+# sized for blob growth; both are snapshotted by the affine-kopiur policy.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: affine-storage
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: ceph-block

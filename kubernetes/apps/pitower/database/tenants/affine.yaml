@@ -1,0 +1,65 @@
+---
+# See miniflux.yaml for why the tenant secret is basic-auth, why it carries
+# host/port/dbname, and why target.template.metadata is pinned.
+#
+# The password lands unencoded in the consumer's DB_URL (components/
+# cnpg-db-shared), and AFFiNE requires URL-encoded credentials in DATABASE_URL,
+# so keep it to URL-safe characters (alphanumeric).
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: shared-affine
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: infisical
+  target:
+    name: shared-affine
+    template:
+      type: kubernetes.io/basic-auth
+      metadata:
+        labels:
+          cnpg.io/reload: "true"
+      data:
+        username: affine
+        password: "{{ .password }}"
+        host: shared-rw.database.svc.cluster.local
+        port: "5432"
+        dbname: affine
+  data:
+    - secretKey: password
+      remoteRef:
+        key: /database/tenants/AFFINE_PASSWORD
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: DatabaseRole
+metadata:
+  name: affine
+spec:
+  cluster:
+    name: shared
+  name: affine
+  login: true
+  databaseRoleReclaimPolicy: retain
+  passwordSecret:
+    name: shared-affine
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: shared-affine
+spec:
+  cluster:
+    name: shared
+  name: affine
+  owner: affine
+  databaseReclaimPolicy: retain
+  # AFFiNE's prisma schema declares the pgvector extension, so `prisma migrate
+  # deploy` in the predeploy init container fails without it. The operator
+  # creates it as superuser, which the affine role is not. The stock
+  # cloudnative-pg/postgresql:18 image ships vector 0.8.4 (verified on the live
+  # primary via pg_available_extensions).
+  extensions:
+    - name: vector
+      ensure: present
