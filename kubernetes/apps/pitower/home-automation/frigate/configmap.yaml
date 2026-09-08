@@ -169,12 +169,14 @@ data:
 
     record:
       enabled: true
-      # Retain "forever" — 100 years. Note: Frigate's storage maintainer still
-      # force-deletes the oldest recordings when the drive runs out of free
-      # space, so true forever requires freeing the shared Synology volume.
-      # 0.17 schema: baseline retention is `continuous`/`motion`, not `retain`.
+      # Everything for 7 days, then only footage around tracked-object (person)
+      # events. motion is 0 so plain motion (IR grain, foliage) does not outlive
+      # the continuous window. Retain "forever" (100 years); Frigate still deletes
+      # the oldest hour when the shared Synology volume has under an hour of space left.
+      continuous:
+        days: 7
       motion:
-        days: 36500
+        days: 0
       alerts:
         retain:
           days: 36500
