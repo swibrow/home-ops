@@ -7,12 +7,11 @@ subjects:
   - apiGroup: rbac.authorization.k8s.io
     kind: Group
     name: oidc:apps@idm.wibrow.dev
-  # Temporary safety binding during the kanidm cutover: guarantees access via the
-  # email username-claim even if kanidm's id_token omits the groups claim.
-  # Remove once group-based access is confirmed working.
+  # Safety binding via the email username-claim (kanidm primary mail), so a
+  # missing groups claim cannot lock the cluster out of Headlamp again.
   - apiGroup: rbac.authorization.k8s.io
     kind: User
-    name: oidc:sam.wibrow@gmail.com
+    name: oidc:sam@wibrow.dev
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole

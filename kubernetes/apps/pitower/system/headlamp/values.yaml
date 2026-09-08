@@ -17,6 +17,10 @@ config:
     externalSecret:
       enabled: true
       name: headlamp-oidc
+      # Without this the chart drops -oidc-scopes and Headlamp asks kanidm for
+      # its default `profile email` only, so the id_token never carries the
+      # `groups` claim the apiserver maps to RBAC groups.
+      hasScopes: true
     usePKCE: true
 
 persistentVolumeClaim:
