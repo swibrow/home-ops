@@ -1,22 +1,21 @@
-machine:
-  nodeLabels:
-    wibrow.dev/compute: "true"
-  install:
-    disk: /dev/sda
-  kubelet:
-    # Only /var/mnt/media here. This list is APPENDED to the one in
-    # all/01-general.yaml, not merged by destination and not replaced, so
-    # repeating /var/mnt/extra produces a duplicate entry rather than a no-op.
-    # Verified with `topf render`. Needed because openebs-hostpath-media hands
-    # pods a hostPath under /var/mnt/media, and kubelet can only serve a path it
-    # can see in its own mount namespace.
-    extraMounts:
-      - destination: /var/mnt/media
-        type: bind
-        source: /var/mnt/media
-        options:
-          - rbind
-          - rshared
-          - rw
-    extraConfig:
-      maxPods: 250
+---
+apiVersion: v1alpha1
+kind: KubeNodeConfig
+labels:
+  wibrow.dev/compute: "true"
+# 1000GiB scsi0 system disk. sdb/sdc are the `extra` and `media` user volumes
+# (02-extra.yaml, 04-media.yaml), selected by size band there.
+---
+apiVersion: v1alpha1
+kind: UnattendedInstallConfig
+provisioning:
+  diskSelector:
+    match: disk.dev_path == "/dev/sda"
+# /var/mnt/media used to be a kubelet extraMount on top of the user volume so
+# openebs-hostpath-media could hand pods hostPaths under it. 1.14 removed
+# extraMounts; user volumes under /var/mnt are visible to the kubelet directly.
+---
+apiVersion: v1alpha1
+kind: KubeletConfig
+config:
+  maxPods: 250

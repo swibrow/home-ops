@@ -6,11 +6,11 @@
 # of building a subinterface; a vlans: entry there would double-tag and never
 # get a lease. The bare-metal nodes' ports trunk VLAN 20 tagged and carry a
 # different untagged segment, so they keep the subinterface.
+#
+# machine.network.interfaces is deprecated in 1.14 but still accepted, and has
+# no single-document replacement (it would split into LinkConfig, VLANConfig,
+# DHCPv4Config and Layer2VIPConfig). Left as-is on purpose.
 machine:
-  kubelet:
-    nodeIP:
-      validSubnets:
-        - 10.20.0.0/16
   network:
     interfaces:
       - deviceSelector:
@@ -28,3 +28,9 @@ machine:
               ip: 10.20.10.0
             {{- end }}
         {{- end }}
+---
+apiVersion: v1alpha1
+kind: KubeNodeConfig
+nodeIP:
+  validSubnets:
+    - 10.20.0.0/16

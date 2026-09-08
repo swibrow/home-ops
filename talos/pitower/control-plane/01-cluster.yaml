@@ -1,64 +1,116 @@
-machine:
-  # The control-plane nodes (worker-01/02/03, 16Gi) also run app workloads
-  # (allowSchedulingOnControlPlanes), so they run chronically hot (~85% mem).
-  # Without reserved headroom an app-load spike (e.g. the hourly Renovate burst)
-  # starves/jams the apiserver until kubelet liveness-kills it (exit 137), and
-  # every reconnecting client thunders the next one — a control-plane death
-  # spiral (2026-06-08). Carve out memory/CPU for the host services (etcd runs
-  # as a Talos service, not a pod) and evict low-priority app pods early, while
-  # the static control-plane pods (system-node-critical) are evicted last.
-  # Merges with the cluster-wide kubelet.extraConfig in all/01-general.yaml.
-  kubelet:
-    # Expose the host etcd PKI to pods (e.g. the etcd-defrag CronJob) — kubelet
-    # runs in its own mount namespace and can't see /system by default.
-    extraMounts:
-      - destination: /system/secrets/etcd
-        type: bind
-        source: /system/secrets/etcd
-        options:
-          - bind
-          - ro
-    extraConfig:
-      systemReserved:
-        cpu: 500m
-        memory: 1536Mi
-      kubeReserved:
-        cpu: 500m
-        memory: 512Mi
-      evictionHard:
-        memory.available: "750Mi"
-        nodefs.available: "10%"
-        imagefs.available: "15%"
+# cluster.etcd is not deprecated in 1.14 and stays v1alpha1.
+# Expose etcd metrics on :2381 (http) so kube-prometheus-stack's kubeEtcd
+# ServiceMonitor can scrape them. Without this etcd serves metrics only on the
+# cert-guarded client port and the etcd dashboard stays empty. (1.14 moved the
+# default HTTP listener to :2383; an explicit listen-metrics-urls keeps :2381.)
 cluster:
-  allowSchedulingOnControlPlanes: true
-  coreDNS:
-    disabled: true
-  # Expose etcd metrics on :2381 (http) so kube-prometheus-stack's kubeEtcd
-  # ServiceMonitor can scrape them. Without this etcd serves metrics only on the
-  # cert-guarded client port and the etcd dashboard stays empty.
   etcd:
     extraArgs:
       listen-metrics-urls: http://0.0.0.0:2381
-  # Bind controller-manager / scheduler metrics to all interfaces (default is
-  # 127.0.0.1), otherwise the kube-prometheus-stack ServiceMonitors get
-  # connection-refused (up==0) and those dashboards are empty.
-  controllerManager:
-    extraArgs:
-      bind-address: 0.0.0.0
-  scheduler:
-    extraArgs:
-      bind-address: 0.0.0.0
-  apiServer:
-    certSANs:
-      # - k8s.pitower.internal
-      - 10.20.10.0
-      - 127.0.0.1
-    extraArgs:
-      oidc-issuer-url: https://idm.wibrow.dev/oauth2/openid/headlamp
-      oidc-client-id: headlamp
-      oidc-username-claim: email
-      oidc-username-prefix: "oidc:"
-      oidc-groups-claim: groups
-      oidc-groups-prefix: "oidc:"
-      service-account-issuer: https://raw.githubusercontent.com/swibrow/home-ops/main/pitower/kubernetes
-      service-account-jwks-uri: https://k8s.pitower.internal:6443/openid/v1/jwks
+# The control-plane nodes (worker-01/02/03, 16Gi) also run app workloads
+# (control-plane taint deleted below), so they run chronically hot (~85% mem).
+# Without reserved headroom an app-load spike (e.g. the hourly Renovate burst)
+# starves/jams the apiserver until kubelet liveness-kills it (exit 137), and
+# every reconnecting client thunders the next one - a control-plane death
+# spiral (2026-06-08). Carve out memory/CPU for the host services (etcd runs
+# as a Talos service, not a pod) and evict low-priority app pods early, while
+# the static control-plane pods (system-node-critical) are evicted last.
+# Merges with the cluster-wide KubeletConfig in all/01-general.yaml.
+---
+apiVersion: v1alpha1
+kind: KubeletConfig
+config:
+  systemReserved:
+    cpu: 500m
+    memory: 1536Mi
+  kubeReserved:
+    cpu: 500m
+    memory: 512Mi
+  evictionHard:
+    memory.available: "750Mi"
+    nodefs.available: "10%"
+    imagefs.available: "15%"
+# Was cluster.allowSchedulingOnControlPlanes: true. gen config emits the
+# NoSchedule taint by default; deleting the key is the multi-doc equivalent
+# (`taints: {}` is a no-op merge). topf generates against each node's RUNNING
+# version, so this only resolves once the node is on 1.14.
+---
+apiVersion: v1alpha1
+kind: KubeNodeConfig
+taints:
+  node-role.kubernetes.io/control-plane:
+    $patch: delete
+# CoreDNS is managed by the coredns helm chart, not Talos.
+---
+apiVersion: v1alpha1
+kind: KubeCoreDNSConfig
+enabled: false
+# Lets pods in `system` hold a Talos API ServiceAccount (serviceaccounts.talos.dev)
+# with os:operator, which covers etcd status/defrag/alarm disarm. The etcd-defrag
+# CronJob (kubernetes/apps/pitower/system/etcd-defrag) needs it: it used to read
+# the etcd PKI off the host through a kubelet extraMount, and 1.14 removed
+# extraMounts.
+---
+apiVersion: v1alpha1
+kind: KubeTalosAPIAccessConfig
+allowedRoles:
+  - os:operator
+allowedKubernetesNamespaces:
+  - system
+---
+apiVersion: v1alpha1
+kind: KubeAPIServerConfig
+certExtraSANs:
+  # - k8s.pitower.internal
+  - 10.20.10.0
+  - 127.0.0.1
+extraArgs:
+  service-account-issuer: https://raw.githubusercontent.com/swibrow/home-ops/main/pitower/kubernetes
+  service-account-jwks-uri: https://k8s.pitower.internal:6443/openid/v1/jwks
+# Headlamp SSO via kanidm (per-client issuer). 1.14 rejects the legacy
+# --oidc-* apiserver flags; this is the structured-authentication equivalent.
+# The legacy flags implicitly required email_verified when the username claim
+# was `email`; the validation rule keeps that behaviour.
+---
+apiVersion: v1alpha1
+kind: KubeAuthenticationConfig
+configuration:
+  jwt:
+    - issuer:
+        url: https://idm.wibrow.dev/oauth2/openid/headlamp
+        audiences:
+          - headlamp
+      claimValidationRules:
+        - expression: 'claims.?email_verified.orValue(true) == true'
+          message: email_verified must be true when present
+      claimMappings:
+        username:
+          claim: email
+          prefix: "oidc:"
+        groups:
+          claim: groups
+          prefix: "oidc:"
+# Bind controller-manager / scheduler metrics to all interfaces (default is
+# 127.0.0.1), otherwise the kube-prometheus-stack ServiceMonitors get
+# connection-refused (up==0) and those dashboards are empty.
+---
+apiVersion: v1alpha1
+kind: KubeControllerManagerConfig
+extraArgs:
+  bind-address: 0.0.0.0
+---
+apiVersion: v1alpha1
+kind: KubeSchedulerConfig
+extraArgs:
+  bind-address: 0.0.0.0
+# Cilium replaces both. gen config injects the Flannel and kube-proxy documents
+# by default (control-plane only), so Flannel has to be deleted explicitly
+# rather than just left out.
+---
+apiVersion: v1alpha1
+kind: KubeFlannelCNIConfig
+$patch: delete
+---
+apiVersion: v1alpha1
+kind: KubeProxyConfig
+enabled: false

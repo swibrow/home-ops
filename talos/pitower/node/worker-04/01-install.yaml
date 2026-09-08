@@ -1,11 +1,19 @@
-machine:
-  nodeLabels:
-    feature.node.kubernetes.io/intel-gpu: "true"
-  install:
-    disk: /dev/mmcblk0
-  kubelet:
-    extraConfig:
-      registerWithTaints:
-        - key: dedicated
-          value: media-home
-          effect: NoSchedule
+---
+apiVersion: v1alpha1
+kind: KubeNodeConfig
+labels:
+  feature.node.kubernetes.io/intel-gpu: "true"
+---
+apiVersion: v1alpha1
+kind: UnattendedInstallConfig
+provisioning:
+  diskSelector:
+    match: disk.dev_path == "/dev/mmcblk0"
+---
+apiVersion: v1alpha1
+kind: KubeletConfig
+config:
+  registerWithTaints:
+    - key: dedicated
+      value: media-home
+      effect: NoSchedule

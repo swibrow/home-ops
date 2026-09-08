@@ -1,4 +1,7 @@
-machine:
-  install:
-    diskSelector:
-      size: ">= 100GB"
+# The 128GB USB SSD; the SD card is smaller.
+---
+apiVersion: v1alpha1
+kind: UnattendedInstallConfig
+provisioning:
+  diskSelector:
+    match: disk.size >= 100u * GB

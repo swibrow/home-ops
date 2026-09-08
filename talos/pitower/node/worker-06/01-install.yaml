@@ -1,6 +1,11 @@
-machine:
-  nodeLabels:
-    feature.node.kubernetes.io/intel-gpu: "true"
-  install:
-    diskSelector:
-      model: "SAMSUNG*"
+---
+apiVersion: v1alpha1
+kind: KubeNodeConfig
+labels:
+  feature.node.kubernetes.io/intel-gpu: "true"
+---
+apiVersion: v1alpha1
+kind: UnattendedInstallConfig
+provisioning:
+  diskSelector:
+    match: disk.model.startsWith("SAMSUNG")
