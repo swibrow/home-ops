@@ -98,6 +98,15 @@ persistence:
     existingClaim: affine-config
     globalMounts:
       - path: /root/.affine/config
+  # OIDC client config rendered by externalsecret.yaml; mounted as a single
+  # file inside the config PVC so private.key stays on the volume.
+  config-file:
+    type: secret
+    name: affine-config-secret
+    globalMounts:
+      - path: /root/.affine/config/config.json
+        subPath: config.json
+        readOnly: true
   storage:
     existingClaim: affine-storage
     globalMounts:

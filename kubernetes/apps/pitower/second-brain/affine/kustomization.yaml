@@ -6,6 +6,7 @@ namespace: second-brain
 resources:
   - pvc.yaml
   - dragonfly.yaml
+  - externalsecret.yaml
 components:
   - ../../../../components/cnpg-db-shared
   - ../../../../components/pvc
