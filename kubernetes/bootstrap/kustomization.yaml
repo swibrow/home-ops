@@ -12,7 +12,7 @@ resources:
 
 helmCharts:
   - name: argo-cd
-    version: 10.8.2
+    version: 10.8.4
     repo: https://argoproj.github.io/argo-helm
     releaseName: argocd
     namespace: argocd
