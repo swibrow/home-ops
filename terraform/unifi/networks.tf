@@ -76,7 +76,7 @@ resource "unifi_network" "servers" {
   dhcp_enabled = true
   dhcp_start   = "10.20.0.46"
   dhcp_stop    = "10.20.255.254"
-  domain_name  = "servers.local"
+  domain_name  = "servers.internal"
 
   dhcp_v6_dns_auto           = false
   dhcp_v6_lease              = 0
