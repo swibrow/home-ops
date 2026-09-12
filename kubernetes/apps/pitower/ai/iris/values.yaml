@@ -42,7 +42,7 @@ controllers:
       app:
         image: &image
           repository: nousresearch/hermes-agent
-          tag: v2026.9.7@sha256:63bfb6d732f49a55d453e801057273785cc61e0f6ee43db3fa2f2a79846301b7
+          tag: v2026.9.11@sha256:9469b3e78b9545b6d576eb8887a95352e9a0ea83730eaf31431cf862ca1010e1
         # No --no-supervise: the image auto-starts a supervised `main-hermes`
         # service on boot, and opting out makes the legacy shim fight it for the
         # gateway lock and take down the whole s6 stack.
