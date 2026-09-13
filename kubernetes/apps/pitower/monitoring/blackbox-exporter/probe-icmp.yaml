@@ -134,8 +134,8 @@ spec:
     staticConfig:
       # Everything off-cluster that the estate depends on and nothing watched.
       static:
-        - proxmox-01.servers.local
-        - garage-01.servers.local
+        - proxmox-01.servers.internal
+        - garage-01.servers.internal
         - 10.20.85.197
         - 10.20.10.100
         - homeassistant.iot

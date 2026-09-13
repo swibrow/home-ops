@@ -45,7 +45,7 @@ serviceMonitor:
           module: [default]
           cluster: ["1"]
           node: ["1"]
-          target: [proxmox-01.servers.local]
+          target: [proxmox-01.servers.internal]
         relabelings:
           - sourceLabels: [__param_target]
             targetLabel: instance

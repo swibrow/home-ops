@@ -27,8 +27,8 @@ spec:
         - 10.20.85.197:3493
         # Garage S3 and web, probed direct rather than through s3.wibrow.dev,
         # so a failure here points at garage and not at TLS or DNS.
-        - garage-01.servers.local:3900
-        - garage-01.servers.local:3902
+        - garage-01.servers.internal:3900
+        - garage-01.servers.internal:3902
         # The NFS export every media app mounts.
         - 10.20.10.100:2049
       labels:

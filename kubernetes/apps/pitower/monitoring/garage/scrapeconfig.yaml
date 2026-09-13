@@ -10,7 +10,7 @@ spec:
   # picked up without touching the kube-prometheus-stack values.
   staticConfigs:
     - targets:
-        - garage-01.servers.local:3903
+        - garage-01.servers.internal:3903
       labels:
         tier: storage
         component: garage

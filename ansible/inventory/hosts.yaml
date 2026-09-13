@@ -5,7 +5,7 @@ all:
       hosts:
         nut-01:
           # On VLAN 20 only (no native-LAN IP). This is the DHCP-assigned VLAN-20
-          # address — set a UniFi reservation to pin it, or use nut.servers.local
+          # address — set a UniFi reservation to pin it, or use nut.servers.internal
           # from a host that can resolve the VLAN-20 (10.20.0.1) DNS.
           ansible_host: 10.20.85.197
           ansible_user: nut
@@ -21,10 +21,10 @@ all:
       hosts:
         garage-01:
           # Garage S3 LXC on proxmox-01 (vmid 210), on VLAN 20 only. DHCP-assigned
-          # under servers.local - set a UniFi reservation to pin it (use
+          # under servers.internal - set a UniFi reservation to pin it (use
           # `terraform output garage_mac_address`). Debian LXC has no non-root sudo
           # user, so ansible_user is root (SSH key injected by terraform/proxmox).
-          ansible_host: garage-01.servers.local
+          ansible_host: garage-01.servers.internal
           ansible_user: root
     haos:
       hosts:
@@ -53,5 +53,5 @@ all:
           # DHCP-assigned - set a UniFi reservation to pin it, same as `nut`.
           # ansible_user is root: Proxmox VE ships no non-root sudo user by default,
           # so add your SSH pubkey to root's authorized_keys before running this.
-          ansible_host: proxmox-01.servers.local
+          ansible_host: proxmox-01.servers.internal
           ansible_user: root
