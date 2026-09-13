@@ -12,6 +12,9 @@ extraArgs:
   - --crd-source-apiversion=externaldns.k8s.io/v1alpha1
   - --crd-source-kind=DNSEndpoint
   - --gateway-label-filter=external-dns.alpha.kubernetes.io/enabled=true
+  # v0.22.0 dropped the alpha prefix with no fallback; without this every
+  # annotation below (controller, target, cloudflare-proxied) is ignored.
+  - --annotation-prefix=external-dns.alpha.kubernetes.io/
 policy: sync
 sources:
   - crd

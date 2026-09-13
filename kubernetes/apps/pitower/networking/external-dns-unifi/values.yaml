@@ -30,6 +30,11 @@ provider:
         port: http-webhook
       initialDelaySeconds: 10
       timeoutSeconds: 5
+extraArgs:
+  # v0.22.0 dropped the alpha prefix with no fallback. Without this the
+  # fallback-404 route's controller=none opt-out is ignored and *.wibrow.dev
+  # gets published to UniFi, hijacking s3.wibrow.dev away from garage.
+  - --annotation-prefix=external-dns.alpha.kubernetes.io/
 policy: sync
 sources:
   - gateway-httproute
