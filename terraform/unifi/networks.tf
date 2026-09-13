@@ -7,9 +7,12 @@
 # schema defaults them to RFC lifetimes (86400/14400) and dhcp_v6_dns_auto=true,
 # while this controller stores 0/false. Left unset, adoption would write those
 # defaults back on every network. Inert on the three with ipv6_interface_type
-# "none", but "Default" and "iot" carry a slice of the ISP prefix delegation,
-# where the same drift would have flipped ipv6_ra_enable true -> null and
-# dropped router advertisements. Pin them to the live values instead.
+# "none", but "Default" carries a slice of the ISP prefix delegation, where the
+# same drift would have flipped ipv6_ra_enable true -> null and dropped router
+# advertisements. Pin them to the live values instead.
+#
+# "iot" is the one deliberate exception to adopt-only: its PD block is desired
+# state, not adopted state. Matter/Thread needs routable IPv6 on VLAN 101.
 
 resource "unifi_network" "default" {
   name    = "Default"
@@ -60,7 +63,16 @@ resource "unifi_network" "iot" {
 
   # PD sub-prefix from the same ISP delegation as Default - needed for the
   # Thread border router behind HA's Matter integration.
+  #
+  # pd_interface and pd_prefixid are what make this actually apply. Without
+  # pd_interface the controller has no WAN to slice and rejects the whole PUT
+  # with api.err.PdRequiresAssignedDhcpv6Wan, which is why this block silently
+  # never took effect between 2026-08-25 and 2026-09-10. prefixid picks *which*
+  # /64 out of the delegation: Default holds the first slice, so iot must not
+  # also claim it or the two networks collide.
   ipv6_interface_type    = "pd"
+  ipv6_pd_interface      = "wan"
+  ipv6_pd_prefixid       = "1"
   ipv6_ra_enable         = true
   ipv6_ra_valid_lifetime = 0
 
