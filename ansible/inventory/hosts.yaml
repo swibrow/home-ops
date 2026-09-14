@@ -57,4 +57,4 @@ all:
           ansible_user: root
           # Must match that reservation: the proxmox role writes it to /etc/hosts
           # as the PVE cluster address.
-          proxmox_node_ip: 10.20.10.12
+          proxmox_node_ip: 10.20.1.1
