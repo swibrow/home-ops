@@ -70,9 +70,16 @@ resource "unifi_network" "iot" {
   # never took effect between 2026-08-25 and 2026-09-10. prefixid picks *which*
   # /64 out of the delegation: Default holds the first slice, so iot must not
   # also claim it or the two networks collide.
+  #
+  # pd_start/pd_stop are the host range inside that /64. Default only has one
+  # because it was adopted from the controller; enabling PD fresh without it
+  # is rejected with api.err.InvalidIpv6Addr (2026-09-13 and 2026-09-14 applies).
+  # Same range as Default.
   ipv6_interface_type    = "pd"
   ipv6_pd_interface      = "wan"
   ipv6_pd_prefixid       = "1"
+  ipv6_pd_start          = "::2"
+  ipv6_pd_stop           = "::7d1"
   ipv6_ra_enable         = true
   ipv6_ra_valid_lifetime = 0
 
