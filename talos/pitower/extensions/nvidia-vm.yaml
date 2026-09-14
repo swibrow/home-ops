@@ -1,0 +1,11 @@
+# 6511add25855b7b836413feab8ccc84516219816d7988bc162b12b6ee9158ead
+# curl -X POST --data-binary @nvidia-vm.yaml https://factory.talos.dev/schematics
+# ai-01 as a Proxmox VM with the 3090 Ti passed through: nvidia.yaml plus the
+# guest agent, minus amd-ucode (the hypervisor loads microcode, not the guest).
+customization:
+  systemExtensions:
+    officialExtensions:
+      - siderolabs/util-linux-tools
+      - siderolabs/qemu-guest-agent
+      - siderolabs/nvidia-open-gpu-kernel-modules-production
+      - siderolabs/nvidia-container-toolkit-production
