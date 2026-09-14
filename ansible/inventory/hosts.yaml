@@ -50,8 +50,11 @@ all:
         proxmox-01:
           # New Proxmox VE hypervisor host, on VLAN 20 (10.20.0.0/16) via a
           # tagged nic1.20 -> vmbr0 (see the proxmox role's network.yaml task).
-          # DHCP-assigned - set a UniFi reservation to pin it, same as `nut`.
+          # DHCP, pinned by the proxmox-01 reservation in terraform/unifi.
           # ansible_user is root: Proxmox VE ships no non-root sudo user by default,
           # so add your SSH pubkey to root's authorized_keys before running this.
           ansible_host: proxmox-01.servers.internal
           ansible_user: root
+          # Must match that reservation: the proxmox role writes it to /etc/hosts
+          # as the PVE cluster address.
+          proxmox_node_ip: 10.20.10.12

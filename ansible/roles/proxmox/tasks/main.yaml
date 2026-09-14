@@ -61,6 +61,15 @@
     update_cache: true
   when: pve_enterprise_repo.changed or pve_enterprise_repo_legacy.changed or pve_no_subscription_repo.changed
 
+# pve-cluster resolves the node name through /etc/hosts, and `pvecm create` /
+# `pvecm add` bind corosync to that address for good - it cannot be changed
+# once the node is in a cluster.
+- name: Resolve the node name to its reserved VLAN 20 address
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '^\S+\s+{{ inventory_hostname }}\.internal\b'
+    line: "{{ proxmox_node_ip }} {{ inventory_hostname }}.internal {{ inventory_hostname }}"
+
 - name: Provision ZFS pools and Proxmox storage
   ansible.builtin.include_tasks: zfs-pools.yaml
 
