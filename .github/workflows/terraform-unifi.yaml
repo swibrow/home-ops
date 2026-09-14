@@ -132,7 +132,7 @@ jobs:
       # CI role can reach the state bucket, so the unlock has to happen here.
       - name: Unlock state
         if: inputs.action == 'unlock'
-        uses: dflook/terraform-unlock-state@8f19c3feed5f20ca6f58e212df369429e5e2b07a # v3.0.1
+        uses: dflook/terraform-unlock-state@2651233cc719c5ee9c25e13f5456fffe363289b6 # v3.1.0
         with:
           path: terraform/unifi
           lock_id: ${{ inputs.lock_id }}
