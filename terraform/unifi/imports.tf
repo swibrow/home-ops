@@ -51,6 +51,9 @@ locals {
     worker-09 = "69c8cd0b5d503efaeee8241b"
     worker-10 = "681e4d99abce0339a34baaf2"
     data      = "681e4d52abce0339a34baaef"
+
+    proxmox-01 = "6a5dec62ba125aaa3cbfdcbd"
+    nut        = "6a34ee0244528cbc8815557e"
   }
 }
 

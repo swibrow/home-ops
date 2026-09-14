@@ -31,6 +31,15 @@ locals {
     ai-01     = { mac = "b0:82:e2:a2:df:33", fixed_ip = "10.20.10.11", network_id = unifi_network.servers.id, note = "3090 GPU / LLM node" }
     data      = { mac = "00:11:32:0c:91:0c", fixed_ip = "10.20.10.100", network_id = unifi_network.servers.id }
 
+    # Proxmox hosts. A PVE cluster's corosync address cannot change after
+    # `pvecm create`, so these are pinned before clustering. proxmox-01 moves
+    # off its dynamic lease; everything reaches it by name.
+    proxmox-01 = { mac = "f8:bc:12:1d:46:30", fixed_ip = "10.20.10.12", network_id = unifi_network.servers.id, note = "Dell R630, vmbr0 on nic1.20" }
+
+    # Pinned at its existing dynamic address: nut-exporter and the blackbox
+    # probes use the IP, not the name. Also the corosync QDevice for the PVE cluster.
+    nut = { mac = "b8:27:eb:52:78:a3", fixed_ip = "10.20.85.197", network_id = unifi_network.servers.id, note = "NUT server + PVE QDevice" }
+
     # HAOS Pi 4. Pinned on the iot VLAN because two things resolve it by name:
     # the Envoy Gateway Backend behind ha.wibrow.dev
     # (kubernetes/apps/pitower/home-automation/home-assistant/service.yaml) and
