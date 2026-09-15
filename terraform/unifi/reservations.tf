@@ -28,7 +28,6 @@ locals {
     worker-08 = { mac = "dc:a6:32:4f:95:ca", fixed_ip = "10.20.10.8", network_id = unifi_network.servers.id }
     worker-09 = { mac = "dc:a6:32:4f:ee:e2", fixed_ip = "10.20.10.9", network_id = unifi_network.servers.id }
     worker-10 = { mac = "dc:a6:32:46:b2:ba", fixed_ip = "10.20.10.10", network_id = unifi_network.servers.id }
-    ai-01     = { mac = "b0:82:e2:a2:df:33", fixed_ip = "10.20.10.11", network_id = unifi_network.servers.id, note = "3090 GPU / LLM node" }
     data      = { mac = "00:11:32:0c:91:0c", fixed_ip = "10.20.10.100", network_id = unifi_network.servers.id }
 
     # Proxmox hosts live in 10.20.1.0/24, kept apart from the Kubernetes nodes
@@ -36,6 +35,9 @@ locals {
     # `pvecm create`, so these are pinned before clustering. Everything reaches
     # proxmox-01 by name.
     proxmox-01 = { mac = "f8:bc:12:1d:46:30", fixed_ip = "10.20.1.1", network_id = unifi_network.servers.id, note = "Dell R630, vmbr0 on nic1.20" }
+    # ai-01's bare-metal NIC, now the Proxmox host that runs ai-01 as a VM. The
+    # ai-01 reservation returns keyed on that VM's MAC once it exists.
+    proxmox-02 = { mac = "b0:82:e2:a2:df:33", fixed_ip = "10.20.1.2", network_id = unifi_network.servers.id, note = "ASUS ProArt B850 + RTX 3090 Ti, vmbr0 on nic0.20" }
 
     # Pinned at its existing dynamic address: nut-exporter and the blackbox
     # probes use the IP, not the name. Also the corosync QDevice for the PVE cluster.
@@ -49,6 +51,14 @@ locals {
     # the MAC is end0's - a VLAN sub-interface inherits its parent's.
     homeassistant = { mac = "dc:a6:32:4f:ee:a9", fixed_ip = "10.101.13.61", network_id = unifi_network.iot.id, note = "HAOS Pi 4 + PoE HAT, tagged VLAN 101 on end0" }
   }
+}
+
+# Same controller record (same MAC), so rename in place. Removing ai-01 and
+# adding a new key would destroy+create, and skip_forget_on_destroy leaves the
+# old record holding its fixed IP (api.err.DuplicateFixedIP).
+moved {
+  from = unifi_user.reservation["ai-01"]
+  to   = unifi_user.reservation["proxmox-02"]
 }
 
 resource "unifi_user" "reservation" {
