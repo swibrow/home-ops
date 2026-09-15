@@ -52,6 +52,56 @@ variable "talos_worker" {
   }
 }
 
+variable "worker_ai" {
+  description = "Talos GPU worker VM on proxmox-02. 14 of the 9700X's 16 threads and 48GiB of its ~59GiB, leaving room for the host and the nvme pool's ARC (capped at 6GiB). models_disk must stay inside the 500-700GiB band of the `models` user volume selector"
+  type = object({
+    node               = string
+    vmid               = number
+    name               = string
+    cores              = number
+    memory             = number # MiB
+    disk               = number # GiB, local-lvm
+    models_disk        = number # GiB, nvme
+    mac                = string
+    talos_version      = string
+    talos_schematic_id = string
+  })
+  default = {
+    node               = "proxmox-02"
+    vmid               = 300
+    name               = "pitower-worker-ai-01"
+    cores              = 14
+    memory             = 49152
+    disk               = 250
+    models_disk        = 600
+    mac                = "bc:24:11:a1:00:11"
+    talos_version      = "1.14.0"                                                           # topf.yaml talosVersion
+    talos_schematic_id = "6511add25855b7b836413feab8ccc84516219816d7988bc162b12b6ee9158ead" # extensions/nvidia-vm.yaml
+  }
+}
+
+variable "bazzite" {
+  description = "Bazzite gaming VM on proxmox-02. Only runs while worker_ai is stopped, so it can take the same CPU threads"
+  type = object({
+    node   = string
+    vmid   = number
+    name   = string
+    cores  = number
+    memory = number # MiB
+    disk   = number # GiB, nvme
+    mac    = string
+  })
+  default = {
+    node   = "proxmox-02"
+    vmid   = 301
+    name   = "bazzite"
+    cores  = 14
+    memory = 32768
+    disk   = 1000
+    mac    = "bc:24:11:a1:00:21"
+  }
+}
+
 variable "lxc_template_url" {
   description = "Debian LXC template to base containers on - verify the exact filename exists with `pveam available --section system` on the host before applying"
   type        = string
