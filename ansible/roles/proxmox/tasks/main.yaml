@@ -67,7 +67,9 @@
 - name: Resolve the node name to its reserved VLAN 20 address
   ansible.builtin.lineinfile:
     path: /etc/hosts
-    regexp: '^\S+\s+{{ inventory_hostname }}\.internal\b'
+    # Any domain: the installer writes whatever FQDN was typed (proxmox-02 got
+    # `.server.internal`), and a non-matching pattern would append a second line.
+    regexp: '^\S+\s+{{ inventory_hostname }}(\.\S+)?(\s|$)'
     line: "{{ proxmox_node_ip }} {{ inventory_hostname }}.internal {{ inventory_hostname }}"
 
 - name: Provision ZFS pools and Proxmox storage
