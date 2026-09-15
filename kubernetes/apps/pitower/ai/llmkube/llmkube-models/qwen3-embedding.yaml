@@ -40,11 +40,11 @@ spec:
   endpoint:
     port: 8080
     type: ClusterIP
-  # Pinned next to the chat model: ai-01's cores sit idle while the GPU
+  # Pinned next to the chat model: worker-ai-01's cores sit idle while the GPU
   # serves, and the general workers stay free of embedding bursts. No GPU is
   # requested, only the taint needs tolerating.
   nodeSelector:
-    kubernetes.io/hostname: ai-01
+    kubernetes.io/hostname: worker-ai-01
   tolerations:
     - key: dedicated
       operator: Equal
