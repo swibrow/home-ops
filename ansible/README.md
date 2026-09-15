@@ -16,7 +16,7 @@ ansible/
 ├── requirements.yaml      # community.general + community.sops
 ├── inventory/hosts.yaml   # hosts (set ansible_host / ansible_user)
 ├── playbooks/
-│   ├── site.yaml          # network + nut (what `just ansible deploy` runs)
+│   ├── site.yaml          # network + nut + corosync-qnetd (what `just ansible deploy` runs)
 │   ├── nut.yaml           # NUT role only
 │   ├── ovh-vps.yaml       # fail2ban + oha + towonel-hub + otel-agent (what `just ansible deploy-ovh-vps` runs)
 │   ├── proxmox-01.yaml    # fail2ban + proxmox (what `just ansible deploy-proxmox-01` runs)
@@ -26,6 +26,7 @@ ansible/
 └── roles/
     ├── network/           # VLAN sub-interfaces as NetworkManager connections
     ├── nut/               # Network UPS Tools (netserver mode)
+    ├── corosync-qnetd/    # external vote (QDevice) for the proxmox-01/proxmox-02 PVE cluster, on nut
     ├── fail2ban/          # SSH brute-force jail
     ├── oha/               # oha HTTP load-testing CLI (pinned GitHub release binary)
     ├── towonel-hub/       # towonel tunnel hub (systemd-managed docker run)

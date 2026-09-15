@@ -1,0 +1,8 @@
+---
+# Root SSH public keys of the PVE cluster nodes. `pvecm qdevice setup` (and
+# `qdevice remove`) run from a cluster node as root: ssh-copy-id, then
+# BatchMode ssh/scp as root to exchange the qnetd certificates. sshd here only
+# allows key auth for root, so without these the setup cannot log in.
+# Add proxmox-02's /root/.ssh/id_rsa.pub once that host is installed.
+corosync_qnetd_cluster_node_keys:
+  - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCjV+4u1gtCBnessc6R0mxIMeav/RPfuGtLO6KCEbOtrMZoTLP9gvJqQ4K4nZZjHlTZ9GGv0x1zs3JbRlIUm95VvDwLMmIXqOig7xjD9KUsLWxVQT2jb2uEhbYposrLlxH80u6ELwPNjeuJ0XsVMj8PCLlTpL7cu7qVhsGBFnet3nQeUTzWJ8D26d1vh7sIEa4Ho7jjD9na/OzuXPnzBR3nP3WXh4/fibGY711ArgfbQakzXje11ixP/wn1RgIcpCvP/xtNcfIJbFExriZCvUNfcroEK3pilcdDXqM4MTz1/8iFvBqyfpeJc62RuQRxQxdFJWt41pHbvw+m3KWRayRBEG6W3OA8WpcJayMfGVZKRKjJAPSh9BW878Gz5Q+IX6te7PJMBE8FuOvBUAmuNfSoNNnPgvFxp2eynuHPQttxeV2n95shnRMsDGmCXNPPgFrQ3rQLRbuFAfyhfSmdhgViQ1rtsV3XPZMO5ASg2+eC8OdgHjXSl5yBrbvITYXhEhGEG58R48VCR501y9MbGCtjxMaVOOMRPAe+H9cZz3/qIeGNazPp6Ah2c9zD5sqhH/u5lqyW7594tTwmR47gJiLSTpKNx12FuvkVWmM0bd7LmiK+hSNBO68yDoIgPogmS/uIa6nU0IgsxWYEzd3glhHq3rJGJin89CbJMoLlQk65pw== root@proxmox-01
