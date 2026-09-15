@@ -13,7 +13,7 @@ apply-controlplanes:
 
 # Apply config to the workers only
 apply-workers:
-    topf apply --nodes-filter 'worker-(0[4-9]|10)|ai-01'
+    topf apply --nodes-filter 'worker-(0[4-9]|10|ai-01)'
 
 # Upgrade the control planes only
 upgrade-controlplanes:
@@ -21,7 +21,7 @@ upgrade-controlplanes:
 
 # Upgrade the workers only
 upgrade-workers:
-    topf upgrade --nodes-filter 'worker-(0[4-9]|10)|ai-01'
+    topf upgrade --nodes-filter 'worker-(0[4-9]|10|ai-01)'
 
 # Reboot control plane nodes sequentially
 reboot-controlplanes:

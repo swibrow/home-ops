@@ -3,16 +3,14 @@ apiVersion: v1alpha1
 kind: KubeNodeConfig
 labels:
   feature.node.kubernetes.io/nvidia-gpu: "true"
-# Two NVMe drives: a 1TB Gen4 boot disk and a faster 2TB drive reserved
-# for LLM model storage (see 02-models.yaml). Size is the only reliable
-# way to tell them apart - nvme0n1/nvme1n1 enumeration order isn't
-# guaranteed.
+# VM 300 on proxmox-02 (terraform/proxmox/vm_worker_ai_01.tf): scsi0 is the
+# 250GiB system disk on local-lvm, scsi1 the `models` volume (02-models.yaml).
 ---
 apiVersion: v1alpha1
 kind: UnattendedInstallConfig
 provisioning:
   diskSelector:
-    match: disk.transport == "nvme" && disk.size <= 1500u * GB
+    match: disk.dev_path == "/dev/sda"
 ---
 apiVersion: v1alpha1
 kind: KernelModuleConfig
