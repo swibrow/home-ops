@@ -45,7 +45,7 @@ all:
           ansible_user: root
           # Appliance host: busybox shell, no python, no sudo - raw module only.
           ansible_become: false
-    proxmox_01:
+    proxmox:
       hosts:
         proxmox-01:
           # New Proxmox VE hypervisor host, on VLAN 20 (10.20.0.0/16) via a
@@ -58,3 +58,12 @@ all:
           # Must match that reservation: the proxmox role writes it to /etc/hosts
           # as the PVE cluster address.
           proxmox_node_ip: 10.20.1.1
+        proxmox-02:
+          # ai-01's hardware (ASUS ProArt B850, RTX 3090 Ti) reinstalled as a PVE
+          # host; host-specific network/storage/passthrough vars in
+          # host_vars/proxmox-02.yaml. The installer can't tag VLANs, so it starts
+          # on the untagged LAN; after `just ansible apply-network-proxmox
+          # proxmox-02` it DHCPs 10.20.1.2 on VLAN 20 and ansible_host follows.
+          ansible_host: 192.168.0.75
+          ansible_user: root
+          proxmox_node_ip: 10.20.1.2

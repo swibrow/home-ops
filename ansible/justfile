@@ -93,23 +93,24 @@ deploy-homeassistant:
 apply-network-homeassistant host='':
     ansible-playbook playbooks/homeassistant-network.yaml {{ if host == '' { '' } else { '-e ansible_host=' + host } }}
 
-# Ping the proxmox-01 host over SSH
-ping-proxmox-01:
-    ansible proxmox_01 -m ping
+# Ping the Proxmox hosts over SSH. Usage: just ansible::ping-proxmox [host]
+ping-proxmox limit='proxmox':
+    ansible {{ limit }} -m ping
 
-# Dry-run the proxmox-01 playbook (fail2ban + repo config) and show a diff
-check-proxmox-01:
-    ansible-playbook playbooks/proxmox-01.yaml --check --diff
+# Dry-run the proxmox playbook (repos + vfio + zfs + fail2ban) and show a diff
+check-proxmox limit='proxmox':
+    ansible-playbook playbooks/proxmox.yaml --limit {{ limit }} --check --diff
 
-# Apply the proxmox-01 playbook (fail2ban + repo config)
-deploy-proxmox-01:
-    ansible-playbook playbooks/proxmox-01.yaml
+# Apply the proxmox playbook (repos + vfio + zfs + fail2ban)
+deploy-proxmox limit='proxmox':
+    ansible-playbook playbooks/proxmox.yaml --limit {{ limit }}
 
-# Gather and print facts for the proxmox-01 host
-facts-proxmox-01:
-    ansible proxmox_01 -m setup
+# Gather and print facts for the Proxmox hosts
+facts-proxmox limit='proxmox':
+    ansible {{ limit }} -m setup
 
-# Migrate proxmox-01 host networking to VLAN20 (no automatic rollback - fix via
-# iDRAC console if it breaks. A "connection lost" result on apply is expected.)
-apply-network-proxmox-01:
-    ansible-playbook playbooks/proxmox-01-network.yaml
+# Move one Proxmox host's networking onto VLAN20 (no automatic rollback - fix
+# via iDRAC (proxmox-01) or the JetKVM/console (proxmox-02) if it breaks. A
+# "connection lost" result on apply is expected.)
+apply-network-proxmox host:
+    ansible-playbook playbooks/proxmox-network.yaml --limit {{ host }}

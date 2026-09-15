@@ -24,6 +24,7 @@ iface {{ proxmox_network_untagged_bridge }} inet manual
         bridge-ports {{ proxmox_network_iface }}
         bridge-stp off
         bridge-fd 0
+{% if proxmox_network_vm_iface %}
 
 iface {{ proxmox_network_vm_iface }} inet manual
 
@@ -38,3 +39,4 @@ iface {{ proxmox_network_vm_bridge }} inet manual
         bridge-ports {{ proxmox_network_vm_iface }}
         bridge-stp off
         bridge-fd 0
+{% endif %}

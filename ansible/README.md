@@ -19,7 +19,8 @@ ansible/
 │   ├── site.yaml          # network + nut + corosync-qnetd (what `just ansible deploy` runs)
 │   ├── nut.yaml           # NUT role only
 │   ├── ovh-vps.yaml       # fail2ban + oha + towonel-hub + otel-agent (what `just ansible deploy-ovh-vps` runs)
-│   ├── proxmox-01.yaml    # fail2ban + proxmox (what `just ansible deploy-proxmox-01` runs)
+│   ├── proxmox.yaml       # fail2ban + proxmox, both PVE hosts (what `just ansible deploy-proxmox` runs)
+│   ├── proxmox-network.yaml # one PVE host onto VLAN 20 (severs its own SSH)
 │   ├── homeassistant.yaml # HAOS PoE fan thresholds (what `just ansible deploy-homeassistant` runs)
 │   ├── homeassistant-network.yaml # HAOS onto tagged iot VLAN 101 (severs its own SSH)
 │   └── garage.yaml        # Garage S3 role only (what `just ansible deploy-garage` runs)
@@ -55,9 +56,9 @@ just ansible check-homeassistant   # dry-run (PoE fan thresholds)
 just ansible deploy-homeassistant  # apply (PoE fan thresholds; reboot HAOS after)
 just ansible apply-network-homeassistant 192.168.0.155  # one-off: move onto iot VLAN 101
 
-just ansible ping-proxmox-01    # SSH reachability (proxmox-01)
-just ansible check-proxmox-01   # dry-run + diff (fail2ban + proxmox repo config)
-just ansible deploy-proxmox-01  # apply (fail2ban + proxmox repo config)
+just ansible ping-proxmox [host]    # SSH reachability (default: both PVE hosts)
+just ansible check-proxmox [host]   # dry-run + diff (fail2ban + proxmox role)
+just ansible deploy-proxmox [host]  # apply (fail2ban + proxmox role)
 
 just ansible ping-garage        # SSH reachability (garage-01)
 just ansible check-garage       # dry-run + diff (Garage S3)
@@ -521,7 +522,7 @@ your pubkey to root's `authorized_keys` before the first run. Managed roles:
 ### Deploy
 
 ```sh
-just ansible check-proxmox-01 && just ansible deploy-proxmox-01
+just ansible check-proxmox proxmox-01 && just ansible deploy-proxmox proxmox-01
 ```
 
 This only covers host-level package repos. VM lifecycle (the Talos worker VM) is managed by
@@ -533,7 +534,7 @@ Terraform — see `terraform/proxmox/`.
 onto VLAN20 (the pitower network, trunked/tagged on the switch port `nic1` connects to):
 
 ```sh
-just ansible apply-network-proxmox-01
+just ansible apply-network-proxmox proxmox-01
 ```
 
 This tags `nic1` with VLAN20 (`nic1.20` → `vmbr0`, DHCP). Since the change reconfigures the exact
@@ -552,7 +553,7 @@ Once confirmed, update `ansible/inventory/hosts.yaml`'s `proxmox-01` entry and `
 The same role also renders a second, VM-only bridge: `nic6` (10G, `i40e`) tagged VLAN20 →
 `vmbr2`, no host IP. Host management traffic stays on `vmbr0`/`nic1` (1G); VM/CT guest NICs
 (`terraform/proxmox`'s `network_bridge` variable) point at `vmbr2` instead. Applying the same
-`just ansible apply-network-proxmox-01` command picks up both bridges - adding `vmbr2` alongside
+`just ansible apply-network-proxmox proxmox-01` command picks up both bridges - adding `vmbr2` alongside
 the existing ones is a no-op for the SSH session since `nic1`/`vmbr0` aren't touched.
 
 ## Secrets

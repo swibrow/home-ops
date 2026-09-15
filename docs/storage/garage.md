@@ -222,7 +222,7 @@ proxmox_acme_domain: proxmox-01.wibrow.dev
 ```
 
 ```sh
-just ansible deploy-proxmox-01
+just ansible deploy-proxmox proxmox-01
 ```
 
 It is **opt-in** (`proxmox_acme_enabled: false` by default) so it never fires unexpectedly on an

@@ -1,6 +1,6 @@
 ---
-- name: proxmox-01 network migration to VLAN20
-  hosts: proxmox_01
+- name: Proxmox node network on VLAN20
+  hosts: proxmox
   become: true
   tasks:
     - name: Apply VLAN20 network config with automatic rollback safety net

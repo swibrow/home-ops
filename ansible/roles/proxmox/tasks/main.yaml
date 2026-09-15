@@ -72,6 +72,10 @@
     regexp: '^\S+\s+{{ inventory_hostname }}(\.\S+)?(\s|$)'
     line: "{{ proxmox_node_ip }} {{ inventory_hostname }}.internal {{ inventory_hostname }}"
 
+- name: Bind PCI passthrough devices to vfio-pci
+  ansible.builtin.include_tasks: vfio.yaml
+  when: proxmox_vfio_pci_ids | default([]) | length > 0
+
 - name: Provision ZFS pools and Proxmox storage
   ansible.builtin.include_tasks: zfs-pools.yaml
 

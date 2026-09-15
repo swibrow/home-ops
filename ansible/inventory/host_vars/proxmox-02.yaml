@@ -1,0 +1,29 @@
+---
+# One cabled port: nic0 (RTL8126, 06:00.0) on a trunk with VLAN 20 tagged and
+# the home LAN untagged - the same shape as proxmox-01's nic1. nic1 (08:00.0)
+# has no link.
+proxmox_network_iface: nic0
+proxmox_network_unused_ifaces:
+  - nic1
+# No second port for a dedicated guest bridge: guests attach to vmbr0 (VLAN 20)
+# or vmbr1 (untagged LAN).
+proxmox_network_vm_iface: ""
+
+# The 2TB Samsung 9100 Pro (PCIe 5.0, CPU lanes, own IOMMU group) for guest
+# disks: Talos models volume and Bazzite games. PVE itself is on the Kingston.
+# Replaces the role default, which is proxmox-01's garage pool.
+proxmox_zfs_pools:
+  - name: nvme
+    content: images,rootdir
+    disks:
+      - /dev/disk/by-id/nvme-Samsung_SSD_9100_PRO_2TB_S7YFNJ0L221972E
+    pool_options:
+      ashift: "12"
+    fs_options:
+      compression: "on"
+
+# RTX 3090 Ti and its HDMI audio function, alone in IOMMU group 12. Passed
+# through to either the Talos ai-01 VM or the Bazzite VM, never used by the host.
+proxmox_vfio_pci_ids:
+  - "10de:2203"
+  - "10de:1aef"

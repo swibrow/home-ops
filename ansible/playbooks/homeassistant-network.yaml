@@ -1,6 +1,6 @@
 ---
 # Moves HAOS off the untagged LAN onto the tagged iot VLAN (101). Split out of
-# homeassistant.yaml the same way proxmox-01-network.yaml is: it severs its own
+# homeassistant.yaml the same way proxmox-network.yaml is: it severs its own
 # SSH transport, so a "connection lost" result on the last task is expected.
 # The cutover run still connects over the old untagged address:
 #
