@@ -35,9 +35,12 @@ locals {
     # `pvecm create`, so these are pinned before clustering. Everything reaches
     # proxmox-01 by name.
     proxmox-01 = { mac = "f8:bc:12:1d:46:30", fixed_ip = "10.20.1.1", network_id = unifi_network.servers.id, note = "Dell R630, vmbr0 on nic1.20" }
-    # ai-01's bare-metal NIC, now the Proxmox host that runs ai-01 as a VM. The
-    # ai-01 reservation returns keyed on that VM's MAC once it exists.
+    # ai-01's bare-metal NIC, now the Proxmox host that runs the GPU worker as a VM.
     proxmox-02 = { mac = "b0:82:e2:a2:df:33", fixed_ip = "10.20.1.2", network_id = unifi_network.servers.id, note = "ASUS ProArt B850 + RTX 3090 Ti, vmbr0 on nic0.20" }
+
+    # Talos GPU worker, VM 300 on proxmox-02. MAC pinned in terraform/proxmox so
+    # this reservation exists before the VM first DHCPs in maintenance mode.
+    worker-ai-01 = { mac = "bc:24:11:a1:00:11", fixed_ip = "10.20.10.11", network_id = unifi_network.servers.id, note = "Talos GPU worker VM on proxmox-02" }
 
     # Pinned at its existing dynamic address: nut-exporter and the blackbox
     # probes use the IP, not the name. Also the corosync QDevice for the PVE cluster.
