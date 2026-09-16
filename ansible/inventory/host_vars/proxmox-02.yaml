@@ -27,3 +27,11 @@ proxmox_zfs_pools:
 proxmox_vfio_pci_ids:
   - "10de:2203"
   - "10de:1aef"
+
+# Hookscript swapping that GPU between the two VMs: starting Bazzite shuts the
+# Talos worker down, stopping Bazzite starts it again. terraform/proxmox attaches
+# it to both VMs as local:snippets/gpu-exclusive.sh.
+proxmox_gpu_exclusive:
+  ai_vmid: 300
+  gaming_vmid: 301
+  shutdown_timeout: 300

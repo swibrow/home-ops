@@ -20,6 +20,9 @@ resource "proxmox_virtual_environment_vm" "worker_ai" {
   started = true
   on_boot = true
 
+  # See vm_bazzite.tf. Refuses to start while bazzite holds the GPU.
+  hook_script_file_id = "local:snippets/gpu-exclusive.sh"
+
   agent {
     enabled = true
     timeout = "30s"
