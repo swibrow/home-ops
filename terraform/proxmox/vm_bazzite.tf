@@ -28,6 +28,10 @@ resource "proxmox_virtual_environment_vm" "bazzite" {
   started = false
   on_boot = false
 
+  # Installed by ansible (roles/proxmox, host_vars/proxmox-02.yaml). Starting
+  # this VM shuts worker_ai down first; stopping it starts worker_ai again.
+  hook_script_file_id = "local:snippets/gpu-exclusive.sh"
+
   cpu {
     cores = var.bazzite.cores
     type  = "host"
