@@ -42,6 +42,10 @@ locals {
     # this reservation exists before the VM first DHCPs in maintenance mode.
     worker-ai-01 = { mac = "bc:24:11:a1:00:11", fixed_ip = "10.20.10.11", network_id = unifi_network.servers.id, note = "Talos GPU worker VM on proxmox-02" }
 
+    # Bazzite gaming VM 301 on proxmox-02, pinned at its first DHCP lease.
+    # Moonlight reaches it as bazzite.servers.internal.
+    bazzite = { mac = "bc:24:11:a1:00:21", fixed_ip = "10.20.108.124", network_id = unifi_network.servers.id, note = "Bazzite gaming VM on proxmox-02" }
+
     # Pinned at its existing dynamic address: nut-exporter and the blackbox
     # probes use the IP, not the name. Also the corosync QDevice for the PVE cluster.
     nut = { mac = "b8:27:eb:52:78:a3", fixed_ip = "10.20.85.197", network_id = unifi_network.servers.id, note = "NUT server + PVE QDevice" }
