@@ -28,10 +28,6 @@ resource "proxmox_virtual_environment_vm" "bazzite" {
   started = false
   on_boot = false
 
-  # Installed by ansible (roles/proxmox, host_vars/proxmox-02.yaml). Starting
-  # this VM shuts worker_ai down first; stopping it starts worker_ai again.
-  hook_script_file_id = "local:snippets/gpu-exclusive.sh"
-
   cpu {
     cores = var.bazzite.cores
     type  = "host"
@@ -90,6 +86,9 @@ resource "proxmox_virtual_environment_vm" "bazzite" {
     ignore_changes = [
       cdrom,
       started, # AI/gaming mode is switched on the host; an apply must not undo it
+      # Set by ansible (roles/proxmox gpu-exclusive.yaml): PVE only lets
+      # root@pam with a password, not an API token, set a hookscript.
+      hook_script_file_id,
     ]
   }
 }

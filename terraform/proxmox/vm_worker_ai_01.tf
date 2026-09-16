@@ -20,9 +20,6 @@ resource "proxmox_virtual_environment_vm" "worker_ai" {
   started = true
   on_boot = true
 
-  # See vm_bazzite.tf. Refuses to start while bazzite holds the GPU.
-  hook_script_file_id = "local:snippets/gpu-exclusive.sh"
-
   agent {
     enabled = true
     timeout = "30s"
@@ -102,8 +99,9 @@ resource "proxmox_virtual_environment_vm" "worker_ai" {
 
   lifecycle {
     ignore_changes = [
-      cdrom,   # installer detaches its own boot media after install
-      started, # AI/gaming mode is switched on the host; an apply must not undo it
+      cdrom,               # installer detaches its own boot media after install
+      started,             # AI/gaming mode is switched on the host; an apply must not undo it
+      hook_script_file_id, # set by ansible, see vm_bazzite.tf
     ]
   }
 }

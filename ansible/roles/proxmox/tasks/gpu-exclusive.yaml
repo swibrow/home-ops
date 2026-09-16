@@ -19,3 +19,21 @@
     owner: root
     group: root
     mode: "0755"
+
+# Not in terraform: PVE refuses `hookscript` from an API token ("only root can
+# set 'hookscript' config"), so it is attached here as root on the host.
+- name: Read the GPU VMs' hookscripts
+  ansible.builtin.command: qm config {{ item }}
+  loop:
+    - "{{ proxmox_gpu_exclusive.ai_vmid }}"
+    - "{{ proxmox_gpu_exclusive.gaming_vmid }}"
+  register: proxmox_gpu_vm_config
+  changed_when: false
+  check_mode: false
+
+- name: Attach the hookscript to the GPU VMs
+  ansible.builtin.command: qm set {{ item.item }} --hookscript local:snippets/gpu-exclusive.sh
+  loop: "{{ proxmox_gpu_vm_config.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when: "'hookscript: local:snippets/gpu-exclusive.sh' not in item.stdout_lines"
