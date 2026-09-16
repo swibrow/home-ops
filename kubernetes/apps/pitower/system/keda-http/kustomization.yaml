@@ -8,7 +8,7 @@ resources:
 helmCharts:
   - name: keda-add-ons-http
     repo: https://kedacore.github.io/charts
-    version: 0.15.0
+    version: 0.16.0
     releaseName: keda-add-ons-http
     includeCRDs: true
     valuesFile: values.yaml
