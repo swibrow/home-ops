@@ -41,7 +41,7 @@ controllers:
       valkey:
         image:
           repository: valkey/valkey
-          tag: "9.1"
+          tag: "9.2"
         command:
           - sh
         args:
