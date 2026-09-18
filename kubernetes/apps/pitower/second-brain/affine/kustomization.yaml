@@ -53,7 +53,7 @@ patches:
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm
-    version: 5.1.0
+    version: 5.2.1
     releaseName: affine
     namespace: second-brain
     valuesFile: values.yaml
