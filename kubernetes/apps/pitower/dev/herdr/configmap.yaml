@@ -6,4 +6,4 @@ metadata:
   namespace: dev
 data:
   authorized_keys: |
-    ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP0S+h68q6lzgN28d+QMj4mpDQx67wMssSvM5KXJx0EA
+    ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIM/GhH0lTfvk17mg/U0R6apV19Y28bJ/eoS0gjR+pteU
