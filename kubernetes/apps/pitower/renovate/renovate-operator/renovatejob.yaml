@@ -23,7 +23,6 @@ spec:
     pemSecretKey: private_key
   discoveryFilters:
     - swibrow/*
-    - cloudsnacks/containers
   skipForks: true
   # GitHub PR/Issue events (e.g. Dependency Dashboard checkbox clicks) hit the
   # operator's webhook server and schedule an on-demand run for the repo,
@@ -43,14 +42,96 @@ spec:
       value: "false"
     - name: RENOVATE_REQUIRE_CONFIG
       value: "optional"
-    # Lets cloudsnacks/containers bump an image's metadata.yaml version in the
-    # same Renovate PR, so dependency updates publish a new tag.
-    - name: RENOVATE_ALLOWED_COMMANDS
-      value: '["^bash scripts/bump-image-version\\.sh images/[a-z0-9-]+$"]'
   # Authenticate docker.io (avoids Docker Hub's anonymous pull-rate limit) and
   # ghcr.io (RENOVATE_TOKEN is a GitHub App token, which GitHub Packages
   # rejects, so private ghcr.io/swibrow/* lookups need an explicit PAT host
   # rule). RENOVATE_HOST_RULES (JSON) is templated in externalsecret.yaml.
+  extraEnvFrom:
+    - secretRef:
+        name: renovate-host-rules
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      memory: 4096Mi
+---
+# The GitHub App token is scoped to one installation, so the cloudsnacks org
+# (a separate installation of the same app) needs its own job.
+apiVersion: renovate-operator.mogenius.com/v1alpha1
+kind: RenovateJob
+metadata:
+  name: cloudsnacks
+  namespace: renovate
+spec:
+  # renovate: datasource=docker depName=ghcr.io/renovatebot/renovate
+  image: ghcr.io/renovatebot/renovate:44.97.6
+  schedule: "0 6 * * *"
+  parallelism: 1
+  nodeSelector:
+    wibrow.dev/compute: "true"
+  provider:
+    name: github
+  githubAppReference:
+    secretName: renovate-cloudsnacks-secret
+    appIdSecretKey: app_id
+    installationIdSecretKey: installation_id
+    pemSecretKey: private_key
+  discoveryFilters:
+    - cloudsnacks/*
+  skipForks: true
+  extraEnv:
+    - name: RENOVATE_INHERIT_CONFIG
+      value: "true"
+    - name: RENOVATE_ONBOARDING
+      value: "false"
+    - name: RENOVATE_REQUIRE_CONFIG
+      value: "optional"
+    # Lets cloudsnacks/containers bump an image's metadata.yaml version in the
+    # same Renovate PR, so dependency updates publish a new tag.
+    - name: RENOVATE_ALLOWED_COMMANDS
+      value: '["^bash scripts/bump-image-version\\.sh images/[a-z0-9-]+$"]'
+  extraEnvFrom:
+    - secretRef:
+        name: renovate-host-rules
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      memory: 4096Mi
+---
+# Same again for the wibrow-dev org: its own installation of the renovate-wibrow
+# app, so its own token and its own job.
+apiVersion: renovate-operator.mogenius.com/v1alpha1
+kind: RenovateJob
+metadata:
+  name: wibrow-dev
+  namespace: renovate
+spec:
+  # renovate: datasource=docker depName=ghcr.io/renovatebot/renovate
+  image: ghcr.io/renovatebot/renovate:44.97.6
+  schedule: "0 6 * * *"
+  parallelism: 1
+  nodeSelector:
+    wibrow.dev/compute: "true"
+  provider:
+    name: github
+  githubAppReference:
+    secretName: renovate-wibrow-dev-secret
+    appIdSecretKey: app_id
+    installationIdSecretKey: installation_id
+    pemSecretKey: private_key
+  discoveryFilters:
+    - wibrow-dev/*
+  skipForks: true
+  extraEnv:
+    - name: RENOVATE_INHERIT_CONFIG
+      value: "true"
+    - name: RENOVATE_ONBOARDING
+      value: "false"
+    - name: RENOVATE_REQUIRE_CONFIG
+      value: "optional"
   extraEnvFrom:
     - secretRef:
         name: renovate-host-rules
