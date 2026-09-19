@@ -6,7 +6,7 @@ namespace: system
 helmCharts:
   - name: dcgm-exporter
     repo: https://nvidia.github.io/dcgm-exporter/helm-charts
-    version: 4.8.3
+    version: 4.8.4
     releaseName: dcgm-exporter
     valuesFile: values.yaml
     namespace: system
