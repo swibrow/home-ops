@@ -39,6 +39,9 @@ controllers:
 
             cat > /tmp/sshd_config <<SSHD
             Port 2222
+            # herdr picks the first herdr on PATH for its SSH bridge; without this
+            # the image's older binary wins over the one herdr installs itself.
+            SetEnv PATH=${HOME}/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin
             HostKey /data/ssh/ssh_host_ed25519_key
             HostKey /data/ssh/ssh_host_rsa_key
             PidFile /tmp/sshd.pid
