@@ -15,7 +15,7 @@ controllers:
       app:
         image:
           repository: ghcr.io/cloudsnacks/dev-desktop
-          tag: 1.1.0
+          tag: 1.1.1
         # dev-desktop's default CMD starts Hyprland/Sunshine for GUI streaming;
         # this pod reuses the same image purely for its CLI tooling (herdr,
         # Claude Code, kubectl, ...) and runs sshd instead, since herdr's
