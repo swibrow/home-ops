@@ -102,6 +102,34 @@ variable "bazzite" {
   }
 }
 
+variable "omarchy" {
+  description = "Omarchy gaming/dev desktop VM on proxmox-02. Only runs while worker_ai and bazzite are stopped, so it can take the same CPU threads"
+  type = object({
+    node       = string
+    vmid       = number
+    name       = string
+    cores      = number
+    memory     = number # MiB
+    disk       = number # GiB, nvme
+    mac        = string
+    version    = string
+    iso_sha256 = string
+  })
+  default = {
+    node   = "proxmox-02"
+    vmid   = 302
+    name   = "omarchy"
+    cores  = 14
+    memory = 32768
+    # The nvme pool is thin (sparse zvols): with worker_ai.models_disk and
+    # bazzite.disk this overcommits the 2TB drive, so watch `zpool list nvme`.
+    disk       = 500
+    mac        = "bc:24:11:a1:00:22"
+    version    = "4.0.4"
+    iso_sha256 = "ddeded2758c48318d201dfdac905ecb28f570441883f0c052ea3cd5d05acf92d" # https://iso.omarchy.org/omarchy-<version>.iso.sha256
+  }
+}
+
 variable "lxc_template_url" {
   description = "Debian LXC template to base containers on - verify the exact filename exists with `pveam available --section system` on the host before applying"
   type        = string

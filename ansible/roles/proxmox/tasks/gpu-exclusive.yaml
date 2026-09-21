@@ -24,9 +24,7 @@
 # set 'hookscript' config"), so it is attached here as root on the host.
 - name: Read the GPU VMs' hookscripts
   ansible.builtin.command: qm config {{ item }}
-  loop:
-    - "{{ proxmox_gpu_exclusive.ai_vmid }}"
-    - "{{ proxmox_gpu_exclusive.gaming_vmid }}"
+  loop: "{{ [proxmox_gpu_exclusive.ai_vmid] + proxmox_gpu_exclusive.gaming_vmids }}"
   register: proxmox_gpu_vm_config
   changed_when: false
   check_mode: false
