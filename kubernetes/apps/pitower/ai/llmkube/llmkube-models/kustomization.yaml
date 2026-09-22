@@ -11,4 +11,6 @@ commonAnnotations:
 resources:
   - qwen38-27b.yaml
   - qwen38-27b-autoscale.yaml
+  - qwen38-flash-next.yaml
+  - qwen38-flash-next-autoscale.yaml
   - qwen3-embedding.yaml

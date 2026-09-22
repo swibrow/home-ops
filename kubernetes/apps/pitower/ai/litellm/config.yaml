@@ -103,6 +103,19 @@ model_list:
       # First call after an idle window blocks on a ~1-2 min cold start.
       api_base: http://qwen38-27b-scaled.ai.svc.cluster.local:8080/v1
       api_key: local
+  # Qwen3.8-Flash-Next (125B MoE, 6B active) UD-IQ3_XXS on the same card as a
+  # hybrid GPU/CPU/NVMe split, served by llama.cpp via the llmkube
+  # InferenceService (llmkube-models/qwen38-flash-next.yaml). 128K context,
+  # vision enabled, tool calling via --jinja, single slot. Reasoning model:
+  # same max_tokens headroom caveat as above. Shares the one GPU with
+  # qwen3.8-27b-local and comfyui: only one of them runs at a time, and a call
+  # while another holds the card fails until that pod idles out. Expect roughly
+  # 8-15 tok/s; the first call ever waits on an 82GB download.
+  - model_name: qwen3.8-flash-next-local
+    litellm_params:
+      model: openai/qwen38-flash-next
+      api_base: http://qwen38-flash-next-scaled.ai.svc.cluster.local:8080/v1
+      api_key: local
   # Qwen3-Embedding-0.6B (1024-dim) on ai-01's CPU, same llmkube pattern
   # (kubernetes/apps/pitower/ai/llmkube/llmkube-models/qwen3-embedding.yaml).
   # The only embedding route that stays in-cluster; Open-WebUI's Paperless
