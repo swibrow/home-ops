@@ -2,7 +2,7 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-# Vendored from github.com/kubernetes-sigs/agent-sandbox release v1.0.0:
+# Vendored from github.com/kubernetes-sigs/agent-sandbox release v1.0.3:
 #   sandbox.yaml    -> controller.yaml   (core CRD, RBAC, ns, service)
 #   extensions.yaml -> extensions.yaml   (3 extension CRDs, RBAC, controller Deployment)
 # On version bump, re-download both assets, then strip the duplicate Deployment from
@@ -13,7 +13,7 @@ kind: Kustomization
 # manifests — re-run the above by hand on every version bump, or RBAC/CRDs drift from
 # the running image (as happened going from v0.4.6 to v0.5.0: missing CRD-patch
 # permission on the ClusterRole broke the controller for 7 days).
-#   controller image: registry.k8s.io/agent-sandbox/agent-sandbox-controller:v1.0.0
+#   controller image: registry.k8s.io/agent-sandbox/agent-sandbox-controller:v1.0.3
 # v1.0.0 dropped v1alpha1 and the conversion webhook, so the CRDs serve v1beta1 only.
 # The API server rejects that CRD apply while v1alpha1 is still in status.storedVersions
 # — run the storage migration (docs/agent-sandbox-v1-upgrade.md) BEFORE this syncs.
