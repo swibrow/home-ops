@@ -55,6 +55,16 @@ controllers:
             Subsystem sftp internal-sftp
             SSHD
 
+            # $HOME is a PVC, so this is a no-op re-apply after the first start.
+            # The "container" profile skips the Homebrew scripts and the private
+            # layer, which needs a GitHub key the pod does not have.
+            chezmoi init --apply --force \
+              --promptString "Git email=15628653+swibrow@users.noreply.github.com" \
+              --promptString "Git user name=Samuel" \
+              --promptString "GPG signing key=" \
+              --promptString "Profile=container" \
+              "${DOTFILES_REPO}" || echo "[warn] chezmoi apply failed"
+
             exec /usr/sbin/sshd -D -e -f /tmp/sshd_config
         env:
           TZ: Europe/Zurich

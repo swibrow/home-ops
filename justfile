@@ -8,7 +8,7 @@ mod ansible 'ansible'
 
 export TERRAFORM_WORKING_DIR := "terraform"
 export ENVIRONMENT := "dev"
-export SOPS_AGE_KEY_FILE := justfile_directory() / "age.key"
+export SOPS_AGE_KEY_FILE := env("SOPS_AGE_KEY_FILE", justfile_directory() / "age.key")
 secret_files := `find . -type f -name '*.sops.yaml' ! -name '.sops.yaml'`
 
 # Install pre-commit hooks

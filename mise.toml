@@ -8,6 +8,8 @@ jq = "1.8.2"
 
 [env]
 MEMINI_NAMESPACE = "home-ops"
+KUBECONFIG = "{{env.HOME}}/.kube/pitower.yaml"
+SOPS_AGE_KEY_FILE = "{{env.HOME}}/.config/mise/age.txt"
 
 #ANTHROPIC_MODEL = "claude-opus"
 #ANTHROPIC_BASE_URL = "https://litellm.wibrow.dev"
