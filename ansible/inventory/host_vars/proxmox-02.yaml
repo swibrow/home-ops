@@ -23,15 +23,18 @@ proxmox_zfs_pools:
       compression: "on"
 
 # RTX 3090 Ti and its HDMI audio function, alone in IOMMU group 12. Passed
-# through to either the Talos ai-01 VM or the Bazzite VM, never used by the host.
+# through to the Talos ai-01 VM or one of the desktop VMs, never used by the host.
 proxmox_vfio_pci_ids:
   - "10de:2203"
   - "10de:1aef"
 
-# Hookscript swapping that GPU between the two VMs: starting Bazzite shuts the
-# Talos worker down, stopping Bazzite starts it again. Installed and attached to
-# both VMs by roles/proxmox/tasks/gpu-exclusive.yaml.
+# Hookscript swapping that GPU between the VMs: starting a desktop VM (Bazzite
+# 301, Omarchy 302) shuts the Talos worker down, stopping it starts the worker
+# again. Only one desktop VM runs at a time. Installed and attached to all of
+# them by roles/proxmox/tasks/gpu-exclusive.yaml.
 proxmox_gpu_exclusive:
   ai_vmid: 300
-  gaming_vmid: 301
+  gaming_vmids:
+    - 301
+    - 302
   shutdown_timeout: 300

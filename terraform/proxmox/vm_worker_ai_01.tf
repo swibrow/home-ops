@@ -6,8 +6,8 @@ resource "proxmox_download_file" "talos_nvidia_vm" {
   file_name    = "talos-${var.worker_ai.talos_version}-nvidia-vm-amd64.iso"
 }
 
-# Talos GPU worker. Gives up the RTX 3090 Ti whenever vm_bazzite.tf runs: the two
-# VMs share one PCI mapping and must never be started together.
+# Talos GPU worker. Gives up the RTX 3090 Ti whenever vm_bazzite.tf or
+# vm_omarchy.tf runs: the VMs share one PCI mapping and only one may run at a time.
 resource "proxmox_virtual_environment_vm" "worker_ai" {
   name      = var.worker_ai.name
   node_name = var.worker_ai.node

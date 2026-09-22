@@ -1,4 +1,5 @@
-# The RTX 3090 Ti on proxmox-02, shared by vm_worker_ai_01.tf and vm_bazzite.tf.
+# The RTX 3090 Ti on proxmox-02, shared by vm_worker_ai_01.tf, vm_bazzite.tf and
+# vm_omarchy.tf.
 # A cluster resource mapping rather than hostpci.id because the provider cannot
 # set a raw PCI id with API-token auth (root password only).
 #

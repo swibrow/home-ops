@@ -46,6 +46,10 @@ locals {
     # Moonlight reaches it as bazzite.servers.internal.
     bazzite = { mac = "bc:24:11:a1:00:21", fixed_ip = "10.20.108.124", network_id = unifi_network.servers.id, note = "Bazzite gaming VM on proxmox-02" }
 
+    # Omarchy desktop VM 302 on proxmox-02, MAC pinned in terraform/proxmox.
+    # Moonlight reaches it as omarchy.servers.internal.
+    omarchy = { mac = "bc:24:11:a1:00:22", fixed_ip = "10.20.2.22", network_id = unifi_network.servers.id, note = "Omarchy gaming/dev VM on proxmox-02" }
+
     # Pinned at its existing dynamic address: nut-exporter and the blackbox
     # probes use the IP, not the name. Also the corosync QDevice for the PVE cluster.
     nut = { mac = "b8:27:eb:52:78:a3", fixed_ip = "10.20.85.197", network_id = unifi_network.servers.id, note = "NUT server + PVE QDevice" }

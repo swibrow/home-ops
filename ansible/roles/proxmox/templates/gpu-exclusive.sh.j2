@@ -1,26 +1,49 @@
 #!/bin/bash
-# Proxmox hookscript attached to both VMs that share one passthrough GPU
-# (terraform/proxmox vm_worker_ai_01.tf and vm_bazzite.tf). Called as
-# `<script> <vmid> <phase>`; a non-zero exit from pre-start aborts the start.
+# Proxmox hookscript attached to every VM that shares the one passthrough GPU
+# (terraform/proxmox vm_worker_ai_01.tf, vm_bazzite.tf and vm_omarchy.tf).
+# Called as `<script> <vmid> <phase>`; a non-zero exit from pre-start aborts
+# the start.
 set -euo pipefail
 
 vmid=$1
 phase=$2
 ai={{ proxmox_gpu_exclusive.ai_vmid }}
-gaming={{ proxmox_gpu_exclusive.gaming_vmid }}
+gaming=({{ proxmox_gpu_exclusive.gaming_vmids | join(' ') }})
 
 is_running() {
   [[ $(qm status "$1") == "status: running" ]]
 }
 
-case "$vmid:$phase" in
-  "$gaming:pre-start")
+# Prints the first running gaming VM other than $1.
+running_gaming() {
+  local other
+  for other in "${gaming[@]}"; do
+    if [[ $other != "$1" ]] && is_running "$other"; then
+      echo "$other"
+      return
+    fi
+  done
+}
+
+role=gaming
+if [[ $vmid == "$ai" ]]; then
+  role=ai
+fi
+
+case "$role:$phase" in
+  "gaming:pre-start")
+    # A desktop in use is never shut down for another one; only the AI worker is.
+    holder=$(running_gaming "$vmid")
+    if [[ -n $holder ]]; then
+      echo "VM $holder holds the GPU; stop it first" >&2
+      exit 1
+    fi
     # No --forceStop: if Talos does not shut down cleanly, gaming does not start.
     if is_running "$ai"; then
       qm shutdown "$ai" --timeout {{ proxmox_gpu_exclusive.shutdown_timeout }}
     fi
     ;;
-  "$gaming:post-stop")
+  "gaming:post-stop")
     # post-stop also fires while the host shuts down its guests; don't start
     # the AI VM back up into a reboot. Detached so this VM's stop task is not
     # held open for the length of the Talos boot.
@@ -28,9 +51,10 @@ case "$vmid:$phase" in
       systemd-run --no-block --collect qm start "$ai"
     fi
     ;;
-  "$ai:pre-start")
-    if is_running "$gaming"; then
-      echo "VM $gaming holds the GPU; stop it to hand the GPU back" >&2
+  "ai:pre-start")
+    holder=$(running_gaming "$ai")
+    if [[ -n $holder ]]; then
+      echo "VM $holder holds the GPU; stop it to hand the GPU back" >&2
       exit 1
     fi
     ;;
