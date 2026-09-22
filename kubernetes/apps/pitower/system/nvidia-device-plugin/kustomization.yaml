@@ -8,7 +8,7 @@ resources:
 helmCharts:
   - name: nvidia-device-plugin
     repo: https://nvidia.github.io/k8s-device-plugin
-    version: 0.20.0
+    version: 0.20.1
     releaseName: nvidia-device-plugin
     valuesFile: values.yaml
     namespace: system
