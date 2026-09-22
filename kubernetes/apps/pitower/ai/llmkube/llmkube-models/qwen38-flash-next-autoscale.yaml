@@ -1,0 +1,80 @@
+---
+# Idle scale-to-zero for the GPU, same pattern as qwen38-27b and comfyui.
+# ai-01 has one RTX 3090 Ti and the device plugin advertises nvidia.com/gpu: 1,
+# so the three GPU services are mutually exclusive: whichever is running holds
+# the card, and a request for another one leaves its pod Pending until the
+# holder idles out (900s here and for qwen38-27b, 3600s for comfyui). If that
+# takes longer than the readiness timeout below the request fails; retry once
+# the other pod is gone.
+#
+# Alias for the interceptor: the KEDA HTTP interceptor demuxes backends by Host
+# header, so every scaled backend needs a hostname of its own. In-cluster
+# callers reach this one at qwen38-flash-next-scaled.ai.svc.cluster.local:8080,
+# which CNAMEs to the interceptor and presents that name as Host. There is no
+# HTTPRoute here - litellm calls the Service directly.
+apiVersion: v1
+kind: Service
+metadata:
+  name: qwen38-flash-next-scaled
+spec:
+  type: ExternalName
+  externalName: keda-add-ons-http-interceptor-proxy.system.svc.cluster.local
+---
+apiVersion: http.keda.sh/v1beta1
+kind: InterceptorRoute
+metadata:
+  name: qwen38-flash-next
+spec:
+  # The operator-owned Service in front of the llama.cpp pods.
+  target:
+    service: qwen38-flash-next
+    port: 8080
+  rules:
+    # Go clients send Host with the port; some send the short form. Match every
+    # spelling of the alias rather than depend on the interceptor normalising.
+    - hosts:
+        - qwen38-flash-next-scaled.ai.svc.cluster.local
+        - qwen38-flash-next-scaled.ai.svc.cluster.local:8080
+        - qwen38-flash-next-scaled.ai
+        - qwen38-flash-next-scaled
+  # parallelSlots: 1 - llama.cpp serves one request at a time and queues the
+  # rest, so a single in-flight request already saturates the backend.
+  scalingMetric:
+    concurrency:
+      targetValue: 1
+  timeouts:
+    # Cold start = pod schedule + llama.cpp mmapping ~82GB off the model cache
+    # PVC (about 17GB of it into VRAM) plus warmup. The interceptor holds the
+    # request open for this long. The very first request ever still times out:
+    # the init container has to pull the 82GB from Hugging Face first, keeps
+    # going after the client gives up, and the next request succeeds.
+    readiness: 600s
+    # Prompt processing on a 128K context at a few hundred tok/s runs well past
+    # any default before the first token, and generation streams for minutes.
+    responseHeader: 300s
+    request: 0s
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: qwen38-flash-next
+spec:
+  # Targets the InferenceService, NOT its Deployment: the llmkube operator
+  # reconciles Deployment replicas from the CR's spec.replicas and would undo
+  # anything KEDA wrote there. The CRD exposes a scale subresource
+  # (.spec.replicas / .status.replicas) and KEDA's ClusterRole already grants
+  # */scale, so it drives the CR directly and the operator follows.
+  scaleTargetRef:
+    name: qwen38-flash-next
+    kind: InferenceService
+    apiVersion: inference.llmkube.dev/v1alpha1
+  minReplicaCount: 0
+  maxReplicaCount: 1
+  # Idle window before the GPU is released, traded off against a multi-minute
+  # cold start on the next request.
+  cooldownPeriod: 900
+  triggers:
+    - type: external-push
+      metadata:
+        scalerAddress: keda-add-ons-http-external-scaler.system:9090
+        interceptorRoute: qwen38-flash-next

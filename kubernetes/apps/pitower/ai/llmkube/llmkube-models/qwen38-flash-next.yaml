@@ -1,0 +1,120 @@
+---
+# Qwen3.8-Flash-Next (Qwen Community License 1.0, released 2026-08-26): 125B
+# MoE, 6B active per token, plus a 51B n-gram embedding table; multimodal,
+# 262K native context; preview of the Qwen4 architecture (ggml arch qwen4exp,
+# in llama.cpp since b10660). Far too big for the 3090 Ti's VRAM, so it runs
+# as a hybrid GPU/CPU/NVMe split with Unsloth's UD-IQ3_XXS dynamic quant
+# (82 GB on disk). Sizes measured from the GGUF tensor headers:
+#
+#   GPU (24 GB):
+#     routed experts, layers 36-47 (~1.01 GB/layer)   ~12.1 GB  --n-cpu-moe 36
+#     attention / DeltaNet / dense / norms              ~3.5 GB
+#     token_embd + output                               ~1.0 GB
+#     mmproj (F16) vision projector                     ~0.9 GB
+#     KV cache 128K @q8_0 (12 sparse-attn layers)       ~1.6 GB
+#     CUDA/compute buffers                              ~3   GB
+#                                                       --------
+#                                                       ~22 GB
+#   CPU (mmap, page cache inside the 44Gi limit):
+#     routed experts, layers 0-35                       ~36.5 GB
+#     n-gram table per_layer_token_embd (IQ4_NL)        ~28.8 GB  sparse row
+#                                                                 lookups, streams
+#                                                                 from NVMe
+#
+# Larger quants (Q3_K_XL 55.8 GB, IQ4_XS 59.5 GB of experts) do not fit the
+# VM's 48 GiB alongside the n-gram working set and would page experts from
+# NVMe on every token. Published single 3090 Ti figures for this model are
+# ~15 tok/s generation; expect roughly 8-15 tok/s here.
+#
+# Three-shard GGUF: files[0] is what llama-server gets; the operator stages
+# every entry at its repo-relative path in the cache PVC, so the split loader
+# finds 00002/00003 next to 00001.
+apiVersion: inference.llmkube.dev/v1alpha1
+kind: Model
+metadata:
+  name: qwen38-flash-next
+spec:
+  source: hf://unsloth/Qwen3.8-Flash-Next-GGUF
+  files:
+    - UD-IQ3_XXS/Qwen3.8-Flash-Next-UD-IQ3_XXS-00001-of-00003.gguf
+    - UD-IQ3_XXS/Qwen3.8-Flash-Next-UD-IQ3_XXS-00002-of-00003.gguf
+    - UD-IQ3_XXS/Qwen3.8-Flash-Next-UD-IQ3_XXS-00003-of-00003.gguf
+  mmproj: mmproj-F16.gguf
+  format: gguf
+  quantization: IQ3_XXS
+  hardware:
+    accelerator: cuda
+    gpu:
+      enabled: true
+      count: 1
+      vendor: nvidia
+      # Renders --n-gpu-layers 99; which experts stay on the CPU is decided by
+      # moeCPULayers / tensorOverrides on the InferenceService, not here.
+      layers: -1
+  # Downloader/staging init container.
+  resources:
+    cpu: "2"
+    memory: "4Gi"
+---
+apiVersion: inference.llmkube.dev/v1alpha1
+kind: InferenceService
+metadata:
+  name: qwen38-flash-next
+spec:
+  modelRef: qwen38-flash-next
+  runtime: llamacpp
+  # The operator's built-in CUDA default (server-cuda-b10068) predates the
+  # qwen4exp architecture (llama.cpp PR #27742, b10660). CUDA 12 build like
+  # the default; server-cuda13-* is untested on this driver. Pinned here only,
+  # qwen38-27b keeps the operator default.
+  image: ghcr.io/ggml-org/llama.cpp:server-cuda-b11096
+  # replicas is deliberately unset: KEDA owns it via the ScaledObject in
+  # qwen38-flash-next-autoscale.yaml and drives it between 0 and 1.
+  endpoint:
+    port: 8080
+    type: ClusterIP
+  runtimeClassName: nvidia
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: gpu
+      effect: NoSchedule
+  nodeSelector:
+    feature.node.kubernetes.io/nvidia-gpu: "true"
+  resources:
+    gpu: 1
+    # Request only (the operator sets no CPU limit), so the 12 llama.cpp
+    # threads are not throttled. Node has 14 vCPU; qwen3-embedding asks for 4.
+    cpu: "8"
+    # hostMemory is the request for hybrid offload; memoryLimit lets the page
+    # cache for the mmap'd experts grow to the ceiling without reserving it.
+    # Node allocatable is 46.5Gi with ~2.5Gi requested by everything else.
+    hostMemory: "40Gi"
+    memoryLimit: "44Gi"
+  # Experts of layers 0-35 on the CPU, 36-47 on the GPU (--n-cpu-moe 36).
+  # Tune against free VRAM after the first load: 38 if under 1 GB free,
+  # 34 if 3 GB or more.
+  moeCPULayers: 36
+  # Keep the 28.8 GB n-gram table in the mmap'd CPU buffer regardless of
+  # --n-gpu-layers 99.
+  tensorOverrides:
+    - per_layer_token_embd=CPU
+  # 128K in a single slot; KV is cheap on this hybrid-attention model, the
+  # cost is mostly compute buffers. Concurrent requests queue server-side.
+  contextSize: 131072
+  parallelSlots: 1
+  # Flash attention (fine on Ampere) is required for the quantized V cache.
+  flashAttention: true
+  cacheTypeK: q8_0
+  cacheTypeV: q8_0
+  # Jinja chat template rendering - required for OpenAI-style tool calling.
+  jinja: true
+  # No CRD fields for threads. --fit defaults to on in current llama.cpp and
+  # would second-guess the explicit expert placement above.
+  extraArgs:
+    - --threads
+    - "12"
+    - --threads-batch
+    - "12"
+    - --fit
+    - "off"
