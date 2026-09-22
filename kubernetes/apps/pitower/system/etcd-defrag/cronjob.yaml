@@ -42,7 +42,7 @@ spec:
           # (10.20.10.1-3, VIP .0).
           initContainers:
             - name: status
-              image: &image ghcr.io/siderolabs/talosctl:v1.14.0@sha256:ff9b1177abf0874e963261c4937ce5f5e8080adde6ae49b4e13195f37bee1a67
+              image: &image ghcr.io/siderolabs/talosctl:v1.14.1@sha256:30791b2ec3ab1dec4093c342306159ebfe876eb9f646d5a710b853844a65ba13
               args: ["etcd", "status", "-n", "10.20.10.1,10.20.10.2,10.20.10.3"]
               volumeMounts: &mounts
                 - name: talos-secrets
