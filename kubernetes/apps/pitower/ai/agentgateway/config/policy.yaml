@@ -1,0 +1,41 @@
+---
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: agentgateway
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: agentgateway
+  traffic:
+    apiKeyAuthentication:
+      mode: Strict
+      secretRef:
+        name: agentgateway-client-keys
+      # Accepts the key wherever current LiteLLM clients send it:
+      # x-litellm-api-key (Claude Code on the Max plan, whose Authorization
+      # carries the sk-ant-oat OAuth token), x-api-key (Anthropic SDK), or
+      # Authorization: Bearer (OpenAI SDK).
+      location:
+        expression: >-
+          coalesce(request.headers["x-litellm-api-key"],
+          request.headers["x-api-key"],
+          request.headers["authorization"].stripPrefix("Bearer "))
+    # An expression location is not stripped after auth like a header
+    # location is, so drop the gateway key before it reaches a provider.
+    headerModifiers:
+      request:
+        remove:
+          - x-litellm-api-key
+          - x-api-key
+    timeouts:
+      request: 600s
+    retry:
+      attempts: 2
+      codes: [429, 500, 502, 503]
+  frontend:
+    tracing:
+      url: http://otel-collector.monitoring.svc.cluster.local:4318
+      protocol: HTTP
+      path: /v1/traces

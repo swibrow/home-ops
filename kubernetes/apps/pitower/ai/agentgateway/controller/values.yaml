@@ -1,0 +1,17 @@
+---
+rbac:
+  gatewayNamespaces:
+    - ai
+
+agentgatewayModels:
+  enabled: true
+
+monitoring:
+  enabled: true
+  proxy:
+    # Defaults to the release namespace; the proxy runs next to its Gateway.
+    namespaceSelector:
+      matchNames:
+        - ai
+  grafanaDashboard:
+    enabled: false

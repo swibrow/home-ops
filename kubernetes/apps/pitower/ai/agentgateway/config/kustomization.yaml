@@ -1,0 +1,16 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ai
+
+commonAnnotations:
+  argocd.argoproj.io/sync-wave: "1"
+
+resources:
+  - externalsecret.yaml
+  - parameters.yaml
+  - gateway.yaml
+  - policy.yaml
+  - models.yaml
+  - httproute.yaml

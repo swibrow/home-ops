@@ -1,0 +1,257 @@
+---
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayModel
+metadata:
+  name: claude-opus
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: agentgateway
+      sectionName: http
+  provider: Openrouter
+  policies:
+    auth:
+      secretRef:
+        name: agentgateway-providers
+        key: OPENROUTER_API_KEY
+    transformations:
+      - field: model
+        expression: '"anthropic/claude-opus-4.8"'
+---
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayModel
+metadata:
+  name: claude-sonnet
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: agentgateway
+      sectionName: http
+  provider: Openrouter
+  policies:
+    auth:
+      secretRef:
+        name: agentgateway-providers
+        key: OPENROUTER_API_KEY
+    transformations:
+      - field: model
+        expression: '"anthropic/claude-sonnet-4.6"'
+---
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayModel
+metadata:
+  name: claude-haiku
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: agentgateway
+      sectionName: http
+  provider: Openrouter
+  policies:
+    auth:
+      secretRef:
+        name: agentgateway-providers
+        key: OPENROUTER_API_KEY
+    transformations:
+      - field: model
+        expression: '"anthropic/claude-haiku-4.5"'
+---
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayModel
+metadata:
+  name: claude-fable
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: agentgateway
+      sectionName: http
+  provider: Openrouter
+  policies:
+    auth:
+      secretRef:
+        name: agentgateway-providers
+        key: OPENROUTER_API_KEY
+    transformations:
+      - field: model
+        expression: '"anthropic/claude-fable-5"'
+---
+# Claude Max subscription: no provider auth, so the client's sk-ant-oat OAuth
+# token in Authorization reaches Anthropic unchanged. Unlike litellm there is
+# no fallback to an API key when the token is missing; the request fails.
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayModel
+metadata:
+  name: claude-haiku-max
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: agentgateway
+      sectionName: http
+  provider: Anthropic
+  policies:
+    transformations:
+      - field: model
+        expression: '"claude-haiku-4-5"'
+---
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayModel
+metadata:
+  name: claude-sonnet-max
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: agentgateway
+      sectionName: http
+  provider: Anthropic
+  policies:
+    transformations:
+      - field: model
+        expression: '"claude-sonnet-5"'
+---
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayModel
+metadata:
+  name: claude-opus-max
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: agentgateway
+      sectionName: http
+  provider: Anthropic
+  policies:
+    transformations:
+      - field: model
+        expression: '"claude-opus-5"'
+---
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayModel
+metadata:
+  name: claude-fable-max
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: agentgateway
+      sectionName: http
+  provider: Anthropic
+  policies:
+    transformations:
+      - field: model
+        expression: '"claude-fable-5"'
+---
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayModel
+metadata:
+  name: memini-embed
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: agentgateway
+      sectionName: http
+  provider: OpenAI
+  policies:
+    auth:
+      secretRef:
+        name: agentgateway-providers
+        key: OPENAI_API_KEY
+    transformations:
+      - field: model
+        expression: '"text-embedding-3-small"'
+---
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayModel
+metadata:
+  name: qwen3.8-27b-local
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: agentgateway
+      sectionName: http
+  provider: OpenAI
+  baseURL: http://qwen38-27b-scaled.ai.svc.cluster.local:8080/v1
+  policies:
+    transformations:
+      - field: model
+        expression: '"qwen38-27b"'
+---
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayModel
+metadata:
+  name: qwen3.8-flash-next-local
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: agentgateway
+      sectionName: http
+  provider: OpenAI
+  baseURL: http://qwen38-flash-next-scaled.ai.svc.cluster.local:8080/v1
+  policies:
+    transformations:
+      - field: model
+        expression: '"qwen38-flash-next"'
+---
+# Stable alias for the current in-cluster chat model, same as litellm `local`.
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayModel
+metadata:
+  name: local
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: agentgateway
+      sectionName: http
+  provider: OpenAI
+  baseURL: http://qwen38-flash-next-scaled.ai.svc.cluster.local:8080/v1
+  policies:
+    transformations:
+      - field: model
+        expression: '"qwen38-flash-next"'
+---
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayModel
+metadata:
+  name: qwen3-embedding-local
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: agentgateway
+      sectionName: http
+  provider: OpenAI
+  baseURL: http://qwen3-embedding.ai.svc.cluster.local:8080/v1
+  policies:
+    transformations:
+      - field: model
+        expression: '"qwen3-embedding"'
+---
+# Catch-all: any other model id goes to OpenRouter unchanged. The model router
+# takes the first match in namespace/name order, so this must sort last.
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayModel
+metadata:
+  name: zz-openrouter
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: agentgateway
+      sectionName: http
+  match:
+    model: "*"
+  provider: Openrouter
+  policies:
+    auth:
+      secretRef:
+        name: agentgateway-providers
+        key: OPENROUTER_API_KEY

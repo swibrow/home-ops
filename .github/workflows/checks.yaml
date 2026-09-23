@@ -19,6 +19,12 @@ jobs:
     # per-run: neither is a static, version-insensitive binary, so per that
     # image's own convention they're left to setup-* actions, not baked in.
     runs-on: home-ops
+    # actionlint and tflint are mise shims on this runner image, so every step
+    # resolves the repo's mise.toml files, and their age-encrypted [env] vars
+    # can't decrypt here (no key in this job, by design). Lint needs none of
+    # that config, so ignore all of it.
+    env:
+      MISE_IGNORED_CONFIG_PATHS: ${{ github.workspace }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -40,13 +46,6 @@ jobs:
       # `terraform init` per stack, which is what
       # terraform-plan.yaml/terraform-proxmox.yaml already do against just
       # the changed stack.
-      #
-      # MISE_IGNORED_CONFIG_PATHS: tflint is a mise shim on this runner
-      # image, and running it inside terraform/ makes mise resolve
-      # terraform/mise.toml — whose age-encrypted [env] vars can't decrypt
-      # here (no key in this job, by design). Ignore that config; lint
-      # needs none of it.
       - uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
         env:
           SKIP: terraform_validate
-          MISE_IGNORED_CONFIG_PATHS: ${{ github.workspace }}/terraform
