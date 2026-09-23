@@ -20,7 +20,7 @@ helmCharts:
     namespace: agentgateway-system
   - name: agentgateway
     repo: oci://cr.agentgateway.dev/charts
-    version: v1.5.0
+    version: v2.2.1
     releaseName: agentgateway
     namespace: agentgateway-system
     valuesFile: values.yaml
