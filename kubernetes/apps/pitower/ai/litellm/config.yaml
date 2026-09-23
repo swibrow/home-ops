@@ -109,8 +109,9 @@ model_list:
   # vision enabled, tool calling via --jinja, single slot. Reasoning model:
   # same max_tokens headroom caveat as above. Shares the one GPU with
   # qwen3.8-27b-local and comfyui: only one of them runs at a time, and a call
-  # while another holds the card fails until that pod idles out. Expect roughly
-  # 8-15 tok/s; the first call ever waits on an 82GB download.
+  # while another holds the card fails until that pod idles out. Measured ~30
+  # tok/s generation, ~410 tok/s prompt processing; the first call ever waits on
+  # an 82GB download.
   - model_name: qwen3.8-flash-next-local
     litellm_params:
       model: openai/qwen38-flash-next
