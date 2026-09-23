@@ -1,21 +1,24 @@
 model:
-  # Local Qwen3.8-Flash-Next on ai-01 (ai/llmkube), straight to llama.cpp rather than
-  # via litellm. llama.cpp's /v1/models does not advertise the context window,
-  # so it is pinned to the InferenceService's contextSize.
-  default: qwen38-flash-next
-  provider: qwen-local
+  # `local` is litellm's alias for the current in-cluster model (ai/litellm
+  # config.yaml), so the model swap happens there. Neither litellm nor
+  # llama.cpp advertise the context window, so it is pinned to the
+  # InferenceService's contextSize of whatever `local` points at.
+  default: local
+  provider: litellm
   context_length: 131072
 fallback_providers:
   - provider: anthropic
     model: claude-haiku
 providers:
-  qwen-local:
-    # -scaled, not the Service: routes through the KEDA HTTP interceptor so an
-    # idle-scaled pod wakes on request instead of connection-refused.
-    base_url: http://qwen38-flash-next-scaled.ai.svc.cluster.local:8080/v1
+  litellm:
+    # litellm's api_base for `local` is the KEDA -scaled Service, so an
+    # idle-scaled pod wakes on request; the first call after idle blocks on
+    # the cold start.
+    base_url: http://litellm.ai.svc.cluster.local:4000/v1
     api_mode: chat_completions
-    # llama.cpp has no auth; hermes still wants a non-empty key.
-    api_key: local
+    # Same placeholder as the anthropic provider below; the init container
+    # substitutes it.
+    api_key: __LITELLM_API_KEY__
     # Single llama.cpp slot: concurrent requests queue server-side.
     request_timeout_seconds: 900
   anthropic:

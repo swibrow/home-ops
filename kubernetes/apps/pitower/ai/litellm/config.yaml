@@ -117,6 +117,15 @@ model_list:
       model: openai/qwen38-flash-next
       api_base: http://qwen38-flash-next-scaled.ai.svc.cluster.local:8080/v1
       api_key: local
+  # `local` is the stable alias for "the current in-cluster chat model". goat,
+  # hermes and paperless-rag address this name, so swapping the default local
+  # model is an edit here, not in every consumer. Point it at one of the
+  # *-local deployments above; never at an OpenRouter route.
+  - model_name: local
+    litellm_params:
+      model: openai/qwen38-flash-next
+      api_base: http://qwen38-flash-next-scaled.ai.svc.cluster.local:8080/v1
+      api_key: local
   # Qwen3-Embedding-0.6B (1024-dim) on ai-01's CPU, same llmkube pattern
   # (kubernetes/apps/pitower/ai/llmkube/llmkube-models/qwen3-embedding.yaml).
   # The only embedding route that stays in-cluster; Open-WebUI's Paperless
