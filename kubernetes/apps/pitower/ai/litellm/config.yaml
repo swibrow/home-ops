@@ -571,6 +571,59 @@ model_list:
       model: openrouter/z-ai/glm-5.3-flashx
       api_key: os.environ/OPENROUTER_API_KEY
 
+  - model_name: claude-opus-5.5
+    litellm_params:
+      model: openrouter/anthropic/claude-opus-5.5
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: claude-opus-5.5:batch
+    litellm_params:
+      model: openrouter/anthropic/claude-opus-5.5:batch
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: command-a-plus
+    litellm_params:
+      model: openrouter/cohere/command-a-plus
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: deepseek-v4.1-flash:batch
+    litellm_params:
+      model: openrouter/deepseek/deepseek-v4.1-flash:batch
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: gpt-6-luna
+    litellm_params:
+      model: openrouter/openai/gpt-6-luna
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: gpt-6-luna-pro
+    litellm_params:
+      model: openrouter/openai/gpt-6-luna-pro
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: gpt-6-luna-pro:batch
+    litellm_params:
+      model: openrouter/openai/gpt-6-luna-pro:batch
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: gpt-6-luna:batch
+    litellm_params:
+      model: openrouter/openai/gpt-6-luna:batch
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: gpt-6-sol
+    litellm_params:
+      model: openrouter/openai/gpt-6-sol
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: gpt-6-sol-pro
+    litellm_params:
+      model: openrouter/openai/gpt-6-sol-pro
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: gpt-6-sol-pro:batch
+    litellm_params:
+      model: openrouter/openai/gpt-6-sol-pro:batch
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: gpt-6-sol:batch
+    litellm_params:
+      model: openrouter/openai/gpt-6-sol:batch
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: qwen3.8-omni-flash
+    litellm_params:
+      model: openrouter/qwen/qwen3.8-omni-flash
+      api_key: os.environ/OPENROUTER_API_KEY
+
   # --- OpenRouter (catch-all passthrough) ---
   # Reach any other OpenRouter model by full id, e.g. openrouter/google/gemma-4-31b-it
   - model_name: "*"
