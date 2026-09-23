@@ -1,0 +1,10 @@
+---
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayParameters
+metadata:
+  name: agentgateway
+spec:
+  # TLS and the public hostname stay on envoy-internal (httproute.yaml).
+  service:
+    spec:
+      type: ClusterIP
