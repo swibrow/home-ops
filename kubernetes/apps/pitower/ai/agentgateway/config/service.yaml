@@ -1,0 +1,14 @@
+---
+# Reaches the admin interface on the controller-managed proxy pods; the
+# controller's own Service only exposes the Gateway listeners.
+apiVersion: v1
+kind: Service
+metadata:
+  name: agentgateway-ui
+spec:
+  selector:
+    gateway.networking.k8s.io/gateway-name: agentgateway
+  ports:
+    - name: http
+      port: 80
+      targetPort: 15000

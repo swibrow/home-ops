@@ -1,0 +1,26 @@
+---
+# Kanidm login in front of the admin UI. Envoy Gateway authenticates to the
+# token endpoint with HTTP Basic and PKCE S256, which is what Kanidm requires
+# of confidential clients. Client secret comes from Infisical via
+# externalsecret.yaml (Envoy Gateway reads the "client-secret" key).
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/gateway.envoyproxy.io/securitypolicy_v1alpha1.json
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: agentgateway-ui
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: agentgateway-ui
+  oidc:
+    provider:
+      issuer: https://idm.wibrow.dev/oauth2/openid/agentgateway
+    clientID: agentgateway
+    clientSecret:
+      name: agentgateway-ui-oidc
+    redirectURL: https://agentgateway.wibrow.dev/oauth2/callback
+    scopes:
+      - openid
+      - profile
+      - email

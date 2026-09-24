@@ -1,0 +1,29 @@
+---
+# The admin interface (port 15000) is unauthenticated and includes the config
+# dump, so only the envoy-internal proxies that enforce OIDC may reach it.
+# The Gateway listener (80) and metrics (15020) stay open; kubelet probes on
+# 15021 are exempt from NetworkPolicy under Cilium.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.31.1/networkpolicy-networking-v1.json
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: agentgateway-admin-from-envoy-internal-only
+spec:
+  podSelector:
+    matchLabels:
+      gateway.networking.k8s.io/gateway-name: agentgateway
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - port: 80
+        - port: 15020
+    - ports:
+        - port: 15000
+      from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: networking
+          podSelector:
+            matchLabels:
+              gateway.networking.k8s.io/gateway-name: envoy-internal

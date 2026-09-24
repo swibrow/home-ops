@@ -8,3 +8,11 @@ spec:
   service:
     spec:
       type: ClusterIP
+  # The admin interface serves the built-in UI, which is read-only in xDS
+  # mode (it renders the gateway dump). It binds loopback by default and has
+  # no auth of its own, so it is opened pod-wide here and fenced by
+  # networkpolicy.yaml to envoy-internal, where securitypolicy.yaml enforces
+  # Kanidm OIDC on the agentgateway.wibrow.dev route.
+  rawConfig:
+    config:
+      adminAddr: 0.0.0.0:15000
