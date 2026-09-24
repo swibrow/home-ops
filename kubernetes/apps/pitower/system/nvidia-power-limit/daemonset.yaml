@@ -1,0 +1,55 @@
+---
+# Caps the RTX 3090 Ti on ai-01 at 300W (default and max 450W, min 100W).
+# The driver forgets the limit whenever it unloads, and Talos has no boot hook
+# to run nvidia-smi, so this pod re-applies it every time the node comes up -
+# including after the GPU is handed back from a desktop VM.
+#
+# Same GPU access as dcgm-exporter: the nvidia runtime class injects the device
+# and nvidia-smi, with no nvidia.com/gpu claim that would starve inference.
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nvidia-power-limit
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nvidia-power-limit
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nvidia-power-limit
+    spec:
+      runtimeClassName: nvidia
+      nodeSelector:
+        feature.node.kubernetes.io/nvidia-gpu: "true"
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: gpu
+          effect: NoSchedule
+      terminationGracePeriodSeconds: 1
+      containers:
+        - name: nvidia-power-limit
+          image: docker.io/library/debian:stable-slim@sha256:5bc3287b25407c965a30f38e32603dc253a3869e1b12a21ac09bfc27fd8b13ce
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -eu
+              nvidia-smi -pm 1
+              nvidia-smi -pl "$POWER_LIMIT_WATTS"
+              exec sleep infinity
+          env:
+            - name: POWER_LIMIT_WATTS
+              value: "300"
+            - name: NVIDIA_VISIBLE_DEVICES
+              value: all
+            - name: NVIDIA_DRIVER_CAPABILITIES
+              value: utility
+          securityContext:
+            privileged: true
+          resources:
+            requests:
+              cpu: 5m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
