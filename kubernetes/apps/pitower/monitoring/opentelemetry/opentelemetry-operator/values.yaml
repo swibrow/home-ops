@@ -4,6 +4,10 @@ admissionWebhooks:
     enabled: true
 
 manager:
+  featureGatesMap:
+    # Cilium doesn't match the operator's ipBlock egress rule to the API server
+    # (node IPs), so its self-created NetworkPolicy locks it out.
+    operator.networkpolicy: false
   collectorImage:
     # The k8s distro lacks the "prometheus" exporter our pipeline uses; contrib has it.
     repository: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib
