@@ -56,3 +56,9 @@ clear-restarts-sequential cluster=`kubectl config current-context`:
           kubectl --context {{ cluster }} -n "$ns" rollout restart "$kind/$name"
           kubectl --context {{ cluster }} -n "$ns" rollout status "$kind/$name" --timeout=300s
         done
+
+# Force an ExternalSecret to refresh now instead of waiting for its refreshInterval
+es-sync namespace name cluster=`kubectl config current-context`:
+    @kubectl --context {{ cluster }} -n {{ namespace }} annotate externalsecret {{ name }} \
+        force-sync=$(date +%s) --overwrite
+    @kubectl --context {{ cluster }} -n {{ namespace }} get externalsecret {{ name }}

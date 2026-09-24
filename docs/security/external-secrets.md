@@ -230,6 +230,25 @@ sequenceDiagram
 !!! tip "Refresh intervals"
     Most ExternalSecrets use a `refreshInterval` of `5m`. This means changes in 1Password or Infisical propagate to the cluster within 5 minutes. For critical secrets, this can be reduced to `1m`.
 
+### Adding an Infisical secret from the CLI
+
+The `infisical` module wraps the CLI with the project settings from `mise.toml` (`INFISICAL_DOMAIN`, `INFISICAL_PROJECT_ID`, environment `prod`). Values are read from stdin or a hidden prompt, never from a command-line argument, so they stay out of shell history.
+
+```bash
+just infisical ls /ai/agentgateway                          # names only
+just infisical set /ai/agentgateway UI_OIDC_CLIENT_SECRET   # prompts for the value
+some-command | just infisical set /ai/agentgateway API_KEY  # or pipe it in
+```
+
+The path mirrors the `remoteRef.key` of the ExternalSecret that will consume it (`/category/app/NAME`). To pick the new value up before the next `refreshInterval`:
+
+```bash
+just k8s es-sync ai agentgateway-ui-oidc
+```
+
+!!! note "`INFISICAL_TOKEN`"
+    The recipes run the CLI with `INFISICAL_TOKEN` unset: a stale token in the environment overrides the `infisical login` session and fails with a confusing 404.
+
 ## Monitoring
 
 The operator exposes Grafana dashboards and Prometheus metrics:

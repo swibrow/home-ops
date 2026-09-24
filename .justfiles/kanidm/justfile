@@ -1,0 +1,24 @@
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+# List OAuth2 clients with their redirect URLs and scope maps
+ls:
+    @kanidm system oauth2 list 2>/dev/null \
+        | grep -E '^(name|oauth2_rs_origin|oauth2_rs_scope_map):' \
+        | sed 's/^oauth2_rs_//'
+
+# Register (or update) a confidential OIDC client; members of `group` get openid profile email.
+# The callback defaults to the Envoy Gateway one; pass the app's own for app-native OIDC.
+oidc-client name url callback=(url + "/oauth2/callback") group="app_access":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! kanidm system oauth2 get {{ name }} 2>/dev/null | grep -q '^name:'; then
+        kanidm system oauth2 create {{ name }} "{{ name }}" {{ url }}
+    fi
+    kanidm system oauth2 add-redirect-url {{ name }} {{ callback }}
+    kanidm system oauth2 update-scope-map {{ name }} {{ group }} openid profile email
+    kanidm system oauth2 get {{ name }} 2>/dev/null | grep -E '^(name|oauth2_rs_origin|oauth2_rs_scope_map):'
+
+# Copy a client's basic secret into Infisical, e.g. `just kanidm oidc-secret agentgateway /ai/agentgateway UI_OIDC_CLIENT_SECRET`
+oidc-secret name path key:
+    @kanidm system oauth2 show-basic-secret {{ name }} 2>/dev/null \
+        | just infisical set {{ path }} {{ key }}

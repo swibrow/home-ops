@@ -130,6 +130,7 @@ nav:
       - Authelia: security/authelia.md
       - LLDAP: security/lldap.md
       - External Secrets: security/external-secrets.md
+      - OIDC Clients: security/oidc-clients.md
       - SOPS: security/sops.md
       - Cert Manager: security/cert-manager.md
   - Monitoring:

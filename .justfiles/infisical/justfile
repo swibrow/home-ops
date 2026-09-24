@@ -1,0 +1,24 @@
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+# INFISICAL_DOMAIN / INFISICAL_PROJECT_ID come from mise.toml. INFISICAL_TOKEN is
+# dropped because a stale one overrides the login session and fails with a 404.
+env := "prod"
+project := env("INFISICAL_PROJECT_ID", "")
+
+# List secret names in a folder, e.g. `just infisical ls /ai/agentgateway`
+ls path="/":
+    @env -u INFISICAL_TOKEN infisical secrets --env={{ env }} --path={{ path }} \
+        --projectId={{ project }} --silent
+
+# Set a secret; the value is read from stdin (pipe) or prompted for, never passed as an argument
+set path name:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -t 0 ]; then
+        read -rs -p "{{ name }}: " value; echo
+    else
+        value=$(cat)
+    fi
+    [ -n "$value" ] || { echo "empty value, nothing written" >&2; exit 1; }
+    env -u INFISICAL_TOKEN infisical secrets set "{{ name }}=${value}" \
+        --path={{ path }} --env={{ env }} --projectId={{ project }} --silent
