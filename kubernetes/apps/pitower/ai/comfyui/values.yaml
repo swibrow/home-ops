@@ -103,6 +103,10 @@ persistence:
 route:
   app:
     enabled: true
+    annotations:
+      # Gatus auto-probes every HTTPRoute every 5m; through the interceptor that
+      # counts as a request and wakes the pod, so it never stays scaled to zero.
+      gatus.home-operations.com/enabled: "false"
     hostnames:
       - comfyui.wibrow.dev
     parentRefs:
