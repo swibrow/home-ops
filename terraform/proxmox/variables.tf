@@ -53,7 +53,7 @@ variable "talos_worker" {
 }
 
 variable "worker_ai" {
-  description = "Talos GPU worker VM on proxmox-02. 14 of the 9700X's 16 threads and 48GiB of its ~59GiB, leaving room for the host and the nvme pool's ARC (capped at 6GiB). models_disk must stay inside the 500-700GiB band of the `models` user volume selector"
+  description = "Talos GPU worker VM on proxmox-02. 14 of the 9700X's 16 threads and 56GiB of the ~61.4GiB the host sees (64GB less the iGPU's 512M UMA frame buffer and firmware reservations), leaving ~3.3GiB for the host and 1GiB for the metadata-only ARC. models_disk must stay inside the 500-700GiB band of the `models` user volume selector"
   type = object({
     node               = string
     vmid               = number
@@ -71,7 +71,7 @@ variable "worker_ai" {
     vmid               = 300
     name               = "pitower-worker-ai-01"
     cores              = 14
-    memory             = 49152
+    memory             = 57344
     disk               = 250
     models_disk        = 600
     mac                = "bc:24:11:a1:00:11"

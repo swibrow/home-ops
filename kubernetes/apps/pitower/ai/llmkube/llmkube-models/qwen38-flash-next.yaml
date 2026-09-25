@@ -3,8 +3,9 @@
 # MoE, 6B active per token, plus a 51B n-gram embedding table; multimodal,
 # 262K native context; preview of the Qwen4 architecture (ggml arch qwen4exp,
 # in llama.cpp since b10660). Far too big for the 3090 Ti's VRAM, so it runs
-# as a hybrid GPU/CPU/NVMe split with Unsloth's UD-IQ3_XXS dynamic quant
-# (82 GB on disk). Sizes measured from the GGUF tensor headers:
+# as a hybrid GPU/CPU/NVMe split with Unsloth's UD-IQ4_XS dynamic quant
+# (93.7 GB on disk). The layout below was measured from the UD-IQ3_XXS
+# (82 GB) tensor headers; IQ4_XS experts are ~1.24 GB/layer instead of ~1.01:
 #
 #   GPU (24 GB):
 #     routed experts, layers 36-47 (~1.01 GB/layer)   ~12.1 GB  --n-cpu-moe 36
@@ -15,17 +16,17 @@
 #     CUDA/compute buffers                              ~3   GB
 #                                                       --------
 #                                                       ~22 GB
-#   CPU (mmap, page cache inside the 44Gi limit):
+#   CPU (mmap, page cache inside the 52Gi limit):
 #     routed experts, layers 0-35                       ~36.5 GB
 #     n-gram table per_layer_token_embd (IQ4_NL)        ~28.8 GB  sparse row
 #                                                                 lookups, streams
 #                                                                 from NVMe
 #
-# Larger quants (Q3_K_XL 55.8 GB, IQ4_XS 59.5 GB of experts) do not fit the
-# VM's 48 GiB alongside the n-gram working set and would page experts from
-# NVMe on every token. Measured with this layout (llama-server /completion
-# timings, 128K ctx): ~30 tok/s generation, ~410 tok/s prompt processing on a
-# 2.9K-token prompt, double the published single 3090 Ti figure of ~15 tok/s.
+# IQ4_XS's ~47 GiB of CPU-side experts slightly exceed what the 52Gi limit
+# leaves for page cache, so a share of each token's experts is read back from
+# the 9100 Pro (~3.8 GB/s for 128K random reads inside the VM, ~7 GiB/s at 4M).
+# UD-IQ3_XXS baseline (llama-server /completion timings, 128K ctx): ~30 tok/s
+# generation, ~410 tok/s prompt processing on a 2.9K-token prompt.
 #
 # Three-shard GGUF: files[0] is what llama-server gets; the operator stages
 # every entry at its repo-relative path in the cache PVC, so the split loader
@@ -37,12 +38,12 @@ metadata:
 spec:
   source: hf://unsloth/Qwen3.8-Flash-Next-GGUF
   files:
-    - UD-IQ3_XXS/Qwen3.8-Flash-Next-UD-IQ3_XXS-00001-of-00003.gguf
-    - UD-IQ3_XXS/Qwen3.8-Flash-Next-UD-IQ3_XXS-00002-of-00003.gguf
-    - UD-IQ3_XXS/Qwen3.8-Flash-Next-UD-IQ3_XXS-00003-of-00003.gguf
+    - UD-IQ4_XS/Qwen3.8-Flash-Next-UD-IQ4_XS-00001-of-00003.gguf
+    - UD-IQ4_XS/Qwen3.8-Flash-Next-UD-IQ4_XS-00002-of-00003.gguf
+    - UD-IQ4_XS/Qwen3.8-Flash-Next-UD-IQ4_XS-00003-of-00003.gguf
   mmproj: mmproj-F16.gguf
   format: gguf
-  quantization: IQ3_XXS
+  quantization: IQ4_XS
   hardware:
     accelerator: cuda
     gpu:
@@ -89,13 +90,13 @@ spec:
     cpu: "8"
     # hostMemory is the request for hybrid offload; memoryLimit lets the page
     # cache for the mmap'd experts grow to the ceiling without reserving it.
-    # Node allocatable is 46.5Gi with ~2.5Gi requested by everything else.
+    # Node allocatable is ~54.5Gi with ~2.5Gi requested by everything else.
     hostMemory: "40Gi"
-    memoryLimit: "44Gi"
-  # Experts of layers 0-35 on the CPU, 36-47 on the GPU (--n-cpu-moe 36).
-  # Tune against free VRAM after the first load: 38 if under 1 GB free,
-  # 34 if 3 GB or more.
-  moeCPULayers: 36
+    memoryLimit: "52Gi"
+  # Experts of layers 0-37 on the CPU, 38-47 on the GPU (--n-cpu-moe 38):
+  # 10 IQ4_XS layers take about the VRAM 12 IQ3_XXS layers did. Tune against
+  # free VRAM after the first load: 39 if under 1 GB free, 37 if 3 GB or more.
+  moeCPULayers: 38
   # Keep the 28.8 GB n-gram table in the mmap'd CPU buffer regardless of
   # --n-gpu-layers 99.
   tensorOverrides:

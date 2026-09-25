@@ -21,6 +21,18 @@ proxmox_zfs_pools:
       ashift: "12"
     fs_options:
       compression: "on"
+      # Guests cache their own reads, so caching zvol data in the host ARC only
+      # duplicates it and takes RAM worker-ai-01 could use. Metadata stays cached
+      # so block lookups don't hit the disk. Applied live with
+      # `zfs set primarycache=metadata nvme`; this entry is what makes a rebuilt
+      # host match.
+      primarycache: metadata
+
+# With primarycache=metadata the ARC only holds metadata, so 1GiB is plenty.
+# zfs_arc_max is ignored unless it is above zfs_arc_min, whose default is 1/32
+# of RAM (~1.9GiB here).
+proxmox_zfs_arc_min: 268435456
+proxmox_zfs_arc_max: 1073741824
 
 # RTX 3090 Ti and its HDMI audio function, alone in IOMMU group 12. Passed
 # through to the Talos ai-01 VM or one of the desktop VMs, never used by the host.
