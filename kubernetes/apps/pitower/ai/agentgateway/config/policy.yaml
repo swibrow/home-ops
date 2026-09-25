@@ -13,13 +13,13 @@ spec:
       mode: Strict
       secretRef:
         name: agentgateway-client-keys
-      # Accepts the key wherever current LiteLLM clients send it:
-      # x-litellm-api-key (Claude Code on the Max plan, whose Authorization
-      # carries the sk-ant-oat OAuth token), x-api-key (Anthropic SDK), or
+      # Accepts the key from x-agentgateway-api-key (Claude Code on the Max
+      # plan, whose Authorization carries the sk-ant-oat OAuth token; set via
+      # ANTHROPIC_CUSTOM_HEADERS), x-api-key (Anthropic SDK), or
       # Authorization: Bearer (OpenAI SDK).
       location:
         expression: >-
-          coalesce(request.headers["x-litellm-api-key"],
+          coalesce(request.headers["x-agentgateway-api-key"],
           request.headers["x-api-key"],
           request.headers["authorization"].stripPrefix("Bearer "))
     # An expression location is not stripped after auth like a header
@@ -27,13 +27,25 @@ spec:
     headerModifiers:
       request:
         remove:
-          - x-litellm-api-key
+          - x-agentgateway-api-key
           - x-api-key
     timeouts:
       request: 600s
     retry:
       attempts: 2
       codes: [429, 500, 502, 503]
+  # The model router parses every path as chat completions unless told
+  # otherwise, which answers Anthropic SDK /v1/messages calls in OpenAI format
+  # and 400s embeddings.
+  backend:
+    ai:
+      routes:
+        /v1/chat/completions: Completions
+        /v1/messages: Messages
+        /v1/messages/count_tokens: AnthropicTokenCount
+        /v1/embeddings: Embeddings
+        /v1/responses: Responses
+        /v1/models: Models
   frontend:
     tracing:
       url: http://otel-collector.monitoring.svc.cluster.local:4318

@@ -12,9 +12,9 @@ controllers:
           WEBUI_URL: "https://chat.wibrow.dev"
           TZ: Europe/Zurich
           PORT: "8080"
-          # Model backend — litellm (OpenAI-compatible), Ollama disabled
+          # Model backend — agentgateway (OpenAI-compatible), Ollama disabled
           ENABLE_OPENAI_API: "true"
-          OPENAI_API_BASE_URL: "http://litellm:4000/v1"
+          OPENAI_API_BASE_URL: "http://agentgateway/v1"
           ENABLE_OLLAMA_API: "false"
           # Auth — Kanidm OIDC only (local login form disabled)
           WEBUI_AUTH: "true"
@@ -45,7 +45,7 @@ controllers:
           VECTOR_DB: pgvector
           # Column width is fixed when document_chunk is first created and a
           # later mismatch aborts startup. 1024 = Qwen3-Embedding-0.6B
-          # (qwen3-embedding-local via LiteLLM). Engine/model themselves are
+          # (qwen3-embedding-local via agentgateway). Engine/model themselves are
           # persisted config, so the paperless-rag sync job sets them through
           # the admin API rather than env.
           PGVECTOR_INITIALIZE_MAX_VECTOR_LENGTH: "1024"

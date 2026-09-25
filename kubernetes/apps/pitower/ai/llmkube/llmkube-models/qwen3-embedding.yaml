@@ -1,7 +1,7 @@
 ---
 # Qwen3-Embedding-0.6B (Apache 2.0): 1024-dim multilingual embeddings for the
 # Paperless RAG corpus (OCR languages deu/eng/fra, see banking/paperless).
-# The only in-cluster embedding route: LiteLLM's other one (memini-embed) is
+# The only in-cluster embedding route: agentgateway's other one (memini-embed) is
 # OpenAI, so documents would leave the cluster.
 #
 # Q8_0 is ~640 MB and runs on CPU. The RTX 3090 Ti is allocated whole to

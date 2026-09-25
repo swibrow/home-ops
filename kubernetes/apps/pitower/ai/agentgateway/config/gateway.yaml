@@ -20,3 +20,5 @@ spec:
         kinds:
           - group: agentgateway.dev
             kind: AgentgatewayModel
+          - group: gateway.networking.k8s.io
+            kind: HTTPRoute

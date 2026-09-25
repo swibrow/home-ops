@@ -110,11 +110,12 @@ controllers:
         args: ["serve"]
         env:
           <<: *dbEnv
-          # Routed through litellm (ai/litellm) rather than api.anthropic.com
-          # directly; RACKRAT_ANTHROPIC_API_KEY (rackrat-secret, when populated
-          # in Infisical) should hold a litellm virtual key, not a real Anthropic
-          # key. Model names are litellm's own aliases, not real Anthropic ids.
-          RACKRAT_ANTHROPIC_BASE_URL: http://litellm.ai.svc.cluster.local:4000
+          # Routed through agentgateway (ai/agentgateway) rather than
+          # api.anthropic.com directly; RACKRAT_ANTHROPIC_API_KEY (rackrat-secret,
+          # when populated in Infisical) should hold a gateway client key, not a
+          # real Anthropic key. Model names are agentgateway's own aliases, not
+          # real Anthropic ids.
+          RACKRAT_ANTHROPIC_BASE_URL: http://agentgateway.ai.svc.cluster.local
           RACKRAT_TEXT_MODEL: claude-sonnet
           RACKRAT_VISION_MODEL: claude-opus
           # Marketplace Insights (sold prices) is gated access; without it the

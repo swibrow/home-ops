@@ -11,7 +11,7 @@
 # header, so every scaled backend needs a hostname of its own. In-cluster
 # callers reach this one at qwen38-flash-next-scaled.ai.svc.cluster.local:8080,
 # which CNAMEs to the interceptor and presents that name as Host. There is no
-# HTTPRoute here - litellm calls the Service directly.
+# HTTPRoute here - agentgateway calls the Service directly.
 apiVersion: v1
 kind: Service
 metadata:
