@@ -399,3 +399,18 @@ spec:
   configMapRef:
     name: grafana-dashboards-status
     key: infra-health.json
+---
+# AI folder --------------------------------------------------------------------
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: llm-inference
+  namespace: monitoring
+spec:
+  folder: AI
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  configMapRef:
+    name: grafana-dashboards-ai
+    key: llm-inference.json

@@ -60,3 +60,8 @@ configMapGenerator:
       - dashboards/infra-health.json
     options:
       disableNameSuffixHash: true
+  - name: grafana-dashboards-ai
+    files:
+      - dashboards/llm-inference.json
+    options:
+      disableNameSuffixHash: true

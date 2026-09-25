@@ -33,6 +33,75 @@ kube-state-metrics:
     - "deployments=[*]"
     - "persistentvolumeclaims=[*]"
     - "pods=[*]"
+  # llama.cpp's /metrics has no context size, model or quant, so the LLM
+  # dashboard reads them off the llmkube CRs.
+  rbac:
+    extraRules:
+      - apiGroups: ["inference.llmkube.dev"]
+        resources: ["inferenceservices", "models"]
+        verbs: ["list", "watch"]
+  customResourceState:
+    enabled: true
+    config:
+      spec:
+        resources:
+          - groupVersionKind:
+              group: inference.llmkube.dev
+              version: v1alpha1
+              kind: InferenceService
+            metricNamePrefix: llmkube_inferenceservice
+            labelsFromPath:
+              name: [metadata, name]
+              namespace: [metadata, namespace]
+              model: [spec, modelRef]
+            metrics:
+              - name: info
+                help: InferenceService runtime and mode
+                each:
+                  type: Info
+                  info:
+                    labelsFromPath:
+                      runtime: [spec, runtime]
+                      mode: [status, mode]
+                      phase: [status, phase]
+              - name: context_size
+                help: Configured context size in tokens
+                each:
+                  type: Gauge
+                  gauge:
+                    path: [spec, contextSize]
+              - name: parallel_slots
+                help: Configured llama.cpp parallel slots
+                each:
+                  type: Gauge
+                  gauge:
+                    path: [spec, parallelSlots]
+              - name: ready_replicas
+                help: Ready replicas
+                each:
+                  type: Gauge
+                  gauge:
+                    path: [status, readyReplicas]
+                    nilIsZero: true
+          - groupVersionKind:
+              group: inference.llmkube.dev
+              version: v1alpha1
+              kind: Model
+            metricNamePrefix: llmkube_model
+            labelsFromPath:
+              name: [metadata, name]
+              namespace: [metadata, namespace]
+            metrics:
+              - name: info
+                help: Model source, format and quantization
+                each:
+                  type: Info
+                  info:
+                    labelsFromPath:
+                      source: [spec, source]
+                      format: [spec, format]
+                      quantization: [spec, quantization]
+                      accelerator: [spec, hardware, accelerator]
   prometheus:
     monitor:
       enabled: true
