@@ -2,8 +2,8 @@
 
 Paperless has already OCR'd every document, so what gets synced is the text it
 extracted, wrapped in a metadata header, as one markdown file per document.
-Open-WebUI chunks and embeds each file (through LiteLLM, so the embedding model
-is swappable there) and stores the vectors in pgvector.
+Open-WebUI chunks and embeds each file (through agentgateway, so the embedding
+model is swappable there) and stores the vectors in pgvector.
 
 Every run also asserts the Open-WebUI side of the setup, because those settings
 are persisted in its database and ignore env vars after first boot:

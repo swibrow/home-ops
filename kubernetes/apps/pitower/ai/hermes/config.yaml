@@ -1,8 +1,8 @@
 model:
-  # `local` is litellm's alias for the current in-cluster model (ai/litellm
-  # config.yaml), so the model swap happens there. Neither litellm nor
-  # llama.cpp advertise the context window, so it is pinned to the
-  # InferenceService's contextSize of whatever `local` points at.
+  # `local` is agentgateway's alias for the current in-cluster model
+  # (ai/agentgateway/config/models.yaml), so the model swap happens there.
+  # Neither agentgateway nor llama.cpp advertise the context window, so it is
+  # pinned to the InferenceService's contextSize of whatever `local` points at.
   default: local
   provider: litellm
   context_length: 131072
@@ -11,28 +11,28 @@ fallback_providers:
     model: claude-haiku
 providers:
   litellm:
-    # litellm's api_base for `local` is the KEDA -scaled Service, so an
+    # agentgateway's baseURL for `local` is the KEDA -scaled Service, so an
     # idle-scaled pod wakes on request; the first call after idle blocks on
     # the cold start.
-    base_url: http://litellm.ai.svc.cluster.local:4000/v1
+    base_url: http://agentgateway.ai.svc.cluster.local/v1
     api_mode: chat_completions
     # Same placeholder as the anthropic provider below; the init container
     # substitutes it.
-    api_key: __LITELLM_API_KEY__
+    api_key: __AGENTGATEWAY_API_KEY__
     # Single llama.cpp slot: concurrent requests queue server-side.
     request_timeout_seconds: 900
   anthropic:
-    # Routed through litellm (ai/litellm) instead of api.anthropic.com directly,
-    # using a litellm virtual key rather than a real Anthropic key. Model names
-    # are litellm's own aliases (claude-sonnet/claude-haiku -> OpenRouter), not
-    # real Anthropic model ids, since litellm resolves on model_name.
-    base_url: http://litellm.ai.svc.cluster.local:4000/
+    # Routed through agentgateway (ai/agentgateway) instead of api.anthropic.com
+    # directly, using a gateway client key rather than a real Anthropic key.
+    # Model names are agentgateway's own aliases (claude-sonnet/claude-haiku ->
+    # OpenRouter), not real Anthropic model ids.
+    base_url: http://agentgateway.ai.svc.cluster.local/
     api_mode: anthropic_messages
     # hermes does NOT interpolate ${VAR} in config (that relies on Flux postBuild
     # substitution, unused here) and the provider requires the key inline. The init
-    # container substitutes this placeholder with the real LITELLM_API_KEY (from
+    # container substitutes this placeholder with the real AGENTGATEWAY_API_KEY (from
     # the `hermes` secret) before hermes starts — mirroring what Flux bakes in.
-    api_key: __LITELLM_API_KEY__
+    api_key: __AGENTGATEWAY_API_KEY__
 toolsets:
   - hermes-cli
 terminal:

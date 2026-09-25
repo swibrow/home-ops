@@ -13,6 +13,7 @@ resources:
   - gateway.yaml
   - policy.yaml
   - models.yaml
+  - decisions.yaml
   - httproute.yaml
   - service.yaml
   - securitypolicy.yaml

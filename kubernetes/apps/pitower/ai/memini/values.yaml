@@ -14,22 +14,22 @@ controllers:
               secretKeyRef:
                 name: memini-db-secret
                 key: DB_URL
-          MEMINI_EMBED_BASE_URL: http://litellm:4000/v1
+          MEMINI_EMBED_BASE_URL: http://agentgateway/v1
           MEMINI_EMBED_MODEL: memini-embed
           MEMINI_EMBED_DIMS: "1536"
           MEMINI_EMBED_API_KEY:
             valueFrom:
               secretKeyRef:
                 name: memini
-                key: MEMINI_LITELLM_API_KEY
+                key: MEMINI_AGENTGATEWAY_API_KEY
           MEMINI_REEMBED_ON_MODEL_CHANGE: "true"
-          MEMINI_LLM_BASE_URL: http://litellm:4000/v1
+          MEMINI_LLM_BASE_URL: http://agentgateway/v1
           MEMINI_LLM_MODEL: claude-haiku
           MEMINI_LLM_API_KEY:
             valueFrom:
               secretKeyRef:
                 name: memini
-                key: MEMINI_LITELLM_API_KEY
+                key: MEMINI_AGENTGATEWAY_API_KEY
           # Reuses the chat LLM above for recall reranking — no dedicated
           # cross-encoder reranker deployed.
           MEMINI_RERANK: llm

@@ -198,7 +198,7 @@ data:
         - Open WebUI:
             icon: open-webui.svg
             href: https://chat.wibrow.dev
-            description: Chat UI (litellm backend)
+            description: Chat UI (agentgateway backend)
         - Browser Use:
             icon: mdi-web
             href: https://browser-use.wibrow.dev

@@ -33,7 +33,7 @@ controllers:
             # an existing file is left strictly alone. Key chars are [A-Za-z0-9_-]
             # only, so '|' is a safe sed delimiter.
             if [ ! -f /opt/data/config.yaml ]; then
-              sed "s|__LITELLM_API_KEY__|${LITELLM_API_KEY}|g" /tmp/config.yaml > /opt/data/config.yaml
+              sed "s|__AGENTGATEWAY_API_KEY__|${AGENTGATEWAY_API_KEY}|g" /tmp/config.yaml > /opt/data/config.yaml
               chown 10000:10000 /opt/data/config.yaml
             fi
             mkdir -p /opt/data/workspace

@@ -11,14 +11,14 @@ fallback_providers:
     model: claude-haiku
 providers:
   anthropic:
-    # Routed through litellm (ai/litellm), so the model names are litellm's own
-    # aliases rather than real Anthropic model ids. She can point this anywhere
-    # else from the dashboard's Providers tab.
-    base_url: http://litellm.ai.svc.cluster.local:4000/
+    # Routed through agentgateway (ai/agentgateway), so the model names are its
+    # own aliases rather than real Anthropic model ids. She can point this
+    # anywhere else from the dashboard's Providers tab.
+    base_url: http://agentgateway.ai.svc.cluster.local/
     api_mode: anthropic_messages
     # hermes does not interpolate ${VAR} and the provider needs the key inline;
     # the init container substitutes this placeholder on the seed copy only.
-    api_key: __LITELLM_API_KEY__
+    api_key: __AGENTGATEWAY_API_KEY__
 toolsets:
   - hermes-cli
 terminal:

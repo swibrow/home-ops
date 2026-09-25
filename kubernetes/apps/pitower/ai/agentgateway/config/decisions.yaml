@@ -1,0 +1,46 @@
+---
+# TypeSafe Jev is a decision model: OpenRouter serves it only on the Decisions
+# API, never chat/completions, so it cannot be an AgentgatewayModel. goat
+# (renovate safe-to-merge verdicts) POSTs {model, state, questions} here with
+# its gateway key; the Gateway policy checks the key and the backend swaps in
+# the OpenRouter key.
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayBackend
+metadata:
+  name: openrouter-decisions
+spec:
+  static:
+    host: openrouter.ai
+    port: 443
+  policies:
+    tls: {}
+    auth:
+      secretRef:
+        name: agentgateway-providers
+        key: OPENROUTER_API_KEY
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: openrouter-decisions
+spec:
+  parentRefs:
+    - name: agentgateway
+      sectionName: http
+  rules:
+    - matches:
+        - method: POST
+          path:
+            type: Exact
+            value: /openrouter/decisions
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            hostname: openrouter.ai
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /api/alpha/decisions
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: openrouter-decisions
