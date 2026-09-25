@@ -623,10 +623,6 @@ model_list:
     litellm_params:
       model: openrouter/qwen/qwen3.8-omni-flash
       api_key: os.environ/OPENROUTER_API_KEY
-  - model_name: jev-1.13
-    litellm_params:
-      model: openrouter/typesafe/jev-1.13
-      api_key: os.environ/OPENROUTER_API_KEY
 
   # --- OpenRouter (catch-all passthrough) ---
   # Reach any other OpenRouter model by full id, e.g. openrouter/google/gemma-4-31b-it
@@ -645,3 +641,17 @@ litellm_settings:
   # experiment ("litellm-proxy", set via MLFLOW_EXPERIMENT_NAME below).
   success_callback: ["mlflow"]
   failure_callback: ["mlflow"]
+
+general_settings:
+  pass_through_endpoints:
+    # TypeSafe Jev is a decision model: OpenRouter serves it only on the
+    # Decisions API, never chat/completions, so a model_list alias 400s.
+    # goat (renovate safe-to-merge verdicts) POSTs {model, state, questions}
+    # here. No virtual-key check (pass-through auth is Enterprise-only), so
+    # anything that reaches litellm can spend OpenRouter credits on this path.
+    - path: /openrouter/decisions
+      target: https://openrouter.ai/api/alpha/decisions
+      methods: ["POST"]
+      headers:
+        Authorization: "Bearer os.environ/OPENROUTER_API_KEY"
+        content-type: application/json
