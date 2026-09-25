@@ -647,8 +647,8 @@ general_settings:
     # TypeSafe Jev is a decision model: OpenRouter serves it only on the
     # Decisions API, never chat/completions, so a model_list alias 400s.
     # goat (renovate safe-to-merge verdicts) POSTs {model, state, questions}
-    # here. No virtual-key check (pass-through auth is Enterprise-only), so
-    # anything that reaches litellm can spend OpenRouter credits on this path.
+    # here with its litellm virtual key; litellm checks the key and adds its
+    # own OpenRouter key.
     - path: /openrouter/decisions
       target: https://openrouter.ai/api/alpha/decisions
       methods: ["POST"]
