@@ -28,11 +28,16 @@ spec:
     - name: agentgateway
       sectionName: http
   rules:
+    # goat builds this URL from its /v1 base URL.
     - matches:
         - method: POST
           path:
             type: Exact
             value: /openrouter/decisions
+        - method: POST
+          path:
+            type: Exact
+            value: /v1/openrouter/decisions
       filters:
         - type: URLRewrite
           urlRewrite:
