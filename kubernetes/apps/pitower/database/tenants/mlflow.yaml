@@ -2,7 +2,7 @@
 # See miniflux.yaml for why the tenant secret is basic-auth, why it carries
 # host/port/dbname, and why target.template.metadata is pinned.
 #
-# On the `ai` cluster alongside memini/litellm/open-webui/phoenix — this is a
+# On the `ai` cluster alongside memini/litellm/open-webui — this is a
 # trial deployment evaluating MLflow as a Claude Code tracing backend, see
 # ai/mlflow/kustomization.yaml.
 apiVersion: external-secrets.io/v1

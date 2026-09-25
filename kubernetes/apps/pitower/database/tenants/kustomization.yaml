@@ -26,7 +26,6 @@ resources:
   - mlflow.yaml
   - open-webui.yaml
   - paperless.yaml
-  - phoenix.yaml
   - pitwall.yaml
   - propagit.yaml
   - rackrat.yaml

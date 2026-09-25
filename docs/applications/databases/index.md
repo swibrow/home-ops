@@ -37,7 +37,6 @@ flowchart TD
 
     subgraph Apps["Application namespaces"]
         A1[16 apps via the<br/>cnpg-db-shared component]
-        A2[phoenix · chart-native]
         A3[immich · inline ExternalSecret]
     end
 
@@ -52,7 +51,6 @@ flowchart TD
     TS -->|username/password<br/>reconciles DatabaseRole| SHARED
     CSS -->|reads| TS
     A1 -->|ExternalSecret| CSS
-    A2 -->|ExternalSecret| CSS
     A3 -->|ExternalSecret| CSS
 
     classDef operator fill:#7c3aed,stroke:#5b21b6,color:#fff
@@ -256,17 +254,12 @@ configMapGenerator:
 | litellm | `ai` | litellm | `ai` |
 | memini | `ai` | memini | `ai` |
 | open_webui | `ai` | open-webui | `ai` |
-| phoenix | `ai` | phoenix | `ai` |
 | immich | `immich` | immich | `media` |
 
-### The two exceptions
+### The exception
 
 Not every consumer uses the component:
 
-- **phoenix** wires the database natively in its chart values
-  (`database.postgres.host/db/user`), because the chart offers first-class
-  external-database support and going through the component would mean fighting
-  it.
 - **immich** reads the CNPG-generated `immich-app` Secret with an inline
   `ExternalSecret` against the same `cnpg-secrets-database` store, because it is
   the one cluster that is not multi-tenant and so has no hand-authored tenant
