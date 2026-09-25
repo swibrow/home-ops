@@ -6,7 +6,7 @@ metadata:
   namespace: renovate
 spec:
   # renovate: datasource=docker depName=ghcr.io/renovatebot/renovate
-  image: ghcr.io/renovatebot/renovate:44.111.4
+  image: ghcr.io/renovatebot/renovate:44.115.2
   # Daily. The Dependency Dashboard (#1049) is only rewritten when a run
   # completes, so it can trail actual state by up to ~24h between runs; the
   # webhook gives instant response to dashboard checkbox clicks on top.
@@ -65,7 +65,7 @@ metadata:
   namespace: renovate
 spec:
   # renovate: datasource=docker depName=ghcr.io/renovatebot/renovate
-  image: ghcr.io/renovatebot/renovate:44.111.4
+  image: ghcr.io/renovatebot/renovate:44.115.2
   schedule: "0 6 * * *"
   parallelism: 1
   nodeSelector:
@@ -110,7 +110,7 @@ metadata:
   namespace: renovate
 spec:
   # renovate: datasource=docker depName=ghcr.io/renovatebot/renovate
-  image: ghcr.io/renovatebot/renovate:44.111.4
+  image: ghcr.io/renovatebot/renovate:44.115.2
   schedule: "0 6 * * *"
   parallelism: 1
   nodeSelector:
