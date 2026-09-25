@@ -102,12 +102,11 @@ httpRoute:
   enabled: true
   hostname: goat.wibrow.dev
   gateway:
-    name: envoy-internal
+    name: envoy-external
     namespace: networking
     sectionName: https
-  # GitHub can't reach envoy-internal (VPN-only) to deliver App webhooks —
-  # route just /webhooks/* through envoy-external instead. Point the GitHub
-  # App's webhook URL at https://goat-hooks.wibrow.dev/webhooks/github.
+  # The GitHub App webhook URL points at
+  # https://goat-hooks.wibrow.dev/webhooks/github.
   webhookExternal:
     enabled: true
     hostname: goat-hooks.wibrow.dev
