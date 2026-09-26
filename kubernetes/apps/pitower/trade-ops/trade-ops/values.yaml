@@ -2,7 +2,7 @@
 # resolves mutable tags like :latest from peer caches, serving stale images.
 # CI in swibrow/trade-ops bumps the tag and chart version on every main build.
 image:
-  tag: v0.1.0-dev.1
+  tag: v0.1.0-dev.2
 imagePullSecret: ghcr-pull-secret
 # live is Yahoo-first with a bounded cache on the PVC, so it runs without
 # seeding the historical DuckDB stores.
