@@ -19,6 +19,7 @@ set cmdline talos.platform=metal console=tty0 slab_nomerge pti=on consoleblank=0
 set sch_amd @@SCHEMATIC_AMD@@
 set sch_intel @@SCHEMATIC_INTEL@@
 set sch_proxmox @@SCHEMATIC_PROXMOX@@
+set sch_nvidia @@SCHEMATIC_NVIDIA@@
 
 set node unknown
 set default local
@@ -29,6 +30,7 @@ iseq ${net0/mac} 10:02:b5:86:00:fb && set node worker-04 && set default talos-in
 iseq ${net0/mac} 28:d2:44:6d:64:bf && set node worker-05 && set default talos-intel ||
 iseq ${net0/mac} 50:7b:9d:31:ae:cd && set node worker-06 && set default talos-intel ||
 iseq ${net0/mac} bc:24:11:e8:10:19 && set node worker-07 && set default talos-proxmox ||
+iseq ${net0/mac} b0:82:e2:a2:df:33 && set node worker-ai-01 && set default talos-nvidia ||
 iseq ${net0/mac} bc:24:11:0e:b0:07 && set node netboot-test && set default talos-proxmox ||
 
 :menu
@@ -36,6 +38,7 @@ menu netboot - ${node} (${net0/mac}) - default ${default} in 15s
 item talos-amd      Talos ${talos_version} amd schematic (worker-01/02/03)
 item talos-intel    Talos ${talos_version} intel schematic (worker-04/05/06)
 item talos-proxmox  Talos ${talos_version} proxmox schematic (worker-07)
+item talos-nvidia   Talos ${talos_version} nvidia schematic (worker-ai-01)
 item nbxyz          netboot.xyz (Linux ISOs, tools, installers)
 item shell          iPXE shell
 item local          Boot from local disk
@@ -51,6 +54,10 @@ goto talos-boot
 
 :talos-proxmox
 set schematic ${sch_proxmox}
+goto talos-boot
+
+:talos-nvidia
+set schematic ${sch_nvidia}
 goto talos-boot
 
 :talos-boot
