@@ -34,7 +34,7 @@ spec:
           - database-toolbox
           - victorialogs
           - excalidraw
-          - playwright
+          - browser
   policyTypes:
     - Ingress
   ingress:
@@ -77,7 +77,7 @@ spec:
           - database-toolbox
           - victorialogs
           - excalidraw
-          - playwright
+          - browser
   policyTypes:
     - Ingress
   ingress:
@@ -100,7 +100,7 @@ spec:
                   - database-toolbox
                   - victorialogs
                   - excalidraw
-                  - playwright
+                  - browser
 ---
 # The anonymous vMCP (mcp-gateway-direct) has no auth of its own, so restrict its
 # ingress to the only legitimate callers: the Envoy proxy pods (which terminate the
@@ -194,18 +194,18 @@ spec:
         - protocol: TCP
           port: 8080
 ---
-# Open-WebUI connects to the playwright backend directly as its browser tool
-# rather than through a vMCP, which would also hand chat users the privileged
-# backends. Additive to mcp-backend-proxy-from-vmcp-only.
+# Open-WebUI connects to the browser (Playwright MCP) backend directly as its
+# browser tool rather than through a vMCP, which would also hand chat users the
+# privileged backends. Additive to mcp-backend-proxy-from-vmcp-only.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: mcp-playwright-proxy-from-open-webui
+  name: mcp-browser-proxy-from-open-webui
 spec:
   podSelector:
     matchLabels:
       app.kubernetes.io/name: mcpserver
-      toolhive-name: playwright
+      toolhive-name: browser
   policyTypes:
     - Ingress
   ingress:
@@ -217,17 +217,17 @@ spec:
         - protocol: TCP
           port: 8080
 ---
-# The playwright workload opens whatever URLs the model asks for. Public internet
+# The browser workload opens whatever URLs the model asks for. Public internet
 # and DNS only, so a prompt can't aim it at cluster services (several MCP
 # backends here are unauthenticated) or the home network.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: mcp-playwright-workload-egress
+  name: mcp-browser-workload-egress
 spec:
   podSelector:
     matchLabels:
-      toolhive-basename: playwright
+      toolhive-basename: browser
   policyTypes:
     - Egress
   egress:
