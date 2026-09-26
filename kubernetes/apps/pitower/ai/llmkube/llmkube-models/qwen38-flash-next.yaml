@@ -95,10 +95,10 @@ spec:
     # keep the limit ~2Gi under it minus what everything else requests.
     hostMemory: "40Gi"
     memoryLimit: "56Gi"
-  # Experts of layers 0-37 on the CPU, 38-47 on the GPU (--n-cpu-moe 38):
-  # 10 IQ4_XS layers take about the VRAM 12 IQ3_XXS layers did. Tune against
-  # free VRAM after the first load: 39 if under 1 GB free, 37 if 3 GB or more.
-  moeCPULayers: 38
+  # Experts of layers 0-36 on the CPU, 37-47 on the GPU (--n-cpu-moe 37).
+  # At 38 the card had 2.9 GB free, enough for one more ~1.24 GB IQ4_XS layer.
+  # Go back to 38 if a load runs out of VRAM.
+  moeCPULayers: 37
   # Keep the 28.8 GB n-gram table in the mmap'd CPU buffer regardless of
   # --n-gpu-layers 99.
   tensorOverrides:
