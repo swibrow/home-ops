@@ -1,0 +1,21 @@
+# Home cluster (admin@pitower). Pin the image by deploy version: spegel
+# resolves mutable tags like :latest from peer caches, serving stale images.
+# CI in swibrow/trade-ops bumps the tag and chart version on every main build.
+image:
+  tag: v0.1.0-dev.1
+imagePullSecret: ghcr-pull-secret
+# live is Yahoo-first with a bounded cache on the PVC, so it runs without
+# seeding the historical DuckDB stores.
+backend:
+  env:
+    TRADE_OPS_DATA_PROFILE: live
+  persistence:
+    size: 5Gi
+# No auth in front of it: TRADE_OPS_REQUIRE_AUTH is off by default.
+httpRoute:
+  enabled: true
+  hostname: trade-ops.wibrow.dev
+  gateway:
+    name: envoy-external
+    namespace: networking
+    sectionName: https
