@@ -1,0 +1,66 @@
+# yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpserver_v1beta1.json
+# Playwright MCP backend: a headless Chromium the model drives itself (navigate,
+# click, type, read the accessibility snapshot, screenshot). Part of the
+# mcp-tools group like the others, and also connected directly from Open-WebUI
+# as its browser tool (open-webui values.yaml). Unauthenticated; ingress is the
+# two vMCPs plus Open-WebUI, and egress is public internet only so a prompt
+# can't point the browser at cluster or home-network services
+# (networkpolicy.yaml).
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServer
+metadata:
+  name: playwright
+spec:
+  image: mcr.microsoft.com/playwright/mcp:v0.0.82
+  transport: streamable-http
+  # The image's entrypoint already runs `--headless --browser chromium
+  # --no-sandbox`; these add the HTTP listener. --allowed-hosts '*' because the
+  # ToolHive proxy rewrites Host. --isolated keeps each session's profile in
+  # memory, so concurrent clients don't fight over one profile directory.
+  args:
+    - --port
+    - "8931"
+    - --host
+    - 0.0.0.0
+    - --allowed-hosts
+    - "*"
+    - --isolated
+    - --output-dir
+    - /tmp/playwright-output
+  proxyPort: 8080
+  mcpPort: 8931
+  groupRef:
+    name: mcp-tools
+  permissionProfile:
+    type: builtin
+    name: network
+  # ToolHive runs the workload with a read-only rootfs; Chromium needs a
+  # writable home and /tmp, and more /dev/shm than the 64Mi default. The CRD
+  # `volumes` field is hostPath-only, so the emptyDirs go via podTemplateSpec
+  # (workload container is named "mcp").
+  podTemplateSpec:
+    spec:
+      containers:
+        - name: mcp
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: home
+              mountPath: /home/node
+            - name: shm
+              mountPath: /dev/shm
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: home
+          emptyDir: {}
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Gi
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      memory: 2Gi
