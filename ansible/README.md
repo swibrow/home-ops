@@ -27,7 +27,7 @@ ansible/
 └── roles/
     ├── network/           # VLAN sub-interfaces as NetworkManager connections
     ├── nut/               # Network UPS Tools (netserver mode)
-    ├── corosync-qnetd/    # external vote (QDevice) for the proxmox-01/proxmox-02 PVE cluster, on nut
+    ├── corosync-qnetd/    # external vote (QDevice) for the PVE cluster, on nut
     ├── fail2ban/          # SSH brute-force jail
     ├── oha/               # oha HTTP load-testing CLI (pinned GitHub release binary)
     ├── towonel-hub/       # towonel tunnel hub (systemd-managed docker run)

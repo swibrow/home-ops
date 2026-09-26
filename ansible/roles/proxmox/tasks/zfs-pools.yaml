@@ -31,15 +31,3 @@
   loop: "{{ proxmox_zfs_pools }}"
   loop_control:
     label: "{{ item.name }}"
-
-# Replaces the installer's /etc/modprobe.d/zfs.conf (a 10%-of-RAM zfs_arc_max).
-- name: Cap the ZFS ARC
-  ansible.builtin.copy:
-    dest: /etc/modprobe.d/zfs.conf
-    content: |
-      options zfs zfs_arc_min={{ proxmox_zfs_arc_min }} zfs_arc_max={{ proxmox_zfs_arc_max }}
-    owner: root
-    group: root
-    mode: "0644"
-  when: proxmox_zfs_arc_max is defined
-  notify: Update initramfs

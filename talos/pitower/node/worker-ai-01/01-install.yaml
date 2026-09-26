@@ -3,14 +3,25 @@ apiVersion: v1alpha1
 kind: KubeNodeConfig
 labels:
   feature.node.kubernetes.io/nvidia-gpu: "true"
-# VM 300 on proxmox-02 (terraform/proxmox/vm_worker_ai_01.tf): scsi0 is the
-# 250GiB system disk on local-lvm, scsi1 the `models` volume (02-models.yaml).
+# Bare metal, dual-booted with Bazzite. Two NVMe drives: the 1TB Kingston NV3
+# (Gen4) is the system disk, shared with Bazzite, and the 2TB Samsung 9100 Pro
+# is the `models` volume (02-models.yaml). Size is the only reliable way to tell
+# them apart - nvme0n1/nvme1n1 enumeration order isn't guaranteed.
 ---
 apiVersion: v1alpha1
 kind: UnattendedInstallConfig
 provisioning:
   diskSelector:
-    match: disk.dev_path == "/dev/sda"
+    match: disk.transport == "nvme" && disk.size <= 1500u * GB
+---
+# Capped so the rest of the Kingston stays unpartitioned for Bazzite. Only
+# honored when EPHEMERAL is first provisioned. Model weights live on the models
+# volume, so this only holds images, logs and emptyDirs.
+apiVersion: v1alpha1
+kind: VolumeConfig
+name: EPHEMERAL
+provisioning:
+  maxSize: 200GiB
 ---
 apiVersion: v1alpha1
 kind: KernelModuleConfig
