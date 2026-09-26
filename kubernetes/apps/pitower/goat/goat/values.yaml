@@ -59,8 +59,10 @@ api:
     # "unknown provider 'litellm' — available: (none)". The chart syncs
     # LITELLM_API_KEY but has no knob for the URL, so set it here. The
     # provider keeps its litellm name but points at agentgateway, and
-    # LITELLM_API_KEY is goat's gateway client key.
-    LITELLM_BASE_URL: http://agentgateway.ai.svc.cluster.local
+    # LITELLM_API_KEY is goat's gateway client key. The /v1 is needed because
+    # goat appends /chat/completions (litellm also served it unprefixed);
+    # goat's Decisions client appends /openrouter/decisions to the same URL.
+    LITELLM_BASE_URL: http://agentgateway.ai.svc.cluster.local/v1
 # Dev-session pods (Claude Code in the goat namespace) — needs the
 # ghcr.io/swibrow/claude-code image and the egress NetworkPolicy below.
 devSessions:
