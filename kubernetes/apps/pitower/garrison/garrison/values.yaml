@@ -14,7 +14,7 @@ database:
   secret: garrison-db-secret
   secretKey: DB_URL
 keep:
-  image: ghcr.io/swibrow/garrison-keep:v1.0.0
+  image: ghcr.io/swibrow/garrison-keep:v0.58.0
   imagePullPolicy: IfNotPresent
   # The keep's own agents through agentgateway, same as the raids. Plain
   # routing only — the client key rides in ANTHROPIC_CUSTOM_HEADERS from the secret
@@ -41,7 +41,7 @@ keep:
 # fanned out to every namespace by security/external-secrets/ghcr-pull-secret.
 imagePullSecret: ghcr-pull-secret
 runner:
-  image: ghcr.io/swibrow/garrison-runner:v1.0.0
+  image: ghcr.io/swibrow/garrison-runner:v0.58.0
   namespace: garrison
 harness: claude
 launcher: sandbox
