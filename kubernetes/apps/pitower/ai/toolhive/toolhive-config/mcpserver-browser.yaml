@@ -9,7 +9,9 @@
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServer
 metadata:
-  name: playwright
+  # Not `playwright`: the operator names the proxy Deployment after the
+  # MCPServer, and apps/pitower/ai/playwright already owns that name here.
+  name: browser
 spec:
   image: mcr.microsoft.com/playwright/mcp:v0.0.82
   transport: streamable-http

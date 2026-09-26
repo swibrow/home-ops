@@ -71,12 +71,12 @@ controllers:
           # allow list, suffix-matched, comma-separated with no spaces.
           TOOL_SERVER_CONNECTIONS: >-
             [{"type": "mcp",
-              "url": "http://mcp-playwright-proxy.ai.svc.cluster.local:8080/mcp",
+              "url": "http://mcp-browser-proxy.ai.svc.cluster.local:8080/mcp",
               "path": "", "auth_type": "none", "key": "",
               "config": {"enable": true,
                          "access_grants": [{"principal_type": "user", "principal_id": "*", "permission": "read"}],
                          "function_name_filter_list": "browser_navigate,browser_navigate_back,browser_snapshot,browser_click,browser_type,browser_press_key,browser_take_screenshot"},
-              "info": {"id": "playwright", "name": "Browser",
+              "info": {"id": "browser", "name": "Browser",
                        "description": "Headless Chromium: open pages, click, fill forms, read content"}}]
         envFrom:
           - secretRef:

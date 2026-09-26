@@ -16,5 +16,14 @@
       matchPackageNames: ["docker.io/kopia/kopia"],
       allowedVersions: "<999",
     },
+    {
+      // Open-WebUI's web loader client pins python playwright exactly and
+      // refuses a server of any other version. Bump by hand together with
+      // Open-WebUI's requirements.txt pin (apps/pitower/ai/playwright).
+      // Does not cover mcr.microsoft.com/playwright/mcp.
+      matchDatasources: ["docker"],
+      matchPackageNames: ["mcr.microsoft.com/playwright"],
+      enabled: false,
+    },
   ],
 }

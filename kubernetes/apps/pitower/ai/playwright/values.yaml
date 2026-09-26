@@ -4,14 +4,15 @@
 #
 # The server version must match Open-WebUI's Python playwright pin exactly
 # (backend/requirements.txt, 1.60.0 for v0.11.4) or the client refuses to
-# connect. Bump the image tag, the npx version and Open-WebUI together.
+# connect. Bump the image tag, the npx version and Open-WebUI together;
+# Renovate skips this image (.renovate/allowedVersions.json5).
 controllers:
   playwright:
     containers:
       app:
         image:
           repository: mcr.microsoft.com/playwright
-          tag: v1.63.0-noble
+          tag: v1.60.0-noble
         command:
           - npx
           - -y
