@@ -1,0 +1,56 @@
+# Headless Chromium that Open-WebUI's web loader drives over the Playwright
+# protocol (WEB_LOADER_ENGINE=playwright) to render search results and fetched
+# URLs, so JavaScript-heavy pages don't come back empty.
+#
+# The server version must match Open-WebUI's Python playwright pin exactly
+# (backend/requirements.txt, 1.60.0 for v0.11.4) or the client refuses to
+# connect. Bump the image tag, the npx version and Open-WebUI together.
+controllers:
+  playwright:
+    containers:
+      app:
+        image:
+          repository: mcr.microsoft.com/playwright
+          tag: v1.60.0-noble
+        command:
+          - npx
+          - -y
+          - playwright@1.60.0
+          - run-server
+          - --port
+          - "3000"
+          - --host
+          - 0.0.0.0
+        probes:
+          liveness: &probe
+            enabled: true
+            custom: true
+            spec:
+              tcpSocket:
+                port: 3000
+              initialDelaySeconds: 20
+              periodSeconds: 30
+          readiness: *probe
+        resources:
+          requests:
+            cpu: 50m
+            memory: 256Mi
+          limits:
+            memory: 2Gi
+
+service:
+  app:
+    controller: playwright
+    ports:
+      http:
+        port: 3000
+
+persistence:
+  # Chromium uses /dev/shm for its renderers; the container runtime's 64Mi
+  # default crashes tabs on heavier pages.
+  shm:
+    type: emptyDir
+    medium: Memory
+    sizeLimit: 1Gi
+    globalMounts:
+      - path: /dev/shm

@@ -1,0 +1,15 @@
+# Metasearch backend for Open-WebUI's web search. In-cluster only (no route),
+# queried as JSON, so the bot limiter and image proxy are off. The secret key
+# comes from SEARXNG_SECRET (externalsecret.yaml).
+use_default_settings: true
+general:
+  instance_name: searxng
+server:
+  limiter: false
+  image_proxy: false
+  public_instance: false
+search:
+  safe_search: 0
+  formats:
+    - html
+    - json

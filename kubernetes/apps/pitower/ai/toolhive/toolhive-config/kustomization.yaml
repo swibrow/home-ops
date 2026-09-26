@@ -29,6 +29,7 @@ resources:
   - mcpserver-context7.yaml
   - mcpserver-database-toolbox.yaml
   - mcpserver-excalidraw.yaml
+  - mcpserver-playwright.yaml
   - generator-github.yaml
   - cronjob-github-token.yaml
   - networkpolicy.yaml
