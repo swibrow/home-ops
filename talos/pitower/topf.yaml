@@ -73,7 +73,6 @@ nodes:
   - host: worker-ai-01
     ip: 10.20.10.11
     role: worker
-    schematicId: "@extensions/nvidia-vm.yaml"
+    schematicId: "@extensions/nvidia.yaml"
     data:
-      mac: "bc:24:11:a1:00:11" # VM 300 on proxmox-02, pinned in terraform/proxmox
-      untagged: true
+      mac: "b0:82:e2:a2:df:33" # ASUS ProArt B850, bare metal (was proxmox-02)

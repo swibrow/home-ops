@@ -35,20 +35,11 @@ locals {
     # `pvecm create`, so these are pinned before clustering. Everything reaches
     # proxmox-01 by name.
     proxmox-01 = { mac = "f8:bc:12:1d:46:30", fixed_ip = "10.20.1.1", network_id = unifi_network.servers.id, note = "Dell R630, vmbr0 on nic1.20" }
-    # ai-01's bare-metal NIC, now the Proxmox host that runs the GPU worker as a VM.
-    proxmox-02 = { mac = "b0:82:e2:a2:df:33", fixed_ip = "10.20.1.2", network_id = unifi_network.servers.id, note = "ASUS ProArt B850 + RTX 3090 Ti, vmbr0 on nic0.20" }
 
-    # Talos GPU worker, VM 300 on proxmox-02. MAC pinned in terraform/proxmox so
-    # this reservation exists before the VM first DHCPs in maintenance mode.
-    worker-ai-01 = { mac = "bc:24:11:a1:00:11", fixed_ip = "10.20.10.11", network_id = unifi_network.servers.id, note = "Talos GPU worker VM on proxmox-02" }
-
-    # Bazzite gaming VM 301 on proxmox-02, pinned at its first DHCP lease.
-    # Moonlight reaches it as bazzite.servers.internal.
-    bazzite = { mac = "bc:24:11:a1:00:21", fixed_ip = "10.20.108.124", network_id = unifi_network.servers.id, note = "Bazzite gaming VM on proxmox-02" }
-
-    # Omarchy desktop VM 302 on proxmox-02, MAC pinned in terraform/proxmox.
-    # Moonlight reaches it as omarchy.servers.internal.
-    omarchy = { mac = "bc:24:11:a1:00:22", fixed_ip = "10.20.2.22", network_id = unifi_network.servers.id, note = "Omarchy gaming/dev VM on proxmox-02" }
+    # Talos GPU worker, bare metal (ASUS ProArt B850 + RTX 3090 Ti), dual-booted
+    # with Bazzite. Talos DHCPs on its VLAN 20 subinterface, which inherits the
+    # NIC's MAC; Bazzite comes up on the untagged LAN.
+    worker-ai-01 = { mac = "b0:82:e2:a2:df:33", fixed_ip = "10.20.10.11", network_id = unifi_network.servers.id, note = "Talos GPU worker, bare metal, VLAN 20 on the onboard NIC" }
 
     # Pinned at its existing dynamic address: nut-exporter and the blackbox
     # probes use the IP, not the name. Also the corosync QDevice for the PVE cluster.
@@ -62,14 +53,6 @@ locals {
     # the MAC is end0's - a VLAN sub-interface inherits its parent's.
     homeassistant = { mac = "dc:a6:32:4f:ee:a9", fixed_ip = "10.101.13.61", network_id = unifi_network.iot.id, note = "HAOS Pi 4 + PoE HAT, tagged VLAN 101 on end0" }
   }
-}
-
-# Same controller record (same MAC), so rename in place. Removing ai-01 and
-# adding a new key would destroy+create, and skip_forget_on_destroy leaves the
-# old record holding its fixed IP (api.err.DuplicateFixedIP).
-moved {
-  from = unifi_user.reservation["ai-01"]
-  to   = unifi_user.reservation["proxmox-02"]
 }
 
 resource "unifi_user" "reservation" {

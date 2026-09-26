@@ -16,15 +16,16 @@
 #     CUDA/compute buffers                              ~3   GB
 #                                                       --------
 #                                                       ~22 GB
-#   CPU (mmap, page cache inside the 48Gi limit):
+#   CPU (mmap, page cache inside the 56Gi limit):
 #     routed experts, layers 0-35                       ~36.5 GB
 #     n-gram table per_layer_token_embd (IQ4_NL)        ~28.8 GB  sparse row
 #                                                                 lookups, streams
 #                                                                 from NVMe
 #
-# IQ4_XS's ~47 GiB of CPU-side experts slightly exceed what the 48Gi limit
-# leaves for page cache, so a share of each token's experts is read back from
-# the 9100 Pro (~3.8 GB/s for 128K random reads inside the VM, ~7 GiB/s at 4M).
+# On bare metal the 56Gi limit leaves room for IQ4_XS's ~47 GiB of CPU-side
+# experts plus part of the n-gram table; misses stream from the 9100 Pro
+# (measured ~3.8 GB/s for 128K random reads through the old Proxmox VM's
+# virtual disk, so direct NVMe should be at least that).
 # UD-IQ3_XXS baseline (llama-server /completion timings, 128K ctx): ~30 tok/s
 # generation, ~410 tok/s prompt processing on a 2.9K-token prompt.
 #
@@ -86,13 +87,14 @@ spec:
   resources:
     gpu: 1
     # Request only (the operator sets no CPU limit), so the 12 llama.cpp
-    # threads are not throttled. Node has 14 vCPU; qwen3-embedding asks for 4.
+    # threads are not throttled. Node has 16 threads; qwen3-embedding asks for 4.
     cpu: "8"
     # hostMemory is the request for hybrid offload; memoryLimit lets the page
     # cache for the mmap'd experts grow to the ceiling without reserving it.
-    # Node allocatable is ~50.5Gi with ~2.5Gi requested by everything else.
+    # 64GB bare metal; check the node's allocatable after the first boot and
+    # keep the limit ~2Gi under it minus what everything else requests.
     hostMemory: "40Gi"
-    memoryLimit: "48Gi"
+    memoryLimit: "56Gi"
   # Experts of layers 0-37 on the CPU, 38-47 on the GPU (--n-cpu-moe 38):
   # 10 IQ4_XS layers take about the VRAM 12 IQ3_XXS layers did. Tune against
   # free VRAM after the first load: 39 if under 1 GB free, 37 if 3 GB or more.

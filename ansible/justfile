@@ -97,11 +97,11 @@ apply-network-homeassistant host='':
 ping-proxmox limit='proxmox':
     ansible {{ limit }} -m ping
 
-# Dry-run the proxmox playbook (repos + vfio + zfs + fail2ban) and show a diff
+# Dry-run the proxmox playbook (repos + zfs + fail2ban) and show a diff
 check-proxmox limit='proxmox':
     ansible-playbook playbooks/proxmox.yaml --limit {{ limit }} --check --diff
 
-# Apply the proxmox playbook (repos + vfio + zfs + fail2ban)
+# Apply the proxmox playbook (repos + zfs + fail2ban)
 deploy-proxmox limit='proxmox':
     ansible-playbook playbooks/proxmox.yaml --limit {{ limit }}
 
@@ -110,7 +110,7 @@ facts-proxmox limit='proxmox':
     ansible {{ limit }} -m setup
 
 # Move one Proxmox host's networking onto VLAN20 (no automatic rollback - fix
-# via iDRAC (proxmox-01) or the JetKVM/console (proxmox-02) if it breaks. A
+# via iDRAC if it breaks. A
 # "connection lost" result on apply is expected.)
 apply-network-proxmox host:
     ansible-playbook playbooks/proxmox-network.yaml --limit {{ host }}
