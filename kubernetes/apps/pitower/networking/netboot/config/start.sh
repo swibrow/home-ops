@@ -32,9 +32,10 @@ sed -e "s/@@NETBOOT_IP@@/${ADDR}/g" \
     -e "s/@@SCHEMATIC_AMD@@/${SCHEMATIC_AMD}/g" \
     -e "s/@@SCHEMATIC_INTEL@@/${SCHEMATIC_INTEL}/g" \
     -e "s/@@SCHEMATIC_PROXMOX@@/${SCHEMATIC_PROXMOX}/g" \
+    -e "s/@@SCHEMATIC_NVIDIA@@/${SCHEMATIC_NVIDIA}/g" \
     /config/menu.ipxe > /var/lib/tftpboot/menu.ipxe
 
-for sch in "${SCHEMATIC_AMD}" "${SCHEMATIC_INTEL}" "${SCHEMATIC_PROXMOX}"; do
+for sch in "${SCHEMATIC_AMD}" "${SCHEMATIC_INTEL}" "${SCHEMATIC_PROXMOX}" "${SCHEMATIC_NVIDIA}"; do
   mkdir -p "/var/lib/tftpboot/talos/${sch}"
   for f in kernel-amd64 initramfs-amd64.xz; do
     if [ ! -s "/var/lib/tftpboot/talos/${sch}/${f}" ]; then
@@ -44,7 +45,7 @@ for sch in "${SCHEMATIC_AMD}" "${SCHEMATIC_INTEL}" "${SCHEMATIC_PROXMOX}"; do
   done
 done
 wait
-for sch in "${SCHEMATIC_AMD}" "${SCHEMATIC_INTEL}" "${SCHEMATIC_PROXMOX}"; do
+for sch in "${SCHEMATIC_AMD}" "${SCHEMATIC_INTEL}" "${SCHEMATIC_PROXMOX}" "${SCHEMATIC_NVIDIA}"; do
   for f in kernel-amd64 initramfs-amd64.xz; do
     [ -s "/var/lib/tftpboot/talos/${sch}/${f}" ] || \
       echo "WARNING: mirror of ${sch}/${f} failed - that Talos menu entry will 404" >&2
