@@ -11,7 +11,7 @@ controllers:
       app:
         image:
           repository: mcr.microsoft.com/playwright
-          tag: v1.60.0-noble
+          tag: v1.63.0-noble
         command:
           - npx
           - -y
