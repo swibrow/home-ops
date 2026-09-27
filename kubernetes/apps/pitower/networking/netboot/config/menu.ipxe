@@ -31,7 +31,6 @@ iseq ${net0/mac} 28:d2:44:6d:64:bf && set node worker-05 && set default talos-in
 iseq ${net0/mac} 50:7b:9d:31:ae:cd && set node worker-06 && set default talos-intel ||
 iseq ${net0/mac} bc:24:11:e8:10:19 && set node worker-07 && set default talos-proxmox ||
 iseq ${net0/mac} b0:82:e2:a2:df:33 && set node worker-ai-01 && set default talos-nvidia ||
-iseq ${net0/mac} bc:24:11:0e:b0:07 && set node netboot-test && set default talos-proxmox ||
 
 :menu
 menu netboot - ${node} (${net0/mac}) - default ${default} in 15s
