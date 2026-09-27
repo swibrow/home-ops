@@ -49,9 +49,13 @@ cephClusterSpec:
         keyGeneration: 2
       # Do NOT rotate the CSI keys to aes256k yet, and do NOT set
       # allowedCiphers: [aes256k]; both strand every RBD client. Gated on:
-      #   - Linux kernel >= 7.0 on all nodes (Talos ships 6.18.33 today)
-      #   - ceph-csi >= v3.17.1 (running v3.17.0)
-      # Until both clear, the remaining AUTH_INSECURE_* checks stay [WRN].
+      #   - Linux kernel >= 7.0 on all nodes (Talos ships 6.18.48 today)
+      #   - ceph-csi >= v3.17.1 (done)
+      # Until then the AUTH_INSECURE_CLIENT_KEY_TYPE, AUTH_INSECURE_KEYS_ALLOWED
+      # and AUTH_INSECURE_KEYS_CREATABLE [WRN]s are muted in the mon store
+      # (`ceph health mute <check>`, not sticky: they unmute if they worsen) so
+      # CephHealthWarning can catch new problems. `ceph health unmute` them
+      # after rotating.
       csi:
         keyType: aes
   placement:
