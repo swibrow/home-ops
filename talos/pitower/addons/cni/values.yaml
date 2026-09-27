@@ -70,6 +70,10 @@ k8sServiceHost: 127.0.0.1
 k8sServicePort: 6443
 kubeProxyReplacement: true
 kubeProxyReplacementHealthzBindAddr: 0.0.0.0:10256
+# Socket LB rewrites service IPs in connect()/sendmsg(), which KubeVirt VM
+# traffic never passes through; tc-level translation is needed for VMs.
+socketLB:
+  hostNamespaceOnly: true
 l2announcements:
   enabled: true
 loadBalancer:

@@ -24,7 +24,6 @@ spec:
       labels:
         kubevirt.io/vm: debian-test
     spec:
-      evictionStrategy: LiveMigrate
       domain:
         cpu:
           cores: 2

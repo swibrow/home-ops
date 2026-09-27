@@ -9,6 +9,9 @@ spec:
   configuration:
     developerConfiguration:
       featureGates: []
+    # VM nodes have mismatched CPUs (Ryzen, N100, Xeon), so live migration
+    # never finds a target; drains and upgrades restart VMs instead.
+    evictionStrategy: None
   customizeComponents: {}
   imagePullPolicy: IfNotPresent
   # Defaults to openshift-monitoring/prometheus-k8s; without these the
@@ -17,7 +20,7 @@ spec:
   monitorAccount: kube-prometheus-stack-prometheus
   workloadUpdateStrategy:
     workloadUpdateMethods:
-      - LiveMigrate
+      - Evict
   # The Pis (worker-08/09/10) are arm64; keep virt-handler and VMs on amd64.
   workloads:
     nodePlacement:
