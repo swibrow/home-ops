@@ -74,7 +74,7 @@ This repository is the single source of truth for my Kubernetes home lab. Everyt
 | Ubiquiti U7-Pro & U6-Lite | Wireless APs |
 | towonel tunnel | Public ingress (`*.wibrow.dev` → `envoy-external`) |
 
-Cilium L2 announcements serve LoadBalancer IPs from the pool `10.20.10.128-255`. The two Envoy gateways: `envoy-external` (`10.20.10.239`, towonel tunnel), `envoy-internal` (`10.20.10.238`).
+Cilium serves LoadBalancer IPs from the pool `10.20.10.128-255`, announced both over L2 (ARP on VLAN 20) and over BGP to the UniFi gateway (`terraform/unifi/frr-bgp.conf`). The two Envoy gateways: `envoy-external` (`10.20.10.239`, towonel tunnel), `envoy-internal` (`10.20.10.238`).
 
 ### Storage
 

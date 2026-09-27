@@ -6,7 +6,7 @@ Kubernetes home lab GitOps repository.
 
 - **Talos Linux** — immutable Kubernetes OS
 - **ArgoCD** — GitOps continuous delivery
-- **Cilium** — CNI with L2 announcements (LoadBalancer IPs: 192.168.0.220-239)
+- **Cilium** — CNI with L2 announcements + BGP to the UniFi gateway (LoadBalancer IPs: 10.20.10.128-255)
 - **Envoy Gateway** — ingress (external/internal/direct gateways)
 - **CloudNativePG** — PostgreSQL operator
 - **Volsync** — PVC backup to S3
