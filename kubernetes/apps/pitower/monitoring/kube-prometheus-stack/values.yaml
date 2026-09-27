@@ -36,6 +36,9 @@ kube-state-metrics:
     - "deployments=[*]"
     - "persistentvolumeclaims=[*]"
     - "pods=[*]"
+    # KubeVirtNoAvailableNodesToRunVMs counts nodes by this label and fires
+    # when it is missing.
+    - "nodes=[kubevirt.io/schedulable]"
   # llama.cpp's /metrics has no context size, model or quant, so the LLM
   # dashboard reads them off the llmkube CRs.
   rbac:
