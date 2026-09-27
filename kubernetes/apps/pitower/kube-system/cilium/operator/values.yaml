@@ -78,6 +78,11 @@ bpf:
 bgp:
   enabled: false
 
+# Multus owns 00-multus.conf in /etc/cni/net.d; exclusive mode renames it to
+# .cilium_bak and pods silently lose their secondary interfaces.
+cni:
+  exclusive: false
+
 endpointRoutes:
   enabled: true
 

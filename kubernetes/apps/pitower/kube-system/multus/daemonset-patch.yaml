@@ -1,0 +1,32 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: kube-multus-ds
+  namespace: kube-system
+spec:
+  template:
+    spec:
+      priorityClassName: system-node-critical
+      initContainers:
+        # Talos only ships bridge/host-local/loopback/portmap/firewall in
+        # /opt/cni/bin; macvlan and static come from Sidero's plugin bundle.
+        - name: install-cni-plugins
+          image: ghcr.io/siderolabs/install-cni:v1.9.0
+          command:
+            - /bin/sh
+            - -c
+            - cp /opt/cni/bin/macvlan /opt/cni/bin/static /host/opt/cni/bin/
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: cnibin
+              mountPath: /host/opt/cni/bin
+      containers:
+        - name: kube-multus
+          # Upstream 50Mi OOMs on pod churn (Talos Multus guide).
+          resources:
+            requests:
+              memory: 150Mi
+            limits:
+              memory: 150Mi
