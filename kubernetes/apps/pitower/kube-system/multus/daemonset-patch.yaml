@@ -24,9 +24,12 @@ spec:
               mountPath: /host/opt/cni/bin
       containers:
         - name: kube-multus
-          # Upstream 50Mi OOMs on pod churn (Talos Multus guide).
+          # Upstream 50Mi OOMs on pod churn (Talos Multus guide). Upstream's
+          # 100m CPU limit throttles it under churn, which stalls CNI ADD/DEL
+          # for every pod on the node.
           resources:
             requests:
               memory: 150Mi
             limits:
+              cpu: null
               memory: 150Mi
