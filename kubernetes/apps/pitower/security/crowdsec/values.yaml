@@ -60,6 +60,15 @@ config:
           - target: evt.StrTime
             expression: evt.Unmarshaled.envoy.start_time
     s02-enrich:
+      # The tunnel VPS (tunnel.wibrow.dev) runs Blackbox and the OTel
+      # collector against envoy-external, which trips http-bad-user-agent.
+      infra-allowlist.yaml: |
+        name: pitower/infra-allowlist
+        description: Own infrastructure hitting envoy-external
+        whitelist:
+          reason: Own infrastructure (tunnel VPS monitoring)
+          ip:
+            - 164.132.98.136
       # Cloudflare-proxied requests (Workers fetches for kromgo/otlp) reach
       # envoy from Cloudflare's own addresses, not the real client's.
       # https://www.cloudflare.com/ips-v4 and /ips-v6
