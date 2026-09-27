@@ -160,11 +160,16 @@ lapi:
       value: "true"
     - name: TZ
       value: Europe/Zurich
+    - name: CROWDSEC_BYPASS_DB_VOLUME_CHECK
+      value: "true"
   envFrom:
     - secretRef:
         name: crowdsec-ntfy-secret
     - secretRef:
         name: crowdsec-db-secret
+  persistentVolume:
+    data:
+      enabled: false
   resources:
     requests:
       cpu: 20m
