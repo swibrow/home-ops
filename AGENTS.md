@@ -60,9 +60,21 @@ To track a site, embed the snippet in the page `<head>` (get `data-site-id` from
 
 ## Infrastructure
 
-- Main cluster: `pitower`, control plane at 192.168.0.201
-- Talos configs live at the repo root under `talos/<cluster>/` — lifecycle managed with [topf](https://github.com/postfinance/topf) (`topf.yaml` + layered patches in `all/`, `control-plane/`, `node/<host>/`; secrets stay SOPS-encrypted, decrypted by topf via the repo age key). `talosctl` only for diagnostics.
-- Terraform: `terraform/` (AWS, Cloudflare, etc.)
+- Main cluster: `pitower`. Nodes `worker-01`..`10` and `worker-ai-01` are `10.20.10.1`-`11` on VLAN 20; `worker-01`..`03` are the control planes behind the API VIP `10.20.10.0`
+- Talos configs live at the repo root under `talos/<cluster>/` — lifecycle managed with [topf](https://github.com/postfinance/topf) (`topf.yaml` + layered patches in `all/`, `control-plane/`, `node/<host>/`; secrets stay SOPS-encrypted, decrypted by topf with the age key the root `mise.toml` points `SOPS_AGE_KEY_FILE` at). Run it as `mise exec -- topf ...` from `talos/pitower`; `apply` prompts y/n per node, so review `--dry-run` first and pass the global `--confirm=false` when running non-interactively. `talosctl` only for diagnostics.
+- Terraform: `terraform/` (AWS, Cloudflare, UniFi, etc.). `terraform/unifi` plans on PRs and applies on merge to `main` via the Terraform UniFi workflow
+- `mise.toml` env: `KUBECONFIG` is `~/.kube/pitower.yaml` (the default `~/.kube/config` is a different cluster). `UNIFI_*` credentials live in `terraform/mise.toml`, so UniFi commands must run under `terraform/`
+
+## Networking
+
+- **VLAN 20 (`servers`, `10.20.0.0/16`)**: `10.20.0.0`-`10.20.199.255` is static (nodes, API VIP, LB pool, Multus pod IPs, reservations in `terraform/unifi/reservations.tf`); DHCP hands out `10.20.200.1`-`10.20.255.254` (`terraform/unifi/networks.tf`). The untagged LAN is `192.168.0.0/24`.
+- **LoadBalancer IPs**: Cilium LB-IPAM pool `10.20.10.128`-`255`, pinned per Service with `lbipam.cilium.io/ips`. Announced two ways at once: L2 (ARP, needed because the pool is inside VLAN 20) and BGP (`kubernetes/apps/pitower/kube-system/cilium/config/cilium-bgp.yaml`, cluster ASN 64513, worker-ai-01 excluded) to the UCG Fiber (ASN 64512).
+- **Gateway BGP config**: `terraform/unifi/frr-bgp.conf`, pushed with `mise run unifi:bgp-upload` from `terraform/` (the UniFi provider has no BGP resource). Its neighbor list names each node IP, so adding or renumbering a node means editing it and re-running the task.
+- **Multus** (thick, `kube-system/multus`) adds secondary pod interfaces; Cilium stays primary and needs `cni.exclusive: false`. Attachments use macvlan with static IPAM, so each pod sets its own IP: `k8s.v1.cni.cncf.io/networks: '[{"name":"vlan20","namespace":"kube-system","ips":["10.20.x.y/16"]}]'`.
+  - `kube-system/vlan20`: VLAN 20 on every node (macvlan on the default-route link).
+  - `networking/lan`: untagged LAN on `enp0s25` (worker-05/06 only); netboot serves PXE from `192.168.0.248` on it.
+  - Caveats: traffic on `net1` bypasses Cilium policy and Hubble; a pod cannot reach its own node over macvlan; normal cluster pods cannot reach a pod's `net1` address from another subnet (asymmetric return path).
+  - If pods lose `net1` after a Cilium rollout, check `/etc/cni/net.d` for `00-multus.conf.cilium_bak` and restart that node's Multus pod.
 
 ## Task Tracking
 
