@@ -1,0 +1,22 @@
+---
+# macvlan on each node's default-route link, which is VLAN 20 everywhere
+# (enpXs0.20, end0.20, eno1.20, or ens18 on the untagged Proxmox node), so
+# no per-node master name is needed. Pods pick their own address:
+#   k8s.v1.cni.cncf.io/networks: '[{"name":"vlan20","namespace":"kube-system","ips":["10.20.x.y/16"]}]'
+# Keep those outside the DHCP scope and the LB pool (10.20.10.128-255).
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  name: vlan20
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  config: |
+    {
+      "cniVersion": "1.0.0",
+      "name": "vlan20",
+      "type": "macvlan",
+      "mode": "bridge",
+      "capabilities": { "ips": true },
+      "ipam": { "type": "static" }
+    }
