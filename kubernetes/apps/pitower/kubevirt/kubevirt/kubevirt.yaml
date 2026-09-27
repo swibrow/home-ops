@@ -22,7 +22,19 @@ spec:
     workloadUpdateMethods:
       - Evict
   # The Pis (worker-08/09/10) are arm64; keep virt-handler and VMs on amd64.
+  # worker-05/06 have VT-x disabled in the BIOS (no /dev/kvm), so they can
+  # never run a VM; drop them from the list once it is enabled.
   workloads:
     nodePlacement:
       nodeSelector:
         kubernetes.io/arch: amd64
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: NotIn
+                    values:
+                      - worker-05
+                      - worker-06
