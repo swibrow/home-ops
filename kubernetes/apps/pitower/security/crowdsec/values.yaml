@@ -1,0 +1,199 @@
+# Detection-only: one agent tails envoy-external access logs out of
+# VictoriaLogs (no DaemonSet, no hostPath) and LAPI pushes ban decisions to
+# ntfy. Nothing enforces the decisions until a bouncer is added.
+container_runtime: containerd
+
+secrets:
+  externalSecret:
+    name: crowdsec-lapi-secret
+
+config:
+  parsers:
+    s00-raw:
+      envoy-raw.yaml: |
+        name: pitower/envoy-raw
+        description: Route VictoriaLogs envoy lines to the envoy parser
+        filter: evt.Line.Labels.type == 'envoy'
+        onsuccess: next_stage
+        statics:
+          - parsed: program
+            expression: evt.Line.Labels.type
+          - parsed: message
+            expression: evt.Line.Raw
+    s01-parse:
+      envoy-logs.yaml: |
+        name: pitower/envoy-logs
+        description: Envoy Gateway JSON access logs (networking/envoy-gateway/envoy.yaml format)
+        filter: evt.Parsed.program == 'envoy' && UnmarshalJSON(evt.Parsed.message, evt.Unmarshaled, 'envoy') in ['', nil]
+        onsuccess: next_stage
+        statics:
+          - parsed: remote_addr
+            expression: evt.Unmarshaled.envoy.client_ip ?? ''
+          - parsed: verb
+            expression: evt.Unmarshaled.envoy.method ?? ''
+          - parsed: request
+            expression: evt.Unmarshaled.envoy.path ?? ''
+          - parsed: http_path
+            expression: evt.Parsed.request
+          - parsed: status
+            expression: int(evt.Unmarshaled.envoy.response_code)
+          - parsed: http_user_agent
+            expression: evt.Unmarshaled.envoy.user_agent ?? ''
+          - parsed: target_fqdn
+            expression: evt.Unmarshaled.envoy.host ?? ''
+          - meta: service
+            value: http
+          - meta: log_type
+            value: http_access-log
+          - meta: source_ip
+            expression: evt.Parsed.remote_addr
+          - meta: http_verb
+            expression: evt.Parsed.verb
+          - meta: http_path
+            expression: evt.Parsed.request
+          - meta: http_status
+            expression: evt.Parsed.status
+          - meta: http_user_agent
+            expression: evt.Parsed.http_user_agent
+          - meta: target_fqdn
+            expression: evt.Parsed.target_fqdn
+          - target: evt.StrTime
+            expression: evt.Unmarshaled.envoy.start_time
+    s02-enrich:
+      # Cloudflare-proxied requests (Workers fetches for kromgo/otlp) reach
+      # envoy from Cloudflare's own addresses, not the real client's.
+      # https://www.cloudflare.com/ips-v4 and /ips-v6
+      cloudflare-allowlist.yaml: |
+        name: pitower/cloudflare-allowlist
+        description: Cloudflare edge and Workers egress ranges
+        whitelist:
+          reason: Cloudflare proxy address, not the real client
+          cidr:
+            - 173.245.48.0/20
+            - 103.21.244.0/22
+            - 103.22.200.0/22
+            - 103.31.4.0/22
+            - 141.101.64.0/18
+            - 108.162.192.0/18
+            - 190.93.240.0/20
+            - 188.114.96.0/20
+            - 197.234.240.0/22
+            - 198.41.128.0/17
+            - 162.158.0.0/15
+            - 104.16.0.0/13
+            - 104.24.0.0/14
+            - 172.64.0.0/13
+            - 131.0.72.0/22
+            - 2400:cb00::/32
+            - 2606:4700::/32
+            - 2803:f800::/32
+            - 2405:b500::/32
+            - 2405:8100::/32
+            - 2a06:98c0::/29
+            - 2c0f:f248::/32
+
+  # Replaces the chart default wholesale, so its auto_registration block is
+  # carried over verbatim.
+  config.yaml.local: |
+    api:
+      server:
+        auto_registration:
+          enabled: true
+          token: "${REGISTRATION_TOKEN}"
+          allowed_ranges:
+            - "127.0.0.1/32"
+            - "192.168.0.0/16"
+            - "10.0.0.0/8"
+            - "172.16.0.0/12"
+    db_config:
+      type: postgresql
+      host: ${DB_HOST}
+      port: ${DB_PORT}
+      user: ${DB_USER}
+      password: ${DB_PASS}
+      db_name: ${DB_NAME}
+      sslmode: disable
+
+  profiles.yaml: |
+    name: default_ip_remediation
+    filters:
+      - Alert.Remediation == true && Alert.GetScope() == "Ip"
+    decisions:
+      - type: ban
+        duration: 4h
+    notifications:
+      - ntfy
+    on_success: break
+
+  notifications:
+    ntfy.yaml: |
+      type: http
+      name: ntfy
+      log_level: info
+      group_wait: 1m
+      format: |
+        {{ range . }}**{{ .Scenario }}** from `{{ .Source.Value }}` ({{ .Source.Cn }}, {{ .Source.AsName }}): {{ .EventsCount }} events
+        {{ end }}
+      url: http://ntfy.monitoring.svc.cluster.local/pitower-alerts
+      method: POST
+      headers:
+        Authorization: ${NTFY_AUTH}
+        Title: CrowdSec
+        Tags: shield
+        Priority: "4"
+        Markdown: "yes"
+
+lapi:
+  deployAnnotations:
+    reloader.stakater.com/auto: "true"
+  env:
+    - name: DISABLE_ONLINE_API
+      value: "true"
+    - name: TZ
+      value: Europe/Zurich
+    - name: CROWDSEC_BYPASS_DB_VOLUME_CHECK
+      value: "true"
+  envFrom:
+    - secretRef:
+        name: crowdsec-ntfy-secret
+    - secretRef:
+        name: crowdsec-db-secret
+  persistentVolume:
+    data:
+      enabled: false
+  resources:
+    requests:
+      cpu: 20m
+      memory: 128Mi
+    limits:
+      cpu: null
+      memory: 256Mi
+  metrics:
+    serviceMonitor:
+      enabled: true
+
+agent:
+  isDeployment: true
+  hostVarLog: false
+  additionalAcquisition:
+    - source: victorialogs
+      mode: tail
+      url: http://victoria-logs.monitoring.svc.cluster.local:9428
+      query: kubernetes_namespace_name:networking kubernetes_container_name:envoy kubernetes_pod_name:envoy-external*
+      labels:
+        type: envoy
+  env:
+    - name: COLLECTIONS
+      value: crowdsecurity/base-http-scenarios
+    - name: TZ
+      value: Europe/Zurich
+  resources:
+    requests:
+      cpu: 20m
+      memory: 128Mi
+    limits:
+      cpu: null
+      memory: 256Mi
+  metrics:
+    serviceMonitor:
+      enabled: true
