@@ -1,6 +1,6 @@
 ---
-# Advertises LoadBalancer IPs to the UCG Fiber (10.20.0.1) alongside the L2
-# announcements. The pool sits inside VLAN 20, so on-VLAN clients still ARP
+# Advertises LoadBalancer IPs and each node's pod CIDR to the UCG Fiber
+# (10.20.0.1), the LB IPs alongside the L2 announcements. The pool sits inside VLAN 20, so on-VLAN clients still ARP
 # for the VIPs; BGP gives every other VLAN ECMP routes via the gateway and
 # withdraws a node within the hold time instead of waiting out an L2 lease.
 # Gateway side: terraform/unifi/frr-bgp.conf (uploaded by hand in the UI).
@@ -44,8 +44,10 @@ spec:
     - afi: ipv4
       safi: unicast
       advertisements:
-        matchLabels:
-          advertise: loadbalancer-ips
+        matchExpressions:
+          - key: advertise
+            operator: In
+            values: [loadbalancer-ips, pod-cidr]
 ---
 # yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/cilium.io/ciliumbgpadvertisement_v2.json
 apiVersion: cilium.io/v2
@@ -68,3 +70,19 @@ spec:
           - key: never-used-key
             operator: NotIn
             values: [never-used-value]
+---
+# Native routing leaves pod IPs unencapsulated, so a /24 route per node is all
+# the gateway needs to reach pods directly. worker-ai-01 does not peer, so its
+# pods stay unreachable from outside the cluster.
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/cilium.io/ciliumbgpadvertisement_v2.json
+apiVersion: cilium.io/v2
+kind: CiliumBGPAdvertisement
+metadata:
+  name: pod-cidr
+  labels:
+    advertise: pod-cidr
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  advertisements:
+    - advertisementType: PodCIDR
