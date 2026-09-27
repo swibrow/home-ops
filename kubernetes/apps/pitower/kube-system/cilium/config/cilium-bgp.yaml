@@ -1,0 +1,70 @@
+---
+# Advertises LoadBalancer IPs to the UCG Fiber (10.20.0.1) alongside the L2
+# announcements. The pool sits inside VLAN 20, so on-VLAN clients still ARP
+# for the VIPs; BGP gives every other VLAN ECMP routes via the gateway and
+# withdraws a node within the hold time instead of waiting out an L2 lease.
+# Gateway side: terraform/unifi/frr-bgp.conf (uploaded by hand in the UI).
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/cilium.io/ciliumbgpclusterconfig_v2.json
+apiVersion: cilium.io/v2
+kind: CiliumBGPClusterConfig
+metadata:
+  name: ucg
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  # Same exclusion as the L2 policy: worker-ai-01 powers off with its
+  # Proxmox host, and the gateway only peers with worker-01..10.
+  nodeSelector:
+    matchExpressions:
+      - key: kubernetes.io/hostname
+        operator: NotIn
+        values: [worker-ai-01]
+  bgpInstances:
+    - name: pitower
+      localASN: 64513
+      peers:
+        - name: ucg
+          peerAddress: 10.20.0.1
+          peerASN: 64512
+          peerConfigRef:
+            name: ucg
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/cilium.io/ciliumbgppeerconfig_v2.json
+apiVersion: cilium.io/v2
+kind: CiliumBGPPeerConfig
+metadata:
+  name: ucg
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  timers:
+    keepAliveTimeSeconds: 3
+    holdTimeSeconds: 9
+  families:
+    - afi: ipv4
+      safi: unicast
+      advertisements:
+        matchLabels:
+          advertise: loadbalancer-ips
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/cilium.io/ciliumbgpadvertisement_v2.json
+apiVersion: cilium.io/v2
+kind: CiliumBGPAdvertisement
+metadata:
+  name: loadbalancer-ips
+  labels:
+    advertise: loadbalancer-ips
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  advertisements:
+    - advertisementType: Service
+      service:
+        addresses:
+          - LoadBalancerIP
+      # Every Service; an empty selector matches none.
+      selector:
+        matchExpressions:
+          - key: never-used-key
+            operator: NotIn
+            values: [never-used-value]

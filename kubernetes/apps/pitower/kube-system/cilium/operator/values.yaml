@@ -75,8 +75,8 @@ autoDirectNodeRoutes: true
 
 bpf:
   masquerade: true
-bgp:
-  enabled: false
+bgpControlPlane:
+  enabled: true
 
 # Multus owns 00-multus.conf in /etc/cni/net.d; exclusive mode renames it to
 # .cilium_bak and pods silently lose their secondary interfaces.
