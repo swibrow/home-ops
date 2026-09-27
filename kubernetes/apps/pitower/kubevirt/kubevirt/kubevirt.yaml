@@ -1,0 +1,25 @@
+---
+apiVersion: kubevirt.io/v1
+kind: KubeVirt
+metadata:
+  name: kubevirt
+  namespace: kubevirt
+spec:
+  certificateRotateStrategy: {}
+  configuration:
+    developerConfiguration:
+      featureGates: []
+  customizeComponents: {}
+  imagePullPolicy: IfNotPresent
+  # Defaults to openshift-monitoring/prometheus-k8s; without these the
+  # operator skips the ServiceMonitor and PrometheusRules entirely.
+  monitorNamespace: monitoring
+  monitorAccount: kube-prometheus-stack-prometheus
+  workloadUpdateStrategy:
+    workloadUpdateMethods:
+      - LiveMigrate
+  # The Pis (worker-08/09/10) are arm64; keep virt-handler and VMs on amd64.
+  workloads:
+    nodePlacement:
+      nodeSelector:
+        kubernetes.io/arch: amd64
