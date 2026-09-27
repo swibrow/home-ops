@@ -8,6 +8,7 @@ resources:
   - externalsecret.yaml
   - alertmanager-templates.yaml
   - prometheusrule.yaml
+  - certificate-expiry.yaml
 helmCharts:
   - name: kube-prometheus-stack
     repo: https://prometheus-community.github.io/helm-charts

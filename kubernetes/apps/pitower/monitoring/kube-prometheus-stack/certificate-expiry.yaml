@@ -1,0 +1,93 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/monitoring.coreos.com/prometheusrule_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: certificate-expiry
+spec:
+  groups:
+    - name: kube-client-certificate.rules
+      rules:
+        # Replaces the stock KubeClientCertificateExpiration (disabled in
+        # values.yaml). Talos's NodeApply controller authenticates with a fresh
+        # 10-minute cert on every Node update, and KubeVirt's heartbeat updates
+        # Nodes every minute, so the stock 1st-percentile rule fires on
+        # apiservers with little other cert traffic. Counting only certs with
+        # 30m+ left skips those; a real expiring cert crosses the 7d and 24h
+        # windows long before its last 30 minutes.
+        - alert: KubeClientCertificateExpiration
+          annotations:
+            description: >-
+              A client certificate used to authenticate to kubernetes apiserver
+              {{ $labels.instance }} is expiring in less than 7.0 days on cluster
+              {{ $labels.cluster }}.
+            runbook_url: https://runbooks.prometheus-operator.dev/runbooks/kubernetes/kubeclientcertificateexpiration
+            summary: Client certificate is about to expire.
+          expr: |
+            (
+              sum by (cluster, instance) (rate(apiserver_client_certificate_expiration_seconds_bucket{job="apiserver", le="604800.0"}[5m]))
+                -
+              sum by (cluster, instance) (rate(apiserver_client_certificate_expiration_seconds_bucket{job="apiserver", le="1800.0"}[5m]))
+            ) > 0
+          for: 5m
+          labels:
+            severity: warning
+        - alert: KubeClientCertificateExpiration
+          annotations:
+            description: >-
+              A client certificate used to authenticate to kubernetes apiserver
+              {{ $labels.instance }} is expiring in less than 24.0 hours on cluster
+              {{ $labels.cluster }}.
+            runbook_url: https://runbooks.prometheus-operator.dev/runbooks/kubernetes/kubeclientcertificateexpiration
+            summary: Client certificate is about to expire.
+          expr: |
+            (
+              sum by (cluster, instance) (rate(apiserver_client_certificate_expiration_seconds_bucket{job="apiserver", le="86400.0"}[5m]))
+                -
+              sum by (cluster, instance) (rate(apiserver_client_certificate_expiration_seconds_bucket{job="apiserver", le="1800.0"}[5m]))
+            ) > 0
+          for: 5m
+          labels:
+            severity: critical
+    - name: cert-manager.rules
+      rules:
+        # exported_namespace is the Certificate's namespace; namespace is
+        # cert-manager's own, from the scrape target.
+        - alert: CertManagerCertificateNotReady
+          annotations:
+            description: >-
+              Certificate {{ $labels.exported_namespace }}/{{ $labels.name }} has not
+              been Ready for 30 minutes.
+            summary: cert-manager Certificate is not Ready.
+          expr: |
+            certmanager_certificate_ready_status{job="cert-manager", condition="True"} == 0
+          for: 30m
+          labels:
+            severity: warning
+        - alert: CertManagerCertificateRenewalOverdue
+          annotations:
+            description: >-
+              Certificate {{ $labels.exported_namespace }}/{{ $labels.name }} passed its
+              renewal time over a day ago and still expires
+              {{ $value | humanizeTimestamp }}.
+            summary: cert-manager Certificate has not renewed.
+          expr: |
+            (
+              certmanager_certificate_expiration_timestamp_seconds{job="cert-manager"}
+                and on (exported_namespace, name)
+              (time() > certmanager_certificate_renewal_timestamp_seconds{job="cert-manager"} + 86400)
+            )
+          for: 1h
+          labels:
+            severity: warning
+        - alert: CertManagerCertificateExpiringSoon
+          annotations:
+            description: >-
+              Certificate {{ $labels.exported_namespace }}/{{ $labels.name }} expires
+              in {{ $value | humanizeDuration }}.
+            summary: cert-manager Certificate expires in less than 7 days.
+          expr: |
+            certmanager_certificate_expiration_timestamp_seconds{job="cert-manager"} - time() < 7 * 86400
+          for: 1h
+          labels:
+            severity: critical
