@@ -10,9 +10,8 @@
 # for minutes at a time, so the factory is only needed here, at pod start,
 # over real TLS.
 #
-# The host interface is found by its 192.168.0.x address (static, from
-# talos/pitower/node/worker-0[56]/03-netboot-lan.yaml.tpl), so this works
-# unchanged on any node that carries one.
+# The interface is found by its 192.168.0.x address: net1, the Multus "lan"
+# macvlan attachment (networkattachmentdefinition.yaml).
 set -eu
 
 IFACE=$(ip -4 -o addr show | awk '$4 ~ /^192\.168\.0\./ {print $2; exit}')

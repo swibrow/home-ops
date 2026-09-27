@@ -3,8 +3,6 @@ controllers:
     annotations:
       reloader.stakater.com/auto: "true"
     pod:
-      hostNetwork: true
-      dnsPolicy: ClusterFirstWithHostNet
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -15,6 +13,8 @@ controllers:
                     values:
                       - worker-05
                       - worker-06
+      annotations:
+        k8s.v1.cni.cncf.io/networks: '[{"name":"lan","ips":["192.168.0.248/24"]}]'
     containers:
       app:
         image:

@@ -1,0 +1,19 @@
+---
+# Untagged LAN (192.168.0.0/24), where PXE clients and Talos maintenance mode
+# come up. enp0s25 is the parent NIC on worker-05/06, which is why the pod is
+# pinned to those nodes.
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  name: lan
+spec:
+  config: |
+    {
+      "cniVersion": "1.0.0",
+      "name": "lan",
+      "type": "macvlan",
+      "master": "enp0s25",
+      "mode": "bridge",
+      "capabilities": { "ips": true },
+      "ipam": { "type": "static" }
+    }
