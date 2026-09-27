@@ -6,3 +6,17 @@ TF_VAR_ssh_public_keys = { age = "YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBIdk
 UNIFI_API_KEY = { age = "YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBGSkZJZmtXbVhCZjduM0txTXdJYTZNZkhXQU9RZ3lvZmpnT3VRYmZYYW5jCnRJdWFlMTUzYmdpK0ZDTkVRZ0ZVcnR2dUp0ekpVeHdrbkVaWFU2TnAzUGcKLT4gc3NoLWVkMjU1MTkgWDZZRDhnIEVNNkxTRi9LOFJlU3VSWi9zNTdJZVJLSTNLdzdRMXRpR20xOHo5aUJGVkUKSTJraWVRejY5VE8xYis3eXhqVDBnQmlDT1pJOXFOZmtuZkdqaDJDaC83awotPiBgaX4oRzw0aC1ncmVhc2UgUCAmTytNTmNWIHlMSVJTJCB5dApPdDlGT1NQUndwNi9lRnJxcnBMVUdSMXEvT1MzaElhd21FN0h5NzVaSFExWnkvMDJRbW9wV3VBa1NKZkc3dwotLS0gMlBOaEtudVJ1VmVKaC8vU0kyOTRWQ0FidDBMS29XdmpwWk5GRU4vZEk3NAomeHm0jjZ8KHXvQfg/qnH6Au24iGwfjSEBgGiRf66v2dOByLaCPnefDZdkYO6hcL0H9ULr6zss/7gF8d0V80l7" }
 UNIFI_API = "https://10.20.0.1"
 UNIFI_INSECURE = "true"
+
+[tasks."unifi:bgp-upload"]
+description = "Push terraform/unifi/frr-bgp.conf to the UCG Fiber's 'pitower' BGP config (the provider has no BGP resource)"
+dir = "{{config_root}}/unifi"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+api="$UNIFI_API/proxy/network/v2/api/site/default/bgp/config"
+auth=(-H "X-API-KEY: $UNIFI_API_KEY")
+current=$(curl -skf "${auth[@]}" "$api/all" | jq -e '.[] | select(.description == "pitower")')
+jq --rawfile conf frr-bgp.conf '.frr_bgpd_config = $conf | .uploaded_file_name = "frr-bgp.conf"' <<<"$current" \
+  | curl -skf "${auth[@]}" -H "Content-Type: application/json" -X POST --data-binary @- "$api" >/dev/null
+curl -skf "${auth[@]}" "$api/all" | jq -e '.[] | select(.description == "pitower") | {enabled, error, uploaded_file_name}'
+'''
