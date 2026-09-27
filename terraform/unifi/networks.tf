@@ -93,9 +93,12 @@ resource "unifi_network" "servers" {
   subnet       = "10.20.0.1/16"
   vlan_id      = 20
   dhcp_enabled = true
-  dhcp_start   = "10.20.0.46"
-  dhcp_stop    = "10.20.255.254"
-  domain_name  = "servers.internal"
+  # 10.20.0.0-10.20.199.255 is static: nodes and API VIP (10.20.10.0-11),
+  # Cilium LB pool (10.20.10.128-255), Multus pod IPs, and the reservations in
+  # reservations.tf, which the controller serves outside the range.
+  dhcp_start  = "10.20.200.1"
+  dhcp_stop   = "10.20.255.254"
+  domain_name = "servers.internal"
 
   dhcp_v6_dns_auto           = false
   dhcp_v6_lease              = 0
