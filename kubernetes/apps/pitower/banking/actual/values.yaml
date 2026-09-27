@@ -16,6 +16,14 @@ controllers:
         env:
           TZ: Europe/Zurich
           ACTUAL_PORT: &httpPort 5006
+          ACTUAL_LOGIN_METHOD: openid
+          ACTUAL_OPENID_ENFORCE: "true"
+          ACTUAL_OPENID_DISCOVERY_URL: https://idm.wibrow.dev/oauth2/openid/actual/.well-known/openid-configuration
+          ACTUAL_OPENID_CLIENT_ID: actual
+          ACTUAL_OPENID_SERVER_HOSTNAME: https://actual.wibrow.dev
+        envFrom:
+          - secretRef:
+              name: actual-secret
         probes:
           liveness:
             enabled: true
@@ -55,7 +63,7 @@ route:
     hostnames:
       - actual.wibrow.dev
     parentRefs:
-      - name: envoy-internal
+      - name: envoy-external
         namespace: networking
         sectionName: https
 persistence:
