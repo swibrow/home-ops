@@ -13,6 +13,7 @@ resources:
   - affine.yaml
   - atuin.yaml
   - autobrr.yaml
+  - crowdsec.yaml
   - firefly.yaml
   - forgejo.yaml
   - garrison.yaml

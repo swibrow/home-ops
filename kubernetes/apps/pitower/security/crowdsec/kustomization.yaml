@@ -1,0 +1,25 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: security
+resources:
+  - externalsecret.yaml
+components:
+  - ../../../../components/cnpg-db-shared
+configMapGenerator:
+  - name: cnpg-db-config
+    literals:
+      - APP_NAME=crowdsec
+      - SECRET_NAME=crowdsec-db-secret
+      - CNPG_SECRET_KEY=shared-crowdsec
+      - DB_SCHEME=postgresql
+
+helmCharts:
+  - name: crowdsec
+    repo: https://crowdsecurity.github.io/helm-charts
+    version: 0.24.2
+    releaseName: crowdsec
+    namespace: security
+    valuesFile: values.yaml
+    skipTests: true

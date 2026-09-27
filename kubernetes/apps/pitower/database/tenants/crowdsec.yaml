@@ -1,0 +1,51 @@
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: shared-crowdsec
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: infisical
+  target:
+    name: shared-crowdsec
+    template:
+      type: kubernetes.io/basic-auth
+      metadata:
+        labels:
+          cnpg.io/reload: "true"
+      data:
+        username: crowdsec
+        password: "{{ .password }}"
+        host: shared-rw.database.svc.cluster.local
+        port: "5432"
+        dbname: crowdsec
+  data:
+    - secretKey: password
+      remoteRef:
+        key: /database/tenants/CROWDSEC_PASSWORD
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: DatabaseRole
+metadata:
+  name: crowdsec
+spec:
+  cluster:
+    name: shared
+  name: crowdsec
+  login: true
+  databaseRoleReclaimPolicy: retain
+  passwordSecret:
+    name: shared-crowdsec
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: shared-crowdsec
+spec:
+  cluster:
+    name: shared
+  name: crowdsec
+  owner: crowdsec
+  databaseReclaimPolicy: retain
