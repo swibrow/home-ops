@@ -28,6 +28,9 @@ defaultRules:
     # Replaced by prometheusrule.yaml, which alerts per owning CronJob instead
     # of per job run. The stock rule mints a new alert for every failed run.
     KubeJobFailed: true
+    # Replaced by certificate-expiry.yaml, which ignores Talos's 10-minute
+    # NodeApply certs.
+    KubeClientCertificateExpiration: true
 kube-state-metrics:
   metricLabelsAllowlist:
     - "deployments=[*]"
