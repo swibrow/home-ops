@@ -21,4 +21,4 @@ oidc-client name url callback=(url + "/oauth2/callback") group="app_access":
 # Copy a client's basic secret into Infisical, e.g. `just kanidm oidc-secret agentgateway /ai/agentgateway UI_OIDC_CLIENT_SECRET`
 oidc-secret name path key:
     @kanidm system oauth2 show-basic-secret {{ name }} 2>/dev/null \
-        | just infisical set {{ path }} {{ key }}
+        | {{ just_executable() }} --justfile {{ justfile() }} infisical set {{ path }} {{ key }}
