@@ -17,3 +17,5 @@ helmCharts:
     releaseName: netboot
     namespace: networking
     valuesFile: values.yaml
+resources:
+  - networkattachmentdefinition.yaml
