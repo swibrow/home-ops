@@ -4,21 +4,41 @@ kind: KubeNodeConfig
 labels:
   wibrow.dev/compute: "true"
 # Bare-metal Dell R630 (ex proxmox-01). Six 745GiB SAS SSDs and four 559GiB
-# 10K SAS HDDs behind the PERC in HBA mode. One SSD is the system disk; the
-# other five are the ZFS pool `fast` and the HDDs the existing `garage` raidz1,
-# both imported by the zfs extension. Their datasets mount under /var/mnt
-# (extra, media, garage), which the kubelet sees without extraMounts - so
-# there are no UserVolumeConfigs here. Pool layout and datasets are in
-# docs/infrastructure/proxmox-01-migration.md.
+# 10K SAS HDDs behind the PERC in HBA mode. Two SSDs are the Talos system disk
+# as an md RAID1; the other four are the ZFS pool `fast` (two mirrors) and the
+# HDDs the existing `garage` raidz1, both imported by the zfs extension. Their
+# datasets mount under /var/mnt (extra, runners, media, garage), which the
+# kubelet sees without extraMounts - so there are no UserVolumeConfigs here.
+# Pool layout and datasets are in docs/infrastructure/proxmox-01-migration.md.
 #
-# Serial, not dev_path: sdX enumeration order is not stable across the ten
-# disks.
+# One disk of each SSD model per mirror (WUSTR6480 + HUSMM3280), here and in
+# `fast`, so a batch fault cannot take out both sides. Serials, not dev_path:
+# sdX enumeration order is not stable across the ten disks.
+#
+# Talos 1.14 cannot remove or replace a failed RAID member through config or
+# talosctl. A dead member means `talosctl wipe md` and a reinstall; the data on
+# ZFS is untouched by that.
+---
+apiVersion: v1alpha1
+kind: RAIDArrayConfig
+name: boot
+level: raid1
+# 1.0 keeps the md superblock at the end of each member, so firmware sees the
+# EFI partition on either disk as a plain partition and can boot from it.
+metadata: "1.0"
+provisioning:
+  volumeSelector:
+    match: disk.serial in ["V6X00TXA", "71V0TXVX"]
 ---
 apiVersion: v1alpha1
 kind: UnattendedInstallConfig
 provisioning:
   diskSelector:
-    match: disk.serial == "V6X00TXA"
+    match: '"/dev/disk/by-id/md-name-talos:boot" in disk.symlinks'
+---
+apiVersion: v1alpha1
+kind: KernelModuleConfig
+name: raid1
 ---
 apiVersion: v1alpha1
 kind: KubeletConfig
