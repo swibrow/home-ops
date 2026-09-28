@@ -4,283 +4,174 @@ title: Backup & Restore
 
 # Backup & Restore
 
-The cluster uses a combination of VolSync for PVC replication, the CSI Snapshot Controller for point-in-time snapshots, and S3 as a backup target. Together, these provide data protection across multiple failure scenarios.
+Two backup tiers write to [Garage S3](garage.md) (`s3.wibrow.dev`):
+
+- **kopiur** snapshots application PVCs hourly with Kopia.
+- **CNPG** (barman plugin) ships Postgres base backups and continuous WAL.
+
+The CSI Snapshot Controller provides point-in-time `VolumeSnapshot`s on Ceph, which kopiur also
+uses to take consistent copies.
 
 ## Architecture
 
 ```mermaid
 flowchart TD
     subgraph Cluster
-        PVC[Application PVC]
-        SNAP[CSI Snapshot]
-        VS[VolSync\nReplicationSource]
+        PVC[App PVC<br/>ceph-block]
+        SNAP[VolumeSnapshot]
+        MOV[kopiur mover]
+        PG[(CNPG clusters)]
     end
-
-    subgraph Backup Targets
-        S3[(AWS S3)]
+    subgraph worker-07
+        G[Garage<br/>system/garage]
     end
-
-    PVC -->|VolumeSnapshot| SNAP
-    PVC -->|Restic| VS
-    VS -->|Backup| S3
-    SNAP -->|Restore| PVC
-    S3 -->|Restore| PVC
+    PVC -->|copyMethod: Snapshot| SNAP
+    SNAP --> MOV
+    MOV -->|bucket kopiur| G
+    PG -->|base backups + WAL<br/>bucket cnpg| G
 ```
 
----
+## kopiur
 
-## VolSync
+[kopiur](https://github.com/home-operations/kopiur) runs Kopia movers from Kubernetes resources:
 
-[VolSync](https://volsync.readthedocs.io/) is a Kubernetes operator that replicates persistent volume data using Restic. It runs in the `system` namespace and provides scheduled backups of PVCs to S3.
+| Resource | Where | Purpose |
+|---|---|---|
+| `ClusterRepository` `garage` | `kopiur-system/repository` | Kopia repository in the `kopiur` bucket, encrypted with the repository password |
+| `SnapshotPolicy` `<app>-kopiur` | app namespace | What to back up and the retention |
+| `SnapshotSchedule` `<app>-kopiur` | app namespace | When (`H * * * *`: hourly at a per-app minute) |
+| `Snapshot` | app namespace | One run; `kubectl get snapshots.kopiur.home-operations.com -A` |
+| `Restore` | app namespace | A restore into a PVC |
 
-### How It Works
+The shared policy (`kubernetes/components/kopiur`) snapshots the PVC through a Ceph
+`VolumeSnapshot` (`copyMethod: Snapshot`), compresses with zstd and keeps the latest 3, 24 hourly,
+7 daily and 4 weekly snapshots.
 
-VolSync uses two custom resources:
+### Adding backups to an app
 
-| Resource | Purpose |
-|:---------|:--------|
-| `ReplicationSource` | Defines what to back up, the schedule, and the destination |
-| `ReplicationDestination` | Defines where to restore from and how to recreate the PVC |
+Add the `pvc` and `kopiur` components and their config maps (see `selfhosted/mealie`):
 
-### Kustomize Component
+```yaml title="kustomization.yaml"
+components:
+  - ../../../../components/pvc
+  - ../../../../components/kopiur
+configMapGenerator:
+  - name: pvc-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=myapp-pvc
+      - CLAIM_NAME=myapp-data
+      - STORAGE_SIZE=1Gi
+  - name: kopiur-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=myapp-kopiur
+      - CLAIM_NAME=myapp-data
+```
 
-Apps opt into VolSync backups by including the volsync component in their `kustomization.yaml`:
+The mover runs as uid/gid `1000`. If the app writes as another user, patch
+`spec.mover.securityContext` on the `SnapshotPolicy` (mealie uses `911`), or the mover cannot read
+the files.
+
+### Checking backups
+
+```sh
+kubectl get snapshotpolicies.kopiur.home-operations.com -A   # LAST-SNAPSHOT per app
+kubectl -n <ns> get snapshots.kopiur.home-operations.com      # individual runs and phase
+```
+
+### Restore
+
+Scale the app to 0 so nothing writes to the claim, then restore into it:
 
 ```yaml
-components:
-  - ../../../../components/volsync
-```
-
-The component requires a `volsync-config` ConfigMap with app-specific settings. See [Adding Apps](../gitops/adding-apps.md) for details.
-
-### Monitoring
-
-VolSync includes Prometheus alerting rules for backup health:
-
-```yaml title="prometheusrule.yaml"
-apiVersion: monitoring.coreos.com/v1
-kind: PrometheusRule
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: Restore
 metadata:
-  name: volsync
+  name: myapp-restore
+  namespace: myns
 spec:
-  groups:
-    - name: volsync.rules
-      rules:
-        - alert: VolSyncComponentAbsent
-          expr: |
-            absent(up{job="volsync-metrics"})
-          for: 15m
-          labels:
-            severity: critical
-        - alert: VolSyncVolumeOutOfSync
-          expr: |
-            volsync_volume_out_of_sync == 1
-          for: 15m
-          labels:
-            severity: critical
+  repository:
+    kind: ClusterRepository
+    name: garage
+  source:
+    fromPolicy:
+      name: myapp-kopiur
+      # newest snapshot by default; or pick an older one:
+      # offset: 1                     # the one before the newest
+      # asOf: "2026-09-27T12:00:00Z"  # newest at or before this time
+  target:
+    pvcRef:
+      name: myapp-data
+  options:
+    enableFileDeletion: true   # make the claim match the snapshot exactly
+  mover:
+    securityContext:
+      runAsUser: 1000
+      runAsGroup: 1000
+  credentialProjection:
+    enabled: true
 ```
 
-!!! warning "Alert on out-of-sync volumes"
-    The `VolSyncVolumeOutOfSync` alert fires when a volume has not been successfully replicated within its expected schedule. Investigate immediately -- this could indicate a failed backup job, connectivity issues to the backup target, or storage capacity problems.
+To restore a specific run, use `source.snapshotRef.name: <Snapshot name>` instead of
+`fromPolicy`. To restore into a new claim instead, use `target.pvc` with `name`, `capacity` and
+`storageClassName`. Scale the app back up once the `Restore` succeeds.
 
----
+## CNPG (Postgres)
 
-## Snapshot Controller
+Every CNPG cluster archives WAL continuously and takes scheduled base backups to the `cnpg` bucket
+through the `garage` `ObjectStore`, so point-in-time recovery is possible back to the retention
+window (30 days). Setup and recovery are documented with the databases:
+[Databases → Backups](../applications/databases/index.md#backups).
 
-The [CSI Snapshot Controller](https://github.com/kubernetes-csi/external-snapshotter) enables point-in-time `VolumeSnapshot` resources for CSI-backed PVCs. It runs in the `system` namespace alongside its webhook.
+```sh
+kubectl -n database get cluster.postgresql.cnpg.io   # ContinuousArchiving condition
+kubectl -n database get backups.postgresql.cnpg.io
+```
 
-### Usage
+## CSI snapshots
 
-Create a point-in-time snapshot of a PVC:
+The [CSI Snapshot Controller](https://github.com/kubernetes-csi/external-snapshotter) runs in
+`system`. Ceph volumes (`csi-ceph-blockpool`) support manual point-in-time snapshots, useful before
+a risky change:
 
 ```yaml
 apiVersion: snapshot.storage.k8s.io/v1
 kind: VolumeSnapshot
 metadata:
-  name: my-app-data-snapshot
-  namespace: my-app
+  name: myapp-data-before-upgrade
+  namespace: myns
 spec:
   volumeSnapshotClassName: csi-ceph-blockpool
   source:
-    persistentVolumeClaimName: my-app-data
+    persistentVolumeClaimName: myapp-data
 ```
 
-Restore from a snapshot by referencing it as a PVC data source:
+Restore by creating a PVC with it as the data source:
 
 ```yaml
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: my-app-data-restored
-  namespace: my-app
 spec:
-  accessModes:
-    - ReadWriteOnce
   storageClassName: ceph-block
-  resources:
-    requests:
-      storage: 10Gi
   dataSource:
-    name: my-app-data-snapshot
+    name: myapp-data-before-upgrade
     kind: VolumeSnapshot
     apiGroup: snapshot.storage.k8s.io
 ```
 
----
+The openebs hostpath classes (node-local volumes, including everything on worker-07's ZFS pools)
+do not support CSI snapshots.
 
-## Restore Procedures
+## What is not backed up
 
-### Restore from VolSync (S3 Restic Backup)
+Node-local hostpath volumes are outside kopiur's snapshot path. On worker-07 that includes:
 
-#### 1. List available snapshots
+| Data | Protection |
+|---|---|
+| Immich library (`hdd/media`, ~600G) | ZFS raidz1 (one disk failure) and a monthly scrub. Off-host copies are manual (NAS USB drive, worker-ai-01) and the Apple Photos library. Immich's own daily DB dumps live inside it at `backups/`. |
+| Metrics and logs (Victoria Metrics/Logs, Prometheus, Tempo on `fast/extra`) | ZFS mirrors only; history is rebuildable. |
+| Garage's own data (`hdd/garage-data`, `fast/garage-meta`) | ZFS only. Garage is the backup target, so losing worker-07 loses the backups with it until an off-site replica exists (see [Garage → Redundancy](garage.md#redundancy)). |
 
-Run a temporary pod using the app's volsync secret to list snapshots in S3:
-
-```bash
-kubectl run restic-list --restart=Never -n <namespace> \
-  --image=restic/restic:latest \
-  --env="AWS_ACCESS_KEY_ID=$(kubectl get secret <app>-volsync -n <namespace> -o jsonpath='{.data.AWS_ACCESS_KEY_ID}' | base64 -d)" \
-  --env="AWS_SECRET_ACCESS_KEY=$(kubectl get secret <app>-volsync -n <namespace> -o jsonpath='{.data.AWS_SECRET_ACCESS_KEY}' | base64 -d)" \
-  --env="RESTIC_PASSWORD=$(kubectl get secret <app>-volsync -n <namespace> -o jsonpath='{.data.RESTIC_PASSWORD}' | base64 -d)" \
-  --env="RESTIC_REPOSITORY=$(kubectl get secret <app>-volsync -n <namespace> -o jsonpath='{.data.RESTIC_REPOSITORY}' | base64 -d)" \
-  --command -- restic snapshots
-```
-
-Retrieve output and clean up:
-
-```bash
-kubectl logs restic-list -n <namespace>
-kubectl delete pod restic-list -n <namespace>
-```
-
-Each snapshot shows an ID, timestamp, and size. Identify the last known-good snapshot before any incident.
-
-#### 2. Disable auto-sync
-
-Prevent ArgoCD from scaling the app back up during restore:
-
-```bash
-kubectl patch app <app-name> -n argocd --type json \
-  -p '[{"op":"remove","path":"/spec/syncPolicy/automated"}]'
-```
-
-#### 3. Scale down the app and suspend backups
-
-```bash
-kubectl scale deploy <app> -n <namespace> --replicas=0
-```
-
-Suspend the ReplicationSource to prevent it from backing up empty/corrupt data:
-
-```bash
-kubectl patch replicationsource <app> -n <namespace> --type merge \
-  -p '{"spec":{"trigger":{"schedule":"0 0 31 2 *"}}}'
-```
-
-#### 4. Delete the existing PVC
-
-The data is safe in S3:
-
-```bash
-kubectl delete pvc <pvc-name> -n <namespace>
-```
-
-#### 5. Create an empty PVC
-
-Recreate the PVC with the original name and size:
-
-```bash
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: <pvc-name>
-  namespace: <namespace>
-spec:
-  accessModes: [ReadWriteOnce]
-  storageClassName: ceph-block
-  resources:
-    requests:
-      storage: <size>
-EOF
-```
-
-#### 6. Create a ReplicationDestination to restore
-
-Use `restoreAsOf` to select the snapshot by timestamp:
-
-```bash
-kubectl apply -f - <<EOF
-apiVersion: volsync.backube/v1alpha1
-kind: ReplicationDestination
-metadata:
-  name: <app>-restore
-  namespace: <namespace>
-spec:
-  trigger:
-    manual: restore-once
-  restic:
-    repository: <app>-volsync
-    destinationPVC: <pvc-name>
-    copyMethod: Direct
-    moverSecurityContext:
-      runAsUser: 0
-      runAsGroup: 0
-    restoreAsOf: "<timestamp-of-good-snapshot>"
-EOF
-```
-
-!!! warning "moverSecurityContext is required"
-    Without `runAsUser: 0`, the restic mover cannot set file ownership (`lchown`), causing the restore to fail with repeated retries. The data IS written to the PVC but restic exits non-zero. Running as root avoids this issue.
-
-Monitor progress:
-
-```bash
-kubectl get replicationdestination -n <namespace> -w
-```
-
-Wait for `CONDITION` to show `WaitingForManual` (success).
-
-#### 7. Clean up and restart
-
-```bash
-kubectl delete replicationdestination <app>-restore -n <namespace>
-```
-
-Re-enable auto-sync on the ArgoCD Application. ArgoCD will scale the app back up and restore the ReplicationSource schedule:
-
-```bash
-kubectl patch app <app-name> -n argocd --type merge \
-  -p '{"spec":{"syncPolicy":{"automated":{"prune":true}}}}'
-```
-
-#### 8. Verify
-
-Check the app is running:
-
-```bash
-kubectl get pods -n <namespace> -l app.kubernetes.io/name=<app>
-```
-
-Verify restored data size with a temporary pod:
-
-```bash
-kubectl run check --rm -it --restart=Never -n <namespace> \
-  --image=busybox:latest \
-  --overrides='{"spec":{"containers":[{"name":"check","image":"busybox:latest","command":["sh","-c","du -sh /data && ls -la /data/"],"volumeMounts":[{"name":"data","mountPath":"/data"}]}],"volumes":[{"name":"data","persistentVolumeClaim":{"claimName":"<pvc-name>"}}]}}'
-```
-
-### Restore from CSI Snapshot
-
-1. **List available snapshots**:
-
-    ```bash
-    kubectl -n <namespace> get volumesnapshots
-    ```
-
-2. **Create a new PVC from the snapshot** (see the [Usage section above](#usage))
-
-3. **Update the application** to reference the restored PVC name, or delete the old PVC and rename the restored one.
-
-!!! tip "Test restores regularly"
-    Schedule periodic restore tests to verify that backups are valid and the restore process works as expected. A backup that has never been tested is not a backup.
+Disk and pool health for these are covered by `system/zfs-scrub` and the `disk-health` alerts
+(`monitoring/smartctl-exporter`).
