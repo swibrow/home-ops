@@ -65,3 +65,9 @@ configMapGenerator:
       - dashboards/llm-inference.json
     options:
       disableNameSuffixHash: true
+  - name: grafana-dashboards-security
+    files:
+      - dashboards/crowdsec-overview.json
+      - dashboards/crowdsec-lapi.json
+    options:
+      disableNameSuffixHash: true

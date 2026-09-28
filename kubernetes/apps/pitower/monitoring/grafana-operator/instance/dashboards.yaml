@@ -414,3 +414,43 @@ spec:
   configMapRef:
     name: grafana-dashboards-ai
     key: llm-inference.json
+---
+# Security folder --------------------------------------------------------------
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaFolder
+metadata:
+  name: security
+  namespace: monitoring
+spec:
+  title: Security
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: crowdsec-overview
+  namespace: monitoring
+spec:
+  folderRef: security
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  configMapRef:
+    name: grafana-dashboards-security
+    key: crowdsec-overview.json
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: crowdsec-lapi
+  namespace: monitoring
+spec:
+  folderRef: security
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  configMapRef:
+    name: grafana-dashboards-security
+    key: crowdsec-lapi.json
