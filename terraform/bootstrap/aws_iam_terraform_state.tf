@@ -9,12 +9,12 @@
 # Wire it up with scripts/aws-oidc-credential-process.sh.
 
 locals {
-  # Only the stacks that use no AWS provider. `terraform/proxmox` and
-  # `terraform/unifi` touch AWS purely as a state backend, so state access is
-  # all they need to run start to finish. `bootstrap`, `general`, `alexa` and
+  # Only the stacks that use no AWS provider. `terraform/unifi` touches AWS
+  # purely as a state backend, so state access is all it needs to run start
+  # to finish. `bootstrap`, `general`, `alexa` and
   # `loadtest` manage real AWS resources and are deliberately NOT covered -
   # granting those would hand every cluster-admin the god-mode policy below.
-  terraform_state_keys = ["proxmox.tfstate", "unifi.tfstate"]
+  terraform_state_keys = ["unifi.tfstate"]
 }
 
 data "aws_iam_policy_document" "terraform_state_assume" {
