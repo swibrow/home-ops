@@ -12,8 +12,9 @@ labels:
 # Pool layout and datasets are in docs/infrastructure/proxmox-01-migration.md.
 #
 # One disk of each SSD model per mirror (WUSTR6480 + HUSMM3280), here and in
-# `fast`, so a batch fault cannot take out both sides. Serials, not dev_path:
-# sdX enumeration order is not stable across the ten disks.
+# `fast`, so a batch fault cannot take out both sides. WWIDs, not dev_path
+# (sdX order is not stable across the ten disks) and not serials: behind the
+# PERC in HBA mode Talos reports no serial for any disk.
 #
 # Talos 1.14 cannot remove or replace a failed RAID member through config or
 # talosctl. A dead member means `talosctl wipe md` and a reinstall; the data on
@@ -28,7 +29,7 @@ level: raid1
 metadata: "1.0"
 provisioning:
   volumeSelector:
-    match: disk.serial in ["V6X00TXA", "71V0TXVX"]
+    match: disk.wwid in ["naa.5000cca0a670c818", "naa.5000cca09c017658"]
 ---
 apiVersion: v1alpha1
 kind: UnattendedInstallConfig
