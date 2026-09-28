@@ -5,12 +5,12 @@ kind: ScrapeConfig
 metadata:
   name: garage
 spec:
-  # garage-01 holds a DHCP lease on VLAN 20, so target the name rather than the
-  # address. scrapeConfigSelectorNilUsesHelmValues is already false, so this is
-  # picked up without touching the kube-prometheus-stack values.
+  # The in-cluster Service (system/garage). scrapeConfigSelectorNilUsesHelmValues
+  # is already false, so this is picked up without touching the
+  # kube-prometheus-stack values.
   staticConfigs:
     - targets:
-        - garage-01.servers.internal:3903
+        - garage.system.svc.cluster.local:3903
       labels:
         tier: storage
         component: garage

@@ -1,0 +1,14 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/gateway.envoyproxy.io/backendtrafficpolicy_v1alpha1.json
+# Overrides the gateway-wide policy (networking/envoy-gateway/envoy.yaml) to
+# drop its Brotli/Gzip compression: S3 clients checksum what they download,
+# and object bodies are mostly compressed backups already.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: garage-no-compression
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: garage
