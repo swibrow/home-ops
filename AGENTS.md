@@ -9,7 +9,7 @@ Kubernetes home lab GitOps repository.
 - **Cilium** — CNI with L2 announcements + BGP to the UniFi gateway (LoadBalancer IPs: 10.20.10.128-255)
 - **Envoy Gateway** — ingress (external/internal/direct gateways)
 - **CloudNativePG** — PostgreSQL operator
-- **Volsync** — PVC backup to S3
+- **kopiur** — PVC snapshots (Kopia) to Garage S3
 - **External Secrets** — Infisical + CNPG ClusterSecretStores
 - **External DNS** — Cloudflare DNS management
 
@@ -21,7 +21,7 @@ Kubernetes home lab GitOps repository.
 
 ```
 kubernetes/apps/{cluster}/{category}/{app}/
-├── kustomization.yaml   # namespace, volsync component, helmCharts generator
+├── kustomization.yaml   # namespace, pvc/kopiur components, helmCharts generator
 ├── values.yaml          # app-template helm values
 └── externalsecret.yaml  # optional: Infisical + CNPG secrets
 ```
@@ -36,7 +36,7 @@ kubernetes/apps/{cluster}/{category}/{app}/
 - **Routes** use Gateway API (`HTTPRoute`) with `parentRefs` to `envoy-internal`, `envoy-external`, or `envoy-direct` in namespace `networking`, sectionName `https`
 - **Databases** use CNPG clusters defined in `kubernetes/apps/pitower/cloudnative-pg/cluster/cluster.yaml`, accessed via `cnpg-secrets` ClusterSecretStore
 - **App secrets** stored in Infisical at `/category/app/SECRET_NAME`
-- **Volsync** backups via reusable kustomize component at `kubernetes/components/volsync`, configured per-app with `volsync-config` ConfigMap
+- **kopiur** backups via reusable kustomize component at `kubernetes/components/kopiur`, configured per-app with a `kopiur-config` ConfigMap (`APP_NAME`, `CLAIM_NAME`); repository is the `garage` ClusterRepository
 - **Timezone**: `Europe/Zurich`
 - **Reloader** annotation `reloader.stakater.com/auto: "true"` on controllers that consume secrets
 
@@ -62,6 +62,10 @@ To track a site, embed the snippet in the page `<head>` (get `data-site-id` from
 
 - Main cluster: `pitower`. Nodes `worker-01`..`10` and `worker-ai-01` are `10.20.10.1`-`11` on VLAN 20; `worker-01`..`03` are the control planes behind the API VIP `10.20.10.0`
 - Talos configs live at the repo root under `talos/<cluster>/` — lifecycle managed with [topf](https://github.com/postfinance/topf) (`topf.yaml` + layered patches in `all/`, `control-plane/`, `node/<host>/`; secrets stay SOPS-encrypted, decrypted by topf with the age key the root `mise.toml` points `SOPS_AGE_KEY_FILE` at). Run it as `mise exec -- topf ...` from `talos/pitower`; `apply` prompts y/n per node, so review `--dry-run` first and pass the global `--confirm=false` when running non-interactively. `talosctl` only for diagnostics.
+- worker-07 is a bare-metal Dell R630 (ex proxmox-01): Talos on an md RAID1 of two SSDs (`RAIDArrayConfig`, selected by `disk.wwid`; behind the PERC in HBA mode Talos sees no disk serials) and two ZFS pools imported by the `zfs` extension: `fast` (4 SSDs, two mirrors: `/var/mnt/extra`, `/var/mnt/runners`, Garage metadata) and `hdd` (4x 10K SAS raidz1: `/var/mnt/media`, Garage blocks). Storage classes `openebs-hostpath-fast` / `-runners` / `-media` only provision there; `openebs-hostpath` (XFS quotas) is kept off it. Record of the move: `docs/infrastructure/proxmox-01-migration.md`.
+- ZFS admin on worker-07: Talos has no shell, so run the host tools from a privileged `hostPID` pod: `nsenter -t 1 -m -- /usr/local/sbin/zpool ...`. Exporting a pool first needs that node's Multus pod restarted (its `/hostroot` bind pins every mount under `/var/mnt`), and no dataset may mount outside `/var`.
+- New Talos schematics must be submitted to the Image Factory (`curl -X POST --data-binary @<schematic>.yaml https://factory.talos.dev/schematics`) before an install; topf only computes the ID locally, and the installer image 404s otherwise.
+- The self-hosted `home-ops` CI runners are pinned to worker-07. While it is drained or down, workflows on them queue, so plan and apply Terraform/topf locally; the Talos Apply workflow also runs `topf apply` for the whole cluster on every merge that touches `talos/`.
 - Terraform: `terraform/` (AWS, Cloudflare, UniFi, etc.). `terraform/unifi` plans on PRs and applies on merge to `main` via the Terraform UniFi workflow
 - `mise.toml` env: `KUBECONFIG` is `~/.kube/pitower.yaml` (the default `~/.kube/config` is a different cluster). `UNIFI_*` credentials live in `terraform/mise.toml`, so UniFi commands must run under `terraform/`
 

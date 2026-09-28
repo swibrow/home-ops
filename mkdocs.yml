@@ -104,6 +104,7 @@ nav:
       - Talos Linux: infrastructure/talos-linux.md
       - Cluster Bootstrap: infrastructure/cluster-bootstrap.md
       - Node Management: infrastructure/node-management.md
+      - proxmox-01 Migration: infrastructure/proxmox-01-migration.md
   - Networking:
       - networking/index.md
       - Cilium CNI: networking/cilium-cni.md

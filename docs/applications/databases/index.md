@@ -368,9 +368,8 @@ the schedule only sets how far back a PITR has to replay from.
     same string means to a Kubernetes CronJob.
 
 Backups run `target: prefer-standby` so they do not compete with tenant traffic
-on the primary. Storage is [Garage](../../storage/garage.md) on `garage-01`;
-the `cnpg` bucket and its scoped key are declared in
-`ansible/roles/garage/defaults`.
+on the primary. Storage is [Garage](../../storage/garage.md) (`system/garage`);
+the `cnpg` key is scoped to the `cnpg` bucket.
 
 ```bash
 kubectl --context=admin@pitower -n database get backup
