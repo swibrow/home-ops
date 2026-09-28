@@ -46,7 +46,7 @@ locals {
     worker-04 = "681e4d99abce0339a34baaf1"
     worker-05 = "69fecc0d146696433afbf075"
     worker-06 = "69cfabae5d503efaee0107ba"
-    worker-07 = "6a5e87ffba125aaa3cc1b84f"
+    worker-07 = "6a74e4080b8b4a6d472c1d97"
     worker-08 = "681e4d99abce0339a34baaf3"
     worker-09 = "69c8cd0b5d503efaeee8241b"
     worker-10 = "681e4d99abce0339a34baaf2"
