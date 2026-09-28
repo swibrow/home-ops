@@ -107,9 +107,9 @@ All merge during the cutover, in this order:
       and `garage-01`.
 - [ ] Netboot menu: map `nic1` (`f8:bc:12:1d:46:30`) to worker-07. PXE only brings up maintenance
       mode; `topf apply` installs the r630 schematic.
-- [ ] Garage app manifests under `kubernetes/apps/pitower/storage/garage/` (StatefulSet, config,
-      Infisical secrets from `ansible/roles/garage/vars/secrets.sops.yaml`, HTTPRoute, raised
-      request timeouts for multipart uploads). Kept out of `main` until cutover.
+- [x] Garage app at `kubernetes/apps/pitower/system/garage/` (#2743), namespace `system`.
+- [ ] Infisical: `/system/garage/RPC_SECRET` and `/system/garage/ADMIN_TOKEN` from
+      `ansible/roles/garage/vars/secrets.sops.yaml`.
 - [ ] Bulk pre-copies, done live from zvol snapshots on the Proxmox host (clone, mount read-only
       with `nouuid`):
   - `garage/vm-200-disk-0` → new dataset `garage/media` (same pool; ~648G, pool ends ~84% full
