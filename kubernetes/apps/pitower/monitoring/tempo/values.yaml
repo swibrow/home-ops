@@ -20,7 +20,7 @@ persistence:
   enabled: true
   accessModes:
     - ReadWriteOnce
-  storageClassName: openebs-hostpath
+  storageClassName: openebs-hostpath-fast
   size: 20Gi
 
 serviceMonitor:

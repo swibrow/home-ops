@@ -1,0 +1,23 @@
+---
+# Hostpath class for the amd64 ARC runners' ephemeral volumes on worker-07,
+# backed by the `fast/runners` ZFS dataset at /var/mnt/runners.
+#
+# Its own dataset rather than openebs-hostpath-fast because hostpath volumes on
+# ZFS have no per-PVC limit: a burst of runners could otherwise fill the disk
+# under the monitoring TSDBs. The dataset `quota` bounds all runners together
+# (6 x 60Gi at ARC's maxRunners), which is the same guarantee XFS project
+# quotas gave when this was one volume.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: openebs-hostpath-runners
+  annotations:
+    openebs.io/cas-type: local
+    cas.openebs.io/config: |
+      - name: StorageType
+        value: "hostpath"
+      - name: BasePath
+        value: "/var/mnt/runners/openebs/local"
+provisioner: openebs.io/local
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer

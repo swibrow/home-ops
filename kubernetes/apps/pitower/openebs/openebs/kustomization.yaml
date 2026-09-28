@@ -5,8 +5,10 @@ kind: Kustomization
 namespace: openebs
 resources:
   - namespace.yaml
+  - storageclass-fast.yaml
   - storageclass-media.yaml
   - storageclass-models.yaml
+  - storageclass-runners.yaml
 helmCharts:
   - name: openebs
     repo: https://openebs.github.io/openebs
