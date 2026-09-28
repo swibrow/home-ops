@@ -5,3 +5,4 @@ kind: Kustomization
 resources:
   - https://github.com/kubevirt/containerized-data-importer/releases/download/v1.66.1/cdi-operator.yaml
   - cdi.yaml
+  - storageprofiles.yaml
