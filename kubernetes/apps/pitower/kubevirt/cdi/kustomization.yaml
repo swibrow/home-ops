@@ -6,3 +6,18 @@ resources:
   - https://github.com/kubevirt/containerized-data-importer/releases/download/v1.66.1/cdi-operator.yaml
   - cdi.yaml
   - storageprofiles.yaml
+patches:
+  # The release YAML still ships the CDI CRD with v1alpha1, but cdi-operator
+  # strips it from the live CRD once it is not a stored version
+  # (reconcileCDICRD in pkg/operator/controller/cruft.go), so ArgoCD and the
+  # operator fought over spec.versions forever. The test op fails the build if
+  # upstream reorders or drops it, so this can be deleted then.
+  - target:
+      kind: CustomResourceDefinition
+      name: cdis.cdi.kubevirt.io
+    patch: |
+      - op: test
+        path: /spec/versions/0/name
+        value: v1alpha1
+      - op: remove
+        path: /spec/versions/0
