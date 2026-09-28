@@ -5,12 +5,12 @@ kind: ScrapeConfig
 metadata:
   name: garage
 spec:
-  # The in-cluster Service (garage/garage). scrapeConfigSelectorNilUsesHelmValues
+  # The in-cluster Service (system/garage). scrapeConfigSelectorNilUsesHelmValues
   # is already false, so this is picked up without touching the
   # kube-prometheus-stack values.
   staticConfigs:
     - targets:
-        - garage.garage.svc.cluster.local:3903
+        - garage.system.svc.cluster.local:3903
       labels:
         tier: storage
         component: garage

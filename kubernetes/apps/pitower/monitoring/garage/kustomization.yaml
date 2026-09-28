@@ -3,7 +3,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: monitoring
-# Scrape-only app: the workload is garage/garage. This holds the ScrapeConfig
+# Scrape-only app: the workload is system/garage. This holds the ScrapeConfig
 # that pulls its native /metrics endpoint and the alerts on it.
 resources:
   - externalsecret.yaml
