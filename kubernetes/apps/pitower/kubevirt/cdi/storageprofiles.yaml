@@ -1,0 +1,31 @@
+---
+# CDI creates a StorageProfile per StorageClass but has no defaults for the
+# openebs.io/local provisioner, so it raises CDIStorageProfilesIncomplete and
+# cannot size PVCs for imports. Local hostpath volumes are node-local
+# directories: RWO filesystem only.
+apiVersion: cdi.kubevirt.io/v1beta1
+kind: StorageProfile
+metadata:
+  name: openebs-hostpath
+spec:
+  claimPropertySets:
+    - accessModes: ["ReadWriteOnce"]
+      volumeMode: Filesystem
+---
+apiVersion: cdi.kubevirt.io/v1beta1
+kind: StorageProfile
+metadata:
+  name: openebs-hostpath-media
+spec:
+  claimPropertySets:
+    - accessModes: ["ReadWriteOnce"]
+      volumeMode: Filesystem
+---
+apiVersion: cdi.kubevirt.io/v1beta1
+kind: StorageProfile
+metadata:
+  name: openebs-hostpath-models
+spec:
+  claimPropertySets:
+    - accessModes: ["ReadWriteOnce"]
+      volumeMode: Filesystem
