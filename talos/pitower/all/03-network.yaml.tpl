@@ -2,7 +2,7 @@
 # the control planes. Per-node MACs come from node data in topf.yaml.
 #
 # Nodes flagged `untagged: true` in topf.yaml sit on a port that is already
-# access-mode VLAN 20 (Proxmox vNIC), so they take DHCP on the parent instead
+# access-mode VLAN 20 (worker-07's 10G nic6), so they take DHCP on the parent instead
 # of building a subinterface; a vlans: entry there would double-tag and never
 # get a lease. The bare-metal nodes' ports trunk VLAN 20 tagged and carry a
 # different untagged segment, so they keep the subinterface.

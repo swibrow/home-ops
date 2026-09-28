@@ -2,14 +2,20 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: monitoring
+namespace: system
 resources:
   - externalsecret.yaml
-  - prometheusrule.yaml
+  - trafficpolicy.yaml
+configMapGenerator:
+  - name: garage-config
+    options:
+      disableNameSuffixHash: true
+    files:
+      - garage.toml
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm
     version: 5.2.1
-    releaseName: pve-exporter
-    namespace: monitoring
+    releaseName: garage
+    namespace: system
     valuesFile: values.yaml

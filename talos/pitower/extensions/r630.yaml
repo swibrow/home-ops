@@ -1,0 +1,10 @@
+# 661d3cbf2b7da54c8dfd7ae9c1c437de3f2e90e65ff102d70557c8063aae12c6
+# curl -X POST --data-binary @r630.yaml https://factory.talos.dev/schematics
+customization:
+  systemExtensions:
+    officialExtensions:
+      - siderolabs/util-linux-tools
+      - siderolabs/intel-ucode
+      # Imports the existing `garage` raidz1 and the `fast` SSD pool at boot
+      # (`zpool import -fal`). The module itself is loaded by 01-install.yaml.
+      - siderolabs/zfs

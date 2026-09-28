@@ -3,19 +3,54 @@ apiVersion: v1alpha1
 kind: KubeNodeConfig
 labels:
   wibrow.dev/compute: "true"
-# 1000GiB scsi0 system disk. sdb/sdc are the `extra` and `media` user volumes
-# (02-extra.yaml, 04-media.yaml), selected by size band there.
+# Bare-metal Dell R630 (ex proxmox-01). Six 745GiB SAS SSDs and four 559GiB
+# 10K SAS HDDs behind the PERC in HBA mode. Two SSDs are the Talos system disk
+# as an md RAID1; the other four are the ZFS pool `fast` (two mirrors) and the
+# HDDs the existing `garage` raidz1, both imported by the zfs extension. Their
+# datasets mount under /var/mnt (extra, runners, media, garage), which the
+# kubelet sees without extraMounts - so there are no UserVolumeConfigs here.
+# Pool layout and datasets are in docs/infrastructure/proxmox-01-migration.md.
+#
+# One disk of each SSD model per mirror (WUSTR6480 + HUSMM3280), here and in
+# `fast`, so a batch fault cannot take out both sides. WWIDs, not dev_path
+# (sdX order is not stable across the ten disks) and not serials: behind the
+# PERC in HBA mode Talos reports no serial for any disk.
+#
+# Talos 1.14 cannot remove or replace a failed RAID member through config or
+# talosctl. A dead member means `talosctl wipe md` and a reinstall; the data on
+# ZFS is untouched by that.
+---
+apiVersion: v1alpha1
+kind: RAIDArrayConfig
+name: boot
+level: raid1
+# 1.0 keeps the md superblock at the end of each member, so firmware sees the
+# EFI partition on either disk as a plain partition and can boot from it.
+metadata: "1.0"
+provisioning:
+  volumeSelector:
+    match: disk.wwid in ["naa.5000cca0a670c818", "naa.5000cca09c017658"]
 ---
 apiVersion: v1alpha1
 kind: UnattendedInstallConfig
 provisioning:
   diskSelector:
-    match: disk.dev_path == "/dev/sda"
-# /var/mnt/media used to be a kubelet extraMount on top of the user volume so
-# openebs-hostpath-media could hand pods hostPaths under it. 1.14 removed
-# extraMounts; user volumes under /var/mnt are visible to the kubelet directly.
+    match: '"/dev/disk/by-id/md-name-talos:boot" in disk.symlinks'
+---
+apiVersion: v1alpha1
+kind: KernelModuleConfig
+name: raid1
 ---
 apiVersion: v1alpha1
 kind: KubeletConfig
 config:
   maxPods: 250
+---
+# The zfs extension ships the module but does not load it. ARC is invisible to
+# kubelet memory accounting, so it is capped (64GiB of 755GiB) rather than left
+# to take half the machine.
+apiVersion: v1alpha1
+kind: KernelModuleConfig
+name: zfs
+parameters:
+  - zfs_arc_max=68719476736

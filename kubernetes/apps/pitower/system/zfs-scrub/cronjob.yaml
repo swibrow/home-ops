@@ -1,0 +1,58 @@
+---
+# Monthly scrub of worker-07's ZFS pools (`hdd`, `fast`), the job Proxmox's
+# zfsutils cron did before the host became bare-metal Talos.
+#
+# Talos has no shell, so this runs the host's own zpool (from the zfs system
+# extension, /usr/local/sbin) inside the host mount namespace via nsenter.
+# `scrub -w -a` blocks until every pool has finished; the Job then fails
+# unless `zpool status -x` reports nothing wrong, so a scrub that finds errors
+# surfaces as a failed Job instead of passing silently.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: zfs-scrub
+spec:
+  schedule: "0 1 1 * *" # 1st of the month 01:00, clear of the Sunday etcd-defrag/fstrim
+  timeZone: Europe/Zurich
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      # hdd (4x 10K SAS raidz1, ~900G) scrubbed in ~30min under Proxmox.
+      activeDeadlineSeconds: 21600
+      ttlSecondsAfterFinished: 604800
+      template:
+        spec:
+          restartPolicy: Never
+          hostPID: true
+          nodeSelector:
+            kubernetes.io/hostname: worker-07
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+            runAsNonRoot: false
+          containers:
+            - name: scrub
+              # nsenter is util-linux, which is in the debian base image.
+              image: docker.io/library/debian:stable-slim@sha256:5bc3287b25407c965a30f38e32603dc253a3869e1b12a21ac09bfc27fd8b13ce
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  zpool() { nsenter -t 1 -m -- /usr/local/sbin/zpool "$@"; }
+                  zpool list -H -o name
+                  zpool scrub -w -a
+                  zpool status
+                  health=$(zpool status -x)
+                  echo "$health"
+                  [ "$health" = "all pools are healthy" ]
+              securityContext:
+                privileged: true
+              resources:
+                requests:
+                  cpu: 25m
+                  memory: 64Mi
+                limits:
+                  memory: 128Mi

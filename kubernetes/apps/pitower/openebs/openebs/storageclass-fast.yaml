@@ -1,0 +1,35 @@
+---
+# Hostpath class for worker-07's `fast/extra` ZFS dataset (five SAS SSDs: two
+# mirrors plus a spare), mounted at /var/mnt/extra. Everything pinned to
+# worker-07 that used openebs-hostpath lives here.
+#
+# No XFSQuota, unlike openebs-hostpath: the backing filesystem is ZFS, where
+# the provisioner's project-quota setup cannot work. Per-PVC sizes are
+# therefore a label, not a limit; the `quota` on the dataset caps the total.
+# CI runners, the burst workload that quotas used to fence off, have their own
+# dataset and class (storageclass-runners.yaml).
+#
+# Separate basePath from openebs-hostpath (openebs/fast, not openebs/local) so
+# volumes from the two classes never share a directory tree on this node.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: openebs-hostpath-fast
+  annotations:
+    openebs.io/cas-type: local
+    cas.openebs.io/config: |
+      - name: StorageType
+        value: "hostpath"
+      - name: BasePath
+        value: "/var/mnt/extra/openebs/fast"
+provisioner: openebs.io/local
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+# The backing dataset only exists on worker-07. Without this, a claim whose
+# consumer is not itself pinned there gets provisioned on whatever node the
+# pod lands on.
+allowedTopologies:
+  - matchLabelExpressions:
+      - key: kubernetes.io/hostname
+        values:
+          - worker-07

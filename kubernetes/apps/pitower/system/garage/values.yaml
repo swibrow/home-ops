@@ -1,0 +1,92 @@
+controllers:
+  garage:
+    strategy: Recreate
+    annotations:
+      reloader.stakater.com/auto: "true"
+    pod:
+      # The data lives on worker-07's ZFS pools; see
+      # docs/infrastructure/proxmox-01-migration.md.
+      nodeSelector:
+        kubernetes.io/hostname: worker-07
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+    containers:
+      app:
+        image:
+          repository: dxflrs/garage
+          tag: v2.4.1
+        envFrom:
+          - secretRef:
+              name: garage-secret
+        probes:
+          liveness: &probes
+            enabled: true
+            custom: true
+            spec:
+              tcpSocket:
+                port: &s3 3900
+          readiness: *probes
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+        resources:
+          requests:
+            cpu: 50m
+            memory: 512Mi
+
+service:
+  app:
+    controller: garage
+    ports:
+      s3:
+        port: *s3
+      web:
+        port: 3902
+      admin:
+        port: 3903
+
+route:
+  app:
+    enabled: true
+    hostnames:
+      - s3.wibrow.dev
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+    rules:
+      - backendRefs:
+          - identifier: app
+            port: *s3
+        # Envoy's 15s default cuts off large multipart parts and slow reads
+        # of CNPG base backups off the spinning pool.
+        timeouts:
+          request: 0s
+
+persistence:
+  config:
+    type: configMap
+    name: garage-config
+    globalMounts:
+      - path: /etc/garage.toml
+        subPath: garage.toml
+        readOnly: true
+  # Subdirectories, not the dataset roots: an unmounted dataset can leave an
+  # empty mountpoint directory behind, and Garage would initialise a new,
+  # empty node in it. type: Directory makes the pod wait instead.
+  meta:
+    type: hostPath
+    hostPath: /var/mnt/garage/meta/meta
+    hostPathType: Directory
+    globalMounts:
+      - path: /var/lib/garage/meta
+  data:
+    type: hostPath
+    hostPath: /var/mnt/garage/data/blocks
+    hostPathType: Directory
+    globalMounts:
+      - path: /var/lib/garage/data

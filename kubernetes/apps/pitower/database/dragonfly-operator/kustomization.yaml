@@ -6,7 +6,7 @@ namespace: database
 helmCharts:
   - name: dragonfly-operator
     repo: oci://ghcr.io/dragonflydb/dragonfly-operator/helm
-    version: v1.6.1
+    version: v1.7.0
     releaseName: dragonfly-operator
     includeCRDs: true
     namespace: database

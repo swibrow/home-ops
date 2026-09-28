@@ -1,8 +1,7 @@
 ---
-- name: nut node (network + NUT + PVE cluster QDevice)
+- name: nut node (network + NUT)
   hosts: nut
   become: true
   roles:
     - network
     - nut
-    - corosync-qnetd

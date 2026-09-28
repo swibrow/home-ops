@@ -1,7 +1,0 @@
----
-- name: Expose Garage S3 (Cloudflare DDNS + Caddy/Let's Encrypt TLS)
-  hosts: garage
-  become: true
-  roles:
-    - cloudflare-ddns
-    - garage-tls

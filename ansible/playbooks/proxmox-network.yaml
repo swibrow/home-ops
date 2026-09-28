@@ -1,9 +1,0 @@
----
-- name: Proxmox node network on VLAN20
-  hosts: proxmox
-  become: true
-  tasks:
-    - name: Apply VLAN20 network config with automatic rollback safety net
-      ansible.builtin.include_role:
-        name: proxmox
-        tasks_from: network

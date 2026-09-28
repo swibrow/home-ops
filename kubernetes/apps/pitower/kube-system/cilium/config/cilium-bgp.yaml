@@ -12,8 +12,8 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
-  # Same exclusion as the L2 policy: worker-ai-01 powers off with its
-  # Proxmox host, and the gateway only peers with worker-01..10.
+  # Same exclusion as the L2 policy: worker-ai-01 is often booted into
+  # Bazzite, and the gateway only peers with worker-01..10.
   nodeSelector:
     matchExpressions:
       - key: kubernetes.io/hostname
