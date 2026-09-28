@@ -48,9 +48,10 @@ nodes:
   - host: worker-07
     ip: 10.20.10.7
     role: worker
-    schematicId: "@extensions/proxmox.yaml"
+    schematicId: "@extensions/r630.yaml"
     data:
-      mac: "bc:24:11:e8:10:19"
+      # nic6 (10G i40e); its switch port carries VLAN 20 untagged.
+      mac: "3c:fd:fe:18:73:62"
       untagged: true
   - host: worker-08
     ip: 10.20.10.8

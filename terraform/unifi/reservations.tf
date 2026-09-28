@@ -24,17 +24,11 @@ locals {
     worker-04 = { mac = "10:02:b5:86:00:fb", fixed_ip = "10.20.10.4", network_id = unifi_network.servers.id }
     worker-05 = { mac = "28:d2:44:6d:64:bf", fixed_ip = "10.20.10.5", network_id = unifi_network.servers.id }
     worker-06 = { mac = "50:7b:9d:31:ae:cd", fixed_ip = "10.20.10.6", network_id = unifi_network.servers.id }
-    worker-07 = { mac = "bc:24:11:e8:10:19", fixed_ip = "10.20.10.7", network_id = unifi_network.servers.id }
+    worker-07 = { mac = "3c:fd:fe:18:73:62", fixed_ip = "10.20.10.7", network_id = unifi_network.servers.id, note = "Dell R630, bare-metal Talos, 10G nic6" }
     worker-08 = { mac = "dc:a6:32:4f:95:ca", fixed_ip = "10.20.10.8", network_id = unifi_network.servers.id }
     worker-09 = { mac = "dc:a6:32:4f:ee:e2", fixed_ip = "10.20.10.9", network_id = unifi_network.servers.id }
     worker-10 = { mac = "dc:a6:32:46:b2:ba", fixed_ip = "10.20.10.10", network_id = unifi_network.servers.id }
     data      = { mac = "00:11:32:0c:91:0c", fixed_ip = "10.20.10.100", network_id = unifi_network.servers.id }
-
-    # Proxmox hosts live in 10.20.1.0/24, kept apart from the Kubernetes nodes
-    # in 10.20.10.0/24. A PVE cluster's corosync address cannot change after
-    # `pvecm create`, so these are pinned before clustering. Everything reaches
-    # proxmox-01 by name.
-    proxmox-01 = { mac = "f8:bc:12:1d:46:30", fixed_ip = "10.20.1.1", network_id = unifi_network.servers.id, note = "Dell R630, vmbr0 on nic1.20" }
 
     # Talos GPU worker, bare metal (ASUS ProArt B850 + RTX 3090 Ti), dual-booted
     # with Bazzite. Talos DHCPs on its VLAN 20 subinterface, which inherits the
