@@ -16,24 +16,18 @@ ansible/
 ├── requirements.yaml      # community.general + community.sops
 ├── inventory/hosts.yaml   # hosts (set ansible_host / ansible_user)
 ├── playbooks/
-│   ├── site.yaml          # network + nut + corosync-qnetd (what `just ansible deploy` runs)
+│   ├── site.yaml          # network + nut (what `just ansible deploy` runs)
 │   ├── nut.yaml           # NUT role only
 │   ├── ovh-vps.yaml       # fail2ban + oha + towonel-hub + otel-agent (what `just ansible deploy-ovh-vps` runs)
-│   ├── proxmox.yaml       # fail2ban + proxmox, both PVE hosts (what `just ansible deploy-proxmox` runs)
-│   ├── proxmox-network.yaml # one PVE host onto VLAN 20 (severs its own SSH)
 │   ├── homeassistant.yaml # HAOS PoE fan thresholds (what `just ansible deploy-homeassistant` runs)
-│   ├── homeassistant-network.yaml # HAOS onto tagged iot VLAN 101 (severs its own SSH)
-│   └── garage.yaml        # Garage S3 role only (what `just ansible deploy-garage` runs)
+│   └── homeassistant-network.yaml # HAOS onto tagged iot VLAN 101 (severs its own SSH)
 └── roles/
     ├── network/           # VLAN sub-interfaces as NetworkManager connections
     ├── nut/               # Network UPS Tools (netserver mode)
-    ├── corosync-qnetd/    # external vote (QDevice) for the PVE cluster, on nut
     ├── fail2ban/          # SSH brute-force jail
     ├── oha/               # oha HTTP load-testing CLI (pinned GitHub release binary)
     ├── towonel-hub/       # towonel tunnel hub (systemd-managed docker run)
     ├── otel-agent/        # host metrics/logs/traces -> pitower's otel-collector (pinned binary)
-    ├── garage/            # Garage S3 node (pinned binary + systemd; layout/bucket/key bootstrap)
-    ├── proxmox/           # Proxmox VE repo config (no-subscription, no enterprise)
     ├── haos-poe-fan/      # PoE HAT fan thresholds in HAOS config.txt (raw-only)
     └── haos-network/      # HAOS onto the tagged iot VLAN 101 via `ha network` (raw-only)
 ```
@@ -56,60 +50,7 @@ just ansible check-homeassistant   # dry-run (PoE fan thresholds)
 just ansible deploy-homeassistant  # apply (PoE fan thresholds; reboot HAOS after)
 just ansible apply-network-homeassistant 192.168.0.155  # one-off: move onto iot VLAN 101
 
-just ansible ping-proxmox [host]    # SSH reachability (default: both PVE hosts)
-just ansible check-proxmox [host]   # dry-run + diff (fail2ban + proxmox role)
-just ansible deploy-proxmox [host]  # apply (fail2ban + proxmox role)
-
-just ansible ping-garage        # SSH reachability (garage-01)
-just ansible check-garage       # dry-run + diff (Garage S3)
-just ansible deploy-garage      # apply (Garage S3: install + config + layout/bucket/key)
-just ansible deploy-garage-tls  # apply (Caddy + Let's Encrypt in front of the S3 API)
 ```
-
-## Cloudflare token (`cloudflare_api_token`)
-
-The `garage-tls`, `cloudflare-ddns`, and the `proxmox` role's ACME tasks all need a Cloudflare API
-token scoped to **Zone → Read** and **Zone → DNS → Edit** on `wibrow.dev`, for the Let's Encrypt
-DNS-01 challenge and the dynamic DNS records. It lives once in
-`inventory/group_vars/all.sops.yaml` (auto-decrypted by the `community.sops` vars plugin configured in
-`ansible.cfg`), so rotating it touches a single file:
-
-```sh
-sops inventory/group_vars/all.sops.yaml
-```
-
-This is separate from the cluster's cert-manager token, which lives in Infisical and is not reachable
-from a non-Kubernetes host.
-
-## Garage S3 (`garage` role)
-
-Installs and configures [Garage](https://garagehq.deuxfleurs.fr) on the `garage-01` LXC that
-`terraform/proxmox/ct_garage.tf` provisions (the container shell + the `/var/lib/garage` ZFS mount
-are Terraform's job; everything inside the guest is this role's). A pinned static musl binary
-(`garage_version` in `defaults/main.yaml`, sha256-verified) runs as a `garage` system user under a
-`garage.service` systemd unit, with `metadata_dir`/`data_dir` under the mount.
-
-`rpc_secret` and the admin `admin_token` are SOPS-encrypted in `roles/garage/vars/secrets.sops.yaml`
-(same repo age key as the other roles). To rotate `rpc_secret`, edit that file with `sops` and
-re-deploy — note a single-node cluster can change it freely, but a multi-node cluster must share one
-value across every node.
-
-The role bootstraps the cluster on a **fresh** node: it assigns this node a layout role
-(`garage_zone` / `garage_capacity`) and applies layout version 1 only when the layout is still empty,
-then ensures the buckets in `garage_buckets` and the keys in `garage_keys` exist (each key granted
-read/write/owner on its buckets). Re-runs are idempotent and leave an existing layout untouched.
-
-S3 access keys are stored durably by Garage itself, not in this repo. Read a key's secret back on the
-host any time:
-
-```sh
-GARAGE_CONFIG_FILE=/etc/garage.toml garage key info --show-secret garage-admin
-```
-
-The S3 API listens on `:3900` (VLAN 20); admin API is loopback-only on `:3903`. This is currently a
-single node (`replication_factor = 1`); a second replica on the Synology NAS is planned — see
-`terraform/proxmox/README.md` for the quorum caveat. **Raising `replication_factor` requires the extra
-nodes to be joined first** and is a breaking change to the storage layout.
 
 ## Networking (`network` role)
 
@@ -508,53 +449,6 @@ cat /sys/class/thermal/thermal_zone0/temp                              # ~50-550
 
 The fan should now be silent below 50 C and step up at 50/60/70/80 C. On the Talos Pis the
 same curve idles at the first (quietest) step around 51-54 C.
-
-## `proxmox-01` node runbook
-
-New Proxmox VE hypervisor host, VLAN 20 only, DHCP-assigned address (`proxmox-01.servers.local` —
-set a UniFi DHCP reservation to pin it). Root SSH only (Proxmox ships no non-root sudo user); add
-your pubkey to root's `authorized_keys` before the first run. Managed roles:
-
-- **`fail2ban`** — same SSH brute-force jail as `ovh-vps`.
-- **`proxmox`** — disables the enterprise repo (needs a paid subscription) and enables the
-  `pve-no-subscription` repo so `apt` keeps working without one.
-
-### Deploy
-
-```sh
-just ansible check-proxmox proxmox-01 && just ansible deploy-proxmox proxmox-01
-```
-
-This only covers host-level package repos. VM lifecycle (the Talos worker VM) is managed by
-Terraform — see `terraform/proxmox/`.
-
-### Network migration to VLAN20
-
-`proxmox-01` currently sits on the default/native VLAN (`192.168.0.0/24`, untagged). To move it
-onto VLAN20 (the pitower network, trunked/tagged on the switch port `nic1` connects to):
-
-```sh
-just ansible apply-network-proxmox proxmox-01
-```
-
-This tags `nic1` with VLAN20 (`nic1.20` → `vmbr0`, DHCP). Since the change reconfigures the exact
-interface the SSH session is running over, the `ifreload -a` task losing its connection
-("unreachable"/"connection lost") is **expected**, not a failure signal.
-
-**No automatic rollback** - the template task keeps a timestamped backup of the previous
-`/etc/network/interfaces` next to it (Ansible's `backup: true`), but nothing restores it
-automatically. After applying, find the new address (UniFi client list or DHCP leases for MAC
-`f8:bc:12:1d:46:30`) and confirm SSH works there. If it's broken, fix it manually via the iDRAC
-console: `cp /etc/network/interfaces.<timestamp>~ /etc/network/interfaces && ifreload -a`.
-
-Once confirmed, update `ansible/inventory/hosts.yaml`'s `proxmox-01` entry and `mise.toml`'s
-`PROXMOX_VE_ENDPOINT` to the new address, and consider a DHCP reservation to keep it stable.
-
-The same role also renders a second, VM-only bridge: `nic6` (10G, `i40e`) tagged VLAN20 →
-`vmbr2`, no host IP. Host management traffic stays on `vmbr0`/`nic1` (1G); VM/CT guest NICs
-(`terraform/proxmox`'s `network_bridge` variable) point at `vmbr2` instead. Applying the same
-`just ansible apply-network-proxmox proxmox-01` command picks up both bridges - adding `vmbr2` alongside
-the existing ones is a no-op for the SSH session since `nic1`/`vmbr0` aren't touched.
 
 ## Secrets
 

@@ -59,7 +59,7 @@ spec:
         - sourceLabels: [__param_target]
           regex: "10\\.20\\.10\\.7"
           targetLabel: hw
-          replacement: "proxmox-vm"
+          replacement: "dell-r630"
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: Probe

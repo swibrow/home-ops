@@ -60,20 +60,6 @@ spec:
 apiVersion: grafana.integreatly.org/v1beta1
 kind: GrafanaDashboard
 metadata:
-  name: proxmox
-  namespace: monitoring
-spec:
-  folder: Infrastructure
-  instanceSelector:
-    matchLabels:
-      dashboards: grafana
-  configMapRef:
-    name: grafana-dashboards-infrastructure
-    key: proxmox.json
----
-apiVersion: grafana.integreatly.org/v1beta1
-kind: GrafanaDashboard
-metadata:
   name: towonel
   namespace: monitoring
 spec:

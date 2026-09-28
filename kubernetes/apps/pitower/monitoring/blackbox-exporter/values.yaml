@@ -74,9 +74,8 @@ config:
         preferred_ip_protocol: ip4
 
     # Cert-only check for TLS endpoints we should not send an HTTP request to.
-    # This is what surfaces probe_ssl_earliest_cert_expiry for s3.wibrow.dev,
-    # whose certificate is issued by certbot on garage-01 rather than
-    # cert-manager, so nothing else in the cluster can see it expire.
+    # This is what surfaces probe_ssl_earliest_cert_expiry for off-cluster
+    # endpoints whose certificates cert-manager does not issue.
     tls_connect:
       prober: tcp
       timeout: 5s

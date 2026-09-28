@@ -1,7 +1,7 @@
 ---
 # Moves HAOS off the untagged LAN onto the tagged iot VLAN (101). Split out of
-# homeassistant.yaml the same way proxmox-network.yaml is: it severs its own
-# SSH transport, so a "connection lost" result on the last task is expected.
+# homeassistant.yaml because it severs its own SSH transport, so a
+# "connection lost" result on the last task is expected.
 # The cutover run still connects over the old untagged address:
 #
 #   ansible-playbook playbooks/homeassistant-network.yaml -e ansible_host=192.168.0.155

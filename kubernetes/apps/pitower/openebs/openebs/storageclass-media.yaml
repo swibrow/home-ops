@@ -1,7 +1,7 @@
 ---
-# Hostpath class on worker-07's `media` volume - a 1200GiB zvol on proxmox-01's
-# `garage` RAIDZ1 (4x 600GB Toshiba 10K SAS, bays 6-9). Restored 2026-08-16 to
-# take the Immich photo library off the failing Synology.
+# Hostpath class on worker-07's `hdd/media` ZFS dataset, on the `hdd` RAIDZ1
+# (4x 600GB Toshiba 10K SAS, bays 6-9), mounted at /var/mnt/media. Created
+# 2026-08-16 to take the Immich photo library off the failing Synology.
 #
 # The only class here backed by redundant disks, and the only one holding data
 # that is not rebuildable. Reclaim policy is Retain, unlike every other openebs
