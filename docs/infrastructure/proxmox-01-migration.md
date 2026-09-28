@@ -1,177 +1,119 @@
 # proxmox-01 → bare-metal Talos
 
-Replace the Proxmox VE hypervisor on proxmox-01 (Dell R630) with Talos installed directly on the
-hardware, keeping the node's Kubernetes identity (`worker-07`, `10.20.10.7`) so every pinned
-workload, local PV and BGP neighbour carries over unchanged. KubeVirt then runs VMs on bare metal
-instead of nested inside the Proxmox VM.
+**Done 2026-09-28.** The Proxmox VE hypervisor on proxmox-01 (Dell R630) was replaced with Talos
+installed directly on the hardware. The node kept its Kubernetes identity (`worker-07`,
+`10.20.10.7`), so pinned workloads, local PVs and the BGP neighbour carried over. Garage moved from
+an LXC on the host into the cluster (`system/garage`). KubeVirt VMs on worker-07 now run on bare
+metal instead of nested inside a Proxmox VM.
 
-## Current state
+## Before
 
 | | |
 |---|---|
-| Hardware | 2x Xeon E5-2687W v4 (2 NUMA nodes), 755 GiB RAM, PERC in HBA mode, UEFI |
-| SSDs | 6x 745 GiB SAS (`sda`-`sdf`), `rpool`: 3 mirrors, Proxmox root + VM/CT disks |
-| HDDs | 4x 559 GiB 10K SAS (`sdg`-`sdj`), `garage`: raidz1 |
-| NICs | `nic1` 1G igb (`f8:bc:12:1d:46:30`): trunk, VLAN 20 tagged + untagged LAN; `nic6` 10G i40e (`3c:fd:fe:18:73:62`): VLAN 20 native |
-| Guests | VM 200 `worker-07` (Talos, 364 GiB), CT 210 `garage-01` (Garage S3) |
-| ZFS | 2.4.2 on the host; Talos 1.14.0 ships 2.4.3, so `garage` imports without an upgrade |
+| Hardware | 2x Xeon E5-2687W v4 (2 NUMA nodes), 755 GiB RAM, PERC H730P in HBA mode, UEFI, iDRAC8 |
+| SSDs | 6x 745 GiB SAS (3x WUSTR6480, 3x HUSMM3280), `rpool`: 3 mirrors, Proxmox root + VM/CT disks |
+| HDDs | 4x 559 GiB 10K SAS, `garage`: raidz1 |
+| NICs | `nic1` 1G (`f8:bc:12:1d:46:30`): trunk, untagged LAN + VLAN 20; `nic6` 10G (`3c:fd:fe:18:73:62`): VLAN 20 native |
+| Guests | VM 200 `worker-07` (Talos), CT 210 `garage-01` (Garage S3) |
 
-What lives where today:
+## After
 
-| Data | Location | Fate |
-|---|---|---|
-| worker-07 system disk | `rpool/data/vm-200-disk-1` | Rebuilt |
-| worker-07 `extra` (8 openebs-hostpath PVCs, 167G) | `rpool/data/vm-200-disk-4` (XFS in a zvol) | Copied off, restored |
-| Immich library `media` (648G) | `garage/vm-200-disk-0` (XFS in a zvol) | Converted to a dataset on `garage` |
-| Garage metadata (LMDB, 564M) | `rpool/data/subvol-210-disk-1` | Copied off, restored |
-| Garage objects (43G) | `garage/subvol-210-disk-0` | Stays on `garage`, dataset renamed |
-
-## Target state
-
-| Disk(s) | Use |
+| Disks | Use |
 |---|---|
-| 2 SSDs (`V6X00TXA`, `71V0TXVX`) | Talos system disk: md RAID1 via `RAIDArrayConfig` (EPHEMERAL: images, logs, emptyDirs) |
-| 4 SSDs | New pool `fast`: 2 mirrors (~1.45 TiB). Replaces `extra` and holds Garage metadata. |
-| `sdg`-`sdj` | Existing `garage` raidz1, imported by the ZFS extension. Immich library + Garage objects. |
+| 2 SSDs (`naa.5000cca0a670c818`, `naa.5000cca09c017658`) | Talos system disk: md RAID1 via `RAIDArrayConfig` `boot` |
+| 4 SSDs | Pool `fast`: two mirrors (~1.41 TiB) |
+| 4 HDDs | Pool `hdd` (the old `garage` pool, imported and renamed) |
 
-Each mirror, the boot array included, pairs one WUSTR6480 with one HUSMM3280, so a batch fault
-cannot take out both sides. Talos 1.14 cannot replace a failed RAID member in place: a dead boot
-disk means `talosctl wipe md` and a reinstall, which leaves the ZFS pools untouched.
-
-Later: two NVMe drives on the PCIe card in slot 1 or 2, for storage. A dual-M.2 card needs either
-x4x4 bifurcation (not yet confirmed on the R630) or its own PCIe switch.
-
-ZFS datasets, all mounted under `/var/mnt` (Talos only allows `/var`):
+Every mirror, the boot array included, pairs one WUSTR6480 with one HUSMM3280. Talos 1.14 cannot
+replace a failed RAID member in place: a dead boot disk means `talosctl wipe md` and a reinstall,
+which leaves the ZFS pools untouched.
 
 | Dataset | Mountpoint | Consumer |
 |---|---|---|
-| `fast/extra` | `/var/mnt/extra` | `openebs-hostpath-fast` (decision 1) |
-| `fast/runners` | `/var/mnt/runners` | `openebs-hostpath-runners`: amd64 CI runners, own quota so a burst stays off the TSDBs |
+| `fast/extra` (quota 1T) | `/var/mnt/extra` | `openebs-hostpath-fast` (basePath `/var/mnt/extra/openebs/fast`) |
+| `fast/runners` (quota 360G) | `/var/mnt/runners` | `openebs-hostpath-runners`: amd64 CI runners, bounded together so a burst stays off the TSDBs |
 | `fast/garage-meta` | `/var/mnt/garage/meta` | Garage LMDB, in `meta/` |
-| `garage/media` | `/var/mnt/media` | `openebs-hostpath-media` (no XFS quota, works as-is) |
-| `garage/garage-data` | `/var/mnt/garage/data` | Garage blocks, in `blocks/` (renamed from `subvol-210-disk-0`) |
+| `hdd/media` | `/var/mnt/media` | `openebs-hostpath-media` (Immich library) |
+| `hdd/garage-data` | `/var/mnt/garage/data` | Garage blocks, in `blocks/` |
 
-Existing PVs are `spec.local` with absolute paths pinned to `worker-07`. Restoring
-`/var/mnt/media/openebs/local/pvc-*` to the same path means the Immich library claim needs no
-change; the `extra` claims move class (decision 1). A local PV whose path is missing makes the kubelet fail the
-mount instead of creating an empty directory, so a pod racing the boot-time `zpool import` retries
-rather than writing under the mountpoint.
+`openebs-hostpath` enforces XFS project quotas, which cannot work on ZFS, so it has
+`allowedTopologies` for every node except worker-07; the `-fast` and `-runners` classes only allow
+worker-07. The `zfs` extension imports both pools at boot (`zpool import -fal`), `zfs_arc_max` caps
+ARC at 64 GiB, and `system/zfs-scrub` scrubs both monthly.
 
-Garage moves from the LXC into the cluster: a single-replica StatefulSet pinned to `worker-07`,
-hostPath-mounting the two datasets, fronted by an `envoy-internal` HTTPRoute for `s3.wibrow.dev`
-(cert-manager instead of certbot on the LXC; external-dns instead of the `cloudflare-ddns` role).
-The node key lives in the metadata directory, so the restored node keeps its ID and layout. Garage
-mounts subdirectories of the datasets, not their roots, so an unmounted dataset makes the pod wait
-instead of letting Garage initialise an empty node in a bare mountpoint.
+Network: Talos DHCPs on nic6 (VLAN 20 native, `untagged: true` in `topf.yaml`); the UniFi reservation
+and a `local_dns_record` (`worker-07.servers.internal`) pin `10.20.10.7`. nic1 is only used for PXE.
 
 ## Pull requests
 
-All merge during the cutover, in this order:
-
 | PR | Change |
 |---|---|
-| #2741 | Talos: r630 schematic with ZFS, RAID1 boot array, worker-07 node layer, UniFi reservation, netboot MAC |
+| #2741 | r630 schematic with ZFS, RAID1 boot array, worker-07 node layer, UniFi reservation, netboot MAC |
 | #2742 | `openebs-hostpath-fast` / `-runners`, claims switched, `openebs-hostpath` kept off worker-07 |
+| #2747 | `-fast` / `-runners` pinned to worker-07 |
+| #2748 | WWID boot selector, reservation import ID, `local_dns_record` |
 | #2743 | Garage in the cluster, monitoring repointed |
+| #2759 | Monthly ZFS scrub |
+| #2760 | Proxmox and Garage-LXC leftovers removed |
+| #2762 | `terraform-state` IAM role scoped to `unifi.tfstate` |
 
-## Decisions
+## What was done
 
-1. **`extra` gets its own class.** `openebs-hostpath` enforces XFS project quotas and is shared with
-   every node, so it cannot provision on a ZFS dataset. worker-07 gets `openebs-hostpath-fast`
-   (basePath `/var/mnt/extra/openebs/local`, no `XFSQuota`); a ZFS `quota` on `fast/extra` caps the
-   total. Its 8 PVCs move to the new class at cutover: `storageClassName` is immutable, so each gets
-   a new claim, and the StatefulSets using `volumeClaimTemplates` (Prometheus, Victoria Metrics,
-   Victoria Logs, Tempo) are deleted with `--cascade=orphan` and recreated by ArgoCD.
-   `openebs-hostpath` must then stop provisioning on worker-07 (`allowedTopologies` or a taint for
-   non-pinned workloads; to be settled in the PR).
-2. **Metrics and logs history is kept**: the full 167G of `extra` is copied to worker-ai-01 and
-   restored into the new claims.
+1. **Backups.** Immich (670 GB) and Garage (metadata + blocks, from `@pre-talos-migration`
+   snapshots) copied to PVCs on worker-ai-01's NVMe, then to the NAS (USB drive and `/volume1`);
+   file counts and sizes verified. worker-07's `extra` volume copied to worker-ai-01 too.
+2. **Pre-copy.** Live, from a zvol snapshot clone mounted read-only (`nouuid,norecovery`) on the
+   host: the Immich zvol into a new `garage/media` dataset.
+3. **PXE path.** Via the iDRAC's Redfish API: UEFI PXE rebound from integrated port 1 (no link) to
+   port 3 (nic1), then a one-time `Pxe` boot override.
+4. **Drain.** `debian-test` could not live-migrate (no other node has the same CPU model), so it was
+   cold-restarted elsewhere. Final syncs of `extra` (after its consumers stopped) and `media`
+   (after VM 200 shut down); Garage stopped and its metadata copied to the `garage` pool with
+   `zfs send | recv`.
+5. **Pool prep on Proxmox.** Garage's dataset renamed and its blocks moved into `blocks/`,
+   ownership changed from the LXC's shifted uid to `1000`, mountpoints set under `/var/mnt`, the
+   pool root set `canmount=off`, pool exported.
+6. **Install.** PXE into maintenance mode, `talosctl wipe disk` on the two boot SSDs, `topf apply`:
+   Talos built the RAID1 array and installed onto it.
+7. **Pools.** `rpool` exported and its labels cleared, `fast` created, Garage metadata restored and
+   checksum-verified, `garage` renamed to `hdd`.
+8. **Claims.** ArgoCD's application controller and the Prometheus resource paused; the seven
+   `extra` claims deleted (StatefulSets orphaned); #2742 merged; each new claim bound by a restore
+   pod that tolerated the cordon and pulled its data from worker-ai-01; uncordoned.
+9. **Garage.** #2743 merged. Same node ID (`0605350f4af4330e`), buckets intact, 0 block errors.
+   The stale Cloudflare `s3.wibrow.dev` A record (from the LXC's DDNS role) was deleted so
+   external-dns could publish the name. kopiur and CNPG backups resumed.
+10. **Cleanup.** Old Immich zvol and rollback snapshots destroyed (`hdd` 79% → 40%); Proxmox and
+    LXC config removed; Garage admin/metrics tokens rotated and split.
 
-## Phases
+## What differed from the plan
 
-### 0. Preparation (no downtime)
+- **No disk serials.** Behind the PERC in HBA mode Talos reports no serial for any disk, so a
+  `disk.serial` selector matches nothing. Selectors use `disk.wwid`.
+- **Schematics must be submitted.** topf computes schematic IDs locally; the Image Factory only
+  serves one it has seen. The installer image 404'd until the schematic was POSTed to
+  `https://factory.talos.dev/schematics`.
+- **Kubelet serving cert denied.** kubelet-csr-approver resolves the node name. The PXE lease on
+  nic1 had registered `worker-07` against a `192.168.0.x` address in UniFi, so every CSR was denied.
+  Fixed with an explicit `local_dns_record` on the reservation.
+- **UniFi destroys are not forgets.** The reservation resource uses `skip_forget_on_destroy`, so the
+  old worker-07 client kept its fixed IP and blocked the new one (`DuplicateFixedIP`). The stale
+  clients had to be forgotten through the API.
+- **Pools imported everywhere.** `zpool import -fal` also imported the leftover `rpool`, mounting
+  Proxmox's root dataset over `/` inside the extension's namespace. And the Multus daemon's
+  `/hostroot` bind pins every mount under `/var/mnt`, so exporting any pool needs that node's Multus
+  pod restarted first.
+- **`openebs-hostpath-fast` initially had no topology.** herdr's claim, whose pod is not itself
+  pinned, was provisioned on worker-02 until #2747 pinned both classes to worker-07.
+- **ArgoCD syncs on every commit.** `selfHeal: false` does not stop an automated sync when `main`
+  moves, which re-applied scaled-down workloads mid-cutover. Pausing the application controller was
+  the reliable way.
+- **CI runs on worker-07.** The self-hosted runners are pinned there, so Terraform and topf were
+  applied locally while it was down.
 
-- [x] Immich library backed up: worker-ai-01 `media/immich-library-backup`, NAS USB drive.
-- [x] Garage metadata + objects backed up from `@pre-talos-migration` snapshots: worker-ai-01
-      `media/garage-backup`, NAS `/volume1/backups/garage-20260928`.
-- [ ] Verify both NAS copies (file count + size against worker-ai-01).
-- [ ] Back up `ai/home-claude-code` and `dev/herdr-data` (no kopiur policy today): covered by the
-      `extra` pre-copy. `home-claude-code` is not in git and has no consumer.
-- [x] New schematic `talos/pitower/extensions/r630.yaml`: `siderolabs/zfs`, `siderolabs/intel-ucode`,
-      `siderolabs/util-linux-tools` (#2741).
-- [x] Rewrite `talos/pitower/node/worker-07/`: RAID1 boot array over `V6X00TXA` + `71V0TXVX`, no
-      `extra`/`media` UserVolumeConfigs, `raid1` and `zfs` (`zfs_arc_max` 64 GiB) modules (#2741).
-- [ ] `topf.yaml`: worker-07 `mac: 3c:fd:fe:18:73:62`, `untagged: true` (nic6, VLAN 20 native),
-      schematic `@extensions/r630.yaml`.
-- [ ] `terraform/unifi/reservations.tf`: worker-07 reservation to the nic6 MAC; drop `proxmox-01`
-      and `garage-01`.
-- [ ] Netboot menu: map `nic1` (`f8:bc:12:1d:46:30`) to worker-07. PXE only brings up maintenance
-      mode; `topf apply` installs the r630 schematic.
-- [x] Garage app at `kubernetes/apps/pitower/system/garage/` (#2743), namespace `system`.
-- [ ] Infisical: `/system/garage/RPC_SECRET` and `/system/garage/ADMIN_TOKEN` from
-      `ansible/roles/garage/vars/secrets.sops.yaml`.
-- [ ] Bulk pre-copies, done live from zvol snapshots on the Proxmox host (clone, mount read-only
-      with `nouuid`):
-  - `garage/vm-200-disk-0` → new dataset `garage/media` (same pool; ~648G, pool ends ~84% full
-    until the zvol is destroyed).
-  - `rpool/data/vm-200-disk-4` → worker-ai-01 (167G, including metrics history).
-- [ ] PR (merge at cutover): `openebs-hostpath-fast` class; the 8 `extra` claims switched to it.
+## Still open
 
-Merge order matters: the UniFi reservation, topf and storage-class PRs change a running node's
-DHCP lease or claims, so they are prepared ahead and merged during the cutover, not before.
-
-### 1. Cutover (downtime: media stack, monitoring, Garage-backed backups)
-
-1. Suspend kopiur `SnapshotSchedule`s and CNPG `ScheduledBackup`s. WAL archiving queues on the
-   Postgres PVCs (all on worker-05/06) until Garage is back.
-2. Cordon and drain worker-07; scale down its pinned workloads (media stack, monitoring TSDBs).
-3. Stop Garage; final incremental rsync of the metadata snapshot to worker-ai-01.
-4. Shut down VM 200; final incremental of `media` (zvol → `garage/media`) and `extra`.
-5. On the host: `zfs rename garage/subvol-210-disk-0 garage/garage-data`, set mountpoints to the
-   `/var/mnt/...` paths above, clear any `sharenfs`/`sharesmb`, `zpool export garage`.
-6. Reboot into PXE (untagged LAN via nic1) → Talos maintenance mode.
-7. In maintenance mode, confirm `talosctl get disks --insecure` reports the serials the RAID
-   selector uses. Then `mise exec -- topf apply` for worker-07 (dry-run first): Talos builds the
-   RAID1 boot array and installs onto it, wiping the Proxmox root on those two disks.
-8. From a privileged pod: `zpool labelclear` the four remaining old `rpool` members, create `fast`
-   as two cross-model mirrors
-   (`-o ashift=12 -O compression=zstd -O atime=off -O xattr=sa -O acltype=posixacl`), create
-   `fast/extra`, `fast/runners` (quota 360G) and `fast/garage-meta`. Confirm `garage` was imported
-   at boot. In `garage/garage-data`, move the block directories and `garage-marker` into `blocks/`.
-9. Merge the storage-class PR; delete the old `extra` claims (StatefulSets `--cascade=orphan`), let
-   ArgoCD create the new ones, then restore their data from worker-ai-01 into the new PV paths.
-   Restore Garage metadata the same way; fix ownership (the LXC was unprivileged,
-   so Garage files are owned by uid 100000+).
-10. Uncordon; merge the Garage app PR; point DNS for `s3.wibrow.dev` at the gateway.
-11. Verify: `garage status` (same node ID), `garage bucket list`, a kopiur snapshot and a CNPG
-    backup succeed, WAL archive catches up, Immich shows the library, pinned pods Running, BGP
-    session for 10.20.10.7 established.
-12. Resume schedules.
-
-### 2. Cleanup
-
-- `terraform/proxmox`: `removed` blocks for VM 200, CT 210 and the downloads (the API is gone),
-  then delete the stack, `.github/workflows/terraform-proxmox.yaml`, and `PROXMOX_VE_*` in `mise.toml`.
-- Ansible: drop the `proxmox`, `garage`, `garage-tls` hosts/roles and `cloudflare-ddns` for
-  `s3.wibrow.dev`.
-- Monitoring: Garage `ScrapeConfig` and blackbox probes to the in-cluster service.
-- `extensions/proxmox.yaml` if nothing else uses it; stale Terraform comments about sizes.
-- `AGENTS.md`: Volsync → kopiur; Garage runs in-cluster.
-- Destroy `@pre-talos-migration` snapshots and the worker-ai-01 backup PVCs once the new setup has
-  a week of good backups.
-
-## Rollback
-
-Until step 7 nothing on proxmox-01 is destroyed: power it back on, boot Proxmox, start VM 200 and
-CT 210, and resume schedules. After step 7, `garage` still holds the Immich library and Garage
-objects; the metadata and `extra` restore from worker-ai-01 and the NAS copies.
-
-## Risks
-
-- Garage is the only backup target for kopiur and CNPG. During the window there are no new backups,
-  and a failed metadata restore makes the existing ones unreadable, hence the two off-host copies.
-- `garage` is 4 drives with ~8.9 years of power-on time and one grown defect; raidz1 survives one
-  failure. The migration adds a full read of `media` plus a write of the same size.
-- The ZFS module follows the Talos kernel: every upgrade must use the r630 schematic.
-- ARC is invisible to kubelet memory accounting; `zfs_arc_max` keeps it bounded.
-- Pool scrubs and SMART alerts were Proxmox/ZED's job; replace with a scrub CronJob and alerts.
+- The NVMe drives for the PCIe card (slot 1 or 2): either as a separate pool, or as the boot mirror
+  so the two boot SSDs can join `fast` as a third mirror.
+- SMART monitoring and pool-health alerts (the scrub Job only covers integrity).
+- The backup PVCs on worker-ai-01 and the NAS copies, once the new setup has a track record.
