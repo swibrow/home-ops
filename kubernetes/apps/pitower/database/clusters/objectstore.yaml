@@ -16,9 +16,8 @@ spec:
   retentionPolicy: 30d
   configuration:
     destinationPath: s3://cnpg/
-    # Self-hosted Garage on garage-01 (LXC, VLAN 20). Bucket `cnpg` and the
-    # `cnpg` key that owns it are declared in ansible/roles/garage/defaults —
-    # the key is scoped to this bucket and cannot create others.
+    # Self-hosted Garage (system/garage, on worker-07). The `cnpg` key only
+    # owns the `cnpg` bucket and cannot create others.
     endpointURL: https://s3.wibrow.dev
     s3Credentials:
       accessKeyId:

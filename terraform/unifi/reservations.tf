@@ -40,8 +40,8 @@ locals {
     worker-ai-01 = { mac = "b0:82:e2:a2:df:33", fixed_ip = "10.20.10.11", network_id = unifi_network.servers.id, note = "Talos GPU worker, bare metal, VLAN 20 on the onboard NIC" }
 
     # Pinned at its existing dynamic address: nut-exporter and the blackbox
-    # probes use the IP, not the name. Also the corosync QDevice for the PVE cluster.
-    nut = { mac = "b8:27:eb:52:78:a3", fixed_ip = "10.20.85.197", network_id = unifi_network.servers.id, note = "NUT server + PVE QDevice" }
+    # probes use the IP, not the name.
+    nut = { mac = "b8:27:eb:52:78:a3", fixed_ip = "10.20.85.197", network_id = unifi_network.servers.id, note = "NUT server" }
 
     # HAOS Pi 4. Pinned on the iot VLAN because two things resolve it by name:
     # the Envoy Gateway Backend behind ha.wibrow.dev

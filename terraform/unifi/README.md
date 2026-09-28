@@ -3,8 +3,7 @@
 Manages the UniFi Cloud Gateway (Network app) config via the
 [`filipowm/unifi`](https://registry.terraform.io/providers/filipowm/unifi/latest/docs) provider - a
 maintained fork of the archived `paultyng/terraform-provider-unifi`. It talks to the controller's
-local API, so this stack can only run from something on the LAN, same constraint as
-`terraform/proxmox`.
+local API, so this stack can only run from something on the LAN.
 
 ## Scope
 
@@ -21,15 +20,14 @@ Everything here already existed on the controller and was adopted, not created -
 
 The provider reads `UNIFI_API` (controller base URL, e.g. `https://10.20.0.1`, no `/api` suffix),
 `UNIFI_API_KEY`, and `UNIFI_INSECURE` (`true` if the gateway's cert is self-signed) from the
-environment - same pattern as `terraform/proxmox`'s `PROXMOX_VE_*` vars, deliberately not set in
-`main.tf` so the key never lives in a `.tf`/tfvars file.
+environment, deliberately not set in `main.tf` so the key never lives in a `.tf`/tfvars file.
 
 Generate the key from the controller UI: **Settings → Control Plane → Admins & Users → your admin
 user → Create API Key**. Requires controller version 9.0.108+; use `UNIFI_USERNAME`/`UNIFI_PASSWORD`
 instead on older firmware. Create a dedicated Terraform admin with a **Limited Admin, Local Access
 Only** role rather than reusing your own account.
 
-Add these to `terraform/mise.toml`'s `[env]` block, age-encrypted like `PROXMOX_VE_API_TOKEN`.
+Add these to `terraform/mise.toml`'s `[env]` block, with `UNIFI_API_KEY` age-encrypted.
 They live in the nested config rather than the repo root so only commands run with cwd under
 `terraform/` resolve them - a shimmed command at the root would eagerly decrypt them and fail in
 jobs that have no age identity (52c43e8f):
@@ -103,30 +101,12 @@ no-op.
 
 ```hcl
 reservations = {
-  proxmox-01 = {
-    mac      = "f8:bc:12:1d:46:30" # from ansible/README.md's proxmox-01 runbook
+  my-host = {
+    mac      = "aa:bb:cc:dd:ee:ff" # from the UniFi client list (Insights -> Client Devices)
     fixed_ip = "10.20.0.X"         # pick a free VLAN-20 address
   }
 }
 ```
-
-For `garage-01`, pull the MAC from the `terraform/proxmox` state instead of copying it by hand:
-
-```hcl
-data "terraform_remote_state" "proxmox" {
-  backend = "s3"
-  config = {
-    bucket = "swibrow-pitower-tf-state"
-    key    = "proxmox.tfstate"
-    region = "eu-central-2"
-  }
-}
-
-# reservations.garage-01.mac = data.terraform_remote_state.proxmox.outputs.garage_mac_address
-```
-
-`nut-01`'s MAC isn't recorded anywhere in this repo yet - pull it from the UniFi client list
-(`Insights → Client Devices`) before adding it here.
 
 ## Usage
 
@@ -139,5 +119,6 @@ AWS_PROFILE=wibrow-tf just tf::apply-unifi
 ## CI
 
 `.github/workflows/terraform-unifi.yaml` plans on PRs touching `terraform/unifi/**` and applies on
-merge to `main` - same shape as `terraform-proxmox.yaml`, on the self-hosted `home-ops` runner,
-since a GitHub-hosted runner cannot reach the gateway's LAN-only API.
+merge to `main`, on the self-hosted `home-ops` runner, since a GitHub-hosted runner cannot reach
+the gateway's LAN-only API. Those runners live on worker-07, so while it is down, plan and apply
+locally instead.

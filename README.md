@@ -61,7 +61,7 @@ This repository is the single source of truth for my Kubernetes home lab. Everyt
 | worker-04 | Worker | 10.20.10.4 | Intel (iGPU, `dedicated=media-home` taint) |
 | worker-05 | Worker | 10.20.10.5 | Intel |
 | worker-06 | Worker | 10.20.10.6 | Intel |
-| worker-07 | Worker | 10.20.10.7 | Proxmox VM |
+| worker-07 | Worker | 10.20.10.7 | Dell R630, bare metal (ZFS: `fast` SSD, `hdd` raidz1) |
 | worker-08 | Worker | 10.20.10.8 | Raspberry Pi (arm64) |
 | worker-09 | Worker | 10.20.10.9 | Raspberry Pi (arm64) |
 | worker-10 | Worker | 10.20.10.10 | Raspberry Pi (arm64) |

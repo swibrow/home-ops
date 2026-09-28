@@ -41,39 +41,6 @@ deploy-ovh-vps:
 facts-ovh-vps:
     ansible ovh_vps -m setup
 
-# Ping the garage host over SSH
-ping-garage:
-    ansible garage -m ping
-
-# Dry-run the garage playbook (install + config + layout/bucket/key) and show a diff
-check-garage:
-    ansible-playbook playbooks/garage.yaml --check --diff
-
-# Apply the garage playbook (install + config + layout/bucket/key)
-deploy-garage:
-    ansible-playbook playbooks/garage.yaml
-
-# List garage buckets and keys
-garage-info:
-    ansible garage -b -a 'garage bucket list'
-    ansible garage -b -a 'garage key list'
-
-# Print a garage S3 key's ID + secret (default: kopiur). Usage: just ansible::garage-key [name]
-garage-key name='kopiur':
-    ansible garage -b -a 'garage key info --show-secret {{ name }}'
-
-# Dry-run the garage endpoint playbook (Cloudflare DDNS + Caddy/Let's Encrypt) and show a diff
-check-garage-tls:
-    ansible-playbook playbooks/garage-tls.yaml --check --diff
-
-# Apply the garage endpoint playbook (Cloudflare DDNS + Caddy/Let's Encrypt DNS-01)
-deploy-garage-tls:
-    ansible-playbook playbooks/garage-tls.yaml
-
-# Gather and print facts for the garage host
-facts-garage:
-    ansible garage -m setup
-
 # Ping the homeassistant HAOS host over developer SSH (raw - HAOS has no python)
 ping-homeassistant:
     ansible haos -m raw -a 'uname -a'
@@ -92,25 +59,3 @@ deploy-homeassistant:
 # `just ansible::apply-network-homeassistant 192.168.0.155`.)
 apply-network-homeassistant host='':
     ansible-playbook playbooks/homeassistant-network.yaml {{ if host == '' { '' } else { '-e ansible_host=' + host } }}
-
-# Ping the Proxmox hosts over SSH. Usage: just ansible::ping-proxmox [host]
-ping-proxmox limit='proxmox':
-    ansible {{ limit }} -m ping
-
-# Dry-run the proxmox playbook (repos + zfs + fail2ban) and show a diff
-check-proxmox limit='proxmox':
-    ansible-playbook playbooks/proxmox.yaml --limit {{ limit }} --check --diff
-
-# Apply the proxmox playbook (repos + zfs + fail2ban)
-deploy-proxmox limit='proxmox':
-    ansible-playbook playbooks/proxmox.yaml --limit {{ limit }}
-
-# Gather and print facts for the Proxmox hosts
-facts-proxmox limit='proxmox':
-    ansible {{ limit }} -m setup
-
-# Move one Proxmox host's networking onto VLAN20 (no automatic rollback - fix
-# via iDRAC if it breaks. A
-# "connection lost" result on apply is expected.)
-apply-network-proxmox host:
-    ansible-playbook playbooks/proxmox-network.yaml --limit {{ host }}

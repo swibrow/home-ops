@@ -44,7 +44,7 @@ jobs:
       # yamllint / end-of-file-fixer / trailing-whitespace / terraform fmt /
       # terraform_tflint. terraform_validate is excluded (SKIP) — it needs
       # `terraform init` per stack, which is what
-      # terraform-plan.yaml/terraform-proxmox.yaml already do against just
+      # terraform-plan.yaml/terraform-unifi.yaml already do against just
       # the changed stack.
       - uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
         env:

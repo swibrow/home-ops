@@ -267,15 +267,6 @@ spec:
             exposure: none
             scope: cluster
 
-        # --- host ----------------------------------------------------------
-        - record: infra:component:up
-          expr: min(pve_up{id=~"node/.+"}) or on () vector(0)
-          labels:
-            tier: host
-            component: proxmox-ve
-            exposure: none
-            scope: lan
-
     # Evidence-missing, as distinct from evidence-of-failure. Alerts route on
     # this so "the exporter died" never pages as "the estate died".
     - name: infra.health.staleness

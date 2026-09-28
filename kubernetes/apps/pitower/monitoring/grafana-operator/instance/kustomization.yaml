@@ -29,7 +29,6 @@ configMapGenerator:
     files:
       - dashboards/worker-01-fabric-watch.json
       - dashboards/spegel.json
-      - dashboards/proxmox.json
       - dashboards/towonel.json
     options:
       disableNameSuffixHash: true
