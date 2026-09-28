@@ -37,13 +37,11 @@ minRunners: 0
 # so they are born and die with the pod but stay off the system disk. Re-diff
 # against the chart helpers on chart upgrades.
 #
-# These used to come from openebs-hostpath-runners, a separate disk kept apart
-# from the monitoring TSDBs so a runner burst could not fill the disk under
-# them. Both now share worker-07's `extra` volume: that separation stopped
-# meaning anything once both disks became zvols on the same rpool, and the
-# guarantee comes from XFS project quotas instead - openebs-hostpath enforces
-# each PVC's requested size as a hard limit, so a runaway job fills its own
-# 20Gi/40Gi claim and nothing else.
+# They come from openebs-hostpath-runners, worker-07's `fast/runners` ZFS
+# dataset, kept apart from the monitoring TSDBs on `fast/extra` so a runner
+# burst cannot fill the disk under them. Hostpath volumes on ZFS have no
+# per-PVC limit, so the 20Gi/40Gi requests are sizing hints; the dataset quota
+# is what bounds all runners together.
 template:
   spec:
     automountServiceAccountToken: true
@@ -119,7 +117,7 @@ template:
           volumeClaimTemplate:
             spec:
               accessModes: ["ReadWriteOnce"]
-              storageClassName: openebs-hostpath
+              storageClassName: openebs-hostpath-runners
               resources:
                 requests:
                   storage: 20Gi
@@ -128,7 +126,7 @@ template:
           volumeClaimTemplate:
             spec:
               accessModes: ["ReadWriteOnce"]
-              storageClassName: openebs-hostpath
+              storageClassName: openebs-hostpath-runners
               resources:
                 requests:
                   storage: 40Gi

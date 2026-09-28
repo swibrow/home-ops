@@ -18,14 +18,31 @@ localpv-provisioner:
     # /var/mnt/extra, so the guarantee has to come from the filesystem instead.
     #
     # With no grace, the usage limit is exactly the PVC's requested storage.
-    # Requires the backing mount to carry 'prjquota' - verified on all ten
-    # nodes: EPHEMERAL sets projectQuotaSupport by default, and worker-07's
-    # dedicated `extra` volume sets it explicitly.
+    # Requires the backing mount to carry 'prjquota', which EPHEMERAL sets by
+    # default on every node below.
     #
     # Applies at provision time only; PVCs created before this stay unlimited
     # until recreated.
     xfsQuota:
       enabled: true
+    # Every node except worker-07, whose /var/mnt/extra is a ZFS dataset where
+    # the XFS quota setup fails; its volumes use openebs-hostpath-fast and
+    # openebs-hostpath-runners. allowedTopologies only matches (no NotIn), so
+    # a new node has to be added here to get openebs-hostpath volumes.
+    allowedTopologies:
+      - matchLabelExpressions:
+          - key: kubernetes.io/hostname
+            values:
+              - worker-01
+              - worker-02
+              - worker-03
+              - worker-04
+              - worker-05
+              - worker-06
+              - worker-08
+              - worker-09
+              - worker-10
+              - worker-ai-01
 
 openebs-crds:
   csi:

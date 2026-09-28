@@ -164,7 +164,7 @@ persistence:
   model-cache:
     accessMode: ReadWriteOnce
     size: 10Gi
-    storageClass: openebs-hostpath
+    storageClass: openebs-hostpath-fast
     advancedMounts:
       machine-learning:
         app:
