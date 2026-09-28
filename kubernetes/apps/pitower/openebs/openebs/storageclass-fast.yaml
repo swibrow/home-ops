@@ -25,3 +25,11 @@ metadata:
 provisioner: openebs.io/local
 reclaimPolicy: Delete
 volumeBindingMode: WaitForFirstConsumer
+# The backing dataset only exists on worker-07. Without this, a claim whose
+# consumer is not itself pinned there gets provisioned on whatever node the
+# pod lands on.
+allowedTopologies:
+  - matchLabelExpressions:
+      - key: kubernetes.io/hostname
+        values:
+          - worker-07
