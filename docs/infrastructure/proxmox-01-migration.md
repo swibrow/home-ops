@@ -38,10 +38,11 @@ ZFS datasets, all mounted under `/var/mnt` (Talos only allows `/var`):
 
 | Dataset | Mountpoint | Consumer |
 |---|---|---|
-| `fast/extra` | `/var/mnt/extra` | `openebs-hostpath-fast` basePath (decision 1) |
-| `fast/garage-meta` | `/var/mnt/garage/meta` | Garage LMDB |
+| `fast/extra` | `/var/mnt/extra` | `openebs-hostpath-fast` (decision 1) |
+| `fast/runners` | `/var/mnt/runners` | `openebs-hostpath-runners`: amd64 CI runners, own quota so a burst stays off the TSDBs |
+| `fast/garage-meta` | `/var/mnt/garage/meta` | Garage LMDB, in `meta/` |
 | `garage/media` | `/var/mnt/media` | `openebs-hostpath-media` (no XFS quota, works as-is) |
-| `garage/garage-data` | `/var/mnt/garage/data` | Garage blocks (renamed from `subvol-210-disk-0`) |
+| `garage/garage-data` | `/var/mnt/garage/data` | Garage blocks, in `blocks/` (renamed from `subvol-210-disk-0`) |
 
 Existing PVs are `spec.local` with absolute paths pinned to `worker-07`. Restoring
 `/var/mnt/media/openebs/local/pvc-*` to the same path means the Immich library claim needs no
@@ -52,7 +53,19 @@ rather than writing under the mountpoint.
 Garage moves from the LXC into the cluster: a single-replica StatefulSet pinned to `worker-07`,
 hostPath-mounting the two datasets, fronted by an `envoy-internal` HTTPRoute for `s3.wibrow.dev`
 (cert-manager instead of certbot on the LXC; external-dns instead of the `cloudflare-ddns` role).
-The node key lives in the metadata directory, so the restored node keeps its ID and layout.
+The node key lives in the metadata directory, so the restored node keeps its ID and layout. Garage
+mounts subdirectories of the datasets, not their roots, so an unmounted dataset makes the pod wait
+instead of letting Garage initialise an empty node in a bare mountpoint.
+
+## Pull requests
+
+All merge during the cutover, in this order:
+
+| PR | Change |
+|---|---|
+| #2741 | Talos: r630 schematic with ZFS, worker-07 node layer, UniFi reservation, netboot MAC |
+| #2742 | `openebs-hostpath-fast` / `-runners`, claims switched, `openebs-hostpath` kept off worker-07 |
+| #2743 | Garage in the cluster, monitoring repointed |
 
 ## Decisions
 
@@ -75,7 +88,8 @@ The node key lives in the metadata directory, so the restored node keeps its ID 
 - [x] Garage metadata + objects backed up from `@pre-talos-migration` snapshots: worker-ai-01
       `media/garage-backup`, NAS `/volume1/backups/garage-20260928`.
 - [ ] Verify both NAS copies (file count + size against worker-ai-01).
-- [ ] Back up `ai/home-claude-code` and `dev/herdr-data` (no kopiur policy today).
+- [ ] Back up `ai/home-claude-code` and `dev/herdr-data` (no kopiur policy today): covered by the
+      `extra` pre-copy. `home-claude-code` is not in git and has no consumer.
 - [ ] New schematic `talos/pitower/extensions/r630.yaml`: `siderolabs/zfs`, `siderolabs/intel-ucode`,
       `siderolabs/util-linux-tools`.
 - [ ] Rewrite `talos/pitower/node/worker-07/`: install disk by serial (`V6X00TXA`), no `extra`/`media`
@@ -113,7 +127,8 @@ DHCP lease or claims, so they are prepared ahead and merged during the cutover, 
    Proxmox root and `rpool` members on that disk.
 8. From a privileged pod: `zpool labelclear` the old `rpool` members, create `fast`
    (`-o ashift=12 -O compression=zstd -O atime=off -O xattr=sa -O acltype=posixacl`), create
-   `fast/extra` and `fast/garage-meta`. Confirm `garage` was imported at boot.
+   `fast/extra`, `fast/runners` (quota 360G) and `fast/garage-meta`. Confirm `garage` was imported
+   at boot. In `garage/garage-data`, move the block directories and `garage-marker` into `blocks/`.
 9. Merge the storage-class PR; delete the old `extra` claims (StatefulSets `--cascade=orphan`), let
    ArgoCD create the new ones, then restore their data from worker-ai-01 into the new PV paths.
    Restore Garage metadata the same way; fix ownership (the LXC was unprivileged,
