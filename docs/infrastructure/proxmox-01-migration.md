@@ -30,9 +30,16 @@ What lives where today:
 
 | Disk(s) | Use |
 |---|---|
-| `sda` | Talos system disk (EPHEMERAL: images, logs, emptyDirs). Not redundant; rebuildable. |
-| `sdb`-`sdf` | New pool `fast`: 2 mirrors + 1 hot spare (~1.45 TiB). Replaces `extra` and holds Garage metadata. |
+| 2 SSDs (`V6X00TXA`, `71V0TXVX`) | Talos system disk: md RAID1 via `RAIDArrayConfig` (EPHEMERAL: images, logs, emptyDirs) |
+| 4 SSDs | New pool `fast`: 2 mirrors (~1.45 TiB). Replaces `extra` and holds Garage metadata. |
 | `sdg`-`sdj` | Existing `garage` raidz1, imported by the ZFS extension. Immich library + Garage objects. |
+
+Each mirror, the boot array included, pairs one WUSTR6480 with one HUSMM3280, so a batch fault
+cannot take out both sides. Talos 1.14 cannot replace a failed RAID member in place: a dead boot
+disk means `talosctl wipe md` and a reinstall, which leaves the ZFS pools untouched.
+
+Later: two NVMe drives on the PCIe card in slot 1 or 2, for storage. A dual-M.2 card needs either
+x4x4 bifurcation (not yet confirmed on the R630) or its own PCIe switch.
 
 ZFS datasets, all mounted under `/var/mnt` (Talos only allows `/var`):
 
@@ -63,7 +70,7 @@ All merge during the cutover, in this order:
 
 | PR | Change |
 |---|---|
-| #2741 | Talos: r630 schematic with ZFS, worker-07 node layer, UniFi reservation, netboot MAC |
+| #2741 | Talos: r630 schematic with ZFS, RAID1 boot array, worker-07 node layer, UniFi reservation, netboot MAC |
 | #2742 | `openebs-hostpath-fast` / `-runners`, claims switched, `openebs-hostpath` kept off worker-07 |
 | #2743 | Garage in the cluster, monitoring repointed |
 
@@ -90,10 +97,10 @@ All merge during the cutover, in this order:
 - [ ] Verify both NAS copies (file count + size against worker-ai-01).
 - [ ] Back up `ai/home-claude-code` and `dev/herdr-data` (no kopiur policy today): covered by the
       `extra` pre-copy. `home-claude-code` is not in git and has no consumer.
-- [ ] New schematic `talos/pitower/extensions/r630.yaml`: `siderolabs/zfs`, `siderolabs/intel-ucode`,
-      `siderolabs/util-linux-tools`.
-- [ ] Rewrite `talos/pitower/node/worker-07/`: install disk by serial (`V6X00TXA`), no `extra`/`media`
-      UserVolumeConfigs, `KernelModuleConfig` `zfs` with `zfs_arc_max` (proposal: 64 GiB).
+- [x] New schematic `talos/pitower/extensions/r630.yaml`: `siderolabs/zfs`, `siderolabs/intel-ucode`,
+      `siderolabs/util-linux-tools` (#2741).
+- [x] Rewrite `talos/pitower/node/worker-07/`: RAID1 boot array over `V6X00TXA` + `71V0TXVX`, no
+      `extra`/`media` UserVolumeConfigs, `raid1` and `zfs` (`zfs_arc_max` 64 GiB) modules (#2741).
 - [ ] `topf.yaml`: worker-07 `mac: 3c:fd:fe:18:73:62`, `untagged: true` (nic6, VLAN 20 native),
       schematic `@extensions/r630.yaml`.
 - [ ] `terraform/unifi/reservations.tf`: worker-07 reservation to the nic6 MAC; drop `proxmox-01`
@@ -123,9 +130,11 @@ DHCP lease or claims, so they are prepared ahead and merged during the cutover, 
 5. On the host: `zfs rename garage/subvol-210-disk-0 garage/garage-data`, set mountpoints to the
    `/var/mnt/...` paths above, clear any `sharenfs`/`sharesmb`, `zpool export garage`.
 6. Reboot into PXE (untagged LAN via nic1) → Talos maintenance mode.
-7. `mise exec -- topf apply` for worker-07 (dry-run first). Talos installs to `sda`, wiping the
-   Proxmox root and `rpool` members on that disk.
-8. From a privileged pod: `zpool labelclear` the old `rpool` members, create `fast`
+7. In maintenance mode, confirm `talosctl get disks --insecure` reports the serials the RAID
+   selector uses. Then `mise exec -- topf apply` for worker-07 (dry-run first): Talos builds the
+   RAID1 boot array and installs onto it, wiping the Proxmox root on those two disks.
+8. From a privileged pod: `zpool labelclear` the four remaining old `rpool` members, create `fast`
+   as two cross-model mirrors
    (`-o ashift=12 -O compression=zstd -O atime=off -O xattr=sa -O acltype=posixacl`), create
    `fast/extra`, `fast/runners` (quota 360G) and `fast/garage-meta`. Confirm `garage` was imported
    at boot. In `garage/garage-data`, move the block directories and `garage-marker` into `blocks/`.
