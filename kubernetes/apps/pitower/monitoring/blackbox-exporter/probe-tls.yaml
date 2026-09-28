@@ -2,11 +2,10 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/monitoring.coreos.com/probe_v1.json
 # Certificate expiry for TLS endpoints cert-manager cannot see.
 #
-# s3.wibrow.dev is the important one. Its certificate is issued by certbot on
-# garage-01 (ansible role garage-tls) via LE DNS-01, so it appears in no
-# Certificate resource and no cert-manager dashboard. Both backup tiers - every
-# kopiur snapshot and all CNPG WAL archiving - fail the moment it lapses, and
-# nothing was watching it.
+# s3.wibrow.dev is the important one: both backup tiers - every kopiur snapshot
+# and all CNPG WAL archiving - fail the moment its certificate lapses. It is
+# served by envoy-internal now, so cert-manager renews it; the probe stays as
+# the end-to-end check on what clients actually see.
 apiVersion: monitoring.coreos.com/v1
 kind: Probe
 metadata:
