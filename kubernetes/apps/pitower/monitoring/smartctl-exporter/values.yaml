@@ -1,0 +1,17 @@
+# SMART data for every amd64 node's disks, including worker-07's SAS SSDs and
+# HDDs (visible to smartctl directly: the PERC runs in HBA mode). The Pis boot
+# from SD cards, which have no SMART.
+nodeSelector:
+  kubernetes.io/arch: amd64
+tolerations:
+  - operator: Exists
+serviceMonitor:
+  enabled: true
+prometheusRules:
+  enabled: true
+resources:
+  requests:
+    cpu: 10m
+    memory: 32Mi
+  limits:
+    memory: 128Mi

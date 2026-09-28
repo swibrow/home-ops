@@ -1,0 +1,62 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/monitoring.coreos.com/prometheusrule_v1.json
+# What Proxmox's ZED and smartd used to email about, for worker-07's pools and
+# the SAS disks the chart's NVMe/ATA-oriented default rules do not cover.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: disk-health
+spec:
+  groups:
+    - name: disk-health.rules
+      rules:
+        # node-exporter's zfs collector. A pool leaving ONLINE means a lost or
+        # faulted vdev member: `hdd` is raidz1 and `fast` two mirrors, so the
+        # next failure in the same vdev loses the pool.
+        - alert: ZfsPoolNotOnline
+          annotations:
+            summary: >-
+              ZFS pool {{ $labels.zpool }} on {{ $labels.instance }} is not
+              ONLINE; check `zpool status` on the node.
+          expr: |
+            node_zfs_zpool_state{state="online"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            notify: ntfy
+
+        - alert: ZfsDatasetAlmostFull
+          annotations:
+            summary: >-
+              {{ $labels.mountpoint }} ({{ $labels.device }}) on
+              {{ $labels.instance }} is over 85% full.
+          expr: |
+            (1 - node_filesystem_avail_bytes{fstype="zfs"} / node_filesystem_size_bytes{fstype="zfs"}) > 0.85
+          for: 30m
+          labels:
+            severity: warning
+
+        # SAS drives report wear as a grown defect list, not ATA attributes.
+        # One hdd member already carries defects, so alert on growth, not on
+        # the absolute count.
+        - alert: DiskGrownDefectsIncreasing
+          annotations:
+            summary: >-
+              {{ $labels.device }} on {{ $labels.instance }} added
+              {{ $value }} grown defects in the last day.
+          expr: |
+            increase(smartctl_scsi_grown_defect_list[1d]) > 0
+          labels:
+            severity: warning
+
+        - alert: DiskUncorrectedErrors
+          annotations:
+            summary: >-
+              {{ $labels.device }} on {{ $labels.instance }} logged
+              uncorrected read or write errors in the last day.
+          expr: |
+            increase(smartctl_read_total_uncorrected_errors[1d]) > 0
+              or increase(smartctl_write_total_uncorrected_errors[1d]) > 0
+          labels:
+            severity: critical
+            notify: ntfy
