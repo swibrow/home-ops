@@ -16,7 +16,7 @@ controllers:
       app:
         image:
           repository: dxflrs/garage
-          tag: v2.3.0
+          tag: v2.4.1
         envFrom:
           - secretRef:
               name: garage-secret
