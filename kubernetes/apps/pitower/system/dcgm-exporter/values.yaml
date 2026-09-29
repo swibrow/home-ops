@@ -17,9 +17,21 @@ tolerations:
 # card and starve inference. Device visibility comes from the nvidia runtime
 # class instead, which only injects when these are set.
 #
-# The bind/unbind watch (DCGM 4.5+, driver 590+) lets the DRA driver move the
-# card to vfio-pci for a KubeVirt VM and back without the exporter's DCGM/NVML
-# handles blocking the rebind; the exporter rebuilds its state afterwards.
+# The bind/unbind watch (DCGM 4.5+, driver 590+) rebuilds the exporter's state
+# after the card comes back from vfio-pci, but it keeps /dev/nvidia0 open while
+# the card is on nvidia, which blocks the DRA driver's rebind. So the GPU switch
+# labels the node gpu.wibrow.dev/mode=vfio first and the DaemonSet controller
+# removes the exporter until the label is cleared.
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: gpu.wibrow.dev/mode
+              operator: NotIn
+              values:
+                - vfio
+
 extraEnv:
   - name: NVIDIA_VISIBLE_DEVICES
     value: all
