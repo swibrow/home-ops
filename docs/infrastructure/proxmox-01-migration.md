@@ -116,4 +116,5 @@ and a `local_dns_record` (`worker-07.servers.internal`) pin `10.20.10.7`. nic1 i
 - The NVMe drives for the PCIe card (slot 1 or 2): either as a separate pool, or as the boot mirror
   so the two boot SSDs can join `fast` as a third mirror.
 - SMART monitoring and pool-health alerts (the scrub Job only covers integrity).
-- The backup PVCs on worker-ai-01 and the NAS copies, once the new setup has a track record.
+- The NAS copies. The backup PVCs on worker-ai-01 were deleted on 2026-09-29; the NAS copies
+  are the only off-node copy of the Immich library until it has an off-node backup of its own.
