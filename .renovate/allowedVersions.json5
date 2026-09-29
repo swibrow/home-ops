@@ -17,6 +17,13 @@
       allowedVersions: "<999",
     },
     {
+      // Stale kgateway-era v2.2.x tags that outrank the current v1.x line.
+      // https://github.com/agentgateway/agentgateway/issues/3457
+      matchDatasources: ["docker"],
+      matchPackageNames: ["cr.agentgateway.dev/charts/**"],
+      allowedVersions: "!/^v?2\\.2\\./",
+    },
+    {
       // Open-WebUI's web loader client pins python playwright exactly and
       // refuses a server of any other version. Bump by hand together with
       // Open-WebUI's requirements.txt pin (apps/pitower/ai/playwright).
