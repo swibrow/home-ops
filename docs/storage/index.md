@@ -14,6 +14,7 @@ flowchart TD
 
     SC -->|ceph-block| RC[(Rook Ceph\n3x 512GB NVMe\nReplicated Block)]
     SC -->|openebs-hostpath| OE[(OpenEBS\nLocal PV\nNode-Local Disk)]
+    SC -->|openebs-hostpath-fast / -media| ZFS[(worker-07 ZFS\nfast: SSD mirrors\nhdd: SAS raidz1)]
     SC -->|nfs| SYN[(Synology NAS\n4-Bay 8TB\nNFS Shares)]
 
     RC -->|CephBlockPool| OSD1[worker-01\nNVMe OSD]
@@ -21,7 +22,7 @@ flowchart TD
     RC -->|CephBlockPool| OSD3[worker-03\nNVMe OSD]
 
     subgraph Backup
-        VS[VolSync] -->|Replicate PVCs| SYN
+        KOP[kopiur] -->|Kopia snapshots| GAR[(Garage S3\non worker-07)]
         SNAP[Snapshot Controller] -->|CSI Snapshots| RC
     end
 ```
@@ -31,7 +32,11 @@ flowchart TD
 | StorageClass | Provider | Replicated | Use Case |
 |:-------------|:---------|:----------:|:---------|
 | `ceph-block` | Rook Ceph | Yes (3x) | General-purpose workloads requiring high availability |
-| `openebs-hostpath` | OpenEBS | No | Databases and workloads needing low-latency local disk |
+| `openebs-hostpath` | OpenEBS | No | Databases and workloads needing low-latency local disk (every node except worker-07) |
+| `openebs-hostpath-fast` | OpenEBS on worker-07 `fast/extra` | ZFS mirrors | Workloads pinned to worker-07 (monitoring TSDBs, media apps) |
+| `openebs-hostpath-runners` | OpenEBS on worker-07 `fast/runners` | ZFS mirrors | amd64 CI runner scratch, quota-bounded together |
+| `openebs-hostpath-media` | OpenEBS on worker-07 `hdd/media` | ZFS raidz1 | Immich photo library (Retain) |
+| `openebs-hostpath-models` | OpenEBS on worker-ai-01 NVMe | No | LLM weights and AI scratch |
 | NFS (manual) | Synology NAS | RAID | Bulk media storage, shared datasets, backup targets |
 
 ## When to Use Each
@@ -50,7 +55,7 @@ flowchart TD
 |:----------|:----------|:--------|
 | [Rook Ceph](rook-ceph.md) | `rook-ceph` | Distributed block storage on NVMe drives |
 | [OpenEBS](openebs.md) | `openebs` | Local PV provisioner for node-local storage |
-| [VolSync](backup-restore.md#volsync) | `system` | PVC backup and replication |
+| [kopiur](backup-restore.md#kopiur) | `kopiur-system` | PVC snapshots (Kopia) to Garage |
 | [Snapshot Controller](backup-restore.md#snapshot-controller) | `system` | CSI volume snapshots |
 | [Garage S3](garage.md) | `system` | S3-compatible object store on worker-07's ZFS pools |
 
@@ -61,4 +66,4 @@ flowchart TD
 | [Rook Ceph](rook-ceph.md) | Distributed Ceph cluster on NVMe -- operator, cluster config, storage classes |
 | [OpenEBS](openebs.md) | Local PV provisioner for node-local volumes |
 | [Garage S3](garage.md) | S3-compatible object store (backup target for kopiur and CNPG) -- setup, usage, and operations |
-| [Backup & Restore](backup-restore.md) | VolSync replication, CSI snapshots, Synology backup targets, restore procedures |
+| [Backup & Restore](backup-restore.md) | kopiur and CNPG backups to Garage, CSI snapshots, restore procedures, what is not backed up |
