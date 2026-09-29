@@ -13,14 +13,20 @@ tolerations:
     value: gpu
     effect: NoSchedule
 
-# The exporter takes no nvidia.com/gpu resource - claiming one would hand it
-# the whole card and starve inference. Device visibility comes from the nvidia
-# runtime class instead, which only injects when these are set.
+# The exporter takes no DRA claim - claiming the GPU would hand it the whole
+# card and starve inference. Device visibility comes from the nvidia runtime
+# class instead, which only injects when these are set.
+#
+# The bind/unbind watch (DCGM 4.5+, driver 590+) lets the DRA driver move the
+# card to vfio-pci for a KubeVirt VM and back without the exporter's DCGM/NVML
+# handles blocking the rebind; the exporter rebuilds its state afterwards.
 extraEnv:
   - name: NVIDIA_VISIBLE_DEVICES
     value: all
   - name: NVIDIA_DRIVER_CAPABILITIES
     value: compute,utility
+  - name: DCGM_EXPORTER_ENABLE_GPU_BIND_UNBIND_WATCH
+    value: "true"
 
 serviceMonitor:
   enabled: true
