@@ -46,3 +46,30 @@ roleRef:
   kind: ClusterRole
   name: view
   apiGroup: rbac.authorization.k8s.io
+---
+# view leaves out DRA (resource.k8s.io) and ArgoCD Applications; read both so the
+# server can answer GPU allocation and sync-state questions.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: toolhive-kubernetes-read
+rules:
+  - apiGroups: ["resource.k8s.io"]
+    resources: ["deviceclasses", "resourceclaims", "resourceclaimtemplates", "resourceslices"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["argoproj.io"]
+    resources: ["applications", "applicationsets", "appprojects"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: toolhive-kubernetes-read
+subjects:
+  - kind: ServiceAccount
+    name: toolhive-kubernetes
+    namespace: ai
+roleRef:
+  kind: ClusterRole
+  name: toolhive-kubernetes-read
+  apiGroup: rbac.authorization.k8s.io
