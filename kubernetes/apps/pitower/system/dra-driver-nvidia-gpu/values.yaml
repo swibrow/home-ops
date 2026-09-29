@@ -6,6 +6,14 @@ nvidiaDriverRoot: /usr/local
 
 gpuResourcesEnabledOverride: true
 
+# v0.5.0 plus a fix from swibrow/dra-driver-nvidia-gpu (fix/vfio-gpu-free-check):
+# before rebinding to vfio-pci the plugin ran `chroot /host-root fuser`, which
+# Talos does not ship, so every vfio claim hung in prepare. The patch scans
+# /proc fds by device number instead. Drop this once upstream releases it.
+image:
+  repository: ghcr.io/swibrow/dra-driver-nvidia-gpu
+  tag: v0.5.0-talos.1
+
 resources:
   gpus:
     enabled: true
