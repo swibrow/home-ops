@@ -1,11 +1,13 @@
 ---
 # Caps the RTX 3090 Ti on ai-01 at 300W (default and max 450W, min 100W).
-# The driver forgets the limit whenever it unloads, and Talos has no boot hook
-# to run nvidia-smi, so this pod re-applies it every time the node comes up -
-# including after the GPU is handed back from a desktop VM.
+# The driver forgets the limit whenever the card leaves it, and Talos has no
+# boot hook to run nvidia-smi, so this pod re-applies it whenever the card is
+# (re)bound to nvidia: at boot, and after the DRA driver hands it back from a
+# KubeVirt VM on vfio-pci. It watches the sysfs driver link rather than polling
+# nvidia-smi, so it holds no handle that would block that rebind.
 #
 # Same GPU access as dcgm-exporter: the nvidia runtime class injects the device
-# and nvidia-smi, with no nvidia.com/gpu claim that would starve inference.
+# and nvidia-smi, with no DRA claim that would starve inference.
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -34,13 +36,22 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             - |
-              set -eu
-              nvidia-smi -pm 1
-              nvidia-smi -pl "$POWER_LIMIT_WATTS"
-              exec sleep infinity
+              set -u
+              applied=""
+              while true; do
+                driver=$(basename "$(readlink "/sys/bus/pci/devices/$GPU_PCI_ADDRESS/driver")")
+                if [ "$driver" = nvidia ] && [ -z "$applied" ]; then
+                  nvidia-smi -pm 1 && nvidia-smi -pl "$POWER_LIMIT_WATTS" && applied=1
+                elif [ "$driver" != nvidia ]; then
+                  applied=""
+                fi
+                sleep 10
+              done
           env:
             - name: POWER_LIMIT_WATTS
               value: "300"
+            - name: GPU_PCI_ADDRESS
+              value: "0000:01:00.0"
             - name: NVIDIA_VISIBLE_DEVICES
               value: all
             - name: NVIDIA_DRIVER_CAPABILITIES
