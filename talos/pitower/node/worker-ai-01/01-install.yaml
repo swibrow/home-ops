@@ -39,6 +39,17 @@ apiVersion: v1alpha1
 kind: KernelModuleConfig
 name: nvidia_modeset
 ---
+# For the DRA driver's PassthroughSupport, which rebinds the GPU from nvidia to
+# vfio-pci when a KubeVirt VM claims it. No ids= binding: the card stays on
+# nvidia until a vfio.gpu.nvidia.com claim asks for it.
+apiVersion: v1alpha1
+kind: KernelModuleConfig
+name: vfio_pci
+---
+apiVersion: v1alpha1
+kind: KernelModuleConfig
+name: vfio_iommu_type1
+---
 apiVersion: v1alpha1
 kind: KubeletConfig
 config:

@@ -1,0 +1,40 @@
+# The Talos NVIDIA extensions install the driver on the host, and Talos 1.13+
+# ships /etc/ld.so.conf so the kubelet plugin finds libnvidia-ml without the
+# /usr/local/glibc path workarounds older releases needed.
+nvidiaDriverRoot: /
+
+gpuResourcesEnabledOverride: true
+
+resources:
+  gpus:
+    enabled: true
+  computeDomains:
+    enabled: false
+
+# Both Alpha. PassthroughSupport publishes the vfio.gpu.nvidia.com DeviceClass
+# so a KubeVirt VM can claim the card through vfio-pci; the kubelet plugin
+# refuses to start with it if IOMMU is off. worker-ai-01 loads vfio_pci from
+# its Talos node patch, since modprobe from the plugin's host-root mount is
+# not an option on Talos.
+featureGates:
+  PassthroughSupport: true
+  DeviceMetadata: true
+
+kubeletPlugin:
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: gpu
+      effect: NoSchedule
+  # Same override as the old nvidia-device-plugin: our NFD config publishes
+  # pci-0300_10de rather than the chart's other terms, and the Talos-set label
+  # is the one every GPU workload already selects on.
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: feature.node.kubernetes.io/nvidia-gpu
+                operator: In
+                values:
+                  - "true"

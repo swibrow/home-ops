@@ -1,0 +1,17 @@
+---
+# One whole RTX 3090 Ti per inference pod, through the NVIDIA DRA driver
+# (system/dra-driver-nvidia-gpu). Referenced from each GPU Model's
+# hardware.gpu.resourceClaims; the claim is created per pod and released with it.
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaimTemplate
+metadata:
+  name: llmkube-gpu
+spec:
+  spec:
+    devices:
+      requests:
+        - name: gpu
+          exactly:
+            deviceClassName: gpu.nvidia.com
+            allocationMode: ExactCount
+            count: 1

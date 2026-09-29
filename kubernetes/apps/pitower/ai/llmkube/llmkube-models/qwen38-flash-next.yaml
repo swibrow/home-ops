@@ -49,8 +49,10 @@ spec:
     accelerator: cuda
     gpu:
       enabled: true
-      count: 1
       vendor: nvidia
+      resourceClaims:
+        - name: gpu
+          resourceClaimTemplateName: llmkube-gpu
       # Renders --n-gpu-layers 99; which experts stay on the CPU is decided by
       # moeCPULayers / tensorOverrides on the InferenceService, not here.
       layers: -1
@@ -76,7 +78,6 @@ spec:
   endpoint:
     port: 8080
     type: ClusterIP
-  runtimeClassName: nvidia
   tolerations:
     - key: dedicated
       operator: Equal
@@ -85,7 +86,6 @@ spec:
   nodeSelector:
     feature.node.kubernetes.io/nvidia-gpu: "true"
   resources:
-    gpu: 1
     # Request only (the operator sets no CPU limit), so the 12 llama.cpp
     # threads are not throttled. Node has 16 threads; qwen3-embedding asks for 4.
     cpu: "8"
