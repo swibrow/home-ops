@@ -1,7 +1,8 @@
-# The Talos NVIDIA extensions install the driver on the host, and Talos 1.13+
-# ships /etc/ld.so.conf so the kubelet plugin finds libnvidia-ml without the
-# /usr/local/glibc path workarounds older releases needed.
-nvidiaDriverRoot: /
+# The Talos NVIDIA extensions install under /usr/local (bin/nvidia-smi,
+# lib64/libnvidia-ml.so.1), and the plugin only searches fixed bin/ and lib64/
+# style paths under the driver root. There is no /usr/local/dev, so device
+# nodes still resolve from /.
+nvidiaDriverRoot: /usr/local
 
 gpuResourcesEnabledOverride: true
 
