@@ -5,7 +5,7 @@
 # OpenAI, so documents would leave the cluster.
 #
 # Q8_0 is ~640 MB and runs on CPU. The RTX 3090 Ti is allocated whole to
-# qwen38-27b (nvidia.com/gpu 1 of 1, ~22 GB of 24 GB VRAM planned), so a second
+# qwen38-27b (one llmkube-gpu claim, ~22 GB of 24 GB VRAM planned), so a second
 # GPU pod would never schedule; ai-01's 16 cores are otherwise idle and a
 # personal document corpus embeds in seconds there.
 apiVersion: inference.llmkube.dev/v1alpha1

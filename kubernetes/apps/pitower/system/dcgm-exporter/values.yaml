@@ -1,5 +1,5 @@
 ---
-# Same placement contract as nvidia-device-plugin: NFD-labelled GPU nodes only
+# Same placement contract as dra-driver-nvidia-gpu: NFD-labelled GPU nodes only
 # (ai-01 today), and the node's dedicated=gpu taint has to be tolerated or the
 # DaemonSet pod never lands.
 runtimeClassName: nvidia

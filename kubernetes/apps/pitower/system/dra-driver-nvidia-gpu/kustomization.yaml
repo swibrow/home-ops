@@ -6,9 +6,9 @@ namespace: system
 resources:
   - runtimeclass.yaml
 helmCharts:
-  - name: nvidia-device-plugin
-    repo: https://nvidia.github.io/k8s-device-plugin
-    version: 0.20.1
-    releaseName: nvidia-device-plugin
+  - name: dra-driver-nvidia-gpu
+    repo: oci://registry.k8s.io/dra-driver-nvidia/charts
+    version: 0.5.0
+    releaseName: dra-driver-nvidia-gpu
     valuesFile: values.yaml
     namespace: system
