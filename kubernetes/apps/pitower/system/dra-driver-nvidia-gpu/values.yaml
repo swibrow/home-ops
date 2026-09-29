@@ -14,7 +14,7 @@ gpuResourcesEnabledOverride: true
 # once upstream releases the fix.
 image:
   repository: ghcr.io/swibrow/dra-driver-nvidia-gpu
-  tag: v0.5.0-talos.3
+  tag: v0.5.0-talos.4
 
 resources:
   gpus:
