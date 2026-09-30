@@ -642,6 +642,23 @@ model_list:
       model: openrouter/anthropic/claude-sonnet-5.5:batch
       api_key: os.environ/OPENROUTER_API_KEY
 
+  - model_name: gpt-6.1-sol
+    litellm_params:
+      model: openrouter/openai/gpt-6.1-sol
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: gpt-6.1-sol-pro
+    litellm_params:
+      model: openrouter/openai/gpt-6.1-sol-pro
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: gpt-6.1-sol-pro:batch
+    litellm_params:
+      model: openrouter/openai/gpt-6.1-sol-pro:batch
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: gpt-6.1-sol:batch
+    litellm_params:
+      model: openrouter/openai/gpt-6.1-sol:batch
+      api_key: os.environ/OPENROUTER_API_KEY
+
   # --- OpenRouter (catch-all passthrough) ---
   # Reach any other OpenRouter model by full id, e.g. openrouter/google/gemma-4-31b-it
   - model_name: "*"
