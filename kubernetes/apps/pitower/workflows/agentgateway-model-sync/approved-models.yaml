@@ -1,0 +1,9 @@
+# OpenRouter model families the sync may expose through agentgateway. Each
+# value is a regex matched against the full OpenRouter id; :batch/:free
+# variants and ~*-latest aliases are always skipped.
+families:
+  fable: ^anthropic/claude-fable-
+  opus: ^anthropic/claude-opus-
+  qwen: ^qwen/
+  sol: ^openai/gpt-[0-9.]+-sol
+  astra: ^openai/gpt-[0-9.]+-astra

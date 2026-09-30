@@ -1,0 +1,59 @@
+---
+# Daily: pull OpenRouter's model catalog, find new models from the families in
+# approved-models.yaml, and open a PR adding an AgentgatewayModel for each to
+# ai/agentgateway/config/models-openrouter.yaml. open-webui lists models from
+# agentgateway's live /v1/models, so no separate open-webui change is needed.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/argoproj.io/cronworkflow_v1alpha1.json
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: agentgateway-model-sync
+spec:
+  schedules:
+    - "0 6 * * *"
+  timezone: Europe/Zurich
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  workflowSpec:
+    entrypoint: sync
+    serviceAccountName: argo-workflow
+    podGC:
+      strategy: OnPodCompletion
+    ttlStrategy:
+      secondsAfterCompletion: 86400
+    templates:
+      - name: sync
+        volumes:
+          - name: scripts
+            configMap:
+              name: agentgateway-model-sync-scripts
+        script:
+          image: python:3.14-slim
+          command:
+            - bash
+          source: |
+            set -euo pipefail
+            apt-get update -qq
+            apt-get install -y -qq --no-install-recommends git ca-certificates >/dev/null
+            pip install --quiet --no-cache-dir requests pyyaml
+            python /scripts/sync-models.py
+          env:
+            - name: MIN_CREATED
+              value: "2026-09-01"
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: agentgateway-model-sync-github
+                  key: token
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+              readOnly: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
