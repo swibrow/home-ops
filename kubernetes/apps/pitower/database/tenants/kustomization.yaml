@@ -21,7 +21,6 @@ resources:
   - ghostfolio.yaml
   - goat.yaml
   - house-hunter.yaml
-  - litellm.yaml
   - memini.yaml
   - miniflux.yaml
   - mlflow.yaml

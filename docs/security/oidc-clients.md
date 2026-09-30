@@ -8,7 +8,7 @@ title: OIDC Clients
 
 Two shapes exist:
 
-- **App-native OIDC**: the app implements the login itself (Headlamp, Forgejo, LiteLLM, Open WebUI, ...). The redirect URL and secret format are whatever the app expects.
+- **App-native OIDC**: the app implements the login itself (Headlamp, Forgejo, Open WebUI, ...). The redirect URL and secret format are whatever the app expects.
 - **Gateway-enforced OIDC**: the app has no login of its own, so an Envoy Gateway `SecurityPolicy` on its `HTTPRoute` does it. The callback is always `https://<host>/oauth2/callback`, the Secret key is always `client-secret`, and Envoy authenticates to the token endpoint with HTTP Basic and PKCE S256, which is what Kanidm requires by default.
 
 ## Registering a client

@@ -251,7 +251,6 @@ configMapGenerator:
 | rybbit | `shared` | rybbit | `analytics` |
 | garrison | `ai` | garrison | `garrison` |
 | goat | `ai` | goat | `goat` |
-| litellm | `ai` | litellm | `ai` |
 | memini | `ai` | memini | `ai` |
 | open_webui | `ai` | open-webui | `ai` |
 | immich | `immich` | immich | `media` |

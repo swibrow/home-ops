@@ -2,7 +2,7 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/postgresql.cnpg.io/cluster_v1.json
 #
 # Multi-tenant Postgres for the AI apps plus the two pg18 services that need no
-# vector support but do need pg18: litellm, memini, open-webui, garrison, goat.
+# vector support but do need pg18: memini, open-webui, garrison, goat.
 #
 # Same tenancy model as `shared` — see shared.yaml. Databases and roles are
 # declared per app, never in this spec.
