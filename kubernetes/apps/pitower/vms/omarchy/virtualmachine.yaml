@@ -25,8 +25,9 @@ spec:
       spec:
         source:
           blank: {}
+        # worker-ai-01's Samsung 9100 PRO; the VM is pinned there by its GPU anyway.
         storage:
-          storageClassName: ceph-block
+          storageClassName: openebs-hostpath-models
           resources:
             requests:
               storage: 100Gi
