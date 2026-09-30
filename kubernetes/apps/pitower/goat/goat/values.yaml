@@ -52,16 +52,17 @@ api:
     # mcp__sre__checkout_repo. This allowlist is the whole gate — anything not
     # matched here is refused.
     REPO_CHECKOUT_ALLOWLIST: "swibrow/*,wibrow-dev/*,cloudsnacks/*"
-    # The image's /app/providers.yaml declares the litellm provider with
-    # `base_url: ${LITELLM_BASE_URL}`, interpolated from the process env (DB
+    # The image's /app/providers.yaml declares the llm provider with
+    # `base_url: ${LLM_BASE_URL}`, interpolated from the process env (DB
     # settings rows do not reach it). Unset, base_url resolves empty, the
     # provider is skipped at load and every persona naming it dies with
-    # "unknown provider 'litellm' — available: (none)". The chart syncs
-    # LITELLM_API_KEY but has no knob for the URL, so set it here. The
-    # provider keeps its litellm name but points at agentgateway, and
-    # LITELLM_API_KEY is goat's gateway client key. The /v1 is needed because
-    # goat appends /chat/completions (litellm also served it unprefixed);
-    # goat's Decisions client appends /openrouter/decisions to the same URL.
+    # "unknown provider 'llm' — available: (none)". The chart syncs
+    # LLM_API_KEY (goat's agentgateway client key) but has no knob for the
+    # URL, so set it here. The /v1 is needed because goat appends
+    # /chat/completions; its Decisions client appends /openrouter/decisions
+    # to the same URL.
+    LLM_BASE_URL: http://agentgateway.ai.svc.cluster.local/v1
+    # Read by goat < 1.0.0 only; drop once the 1.0.0 bump has rolled out.
     LITELLM_BASE_URL: http://agentgateway.ai.svc.cluster.local/v1
 # Dev-session pods (Claude Code in the goat namespace) — needs the
 # ghcr.io/swibrow/claude-code image and the egress NetworkPolicy below.
