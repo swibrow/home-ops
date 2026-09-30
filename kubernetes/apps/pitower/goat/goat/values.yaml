@@ -62,8 +62,6 @@ api:
     # /chat/completions; its Decisions client appends /openrouter/decisions
     # to the same URL.
     LLM_BASE_URL: http://agentgateway.ai.svc.cluster.local/v1
-    # Read by goat < 1.0.0 only; drop once the 1.0.0 bump has rolled out.
-    LITELLM_BASE_URL: http://agentgateway.ai.svc.cluster.local/v1
 # Dev-session pods (Claude Code in the goat namespace) — needs the
 # ghcr.io/swibrow/claude-code image and the egress NetworkPolicy below.
 devSessions:
