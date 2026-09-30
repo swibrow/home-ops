@@ -1,0 +1,102 @@
+---
+# Omarchy dev desktop. The first boot falls through the empty root disk to the
+# ISO, which finds the cidata disk, installs unattended and reboots into the
+# installed system. Console: virtctl vnc omarchy -n vms
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: omarchy
+spec:
+  runStrategy: Always
+  dataVolumeTemplates:
+    - metadata:
+        name: omarchy-iso
+      spec:
+        source:
+          http:
+            url: https://iso.omarchy.org/omarchy-4.0.4.iso
+        storage:
+          storageClassName: ceph-block
+          resources:
+            requests:
+              storage: 7Gi
+    - metadata:
+        name: omarchy-root
+      spec:
+        source:
+          blank: {}
+        storage:
+          storageClassName: ceph-block
+          resources:
+            requests:
+              storage: 100Gi
+  template:
+    metadata:
+      labels:
+        kubevirt.io/vm: omarchy
+    spec:
+      # The claimed GPU pins the VM to worker-ai-01.
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: gpu
+          effect: NoSchedule
+      resourceClaims:
+        - name: gpu
+          resourceClaimTemplateName: omarchy-gpu
+      domain:
+        cpu:
+          cores: 8
+        memory:
+          guest: 16Gi
+        # The Omarchy installer refuses Secure Boot and only sets up Limine for UEFI.
+        firmware:
+          bootloader:
+            efi:
+              secureBoot: false
+        devices:
+          # Matches Omarchy's own VM test harness (virtio-vga) instead of the EFI
+          # default, bochs. Kept alongside the GPU so VNC still shows the
+          # installer and a console when nothing is plugged into the card.
+          video:
+            type: virtio
+          # Attached from the first boot so the installer picks the NVIDIA driver.
+          gpus:
+            - name: gpu
+              claimName: gpu
+              requestName: gpu
+          inputs:
+            - name: tablet
+              type: tablet
+              bus: usb
+          rng: {}
+          disks:
+            # Must stay the only virtio disk: the cidata config installs to /dev/vda.
+            - name: root
+              bootOrder: 1
+              disk:
+                bus: virtio
+            - name: iso
+              bootOrder: 2
+              cdrom:
+                bus: sata
+            - name: cidata
+              disk:
+                bus: sata
+          interfaces:
+            - name: default
+              masquerade: {}
+      networks:
+        - name: default
+          pod: {}
+      volumes:
+        - name: root
+          dataVolume:
+            name: omarchy-root
+        - name: iso
+          dataVolume:
+            name: omarchy-iso
+        - name: cidata
+          secret:
+            secretName: omarchy-cidata
+            volumeLabel: cidata
