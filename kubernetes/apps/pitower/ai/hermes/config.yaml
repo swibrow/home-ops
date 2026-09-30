@@ -4,13 +4,13 @@ model:
   # Neither agentgateway nor llama.cpp advertise the context window, so it is
   # pinned to the InferenceService's contextSize of whatever `local` points at.
   default: local
-  provider: litellm
+  provider: llm
   context_length: 131072
 fallback_providers:
   - provider: anthropic
     model: claude-haiku
 providers:
-  litellm:
+  llm:
     # agentgateway's baseURL for `local` is the KEDA -scaled Service, so an
     # idle-scaled pod wakes on request; the first call after idle blocks on
     # the cold start.
