@@ -80,7 +80,7 @@ spec:
         expression: '"anthropic/claude-fable-5"'
 ---
 # Claude Max subscription: no provider auth, so the client's sk-ant-oat OAuth
-# token in Authorization reaches Anthropic unchanged. Unlike litellm there is
+# token in Authorization reaches Anthropic unchanged. There is
 # no fallback to an API key when the token is missing; the request fails.
 apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayModel
@@ -200,7 +200,7 @@ spec:
       - field: model
         expression: '"qwen38-flash-next"'
 ---
-# Stable alias for the current in-cluster chat model, same as litellm `local`.
+# Stable alias for the current in-cluster chat model.
 apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayModel
 metadata:

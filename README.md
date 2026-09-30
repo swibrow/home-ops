@@ -116,7 +116,7 @@ Most apps are rendered from the [`app-template`](https://github.com/bjw-s-labs/h
 
 ```
 kubernetes/apps/pitower/
-├── ai/                  # LiteLLM, Open WebUI, ToolHive, agent-sandbox, agentmemory
+├── ai/                  # agentgateway, Open WebUI, ToolHive, agent-sandbox, agentmemory
 ├── analytics/           # Rybbit
 ├── arc/                 # GitHub Actions runners
 ├── banking/             # Financial tools
