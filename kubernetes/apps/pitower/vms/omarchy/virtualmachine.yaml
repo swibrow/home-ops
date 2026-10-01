@@ -48,7 +48,7 @@ spec:
           effect: NoSchedule
       resourceClaims:
         - name: gpu
-          resourceClaimTemplateName: omarchy-gpu
+          resourceClaimTemplateName: omarchy-vfio
       domain:
         cpu:
           cores: 8
