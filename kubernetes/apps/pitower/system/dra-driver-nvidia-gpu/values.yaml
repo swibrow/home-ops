@@ -6,15 +6,15 @@ nvidiaDriverRoot: /usr/local
 
 gpuResourcesEnabledOverride: true
 
-# v0.5.0 plus a backport of the upstream fix for vfio-pci rebinds on Talos
-# (swibrow/dra-driver-nvidia-gpu, backport/vfio-passthrough-without-fuser-v0.5.0):
-# the busy check ran `chroot /host-root fuser`, which Talos does not ship, and
-# nvidia-persistenced (a Talos service, socket under /run) was only looked for
-# under the /usr/local driver root, so it kept its handle on the card. Drop this
-# once upstream releases the fix.
+# v0.5.0 plus only the minimal upstream fix for vfio-pci rebinds on Talos
+# (swibrow/dra-driver-nvidia-gpu, backport/talos-5): the busy check ran
+# `chroot /host-root fuser`, which Talos does not ship, so every vfio claim
+# timed out; it now skips the check when fuser is missing. nvidia-persistenced
+# (a Talos service) still holds the card, so persistence has to be disabled
+# before a VM claims it. Drop this once upstream releases the fix.
 image:
   repository: ghcr.io/swibrow/dra-driver-nvidia-gpu
-  tag: v0.5.0-talos.4
+  tag: v0.5.0-talos.5
 
 resources:
   gpus:
