@@ -15,3 +15,15 @@ spec:
             deviceClassName: vfio.gpu.nvidia.com
             allocationMode: ExactCount
             count: 1
+      # libvirt only does legacy VFIO and refuses assignment without the
+      # /dev/vfio/vfio container device, which the driver leaves out by default.
+      config:
+        - requests: ["gpu"]
+          opaque:
+            driver: gpu.nvidia.com
+            parameters:
+              apiVersion: resource.nvidia.com/v1beta1
+              kind: VfioDeviceConfig
+              iommu:
+                backendPolicy: LegacyOnly
+                enableAPIDevice: true
