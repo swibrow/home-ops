@@ -1,11 +1,11 @@
 ---
 # The whole RTX 3090 Ti on vfio-pci, through the NVIDIA DRA driver's passthrough
-# class (system/dra-driver-nvidia-gpu). While the VM runs, the llmkube GPU
-# models and comfyui cannot schedule.
+# class (system/dra-driver-nvidia-gpu). Nothing stops the llmkube GPU models
+# and comfyui claiming the same card; see the VM's runStrategy.
 apiVersion: resource.k8s.io/v1
 kind: ResourceClaimTemplate
 metadata:
-  name: omarchy-gpu
+  name: omarchy-vfio
 spec:
   spec:
     devices:
@@ -15,3 +15,15 @@ spec:
             deviceClassName: vfio.gpu.nvidia.com
             allocationMode: ExactCount
             count: 1
+      # libvirt only does legacy VFIO and refuses assignment without the
+      # /dev/vfio/vfio container device, which the driver leaves out by default.
+      config:
+        - requests: ["gpu"]
+          opaque:
+            driver: gpu.nvidia.com
+            parameters:
+              apiVersion: resource.nvidia.com/v1beta1
+              kind: VfioDeviceConfig
+              iommu:
+                backendPolicy: LegacyOnly
+                enableAPIDevice: true

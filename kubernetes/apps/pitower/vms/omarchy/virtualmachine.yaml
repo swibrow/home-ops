@@ -1,13 +1,17 @@
 ---
 # Omarchy dev desktop. The first boot falls through the empty root disk to the
 # ISO, which finds the cidata disk, installs unattended and reboots into the
-# installed system. Console: virtctl vnc omarchy -n vms
+# installed system. Start: virtctl start omarchy -n vms; console: virtctl vnc omarchy -n vms
 apiVersion: kubevirt.io/v1
 kind: VirtualMachine
 metadata:
   name: omarchy
 spec:
-  runStrategy: Always
+  # Started and stopped with virtctl, which leaves the spec alone so Argo does
+  # not undo it. The DRA driver publishes the 3090 Ti as two unrelated devices
+  # (gpu-0 for the llmkube/comfyui pods, gpu-vfio-0 for VMs), so the scheduler
+  # will hand the card to both at once; start the VM only while those are idle.
+  runStrategy: Manual
   dataVolumeTemplates:
     - metadata:
         name: omarchy-iso
@@ -44,7 +48,7 @@ spec:
           effect: NoSchedule
       resourceClaims:
         - name: gpu
-          resourceClaimTemplateName: omarchy-gpu
+          resourceClaimTemplateName: omarchy-vfio
       domain:
         cpu:
           cores: 8

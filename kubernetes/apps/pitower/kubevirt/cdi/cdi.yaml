@@ -11,6 +11,13 @@ spec:
   infra:
     nodeSelector:
       kubernetes.io/os: linux
+  # Importer, cloner and upload pods follow a local PV to its node, so they must
+  # be allowed onto worker-ai-01 for VM disks on openebs-hostpath-models.
   workload:
     nodeSelector:
       kubernetes.io/os: linux
+    tolerations:
+      - key: dedicated
+        operator: Equal
+        value: gpu
+        effect: NoSchedule
