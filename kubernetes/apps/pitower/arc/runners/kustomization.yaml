@@ -10,7 +10,7 @@ resources:
 helmCharts:
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: action-summary-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -23,7 +23,7 @@ helmCharts:
           serviceAccountName: action-summary-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: actions-playground-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -36,7 +36,7 @@ helmCharts:
           serviceAccountName: actions-playground-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: agent-ops-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -49,7 +49,7 @@ helmCharts:
           serviceAccountName: agent-ops-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: autobuild-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -62,7 +62,7 @@ helmCharts:
           serviceAccountName: autobuild-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: blog-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -75,7 +75,7 @@ helmCharts:
           serviceAccountName: blog-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: dotfiles-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -88,7 +88,7 @@ helmCharts:
           serviceAccountName: dotfiles-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: findtherighttools-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -103,7 +103,7 @@ helmCharts:
   # whose workflows build linux/arm64; `runs-on: <repo>-arm64` selects them.
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: flickerd-arm64-runners
     namespace: arc-runners
     valuesFile: values-arm64.yaml
@@ -116,7 +116,7 @@ helmCharts:
           serviceAccountName: flickerd-arm64-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: flickerd-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -129,7 +129,7 @@ helmCharts:
           serviceAccountName: flickerd-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: flickerd-sites-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -142,7 +142,7 @@ helmCharts:
           serviceAccountName: flickerd-sites-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: garrison-arm64-runners
     namespace: arc-runners
     valuesFile: values-arm64.yaml
@@ -155,7 +155,7 @@ helmCharts:
           serviceAccountName: garrison-arm64-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: garrison-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -248,7 +248,7 @@ helmCharts:
                   memory: 14Gi
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: github-actions-tui-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -261,7 +261,7 @@ helmCharts:
           serviceAccountName: github-actions-tui-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: goat-arm64-runners
     namespace: arc-runners
     valuesFile: values-arm64.yaml
@@ -274,7 +274,7 @@ helmCharts:
           serviceAccountName: goat-arm64-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: goat-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -287,7 +287,7 @@ helmCharts:
           serviceAccountName: goat-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: homb-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -310,7 +310,7 @@ helmCharts:
                   memory: 8Gi
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: hombview-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -323,7 +323,7 @@ helmCharts:
           serviceAccountName: hombview-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: home-ops-arm64-runners
     namespace: arc-runners
     valuesFile: values-arm64.yaml
@@ -336,7 +336,7 @@ helmCharts:
           serviceAccountName: home-ops-arm64-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: home-ops-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -377,7 +377,7 @@ helmCharts:
                   mountPath: /var/run
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: homebrew-tap-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -390,7 +390,7 @@ helmCharts:
           serviceAccountName: homebrew-tap-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: hops-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -403,7 +403,7 @@ helmCharts:
           serviceAccountName: hops-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: househunter-arm64-runners
     namespace: arc-runners
     valuesFile: values-arm64.yaml
@@ -416,7 +416,7 @@ helmCharts:
           serviceAccountName: househunter-arm64-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: househunter-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -429,7 +429,7 @@ helmCharts:
           serviceAccountName: househunter-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: how-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -442,7 +442,7 @@ helmCharts:
           serviceAccountName: how-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: money-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -455,7 +455,7 @@ helmCharts:
           serviceAccountName: money-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: rackrat-arm64-runners
     namespace: arc-runners
     valuesFile: values-arm64.yaml
@@ -468,7 +468,7 @@ helmCharts:
           serviceAccountName: rackrat-arm64-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: rackrat-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -481,7 +481,7 @@ helmCharts:
           serviceAccountName: rackrat-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: resume-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -494,7 +494,7 @@ helmCharts:
           serviceAccountName: resume-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: second-brain-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -507,7 +507,7 @@ helmCharts:
           serviceAccountName: second-brain-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: tidy-k8s-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -520,7 +520,7 @@ helmCharts:
           serviceAccountName: tidy-k8s-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: trade-ops-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -533,7 +533,7 @@ helmCharts:
           serviceAccountName: trade-ops-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: vast-ai-operator-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -546,7 +546,7 @@ helmCharts:
           serviceAccountName: vast-ai-operator-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: webterm-arm64-runners
     namespace: arc-runners
     valuesFile: values-arm64.yaml
@@ -559,7 +559,7 @@ helmCharts:
           serviceAccountName: webterm-arm64-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: webterm-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -572,7 +572,7 @@ helmCharts:
           serviceAccountName: webterm-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: wibrow-infra-shared-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -585,7 +585,7 @@ helmCharts:
           serviceAccountName: wibrow-infra-shared-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.14.2
+    version: 0.15.0
     releaseName: wibrow-net-runners
     namespace: arc-runners
     valuesFile: values.yaml
