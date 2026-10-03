@@ -117,6 +117,74 @@
         "labelSize": 12,
         "iteration": 7
       }
+    },
+    {
+      "id": 2,
+      "title": "CrowdSec bad actors: country → IP → scenario",
+      "description": "CrowdSec LAPI decisions over the last 7 days, parsed from its logs. Detection-only: no bouncer enforces these bans.",
+      "type": "netsage-sankey-panel",
+      "datasource": {
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
+      },
+      "timeFrom": "7d",
+      "gridPos": {
+        "h": 18,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
+          },
+          "expr": "{kubernetes_namespace_name=\"security\",kubernetes_container_name=\"crowdsec-lapi\"} \"ban on\" | extract \") <scenario> by ip <ip> (<country>/<asn>) : <duration> <action> on \" from _msg | filter ip:!\"\" | stats by (country, ip, scenario) count() as decisions",
+          "queryType": "stats",
+          "legendFormat": "decisions"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns",
+            "keepLabels": [
+              "country",
+              "ip",
+              "scenario"
+            ]
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "country": 0,
+              "ip": 1,
+              "scenario": 2,
+              "decisions": 3
+            }
+          }
+        }
+      ],
+      "options": {
+        "valueField": "decisions",
+        "monochrome": false,
+        "nodeWidth": 20,
+        "nodePadding": 12,
+        "labelSize": 12,
+        "iteration": 7
+      }
     }
   ]
 }
