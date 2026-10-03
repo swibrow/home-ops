@@ -6,7 +6,7 @@
 # untouched, so the same placement applies.
 #
 # Gated repo: accept the terms on orcarouter/Qwen3.8-Flash-Next-Uncensored-GGUF
-# with the account behind the token in Infisical /ai/huggingface/HF_TOKEN
+# with the account behind the token in Infisical /ai/hf/HF_TOKEN
 # (externalsecret-huggingface.yaml). Research/red-team use per the repo terms.
 #
 # Plain IQ4_XS, 97.5 GB in three shards (vs 93.7 GB for Unsloth's UD-IQ4_XS on
