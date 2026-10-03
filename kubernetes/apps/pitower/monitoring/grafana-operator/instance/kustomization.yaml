@@ -40,6 +40,7 @@ configMapGenerator:
       - dashboards/envoy-proxy-global.json
       - dashboards/envoy-clusters.json
       - dashboards/envoy-access-logs.json
+      - dashboards/tunnel-traffic-flow.json
     options:
       disableNameSuffixHash: true
   - name: grafana-dashboards-observability
