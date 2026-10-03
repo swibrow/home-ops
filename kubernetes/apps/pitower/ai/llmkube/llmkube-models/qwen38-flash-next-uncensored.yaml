@@ -1,0 +1,91 @@
+---
+# Qwen3.8-Flash-Next-Uncensored (OrcaRouter, Apache-2.0, released 2026-08-26):
+# abliterated build of Qwen3.8-Flash-Next (see qwen38-flash-next.yaml for the
+# architecture and the GPU/CPU layout rationale). Abliteration only edits
+# residual-writer tensors; router, experts, n-gram table and vision tower are
+# untouched, so the same placement applies.
+#
+# Gated repo: accept the terms on orcarouter/Qwen3.8-Flash-Next-Uncensored-GGUF
+# with the account behind the token in Infisical /ai/huggingface/HF_TOKEN
+# (externalsecret-huggingface.yaml). Research/red-team use per the repo terms.
+#
+# Plain IQ4_XS, 97.5 GB in three shards (vs 93.7 GB for Unsloth's UD-IQ4_XS on
+# the base service). Slightly larger tensors, so if the load runs out of VRAM
+# go to moeCPULayers 38. IQ3_XXS (85.2 GB, two shards) is the fallback if the
+# CPU side thrashes. The 4.1 GB MTP-draft.gguf is not pulled: llama.cpp does
+# not implement MTP for qwen4exp yet.
+#
+# Shares the single 3090 Ti with qwen38-flash-next, qwen38-27b and comfyui;
+# KEDA (qwen38-flash-next-uncensored-autoscale.yaml) keeps them mutually
+# exclusive via scale-to-zero.
+apiVersion: inference.llmkube.dev/v1alpha1
+kind: Model
+metadata:
+  name: qwen38-flash-next-uncensored
+spec:
+  source: hf://orcarouter/Qwen3.8-Flash-Next-Uncensored-GGUF
+  # Secret key HF_TOKEN, sent as a bearer token to huggingface.co only.
+  sourceSecretRef:
+    name: huggingface
+  files:
+    - Qwen3.8-Flash-Next-Uncensored-IQ4_XS-00001-of-00003.gguf
+    - Qwen3.8-Flash-Next-Uncensored-IQ4_XS-00002-of-00003.gguf
+    - Qwen3.8-Flash-Next-Uncensored-IQ4_XS-00003-of-00003.gguf
+  mmproj: mmproj-Qwen3.8-Flash-Next-Uncensored-F16.gguf
+  format: gguf
+  quantization: IQ4_XS
+  hardware:
+    accelerator: cuda
+    gpu:
+      enabled: true
+      vendor: nvidia
+      resourceClaims:
+        - name: gpu
+          resourceClaimTemplateName: llmkube-gpu
+      layers: -1
+  # Downloader/staging init container.
+  resources:
+    cpu: "2"
+    memory: "4Gi"
+---
+apiVersion: inference.llmkube.dev/v1alpha1
+kind: InferenceService
+metadata:
+  name: qwen38-flash-next-uncensored
+spec:
+  modelRef: qwen38-flash-next-uncensored
+  runtime: llamacpp
+  # Same pin as qwen38-flash-next: the operator default predates qwen4exp.
+  image: ghcr.io/ggml-org/llama.cpp:server-cuda-b11096
+  # replicas is deliberately unset: KEDA owns it (0..1).
+  endpoint:
+    port: 8080
+    type: ClusterIP
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: gpu
+      effect: NoSchedule
+  nodeSelector:
+    feature.node.kubernetes.io/nvidia-gpu: "true"
+  resources:
+    cpu: "8"
+    hostMemory: "40Gi"
+    memoryLimit: "56Gi"
+  # Experts of layers 0-36 on the CPU, 37-47 on the GPU. 38 if VRAM OOMs.
+  moeCPULayers: 37
+  tensorOverrides:
+    - per_layer_token_embd=CPU
+  contextSize: 131072
+  parallelSlots: 1
+  flashAttention: true
+  cacheTypeK: q8_0
+  cacheTypeV: q8_0
+  jinja: true
+  extraArgs:
+    - --threads
+    - "12"
+    - --threads-batch
+    - "12"
+    - --fit
+    - "off"
