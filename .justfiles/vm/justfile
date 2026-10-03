@@ -1,0 +1,34 @@
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+# KubeVirt VMs in the vms namespace. Calls the subresource API directly, so
+# virtctl is not needed. Only runStrategy Manual VMs (omarchy) keep the state
+# without touching the spec; on others KubeVirt rewrites runStrategy.
+ns := "vms"
+api := "/apis/subresources.kubevirt.io/v1/namespaces/" + ns + "/virtualmachines"
+
+# List VMs and their state
+status:
+    @kubectl -n {{ ns }} get vm,vmi
+
+# Start a VM; a GPU VM refuses while a pod holds the RTX 3090 Ti, since the DRA driver can hand the card to both
+start vm="omarchy":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    claims=$(kubectl -n {{ ns }} get vm {{ vm }} -o jsonpath='{.spec.template.spec.resourceClaims}')
+    holders=$(kubectl get resourceclaims -A -o json \
+      | jq -r '.items[] | select(.metadata.namespace != "{{ ns }}" and .status.allocation != null) | "\(.metadata.namespace)/\(.metadata.name)"')
+    if [ -n "$claims" ] && [ -n "$holders" ]; then
+        echo "GPU is claimed by: $holders" >&2
+        echo "Stop or pause those workloads first." >&2
+        exit 1
+    fi
+    echo '{}' | kubectl replace --raw "{{ api }}/{{ vm }}/start" -f - >/dev/null
+    echo "Starting {{ vm }}"
+
+# Stop a VM, releasing its GPU
+stop vm="omarchy":
+    @echo '{}' | kubectl replace --raw "{{ api }}/{{ vm }}/stop" -f - >/dev/null && echo "Stopping {{ vm }}"
+
+# Restart a VM
+restart vm="omarchy":
+    @echo '{}' | kubectl replace --raw "{{ api }}/{{ vm }}/restart" -f - >/dev/null && echo "Restarting {{ vm }}"
