@@ -5,6 +5,7 @@ mod kanidm '.justfiles/kanidm'
 mod k8s '.justfiles/k8s'
 mod sops '.justfiles/sops'
 mod tf '.justfiles/terraform'
+mod vm '.justfiles/vm'
 mod talos 'talos'
 mod ansible 'ansible'
 
