@@ -220,6 +220,20 @@ spec:
     name: grafana-dashboards-networking
     key: envoy-access-logs.json
 ---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: tunnel-traffic-flow
+  namespace: monitoring
+spec:
+  folder: Networking
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  configMapRef:
+    name: grafana-dashboards-networking
+    key: tunnel-traffic-flow.json
+---
 # Observability folder ---------------------------------------------------------
 apiVersion: grafana.integreatly.org/v1beta1
 kind: GrafanaDashboard

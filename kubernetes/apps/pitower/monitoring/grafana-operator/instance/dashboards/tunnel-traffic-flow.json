@@ -1,0 +1,122 @@
+{
+  "title": "Tunnel Traffic Flow",
+  "uid": "tunnel-traffic-flow",
+  "tags": [
+    "envoy",
+    "towonel",
+    "victorialogs"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "schemaVersion": 39,
+  "refresh": "5s",
+  "time": {
+    "from": "now-5m",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "source",
+        "label": "Source",
+        "type": "custom",
+        "query": "public : -client_ip:ipv4_range(10.0.0.0/8) -client_ip:ipv4_range(172.16.0.0/12) -client_ip:ipv4_range(192.168.0.0/16),all : *",
+        "current": {
+          "text": "public",
+          "value": "-client_ip:ipv4_range(10.0.0.0/8) -client_ip:ipv4_range(172.16.0.0/12) -client_ip:ipv4_range(192.168.0.0/16)"
+        }
+      },
+      {
+        "name": "host",
+        "label": "Host regex",
+        "type": "textbox",
+        "query": ".+",
+        "current": {
+          "text": ".+",
+          "value": ".+"
+        }
+      },
+      {
+        "name": "top",
+        "label": "Top flows",
+        "type": "custom",
+        "query": "25,50,100,250",
+        "current": {
+          "text": "50",
+          "value": "50"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Client → host → service → status",
+      "description": "envoy-external requests in the time range. 'public' hides private client IPs, which reach envoy-external from the LAN or cluster rather than through the towonel tunnel.",
+      "type": "netsage-sankey-panel",
+      "datasource": {
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
+      },
+      "gridPos": {
+        "h": 24,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
+          },
+          "expr": "{kubernetes_namespace_name=\"networking\",kubernetes_pod_name=~\"envoy-external.*\",kubernetes_container_name=\"envoy\"} response_code:>0 host:~\"$host\" $source | extract \"httproute/<namespace>/<route>/\" from upstream_cluster | format if (route:\"\") \"no route\" as service | format if (route:!\"\") \"<namespace>/<route>\" as service | math floor(response_code / 100) as status_class | format \"<status_class>xx\" as status | stats by (client_ip, host, service, status) count() as requests | sort by (requests desc) | limit $top",
+          "queryType": "stats",
+          "legendFormat": "requests"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns",
+            "keepLabels": [
+              "client_ip",
+              "host",
+              "service",
+              "status"
+            ]
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "client_ip": 0,
+              "host": 1,
+              "service": 2,
+              "status": 3,
+              "requests": 4
+            }
+          }
+        }
+      ],
+      "options": {
+        "valueField": "requests",
+        "monochrome": false,
+        "nodeWidth": 20,
+        "nodePadding": 12,
+        "labelSize": 12,
+        "iteration": 7
+      }
+    }
+  ]
+}
