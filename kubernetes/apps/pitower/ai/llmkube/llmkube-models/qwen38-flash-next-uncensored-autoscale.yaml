@@ -1,0 +1,60 @@
+---
+# Idle scale-to-zero, same pattern as qwen38-flash-next. ai-01 has one RTX
+# 3090 Ti, so the four GPU services (qwen38-27b, qwen38-flash-next,
+# qwen38-flash-next-uncensored, comfyui) are mutually exclusive: whichever is
+# running holds the card and a request for another leaves its pod Pending until
+# the holder idles out. If that exceeds the readiness timeout the request
+# fails; retry once the other pod is gone.
+#
+# In-cluster alias for the interceptor (Host-based demux):
+# qwen38-flash-next-uncensored-scaled.ai.svc.cluster.local:8080
+apiVersion: v1
+kind: Service
+metadata:
+  name: qwen38-flash-next-uncensored-scaled
+spec:
+  type: ExternalName
+  externalName: keda-add-ons-http-interceptor-proxy.system.svc.cluster.local
+---
+apiVersion: http.keda.sh/v1beta1
+kind: InterceptorRoute
+metadata:
+  name: qwen38-flash-next-uncensored
+spec:
+  target:
+    service: qwen38-flash-next-uncensored
+    port: 8080
+  rules:
+    - hosts:
+        - qwen38-flash-next-uncensored-scaled.ai.svc.cluster.local
+        - qwen38-flash-next-uncensored-scaled.ai.svc.cluster.local:8080
+        - qwen38-flash-next-uncensored-scaled.ai
+        - qwen38-flash-next-uncensored-scaled
+  scalingMetric:
+    concurrency:
+      targetValue: 1
+  timeouts:
+    # Cold start mmaps ~97GB off the cache PVC. The very first request still
+    # times out while the init container pulls the weights from Hugging Face.
+    readiness: 600s
+    responseHeader: 300s
+    request: 0s
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: qwen38-flash-next-uncensored
+spec:
+  # Targets the InferenceService (scale subresource), not its Deployment.
+  scaleTargetRef:
+    name: qwen38-flash-next-uncensored
+    kind: InferenceService
+    apiVersion: inference.llmkube.dev/v1alpha1
+  minReplicaCount: 0
+  maxReplicaCount: 1
+  cooldownPeriod: 900
+  triggers:
+    - type: external-push
+      metadata:
+        scalerAddress: keda-add-ons-http-external-scaler.system:9090
+        interceptorRoute: qwen38-flash-next-uncensored
