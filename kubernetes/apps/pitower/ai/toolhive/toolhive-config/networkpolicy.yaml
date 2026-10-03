@@ -143,6 +143,10 @@ spec:
           podSelector:
             matchLabels:
               app.kubernetes.io/name: goat-api
+        # Open-WebUI's admin-only Home-Ops tool server, same namespace.
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: open-webui
       ports:
         - protocol: TCP
           port: 4483

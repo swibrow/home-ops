@@ -69,6 +69,9 @@ controllers:
           # without one a tool server is admin-only. The filter keeps the prompt
           # small for local models (every tool schema is prompt tokens): an
           # allow list, suffix-matched, comma-separated with no spaces.
+          # Home-Ops is the whole mcp-tools group through the anonymous vMCP
+          # (cluster-view kubernetes, AWS, database, home-assistant actuators),
+          # so it carries no grant and stays admin-only.
           TOOL_SERVER_CONNECTIONS: >-
             [{"type": "mcp",
               "url": "http://mcp-browser-proxy.ai.svc.cluster.local:8080/mcp",
@@ -77,7 +80,13 @@ controllers:
                          "access_grants": [{"principal_type": "user", "principal_id": "*", "permission": "read"}],
                          "function_name_filter_list": "browser_navigate,browser_navigate_back,browser_snapshot,browser_click,browser_type,browser_press_key,browser_take_screenshot"},
               "info": {"id": "browser", "name": "Browser",
-                       "description": "Headless Chromium: open pages, click, fill forms, read content"}}]
+                       "description": "Headless Chromium: open pages, click, fill forms, read content"}},
+             {"type": "mcp",
+              "url": "http://vmcp-mcp-gateway-direct.ai.svc.cluster.local:4483/mcp",
+              "path": "", "auth_type": "none", "key": "",
+              "config": {"enable": true},
+              "info": {"id": "home-ops", "name": "Home-Ops",
+                       "description": "Home lab tools: Kubernetes, ArgoCD, Grafana, logs, Home Assistant, GitHub, Terraform, AWS"}}]
         envFrom:
           - secretRef:
               name: open-webui
