@@ -58,7 +58,9 @@ defaultPodOptions:
   securityContext:
     runAsUser: 1001
     runAsGroup: 1001
-    fsGroup: 1001
+    # llmkube's fsGroup: the models volume is the shared llmkube-model-cache,
+    # and llama.cpp pods regroup the whole volume to 102 on every start.
+    fsGroup: 102
     fsGroupChangePolicy: OnRootMismatch
 service:
   app:
@@ -66,14 +68,18 @@ service:
       http:
         port: 8188
 persistence:
+  # The llmkube shared model cache on ai-01's NVMe; see
+  # llmkube/llmkube-operator/values.yaml.
   models:
-    existingClaim: comfyui-models
+    existingClaim: llmkube-model-cache
     advancedMounts:
       comfyui:
         fetch-models:
           - path: /models
+            subPath: comfyui
         app:
           - path: /opt/comfyui/models
+            subPath: comfyui
   data:
     existingClaim: comfyui-data
     advancedMounts:
