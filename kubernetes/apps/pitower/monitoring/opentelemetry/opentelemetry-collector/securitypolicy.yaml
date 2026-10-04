@@ -9,6 +9,8 @@ kind: SecurityPolicy
 metadata:
   name: otel-collector
 spec:
+  # Keep the gateway-level CrowdSec bouncer (networking/envoy-gateway).
+  mergeType: StrategicMerge
   targetRefs:
     - group: gateway.networking.k8s.io
       kind: HTTPRoute

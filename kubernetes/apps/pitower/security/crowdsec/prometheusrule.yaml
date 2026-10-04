@@ -1,0 +1,25 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/monitoring.coreos.com/prometheusrule_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: crowdsec
+spec:
+  groups:
+    - name: crowdsec.rules
+      rules:
+        # The VictoriaLogs tail never reconnects after the stream ends (e.g. a
+        # victoria-logs restart): the agent stays Running, logs nothing, and
+        # stops detecting. envoy-external always has probe traffic, so zero
+        # reads means the tail is dead. Fix: restart deploy/crowdsec-agent.
+        - alert: CrowdSecAcquisitionStalled
+          annotations:
+            summary: >-
+              The CrowdSec agent has read no envoy-external logs for 30m, so no
+              attackers are being detected or banned.
+          expr: |
+            sum(increase(cs_victorialogssource_hits_total[30m])) == 0
+              or absent(cs_victorialogssource_hits_total)
+          for: 15m
+          labels:
+            severity: warning

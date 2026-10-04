@@ -269,9 +269,8 @@ kind: ClientTrafficPolicy
 metadata:
   name: envoy-external
 spec:
-  clientIPDetection:
-    xForwardedFor:
-      numTrustedHops: 1
+  # No XFF trust: the tunnel is L4 and adds no X-Forwarded-For, so trusting a
+  # hop lets any client choose the IP that CrowdSec sees and bans.
   proxyProtocol:
     optional: true
   targetRefs:

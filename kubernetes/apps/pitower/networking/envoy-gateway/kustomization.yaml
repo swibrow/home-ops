@@ -11,6 +11,7 @@ resources:
   - internal-dnsendpoint.yaml
   - envoy.yaml
   - podmonitor.yaml
+  - securitypolicy.yaml
 helmCharts:
   - name: gateway-helm
     repo: oci://docker.io/envoyproxy
