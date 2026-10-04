@@ -11,8 +11,10 @@
 # same drift would have flipped ipv6_ra_enable true -> null and dropped router
 # advertisements. Pin them to the live values instead.
 #
-# "iot" is the one deliberate exception to adopt-only: its PD block is desired
-# state, not adopted state. Matter/Thread needs routable IPv6 on VLAN 101.
+# "iot" and "servers" are the deliberate exceptions to adopt-only: their PD
+# blocks are desired state, not adopted state. Matter/Thread needs routable
+# IPv6 on VLAN 101; the pitower nodes take their IPv6 addresses (SLAAC) from
+# VLAN 20.
 
 resource "unifi_network" "default" {
   name    = "Default"
@@ -100,10 +102,21 @@ resource "unifi_network" "servers" {
   dhcp_stop   = "10.20.255.254"
   domain_name = "servers.internal"
 
+  # PD slice 2 (2a02:16a:2a0a:2::/64). Talos (kubelet nodeIP.validSubnets) and
+  # the gateway's BGP listen range in frr-bgp.conf both name this /64, and
+  # slice 3 is kept free for the Cilium LoadBalancer pool. Same pd/ra
+  # requirements as iot above.
+  ipv6_interface_type    = "pd"
+  ipv6_pd_interface      = "wan"
+  ipv6_pd_prefixid       = "2"
+  ipv6_pd_start          = "::2"
+  ipv6_pd_stop           = "::7d1"
+  ipv6_ra_enable         = true
+  ipv6_ra_valid_lifetime = 0
+
   dhcp_v6_dns_auto           = false
   dhcp_v6_lease              = 0
   ipv6_ra_preferred_lifetime = 0
-  ipv6_ra_valid_lifetime     = 0
 
   multicast_dns = true
 }

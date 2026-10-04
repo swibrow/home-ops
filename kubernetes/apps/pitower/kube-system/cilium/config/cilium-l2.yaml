@@ -30,3 +30,7 @@ spec:
   blocks:
     - start: 10.20.10.128
       stop: 10.20.10.255
+    # UniFi PD slice 3, assigned to no network: reachable only through the
+    # BGP /128s, so nothing has to answer NDP for it. Only Services that ask
+    # for dual-stack (ipFamilyPolicy) take an address from it.
+    - cidr: 2a02:16a:2a0a:3::/112
