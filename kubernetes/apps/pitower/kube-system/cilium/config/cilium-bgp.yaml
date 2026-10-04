@@ -1,5 +1,5 @@
 ---
-# Advertises LoadBalancer IPs and each node's pod CIDR to the UCG Fiber
+# Advertises LoadBalancer IPs and each node's pod CIDR (both families) to the UCG Fiber
 # (10.20.0.1), the LB IPs alongside the L2 announcements. The pool sits inside VLAN 20, so on-VLAN clients still ARP
 # for the VIPs; BGP gives every other VLAN ECMP routes via the gateway and
 # withdraws a node within the hold time instead of waiting out an L2 lease.
@@ -28,6 +28,13 @@ spec:
           peerASN: 64512
           peerConfigRef:
             name: ucg
+        # IPv6 routes need their own session: over the IPv4 one the next hop
+        # would be an IPv4-mapped address the gateway cannot use.
+        - name: ucg-v6
+          peerAddress: "2a02:16a:2a0a:2::1"
+          peerASN: 64512
+          peerConfigRef:
+            name: ucg-v6
 ---
 # yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/cilium.io/ciliumbgppeerconfig_v2.json
 apiVersion: cilium.io/v2
@@ -42,6 +49,26 @@ spec:
     holdTimeSeconds: 9
   families:
     - afi: ipv4
+      safi: unicast
+      advertisements:
+        matchExpressions:
+          - key: advertise
+            operator: In
+            values: [loadbalancer-ips, pod-cidr]
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/cilium.io/ciliumbgppeerconfig_v2.json
+apiVersion: cilium.io/v2
+kind: CiliumBGPPeerConfig
+metadata:
+  name: ucg-v6
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  timers:
+    keepAliveTimeSeconds: 3
+    holdTimeSeconds: 9
+  families:
+    - afi: ipv6
       safi: unicast
       advertisements:
         matchExpressions:
