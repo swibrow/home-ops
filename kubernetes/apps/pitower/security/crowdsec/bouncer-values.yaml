@@ -1,0 +1,22 @@
+# ext_authz service for envoy-external (networking/envoy-gateway/securitypolicy.yaml).
+# Client IP is the rightmost X-Forwarded-For entry, which Envoy appends from
+# the PROXY-protocol source address, so clients cannot spoof it.
+fullnameOverride: crowdsec-envoy-bouncer
+replicaCount: 2
+resources:
+  requests:
+    cpu: 10m
+    memory: 32Mi
+  limits:
+    cpu: null
+    memory: 128Mi
+config:
+  bouncer:
+    lapiURL: http://crowdsec-service.security.svc.cluster.local:8080
+    apiKeySecretRef:
+      name: crowdsec-envoy-bouncer-secret
+      key: BOUNCER_KEY_envoy
+referenceGrant:
+  create: true
+  fromNamespaces:
+    - networking

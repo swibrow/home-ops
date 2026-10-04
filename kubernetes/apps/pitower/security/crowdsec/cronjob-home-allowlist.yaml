@@ -1,0 +1,132 @@
+---
+# Keeps the home WAN addresses in the LAPI "home" allowlist so CrowdSec never
+# bans them: the IPv4 from checkip (pod egress leaves through the home WAN)
+# and the delegated IPv6 /64s from the gateway (the cluster itself has no
+# IPv6). Looked up at runtime instead of committed because this repo is public
+# and the tunnel exists to keep the home IP unpublished. Stale entries are
+# removed when the ISP changes either.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: crowdsec-home-allowlist
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: crowdsec-home-allowlist
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    resourceNames: ["crowdsec-lapi"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: crowdsec-home-allowlist
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: crowdsec-home-allowlist
+subjects:
+  - kind: ServiceAccount
+    name: crowdsec-home-allowlist
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: crowdsec-home-allowlist
+data:
+  update.sh: |
+    set -eu
+    lapi() { kubectl exec deploy/crowdsec-lapi -- cscli allowlists "$@"; }
+
+    ip4=$(curl -fsS -m 10 https://checkip.amazonaws.com | tr -d '[:space:]')
+    if ! echo "$ip4" | grep -Eq '^([0-9]{1,3}\.){3}[0-9]{1,3}$'; then
+      echo "IPv4 lookup returned '$ip4', leaving the allowlist unchanged" >&2
+      exit 1
+    fi
+
+    lapi inspect home -o raw >/dev/null 2>&1 || lapi create home -d "Home WAN IPs"
+    # raw is CSV: name,description,value,... (descriptions carry no commas)
+    have=$(lapi inspect home -o raw | tail -n +2 | cut -d, -f3)
+
+    v6=$(curl -fsSk -m 10 -H "X-API-KEY: $UNIFI_API_KEY" \
+        https://10.20.0.1/proxy/network/api/s/default/stat/device \
+      | jq -r '.data[].network_table[]? | select(.ipv6_interface_type == "pd") | .ipv6_subnets[]?') || v6=""
+    if [ -z "$v6" ]; then
+      echo "gateway reported no IPv6 prefixes, keeping the current ones" >&2
+      v6=$(echo "$have" | grep : || true)
+    fi
+
+    want=$(printf '%s\n' "$ip4" $v6)
+    for v in $have; do echo "$want" | grep -qxF "$v" || lapi remove home "$v"; done
+    for v in $want; do echo "$have" | grep -qxF "$v" || lapi add home "$v" -d "home WAN"; done
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: crowdsec-home-allowlist
+spec:
+  schedule: "*/10 * * * *"
+  timeZone: Europe/Zurich
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 120
+      ttlSecondsAfterFinished: 3600
+      template:
+        spec:
+          serviceAccountName: crowdsec-home-allowlist
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: update
+              image: docker.io/alpine/k8s:1.36.1
+              command: ["sh", "-c"]
+              args:
+                - sh /scripts/update.sh
+              env:
+                - name: HOME
+                  value: /tmp
+                - name: UNIFI_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: crowdsec-home-allowlist-secret
+                      key: UNIFI_API_KEY
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+                - name: tmp
+                  mountPath: /tmp
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  memory: 128Mi
+          volumes:
+            - name: scripts
+              configMap:
+                name: crowdsec-home-allowlist
+            - name: tmp
+              emptyDir: {}

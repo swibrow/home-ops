@@ -1,6 +1,6 @@
-# Detection-only: one agent tails envoy-external access logs out of
-# VictoriaLogs (no DaemonSet, no hostPath) and LAPI pushes ban decisions to
-# ntfy. Nothing enforces the decisions until a bouncer is added.
+# One agent tails envoy-external access logs out of VictoriaLogs (no
+# DaemonSet, no hostPath) and LAPI pushes ban decisions to ntfy. The envoy
+# bouncer (bouncer-values.yaml) enforces them on envoy-external via ext_authz.
 container_runtime: containerd
 
 secrets:
@@ -167,6 +167,8 @@ lapi:
         name: crowdsec-ntfy-secret
     - secretRef:
         name: crowdsec-db-secret
+    - secretRef:
+        name: crowdsec-envoy-bouncer-secret
   persistentVolume:
     data:
       enabled: false
