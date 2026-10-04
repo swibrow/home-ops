@@ -87,9 +87,20 @@ controllers:
               "config": {"enable": true},
               "info": {"id": "home-ops", "name": "Home-Ops",
                        "description": "Home lab tools: Kubernetes, ArgoCD, Grafana, logs, Home Assistant, GitHub, Terraform, AWS"}}]
+          # Shell with public internet egress (apps/pitower/ai/open-terminal).
+          # One container shared by everyone who can use it, so no grant:
+          # admin-only. Same persisted-config caveat (terminal_server.connections).
+          # $(OPEN_TERMINAL_API_KEY) is expanded by the kubelet from envFrom.
+          TERMINAL_SERVER_CONNECTIONS: >-
+            [{"id": "open-terminal", "name": "Open Terminal",
+              "url": "http://open-terminal.ai.svc.cluster.local:8000",
+              "path": "", "auth_type": "bearer", "key": "$(OPEN_TERMINAL_API_KEY)",
+              "enabled": true, "config": {}}]
         envFrom:
           - secretRef:
               name: open-webui
+          - secretRef:
+              name: open-terminal
         probes:
           liveness: &probe
             enabled: true

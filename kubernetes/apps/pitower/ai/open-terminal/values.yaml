@@ -1,0 +1,48 @@
+# Sandboxed shell for Open-WebUI (Admin Settings > Integrations > Open Terminal,
+# pre-seeded through TERMINAL_SERVER_CONNECTIONS). The full image carries
+# Python, Node.js, build tools and passwordless sudo so the model can install
+# what it needs at runtime; /home/user persists across restarts.
+controllers:
+  open-terminal:
+    annotations:
+      reloader.stakater.com/auto: "true"
+    containers:
+      app:
+        image:
+          repository: ghcr.io/open-webui/open-terminal
+          tag: 0.14.0
+        env:
+          TZ: Europe/Zurich
+        envFrom:
+          - secretRef:
+              name: open-terminal
+        probes:
+          liveness: &probe
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /health
+                port: 8000
+              initialDelaySeconds: 10
+              periodSeconds: 30
+          readiness: *probe
+        resources:
+          requests:
+            cpu: 50m
+            memory: 256Mi
+          limits:
+            memory: 4Gi
+
+service:
+  app:
+    controller: open-terminal
+    ports:
+      http:
+        port: 8000
+
+persistence:
+  home:
+    existingClaim: open-terminal-home
+    globalMounts:
+      - path: /home/user
