@@ -10,12 +10,11 @@ backend:
     TRADE_OPS_DATA_PROFILE: live
   persistence:
     size: 5Gi
-# LAN-only: nothing gates unreviewed main builds, so keep them off the
-# external gateway.
+# No auth in front of it, same as release.
 httpRoute:
   enabled: true
   hostname: trade-ops-dev.wibrow.dev
   gateway:
-    name: envoy-internal
+    name: envoy-external
     namespace: networking
     sectionName: https
