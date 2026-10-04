@@ -4,6 +4,6 @@ namespace: trade-ops-dev
 helmCharts:
   - name: trade-ops
     repo: oci://ghcr.io/swibrow/charts
-    version: 0.1.0-dev.27
+    version: 0.1.0-dev.32
     releaseName: trade-ops
     valuesFile: values.yaml
