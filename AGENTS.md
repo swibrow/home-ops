@@ -82,6 +82,20 @@ To track a site, embed the snippet in the page `<head>` (get `data-site-id` from
   - Caveats: traffic on `net1` bypasses Cilium policy and Hubble; a pod cannot reach its own node over macvlan; normal cluster pods cannot reach a pod's `net1` address from another subnet (asymmetric return path).
   - If pods lose `net1` after a Cilium rollout, check `/etc/cni/net.d` for `00-multus.conf.cilium_bak` and restart that node's Multus pod.
 
+## Alert Silences
+
+Before a cluster upgrade (Talos, Kubernetes, Cilium) or other disruptive work (draining or rebooting nodes, storage/ZFS changes, gateway or CNI changes), silence Alertmanager so ntfy isn't flooded, and expire the silence as soon as the work is verified. amtool runs inside the Alertmanager pod (UI: `alertmanager.wibrow.dev`, internal only):
+
+```sh
+am() { kubectl -n monitoring exec alertmanager-kube-prometheus-stack-0 -c alertmanager -- amtool --alertmanager.url=http://localhost:9093 "$@"; }
+am silence add 'alertname=~".+"' --duration=2h --author=agent --comment="<what and why>"  # prints the silence ID
+am silence query
+am silence expire <id>
+```
+
+- Scope the matcher to what the work touches when you can (e.g. `node="worker-07"`, `namespace="ai"`); silence everything only for cluster-wide upgrades.
+- Keep the duration short and extend it if needed, rather than leaving a long silence behind; always expire it at the end and say so in the reply.
+
 ## Task Tracking
 
 All TODOs, planned work, and follow-ups for this repo are tracked on the GitHub project board: <https://github.com/users/swibrow/projects/4>.
