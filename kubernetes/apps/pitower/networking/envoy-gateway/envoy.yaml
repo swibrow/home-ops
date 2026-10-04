@@ -89,6 +89,173 @@ spec:
   compression:
     - type: Brotli
     - type: Gzip
+  # Replaces Envoy's plain-text "upstream connect error ..." page. Routes with
+  # their own BackendTrafficPolicy (dozzle, garage) don't inherit this.
+  # Matches on status only, so an app's own 502/503/504 body is replaced too.
+  # The body is a substitution format string: same '%' rules as fallback.yaml,
+  # and only server-side operators, never request headers (reflected XSS).
+  responseOverride:
+    - match:
+        statusCodes:
+          - type: Value
+            value: 502
+          - type: Value
+            value: 503
+          - type: Value
+            value: 504
+      response:
+        contentType: text/html
+        header:
+          set:
+            - name: Cache-Control
+              value: no-store
+        body:
+          type: Inline
+          inline: |
+            <!doctype html>
+            <html lang="en">
+              <head>
+                <meta charset="utf-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1" />
+                <meta http-equiv="refresh" content="30" />
+                <title>%RESPONSE_CODE% · pitower</title>
+                <style>
+                  :root {
+                    color-scheme: dark;
+                    --bg: #0a0e14;
+                    --panel: #0d1117;
+                    --border: #1f2733;
+                    --fg: #c9d1d9;
+                    --muted: #6e7a8a;
+                    --green: #3fb950;
+                    --blue: #58a6ff;
+                    --red: #f85149;
+                    --amber: #d29922;
+                    --mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", Menlo, Consolas, monospace;
+                  }
+                  * { box-sizing: border-box; }
+                  html, body { margin: 0; }
+                  body {
+                    min-height: 100vh;
+                    display: grid;
+                    place-items: center;
+                    padding: 1.5rem;
+                    font-family: var(--mono);
+                    color: var(--fg);
+                    background:
+                      radial-gradient(1200px 600px at top center, #2a1416, transparent),
+                      var(--bg);
+                  }
+                  .term {
+                    width: min(680px, 92vw);
+                    background: var(--panel);
+                    border: 1px solid var(--border);
+                    border-radius: 12px;
+                    overflow: hidden;
+                    box-shadow: 0 24px 60px -20px rgba(0,0,0,0.7);
+                  }
+                  .bar {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 0.7rem 0.9rem;
+                    border-bottom: 1px solid var(--border);
+                    background: #0b0f16;
+                  }
+                  .dot { width: 12px; height: 12px; border-radius: 999px; }
+                  .dot.r { background: #ff5f56; }
+                  .dot.y { background: #ffbd2e; }
+                  .dot.g { background: #27c93f; }
+                  .bar .title {
+                    margin-left: auto;
+                    color: var(--muted);
+                    font-size: 0.78rem;
+                    letter-spacing: 0.02em;
+                  }
+                  .body {
+                    padding: 1.4rem 1.4rem 1.6rem;
+                    font-size: 0.92rem;
+                    line-height: 1.7;
+                  }
+                  .line { white-space: pre-wrap; word-break: break-word; }
+                  .prompt .ns { color: var(--blue); }
+                  .prompt .sep { color: var(--muted); }
+                  .prompt .path { color: var(--green); }
+                  .flag { color: var(--amber); }
+                  .err { color: var(--red); }
+                  .muted { color: var(--muted); }
+                  .big {
+                    margin: 1.1rem 0 0.2rem;
+                    font-size: clamp(3.2rem, 14vw, 5.5rem);
+                    font-weight: 700;
+                    letter-spacing: -0.04em;
+                    line-height: 1;
+                    background: linear-gradient(180deg, #ffd7d5, #f85149);
+                    -webkit-background-clip: text;
+                    background-clip: text;
+                    color: transparent;
+                  }
+                  dl {
+                    display: grid;
+                    grid-template-columns: max-content 1fr;
+                    gap: 0.1rem 1rem;
+                    margin: 1rem 0 0;
+                    font-size: 0.82rem;
+                  }
+                  dt { color: var(--muted); }
+                  dd { margin: 0; word-break: break-all; }
+                  .cursor {
+                    display: inline-block;
+                    width: 0.6ch;
+                    height: 1.05em;
+                    translate: 0 0.18em;
+                    background: var(--amber);
+                    animation: blink 0.55s steps(1) infinite alternate;
+                  }
+                  @keyframes blink { to { opacity: 0; } }
+                  .foot {
+                    margin-top: 1.2rem;
+                    padding-top: 0.9rem;
+                    border-top: 1px solid var(--border);
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 0.4rem 1.1rem;
+                    color: var(--muted);
+                    font-size: 0.8rem;
+                  }
+                  .foot a { color: var(--blue); text-decoration: none; }
+                  .foot a:hover { text-decoration: underline; }
+                  .tag b { color: var(--fg); font-weight: 600; }
+                </style>
+              </head>
+              <body>
+                <main class="term" role="main">
+                  <div class="bar">
+                    <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+                    <span class="title">pitower · talos · k8s</span>
+                  </div>
+                  <div class="body">
+                    <div class="line prompt"><span class="ns">sam</span><span class="sep">@</span><span class="path">pitower</span><span class="sep">:~$</span> curl <span class="flag">-sS</span> $UPSTREAM</div>
+                    <div class="line err">curl: the gateway is up, but the app behind it didn't answer</div>
+                    <div class="big">%RESPONSE_CODE%</div>
+                    <div class="line muted">It's probably restarting, rolling out, or being poked at. This page retries every 30s.</div>
+                    <dl>
+                      <dt>details</dt><dd>%RESPONSE_CODE_DETAILS%</dd>
+                      <dt>flags</dt><dd>%RESPONSE_FLAGS%</dd>
+                      <dt>upstream</dt><dd>%UPSTREAM_CLUSTER%</dd>
+                      <dt>time</dt><dd>%START_TIME(%Y-%m-%dT%H:%M:%SZ)%</dd>
+                    </dl>
+                    <div class="line prompt" style="margin-top: 1rem"><span class="ns">sam</span><span class="sep">@</span><span class="path">pitower</span><span class="sep">:~$</span> <span class="cursor"></span></div>
+                    <div class="foot">
+                      <span class="tag">reconciled by <b>ArgoCD</b></span>
+                      <span class="tag">routed by <b>Envoy Gateway</b></span>
+                      <span class="tag">CNI <b>Cilium</b></span>
+                      <a href="https://wibrow.dev">&rarr; wibrow.dev</a>
+                    </div>
+                  </div>
+                </main>
+              </body>
+            </html>
 ---
 # One policy per gateway because HTTP/3 and PROXY protocol can't share one:
 # Envoy Gateway puts the proxy_protocol listener filter on the QUIC listener
