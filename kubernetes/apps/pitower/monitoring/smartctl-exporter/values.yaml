@@ -9,6 +9,20 @@ serviceMonitor:
   enabled: true
 prometheusRules:
   enabled: true
+  rules:
+    # The control planes' AirDisk NVMe boot disks idle at 70-77°C, under their
+    # own 83°C warning / 85°C critical thresholds; the chart's flat 60°C fired
+    # on them permanently. SATA/SAS keep 60°C (worker-07's HDDs trip at 65°C).
+    smartCTLDDeviceTemperature:
+      expr: >-
+        smartctl_device_temperature{temperature_type="current", device!~"nvme.*"} > 60
+        or smartctl_device_temperature{temperature_type="current", device=~"nvme.*"} > 80
+      for: 15m
+      annotations:
+        summary: Device temperature is high
+        description: >-
+          Device {{ $labels.device }} on instance {{ $labels.instance }} is at
+          {{ $value }}°C (limit 60°C SATA/SAS, 80°C NVMe)
 resources:
   requests:
     cpu: 10m
