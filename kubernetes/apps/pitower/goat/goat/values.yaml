@@ -26,6 +26,12 @@ api:
     # /goat/DISCORD_BOT_TOKEN via externalSecrets.discord below.
     DISCORD_ALLOWED_USERS: "*"
     DISCORD_ALLOWED_GUILDS: "1528038323401261226"
+    # !release (#trade-ops only) dispatches trade-ops' release.yaml, which
+    # merges the rolling release PR here and waits for the rollout.
+    DISCORD_RELEASE_CHANNELS: "1556229178171596800"
+    RELEASE_REPO: swibrow/trade-ops
+    RELEASE_PR_REPO: swibrow/home-ops
+    RELEASE_PR_BRANCH: trade-ops-deploy/release
     # goat-api has no egress restrictions, so it reaches the collector
     # directly — no auth needed. Dev-session pods are built with an explicit
     # V1EnvVar list (no envFrom) and don't currently forward this; wiring
