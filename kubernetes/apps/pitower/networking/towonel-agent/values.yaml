@@ -19,7 +19,7 @@ controllers:
       app:
         image:
           repository: codeberg.org/towonel/towonel-agent
-          tag: 1.11.2
+          tag: 1.12.0
         env:
           NODE_NAME:
             valueFrom:
