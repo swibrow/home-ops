@@ -1,0 +1,33 @@
+# Managed by Ansible (roles/crowdsec-firewall-bouncer) — changes here are overwritten on the next deploy.
+mode: nftables
+update_frequency: 10s
+log_mode: stdout
+log_level: info
+api_url: {{ crowdsec_firewall_bouncer_api_url }}
+api_key: {{ crowdsec_firewall_bouncer_api_key }}
+insecure_skip_verify: false
+disable_ipv6: false
+deny_action: DROP
+deny_log: false
+supported_decisions_types:
+  - ban
+nftables:
+  ipv4:
+    enabled: true
+    set-only: false
+    table: crowdsec
+    chain: crowdsec-chain
+    priority: -10
+  ipv6:
+    enabled: true
+    set-only: false
+    table: crowdsec6
+    chain: crowdsec6-chain
+    priority: -10
+# forward as well as input: towonel-hub publishes :443 with docker -p, so
+# tunnel traffic is DNATed into the container and never hits input.
+nftables_hooks:
+  - input
+  - forward
+prometheus:
+  enabled: false

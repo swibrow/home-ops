@@ -1,0 +1,19 @@
+---
+crowdsec_firewall_bouncer_version: "0.0.36"
+crowdsec_firewall_bouncer_install_path: /usr/local/bin/crowdsec-firewall-bouncer
+crowdsec_firewall_bouncer_config_dir: /etc/crowdsec/bouncers
+crowdsec_firewall_bouncer_config_path: "{{ crowdsec_firewall_bouncer_config_dir }}/crowdsec-firewall-bouncer.yaml"
+
+# sha256 of the upstream crowdsec-firewall-bouncer-linux-<arch>.tgz release
+# asset, from the GitHub release's asset digests.
+crowdsec_firewall_bouncer_checksums:
+  amd64: sha256:f86e4b72693549d99f40a9402abefb894108f047a3fbe6e72fada25ee17ce88b
+  arm64: sha256:ce184d3b1ae5888189d237bb0ff1d2414be2ef12729750a7321a4abd2d253de6
+
+crowdsec_firewall_bouncer_arch_map:
+  x86_64: amd64
+  aarch64: arm64
+
+# pitower's LAPI, published on envoy-external for this host only
+# (kubernetes/apps/pitower/security/crowdsec/httproute-lapi.yaml).
+crowdsec_firewall_bouncer_api_url: https://crowdsec-lapi.wibrow.dev/

@@ -1,0 +1,53 @@
+---
+# Decision stream for the ovh-vps firewall bouncer, which drops banned IPs in
+# nftables before they reach Caddy and the tunnel. Only the bouncer endpoints
+# are routed, and only from the VPS's own IPv4: it reaches this hostname by
+# hairpinning through its own :443, so Envoy sees the VPS address (the VPS's
+# IPv6 hairpin does not connect, so the bouncer falls back to IPv4).
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/gateway.networking.k8s.io/httproute_v1.json
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: crowdsec-lapi
+  annotations:
+    # LAN probes would only ever see the 403 below.
+    gatus.home-operations.com/enabled: "false"
+spec:
+  hostnames:
+    - crowdsec-lapi.wibrow.dev
+  parentRefs:
+    - name: envoy-external
+      namespace: networking
+      sectionName: https
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /v1/decisions
+        - path:
+            type: PathPrefix
+            value: /v1/usage-metrics
+      backendRefs:
+        - name: crowdsec-service
+          port: 8080
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/gateway.envoyproxy.io/securitypolicy_v1alpha1.json
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: crowdsec-lapi
+spec:
+  # Keep the gateway-level CrowdSec bouncer (networking/envoy-gateway).
+  mergeType: StrategicMerge
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: crowdsec-lapi
+  authorization:
+    defaultAction: Deny
+    rules:
+      - name: ovh-vps
+        action: Allow
+        principal:
+          clientCIDRs:
+            - 164.132.98.136/32

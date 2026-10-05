@@ -1,0 +1,15 @@
+[Unit]
+Description=CrowdSec firewall bouncer (nftables, decisions from pitower LAPI)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+ExecStartPre={{ crowdsec_firewall_bouncer_install_path }} -c {{ crowdsec_firewall_bouncer_config_path }} -t
+ExecStart={{ crowdsec_firewall_bouncer_install_path }} -c {{ crowdsec_firewall_bouncer_config_path }}
+Restart=always
+RestartSec=10
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

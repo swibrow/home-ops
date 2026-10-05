@@ -1,0 +1,61 @@
+---
+- name: Load SOPS-encrypted bouncer API key
+  community.sops.load_vars:
+    file: "{{ role_path }}/vars/secrets.sops.yaml"
+
+- name: Determine crowdsec-firewall-bouncer release arch
+  ansible.builtin.set_fact:
+    crowdsec_firewall_bouncer_release_arch: "{{ crowdsec_firewall_bouncer_arch_map[ansible_facts['architecture']] }}"
+
+- name: Download crowdsec-firewall-bouncer {{ crowdsec_firewall_bouncer_version }}
+  ansible.builtin.get_url:
+    url: "https://github.com/crowdsecurity/cs-firewall-bouncer/releases/download/v{{ crowdsec_firewall_bouncer_version }}/crowdsec-firewall-bouncer-linux-{{ crowdsec_firewall_bouncer_release_arch }}.tgz"
+    dest: "/tmp/crowdsec-firewall-bouncer-{{ crowdsec_firewall_bouncer_version }}-linux-{{ crowdsec_firewall_bouncer_release_arch }}.tgz"
+    checksum: "{{ crowdsec_firewall_bouncer_checksums[crowdsec_firewall_bouncer_release_arch] }}"
+    mode: "0644"
+
+- name: Install crowdsec-firewall-bouncer binary
+  ansible.builtin.unarchive:
+    src: "/tmp/crowdsec-firewall-bouncer-{{ crowdsec_firewall_bouncer_version }}-linux-{{ crowdsec_firewall_bouncer_release_arch }}.tgz"
+    dest: "{{ crowdsec_firewall_bouncer_install_path | dirname }}"
+    remote_src: true
+    include: "crowdsec-firewall-bouncer-v{{ crowdsec_firewall_bouncer_version }}/crowdsec-firewall-bouncer"
+    extra_opts: ["--strip-components=1"]
+    owner: root
+    group: root
+    mode: "0755"
+  notify: Restart crowdsec-firewall-bouncer
+
+- name: Ensure crowdsec-firewall-bouncer config directory exists
+  ansible.builtin.file:
+    path: "{{ crowdsec_firewall_bouncer_config_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Install crowdsec-firewall-bouncer config
+  ansible.builtin.template:
+    src: crowdsec-firewall-bouncer.yaml.j2
+    dest: "{{ crowdsec_firewall_bouncer_config_path }}"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  notify: Restart crowdsec-firewall-bouncer
+
+- name: Install crowdsec-firewall-bouncer systemd unit
+  ansible.builtin.template:
+    src: crowdsec-firewall-bouncer.service.j2
+    dest: /etc/systemd/system/crowdsec-firewall-bouncer.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart crowdsec-firewall-bouncer
+
+- name: Ensure crowdsec-firewall-bouncer is enabled and running
+  ansible.builtin.systemd_service:
+    name: crowdsec-firewall-bouncer
+    daemon_reload: true
+    enabled: true
+    state: started

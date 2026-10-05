@@ -169,6 +169,8 @@ lapi:
         name: crowdsec-db-secret
     - secretRef:
         name: crowdsec-envoy-bouncer-secret
+    - secretRef:
+        name: crowdsec-vps-bouncer-secret
   persistentVolume:
     data:
       enabled: false
