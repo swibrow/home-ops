@@ -10,3 +10,8 @@ spec:
   env:
     - name: HOSTNAME
       value: "::"
+  # TEI's CPU image is amd64-only; the Pi workers are arm64.
+  podTemplateSpec:
+    spec:
+      nodeSelector:
+        kubernetes.io/arch: amd64
