@@ -1,0 +1,42 @@
+---
+# Scale-to-zero like comfyui and the llmkube models: they all share ai-01's
+# single GPU, so whichever runs holds it and the others stay Pending until it
+# idles out.
+apiVersion: http.keda.sh/v1beta1
+kind: InterceptorRoute
+metadata:
+  name: strata
+spec:
+  target:
+    service: strata
+    port: 8080
+  rules:
+    - hosts:
+        - strata.wibrow.dev
+  # Strata decodes one request at a time and queues the rest.
+  scalingMetric:
+    concurrency:
+      targetValue: 1
+  timeouts:
+    # Pod schedule plus loading the pack into RAM and VRAM (1-3 minutes).
+    readiness: 600s
+    responseHeader: 300s
+    request: 0s
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: strata
+spec:
+  scaleTargetRef:
+    name: strata
+    kind: Deployment
+    apiVersion: apps/v1
+  minReplicaCount: 0
+  maxReplicaCount: 1
+  cooldownPeriod: 900
+  triggers:
+    - type: external-push
+      metadata:
+        scalerAddress: keda-add-ons-http-external-scaler.system:9090
+        interceptorRoute: strata
