@@ -48,11 +48,6 @@ terminal:
   cwd: /opt/data/workspace
   timeout: 180
   persistent_shell: true
-  # Credentials the cron pre-check scripts (cron/jobs.yaml) need; cron scripts
-  # get a sanitized env otherwise.
-  env_passthrough:
-    - MINIFLUX_API_TOKEN
-    - FORGEJO_TOKEN
 approvals:
   mode: smart
   # Cron jobs read mail, feeds and alert payloads; anything flagged dangerous is
