@@ -33,6 +33,10 @@ controllers:
           limits:
             memory: 4Gi
 
+defaultPodOptions:
+  nodeSelector:
+    kubernetes.io/arch: amd64
+
 service:
   app:
     controller: browser-use
