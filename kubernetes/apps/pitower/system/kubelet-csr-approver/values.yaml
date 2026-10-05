@@ -3,3 +3,11 @@
 #   ^(delta|enigma|felix)$
 
 # bypassDnsResolution: true
+
+# Kubelet serving CSRs carry both node IPs. The hostname only resolves to the
+# IPv4 one, so DNS-based validation denies every CSR; check the SAN IPs
+# against VLAN 20 instead.
+bypassDnsResolution: true
+providerIpPrefixes:
+  - 10.20.0.0/16
+  - 2a02:16a:2a0a:2::/64

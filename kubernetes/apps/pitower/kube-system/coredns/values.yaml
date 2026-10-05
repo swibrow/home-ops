@@ -9,6 +9,12 @@ serviceAccount:
 service:
   name: kube-dns
   clusterIP: 10.96.0.10
+  # Talos puts the 10th address of each service subnet into every pod's
+  # resolv.conf, so the IPv6 one must exist or lookups that reach it time out.
+  clusterIPs:
+    - 10.96.0.10
+    - fd10:96::a
+  ipFamilyPolicy: PreferDualStack
 servers:
   - zones:
       - zone: .
