@@ -13,7 +13,45 @@ controllers:
     strategy: Recreate
     type: deployment
     initContainers:
+      git-sync:
+        image:
+          repository: registry.k8s.io/git-sync/git-sync
+          tag: v4.7.1@sha256:c5e1976da735bf0b53979f079a07475d77174c51863cd084e928ff6074480717
+        restartPolicy: Always
+        env:
+          GITSYNC_REPO: git@github.com:swibrow/hermes.git
+          GITSYNC_REF: main
+          GITSYNC_ROOT: /opt/hermes-repo
+          GITSYNC_LINK: current
+          GITSYNC_PERIOD: 60s
+          GITSYNC_MAX_FAILURES: "10"
+          GITSYNC_SSH_KEY_FILE: /etc/git-secret/ssh
+          GITSYNC_SSH_KNOWN_HOSTS_FILE: /etc/git-secret/known_hosts
+          # ssh needs a passwd entry for the non-default uid.
+          GITSYNC_ADD_USER: "true"
+          GITSYNC_HTTP_BIND: :2020
+          GITSYNC_EXECHOOK_COMMAND: /etc/git-sync/exechook.sh
+        securityContext:
+          runAsUser: 10000
+          runAsGroup: 10000
+        probes:
+          startup:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /
+                port: 2020
+              periodSeconds: 2
+              failureThreshold: 60
+        resources:
+          requests:
+            cpu: 5m
+            memory: 32Mi
+          limits:
+            memory: 128Mi
       init:
+        dependsOn: git-sync
         image:
           repository: docker.io/library/alpine
           tag: "3.24"
@@ -29,7 +67,11 @@ controllers:
             # and does not interpolate ${VAR}). Key chars are [A-Za-z0-9_-] only, so
             # '|' is a safe sed delimiter.
             sed "s|__AGENTGATEWAY_API_KEY__|${AGENTGATEWAY_API_KEY}|g" /tmp/config.yaml > /opt/data/config.yaml
-            mkdir -p /opt/data/workspace
+            mkdir -p /opt/data/workspace /opt/data/plugins
+            # Plugins come from the synced swibrow/hermes tree.
+            plugin=/opt/data/plugins/memini
+            if [ -d "$plugin" ] && [ ! -L "$plugin" ]; then rmdir "$plugin"; fi
+            ln -sfn /opt/hermes-repo/current/plugins/memini "$plugin"
             chown -R 10000:10000 /opt/data/config.yaml /opt/data/workspace
     containers:
       app:
@@ -169,9 +211,27 @@ persistence:
     globalMounts:
       - path: /tmp/config.yaml
         subPath: config.yaml
-  memini-plugin:
-    type: configMap
-    name: hermes-memini-plugin
-    defaultMode: 0755
+  hermes-repo:
+    type: emptyDir
     globalMounts:
-      - path: /opt/data/plugins/memini
+      - path: /opt/hermes-repo
+  git-sync-key:
+    type: secret
+    name: hermes-git-sync
+    defaultMode: 0400
+    advancedMounts:
+      hermes:
+        git-sync:
+          - path: /etc/git-secret/ssh
+            subPath: ssh
+  git-sync-config:
+    type: configMap
+    name: hermes-git-sync
+    defaultMode: 0755
+    advancedMounts:
+      hermes:
+        git-sync:
+          - path: /etc/git-secret/known_hosts
+            subPath: known_hosts
+          - path: /etc/git-sync/exechook.sh
+            subPath: exechook.sh
