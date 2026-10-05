@@ -5,6 +5,8 @@ kind: Kustomization
 namespace: ai
 resources:
   - externalsecret.yaml
+  - externalsecret-integrations.yaml
+  - externalsecret-google.yaml
 components:
   - ../../../../components/pvc
   - ../../../../components/kopiur
@@ -14,6 +16,12 @@ configMapGenerator:
       disableNameSuffixHash: true
     files:
       - config.yaml=config.yaml
+  - name: hermes-cron
+    options:
+      disableNameSuffixHash: true
+    files:
+      - jobs.yaml=cron/jobs.yaml
+      - sync.py=cron/sync.py
   - name: hermes-git-sync
     options:
       disableNameSuffixHash: true

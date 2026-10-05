@@ -75,11 +75,26 @@ controllers:
             if [ -d "$plugin" ] && [ ! -L "$plugin" ]; then rmdir "$plugin"; fi
             ln -sfn /opt/hermes-repo/current/plugins/memini "$plugin"
             chown -R 10000:10000 /opt/data/config.yaml /opt/data/workspace
-    containers:
-      app:
+      cron-sync:
+        dependsOn: init
         image: &image
           repository: nousresearch/hermes-agent
           tag: v2026.9.24@sha256:fca358f12efd65bfaaca05884166f15c0e2788375ca30d77061ac1ebc96452b7
+        command:
+          - /opt/hermes/.venv/bin/python
+          - /tmp/hermes-cron/sync.py
+          - /tmp/hermes-cron/jobs.yaml
+        workingDir: /opt/hermes
+        env:
+          HERMES_HOME: /opt/data
+          PYTHONPATH: /opt/hermes
+          TZ: Europe/Zurich
+        securityContext:
+          runAsUser: 10000
+          runAsGroup: 10000
+    containers:
+      app:
+        image: *image
         args: ["gateway", "run"]
         env:
           MEMINI_BASE_URL: http://memini.ai:8080
@@ -98,6 +113,9 @@ controllers:
         envFrom:
           - secretRef:
               name: hermes
+          - secretRef:
+              name: hermes-integrations
+              optional: true
         resources:
           requests:
             cpu: 14m
@@ -213,6 +231,24 @@ persistence:
     globalMounts:
       - path: /tmp/config.yaml
         subPath: config.yaml
+  cron:
+    type: configMap
+    name: hermes-cron
+    advancedMounts:
+      hermes:
+        cron-sync:
+          - path: /tmp/hermes-cron
+  # OAuth client JSON read by the google-workspace skill from $HERMES_HOME.
+  google-client-secret:
+    type: secret
+    name: hermes-google
+    defaultMode: 0440
+    advancedMounts:
+      hermes:
+        app:
+          - path: /opt/data/google_client_secret.json
+            subPath: GOOGLE_WORKSPACE_OAUTH
+            readOnly: true
   hermes-repo:
     type: emptyDir
     globalMounts:

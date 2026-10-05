@@ -42,11 +42,35 @@ skills:
   # Synced from swibrow/hermes by the git-sync sidecar.
   external_dirs:
     - /opt/hermes-repo/current/skills
+  write_approval: true
 terminal:
   backend: local
   cwd: /opt/data/workspace
   timeout: 180
   persistent_shell: true
+  # Credentials the cron pre-check scripts (cron/jobs.yaml) need; cron scripts
+  # get a sanitized env otherwise.
+  env_passthrough:
+    - MINIFLUX_API_TOKEN
+    - FORGEJO_TOKEN
+approvals:
+  mode: smart
+  # Cron jobs read mail, feeds and alert payloads; anything flagged dangerous is
+  # denied there rather than auto-approved.
+  cron_mode: deny
+  # Unconditional, even under /yolo. Mail is read + draft only (no draft
+  # subcommand exists, so drafts go to chat), and infra changes go through git.
+  deny:
+    - '*google_api.py gmail send*'
+    - '*google_api.py gmail reply*'
+    - '*gws gmail*send*'
+    - 'kubectl delete*'
+    - 'terraform apply*'
+    - 'terraform destroy*'
+    - 'talosctl reset*'
+    - 'git push --force*'
+checkpoints:
+  enabled: true
 memory:
   provider: memini
   auto_migrate: true
@@ -68,16 +92,35 @@ security:
 privacy:
   redact_pii: true
 platform_toolsets:
+  # Listing an MCP server name makes it an allowlist, so interactive sessions
+  # get the full toolhive server and not the duplicate read-only view.
   cli:
     - hermes-cli
+    - toolhive
   telegram:
     - hermes-telegram
+    - toolhive
 mcp_servers:
   # Anonymous in-cluster vMCP (toolhive/toolhive-config/virtualmcpserver-direct.yaml).
   # The OAuth vMCP (vmcp-mcp-gateway, mcp.wibrow.dev) requires a browser OAuth flow
   # Hermes can't do, so it uses the anonymous sibling, netpol-locked to this pod.
   toolhive:
     url: http://vmcp-mcp-gateway-direct.ai:4483/mcp
+  # Same gateway restricted to read tools, for cron jobs that ingest untrusted
+  # text. Allowlisted by name because vMCP aggregation is not verified to keep
+  # readOnlyHint annotations (so `trust: untrusted` could block reads too).
+  # Names are the vMCP-prefixed originals, e.g. github_list_pull_requests.
+  toolhive_ro:
+    url: http://vmcp-mcp-gateway-direct.ai:4483/mcp
+    tools:
+      include:
+        - '*_get*'
+        - '*_list*'
+        - '*_search*'
+        - '*_query*'
+        - '*_find*'
+        - '*_describe*'
+        - '*_read*'
 auxiliary:
   vision:
     provider: anthropic
