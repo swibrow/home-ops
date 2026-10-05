@@ -1,12 +1,10 @@
 model:
-  # Claude Max subscription via agentgateway's *-max models, which forward the
-  # client's OAuth token to Anthropic unchanged. The AI box (`local` on the llm
-  # provider) is left free for testing.
-  default: claude-sonnet-max
-  provider: anthropic
-  context_length: 200000
-# Paid OpenRouter fallback when the subscription is rate-limited. On the llm
-# provider so the OAuth headers below never reach OpenRouter.
+  # Claude Max subscription through the official Claude Code CLI
+  # (NousResearch/hermes-plugin-claude-subscription-directsdk, installed by the
+  # claude-code init container). The AI box (`local` on llm) stays free.
+  provider: claude-subscription-directsdk-experimental
+  default: sonnet
+# Paid OpenRouter fallback for when the subscription is rate-limited.
 fallback_providers:
   - provider: llm
     model: claude-haiku
@@ -18,24 +16,15 @@ providers:
     base_url: http://agentgateway.ai.svc.cluster.local/v1
     api_mode: chat_completions
     # hermes does NOT interpolate ${VAR} in config and the provider requires the
-    # key inline. The init container substitutes the __PLACEHOLDERS__ from the
-    # `hermes` secret before hermes starts.
+    # key inline. The init container substitutes this placeholder with the real
+    # AGENTGATEWAY_API_KEY (from the `hermes` secret) before hermes starts.
     api_key: __AGENTGATEWAY_API_KEY__
     # Single llama.cpp slot: concurrent requests queue server-side.
     request_timeout_seconds: 900
-  anthropic:
-    # A different gateway hostname from llm on purpose: hermes matches
-    # extra_headers by base_url, and these carry the subscription token.
-    base_url: http://agentgateway.ai.svc/
-    api_mode: anthropic_messages
-    # The OAuth token as api_key makes hermes apply its Claude Code request
-    # transforms. It still goes out as x-api-key (agentgateway strips that), so
-    # the token rides in Authorization and the gateway key in its own header.
-    api_key: __CLAUDE_OAUTH_TOKEN__
-    extra_headers:
-      x-agentgateway-api-key: __AGENTGATEWAY_API_KEY__
-      Authorization: Bearer __CLAUDE_OAUTH_TOKEN__
-      anthropic-beta: oauth-2025-04-20,claude-code-20250219,interleaved-thinking-2025-05-14,fine-grained-tool-streaming-2025-05-14
+  claude-subscription-directsdk-experimental:
+    # Bounds a Claude Code call that hangs without output; Hermes' stale-call
+    # watchdog is off for process:// providers otherwise.
+    stale_timeout_seconds: 900
 toolsets:
   - hermes-cli
 skills:
@@ -118,21 +107,21 @@ mcp_servers:
         - '*_read*'
 auxiliary:
   vision:
-    provider: anthropic
-    model: claude-sonnet-max
+    provider: claude-subscription-directsdk-experimental
+    model: sonnet
   compression:
-    provider: anthropic
-    model: claude-haiku-max
+    provider: claude-subscription-directsdk-experimental
+    model: haiku
     timeout: 180
   web_extract:
-    provider: anthropic
-    model: claude-haiku-max
+    provider: claude-subscription-directsdk-experimental
+    model: haiku
     timeout: 120
   approval:
-    provider: anthropic
-    model: claude-haiku-max
+    provider: claude-subscription-directsdk-experimental
+    model: haiku
     timeout: 60
   session_search:
-    provider: anthropic
-    model: claude-haiku-max
+    provider: claude-subscription-directsdk-experimental
+    model: haiku
     timeout: 120
