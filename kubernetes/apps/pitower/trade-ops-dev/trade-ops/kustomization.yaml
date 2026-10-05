@@ -7,3 +7,17 @@ helmCharts:
     version: 0.1.0-dev.37
     releaseName: trade-ops
     valuesFile: values.yaml
+# The release env's route is also named trade-ops; Gatus refuses duplicate
+# endpoint names and crashloops.
+patches:
+  - target:
+      kind: HTTPRoute
+      name: trade-ops
+    patch: |-
+      apiVersion: gateway.networking.k8s.io/v1
+      kind: HTTPRoute
+      metadata:
+        name: trade-ops
+        annotations:
+          gatus.home-operations.com/endpoint: |
+            name: trade-ops-dev
