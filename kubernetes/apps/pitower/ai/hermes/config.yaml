@@ -1,13 +1,14 @@
 model:
-  # `local` is agentgateway's alias for the current in-cluster model
-  # (ai/agentgateway/config/models.yaml), so the model swap happens there.
-  # Neither agentgateway nor llama.cpp advertise the context window, so it is
-  # pinned to the InferenceService's contextSize of whatever `local` points at.
-  default: local
-  provider: llm
-  context_length: 131072
+  # Claude Max subscription via agentgateway's *-max models, which forward the
+  # client's OAuth token to Anthropic unchanged. The AI box (`local` on the llm
+  # provider) is left free for testing.
+  default: claude-sonnet-max
+  provider: anthropic
+  context_length: 200000
+# Paid OpenRouter fallback when the subscription is rate-limited. On the llm
+# provider so the OAuth headers below never reach OpenRouter.
 fallback_providers:
-  - provider: anthropic
+  - provider: llm
     model: claude-haiku
 providers:
   llm:
@@ -16,23 +17,25 @@ providers:
     # the cold start.
     base_url: http://agentgateway.ai.svc.cluster.local/v1
     api_mode: chat_completions
-    # Same placeholder as the anthropic provider below; the init container
-    # substitutes it.
+    # hermes does NOT interpolate ${VAR} in config and the provider requires the
+    # key inline. The init container substitutes the __PLACEHOLDERS__ from the
+    # `hermes` secret before hermes starts.
     api_key: __AGENTGATEWAY_API_KEY__
     # Single llama.cpp slot: concurrent requests queue server-side.
     request_timeout_seconds: 900
   anthropic:
-    # Routed through agentgateway (ai/agentgateway) instead of api.anthropic.com
-    # directly, using a gateway client key rather than a real Anthropic key.
-    # Model names are agentgateway's own aliases (claude-sonnet/claude-haiku ->
-    # OpenRouter), not real Anthropic model ids.
-    base_url: http://agentgateway.ai.svc.cluster.local/
+    # A different gateway hostname from llm on purpose: hermes matches
+    # extra_headers by base_url, and these carry the subscription token.
+    base_url: http://agentgateway.ai.svc/
     api_mode: anthropic_messages
-    # hermes does NOT interpolate ${VAR} in config (that relies on Flux postBuild
-    # substitution, unused here) and the provider requires the key inline. The init
-    # container substitutes this placeholder with the real AGENTGATEWAY_API_KEY (from
-    # the `hermes` secret) before hermes starts — mirroring what Flux bakes in.
-    api_key: __AGENTGATEWAY_API_KEY__
+    # The OAuth token as api_key makes hermes apply its Claude Code request
+    # transforms. It still goes out as x-api-key (agentgateway strips that), so
+    # the token rides in Authorization and the gateway key in its own header.
+    api_key: __CLAUDE_OAUTH_TOKEN__
+    extra_headers:
+      x-agentgateway-api-key: __AGENTGATEWAY_API_KEY__
+      Authorization: Bearer __CLAUDE_OAUTH_TOKEN__
+      anthropic-beta: oauth-2025-04-20,claude-code-20250219,interleaved-thinking-2025-05-14,fine-grained-tool-streaming-2025-05-14
 toolsets:
   - hermes-cli
 skills:
@@ -78,20 +81,20 @@ mcp_servers:
 auxiliary:
   vision:
     provider: anthropic
-    model: claude-sonnet
+    model: claude-sonnet-max
   compression:
     provider: anthropic
-    model: claude-haiku
+    model: claude-haiku-max
     timeout: 180
   web_extract:
     provider: anthropic
-    model: claude-haiku
+    model: claude-haiku-max
     timeout: 120
   approval:
     provider: anthropic
-    model: claude-haiku
+    model: claude-haiku-max
     timeout: 60
   session_search:
     provider: anthropic
-    model: claude-haiku
+    model: claude-haiku-max
     timeout: 120
