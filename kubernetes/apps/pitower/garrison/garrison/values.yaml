@@ -56,6 +56,23 @@ herald:
 # version above is bumped past it, these keys are inert.
 warhorn:
   enabled: true
+# Alexa surface. The "garrison" Custom Skill invokes the garrison-crier
+# Lambda (terraform/garrison-alexa), which forwards to POST /alexa on this
+# route; envoy-external because the Lambda calls in from AWS. CRIER_TOKEN,
+# CRIER_SKILL_ID and CRIER_ALLOWED_USER_IDS sync from Infisical
+# (/garrison/CRIER_*). CRIER_TOKEN comes from
+# `terraform output -raw crier_token` in that stack.
+# NOTE: requires chart >= the release carrying the crier — until the
+# version above is bumped past it, these keys are inert.
+crier:
+  enabled: true
+  httpRoute:
+    enabled: true
+    hostname: garrison-alexa.wibrow.dev
+    gateway:
+      name: envoy-external
+      namespace: networking
+      sectionName: https
 # Post-mortem log source. Kubernetes drops a raid pod's logs when the pod goes,
 # so `garrison keep logs`, the wartable panel, and the emissary pod_logs tool
 # used to go blind on exactly the raids worth investigating. VictoriaLogs keeps
