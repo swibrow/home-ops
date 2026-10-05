@@ -32,5 +32,12 @@
       matchPackageNames: ["mcr.microsoft.com/playwright"],
       enabled: false,
     },
+    {
+      // browser-use v3.0.0 pins langchain-ibm==0.3.10, which requires Python <3.13.
+      matchDatasources: ["docker"],
+      matchFileNames: ["docker/browser-use/Dockerfile"],
+      matchPackageNames: ["python"],
+      allowedVersions: "<3.13",
+    },
   ],
 }
