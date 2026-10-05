@@ -35,6 +35,10 @@ providers:
     api_key: __AGENTGATEWAY_API_KEY__
 toolsets:
   - hermes-cli
+skills:
+  # Synced from swibrow/hermes by the git-sync sidecar.
+  external_dirs:
+    - /opt/hermes-repo/current/skills
 terminal:
   backend: local
   cwd: /opt/data/workspace

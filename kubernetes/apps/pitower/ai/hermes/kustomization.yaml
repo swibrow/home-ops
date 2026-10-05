@@ -14,12 +14,12 @@ configMapGenerator:
       disableNameSuffixHash: true
     files:
       - config.yaml=config.yaml
-  - name: hermes-memini-plugin
+  - name: hermes-git-sync
     options:
       disableNameSuffixHash: true
     files:
-      - __init__.py=plugin-memini/__init__.py
-      - plugin.yaml=plugin-memini/plugin.yaml
+      - known_hosts=known_hosts
+      - exechook.sh=git-sync-hook.sh
   - name: pvc-config
     options:
       disableNameSuffixHash: true
