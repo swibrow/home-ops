@@ -8,12 +8,20 @@ metadata:
 spec:
   image: ghcr.io/argoproj-labs/mcp-for-argocd:v0.9.0
   # Image default CMD is `node dist/index.js http` (HTTP stream on :3000).
+  # Since v0.9.0 it binds loopback unless told otherwise, and a non-loopback
+  # bind needs an inbound token or --allow-unauthenticated; the ToolHive proxy
+  # in front is the auth layer.
+  args:
+    - http
+    - --allow-unauthenticated
   transport: streamable-http
   proxyPort: 8080
   mcpPort: 3000
   groupRef:
     name: mcp-tools
   env:
+    - name: MCP_BIND_ADDRESS
+      value: 0.0.0.0
     - name: ARGOCD_BASE_URL
       value: http://argocd-server.argocd.svc
     # Refuse any mutating operations regardless of the token's RBAC.
