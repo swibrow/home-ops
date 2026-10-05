@@ -55,6 +55,13 @@ name: zfs
 parameters:
   - zfs_arc_max=68719476736
 ---
+# ext-zfs-service loads the module before Talos applies KernelModuleConfig, so
+# the parameter above is lost at boot. The ARC cap is writable at runtime.
+apiVersion: v1alpha1
+kind: SysfsConfig
+params:
+  module.zfs.parameters.zfs_arc_max: "68719476736"
+---
 # The X710 (i40e) defaults to 512 RX descriptors, which overflow on line-rate
 # bursts (image pulls) and show up as rx_missed_errors. Changing rings resets
 # the link for a few seconds.
