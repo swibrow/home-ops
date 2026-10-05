@@ -15,6 +15,7 @@ jobs:
     runs-on: home-ops
     outputs:
       images: ${{ steps.set-matrix.outputs.images }}
+      builds: ${{ steps.set-matrix.outputs.builds }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -28,28 +29,38 @@ jobs:
           json: "true"
           escape_json: "false"
 
+      # One build per image and arch, each on a native runner. An image limits
+      # its arches with a `platforms` file (one per line); default is both.
       - id: set-matrix
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "images=$(basename -a docker/*/ | jq -R -s -c 'split("\n") | map(select(length > 0))')" >> "$GITHUB_OUTPUT"
+            images=$(basename -a docker/*/)
           else
-            echo "images=$(echo '${{ steps.changed.outputs.all_changed_files }}' | jq -c '[.[] | ltrimstr("docker/")]')" >> "$GITHUB_OUTPUT"
+            images=$(echo '${{ steps.changed.outputs.all_changed_files }}' | jq -r '.[] | ltrimstr("docker/")')
           fi
+          builds=$(for image in $images; do
+            [[ -f "docker/$image/Dockerfile" ]] || continue
+            for platform in $(cat "docker/$image/platforms" 2>/dev/null || echo linux/amd64 linux/arm64); do
+              jq -nc --arg image "$image" --arg platform "$platform" \
+                '{image: $image, platform: $platform, arch: ($platform | split("/")[1])}'
+            done
+          done | jq -sc .)
+          echo "builds=${builds}" >> "$GITHUB_OUTPUT"
+          echo "images=$(jq -c '[.[].image] | unique' <<< "$builds")" >> "$GITHUB_OUTPUT"
 
   build:
     needs: discover
-    if: needs.discover.outputs.images != '[]'
-    runs-on: home-ops
+    if: needs.discover.outputs.builds != '[]'
+    runs-on: ${{ matrix.arch == 'arm64' && 'home-ops-arm64' || 'home-ops' }}
     permissions:
       contents: read
       packages: write
     strategy:
+      fail-fast: false
       matrix:
-        image: ${{ fromJson(needs.discover.outputs.images) }}
+        include: ${{ fromJson(needs.discover.outputs.builds) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
 
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
@@ -59,18 +70,62 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - id: version
-        run: |
-          version=$(grep -oP 'ARG \w+_VERSION=\K.+' docker/${{ matrix.image }}/Dockerfile | head -1)
-          echo "tag=${version:-${{ github.sha }}}" >> "$GITHUB_OUTPUT"
-          platforms=$(cat docker/${{ matrix.image }}/platforms 2>/dev/null || echo linux/amd64,linux/arm64)
-          echo "platforms=${platforms}" >> "$GITHUB_OUTPUT"
-
-      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+      - id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: docker/${{ matrix.image }}
-          platforms: ${{ steps.version.outputs.platforms }}
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/swibrow/${{ matrix.image }}:${{ steps.version.outputs.tag }}
-            ${{ env.REGISTRY }}/swibrow/${{ matrix.image }}:latest
+          platforms: ${{ matrix.platform }}
+          outputs: type=image,name=${{ env.REGISTRY }}/swibrow/${{ matrix.image }},push-by-digest=true,name-canonical=true,push=true
+
+      - env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          mkdir -p "${RUNNER_TEMP}/digests"
+          touch "${RUNNER_TEMP}/digests/${DIGEST#sha256:}"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: digests-${{ matrix.image }}-${{ matrix.arch }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    needs: [discover, build]
+    runs-on: home-ops
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ${{ fromJson(needs.discover.outputs.images) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-${{ matrix.image }}-*
+          merge-multiple: true
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - env:
+          IMAGE: ${{ env.REGISTRY }}/swibrow/${{ matrix.image }}
+        run: |
+          version=$(grep -oP 'ARG \w+_VERSION=\K.+' docker/${{ matrix.image }}/Dockerfile | head -1)
+          sources=()
+          for digest in "${RUNNER_TEMP}"/digests/*; do
+            sources+=("${IMAGE}@sha256:$(basename "$digest")")
+          done
+          docker buildx imagetools create \
+            -t "${IMAGE}:${version:-${{ github.sha }}}" \
+            -t "${IMAGE}:latest" \
+            "${sources[@]}"
