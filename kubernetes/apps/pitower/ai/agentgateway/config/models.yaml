@@ -217,6 +217,51 @@ spec:
       - field: model
         expression: '"qwen38-flash-next-uncensored"'
 ---
+# Strata (apps/pitower/ai/strata) runs its refusal-direction projection by
+# default; strata sends experimental_speed_projection=false to switch it off
+# per request, so both names share one pod.
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayModel
+metadata:
+  name: strata
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: agentgateway
+      sectionName: http
+  provider: OpenAI
+  baseURL: http://strata-scaled.ai.svc.cluster.local:8080/v1
+  policies:
+    auth:
+      secretRef:
+        name: agentgateway-providers
+        key: STRATA_API_KEY
+    transformations:
+      - field: experimental_speed_projection
+        expression: "false"
+---
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayModel
+metadata:
+  name: strata-uncensored
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: agentgateway
+      sectionName: http
+  provider: OpenAI
+  baseURL: http://strata-scaled.ai.svc.cluster.local:8080/v1
+  policies:
+    auth:
+      secretRef:
+        name: agentgateway-providers
+        key: STRATA_API_KEY
+    transformations:
+      - field: experimental_speed_projection
+        expression: "true"
+---
 # Stable alias for the current in-cluster chat model.
 apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayModel

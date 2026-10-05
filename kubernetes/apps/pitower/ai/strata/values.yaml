@@ -104,3 +104,6 @@ route:
           - name: keda-add-ons-http-interceptor-proxy
             namespace: system
             port: 8080
+        # Envoy's 15s default cuts off a streamed answer mid-generation.
+        timeouts:
+          request: 0s
