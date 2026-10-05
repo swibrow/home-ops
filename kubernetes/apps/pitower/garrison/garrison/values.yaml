@@ -159,6 +159,8 @@ networkPolicy:
     # memini-api.wibrow.dev resolves to 10.20.10.238 — inside the blocked
     # 10.0.0.0/8 range. Allowing the gateway pods on 443 also reaches every
     # other internal vhost behind them; NetworkPolicy cannot filter by SNI.
+    # The port is the envoy pod's 10443, not the Service's 443: policy is
+    # evaluated after the LoadBalancer DNAT.
     - to:
         - namespaceSelector:
             matchLabels:
@@ -168,7 +170,7 @@ networkPolicy:
               gateway.networking.k8s.io/gateway-name: envoy-internal
       ports:
         - protocol: TCP
-          port: 443
+          port: 10443
 httpRoute:
   enabled: true
   hostname: garrison.wibrow.dev
