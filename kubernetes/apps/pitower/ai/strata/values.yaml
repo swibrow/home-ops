@@ -3,6 +3,8 @@ controllers:
   strata:
     annotations:
       reloader.stakater.com/auto: "true"
+    # KEDA owns the replica count; a rendered value would scale it up on every sync.
+    replicas: null
     # One GPU on the node: a rolling update's new pod could never get the claim.
     strategy: Recreate
     containers:
