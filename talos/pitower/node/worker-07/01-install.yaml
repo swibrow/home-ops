@@ -54,3 +54,13 @@ kind: KernelModuleConfig
 name: zfs
 parameters:
   - zfs_arc_max=68719476736
+---
+# The X710 (i40e) defaults to 512 RX descriptors, which overflow on line-rate
+# bursts (image pulls) and show up as rx_missed_errors. Changing rings resets
+# the link for a few seconds.
+apiVersion: v1alpha1
+kind: EthernetConfig
+name: enp3s0f1np1
+rings:
+  rx: 4096
+  tx: 4096
