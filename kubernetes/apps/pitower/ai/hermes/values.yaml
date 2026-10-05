@@ -63,18 +63,43 @@ controllers:
           - -c
           - |
             set -eu
-            # Bake the real keys into the config (hermes needs them inline and does
-            # not interpolate ${VAR}). Key chars are [A-Za-z0-9_-] only, so '|' is a
-            # safe sed delimiter.
-            sed -e "s|__AGENTGATEWAY_API_KEY__|${AGENTGATEWAY_API_KEY}|g" \
-              -e "s|__CLAUDE_OAUTH_TOKEN__|${CLAUDE_OAUTH_TOKEN}|g" \
-              /tmp/config.yaml > /opt/data/config.yaml
+            # Bake the real AGENTGATEWAY_API_KEY into the config (hermes needs it inline
+            # and does not interpolate ${VAR}). Key chars are [A-Za-z0-9_-] only, so
+            # '|' is a safe sed delimiter.
+            sed "s|__AGENTGATEWAY_API_KEY__|${AGENTGATEWAY_API_KEY}|g" /tmp/config.yaml > /opt/data/config.yaml
             mkdir -p /opt/data/workspace /opt/data/plugins
             # Plugins come from the synced swibrow/hermes tree.
             plugin=/opt/data/plugins/memini
             if [ -d "$plugin" ] && [ ! -L "$plugin" ]; then rmdir "$plugin"; fi
             ln -sfn /opt/hermes-repo/current/plugins/memini "$plugin"
             chown -R 10000:10000 /opt/data/config.yaml /opt/data/workspace
+      # The Claude subscription provider plugin drives the official Claude Code
+      # CLI, which the hermes image does not ship. Both land on the PVC and are
+      # only refetched when the pinned versions change.
+      claude-code:
+        dependsOn: init
+        image:
+          repository: nousresearch/hermes-agent
+          tag: v2026.9.24@sha256:fca358f12efd65bfaaca05884166f15c0e2788375ca30d77061ac1ebc96452b7
+        env:
+          HOME: /opt/data
+          CLAUDE_CODE_VERSION: 2.1.285
+          PLUGIN_REF: 31b591fd04737a7807183f3d7f3d389b19f94687
+        command:
+          - /bin/sh
+          - -c
+          - |
+            set -eu
+            prefix=/opt/data/.npm-global
+            if [ "$("$prefix/bin/claude" --version 2>/dev/null | cut -d' ' -f1)" != "$CLAUDE_CODE_VERSION" ]; then
+              npm install -g --prefix "$prefix" "@anthropic-ai/claude-code@$CLAUDE_CODE_VERSION"
+            fi
+            plugin=/opt/data/plugins/claude-subscription-directsdk-experimental
+            if [ "$(git -C "$plugin" rev-parse HEAD 2>/dev/null)" != "$PLUGIN_REF" ]; then
+              rm -rf "$plugin"
+              git clone -q https://github.com/NousResearch/hermes-plugin-claude-subscription-directsdk "$plugin"
+              git -C "$plugin" checkout -q "$PLUGIN_REF"
+            fi
     containers:
       app:
         image: &image
@@ -95,6 +120,7 @@ controllers:
           HERMES_HOME: /opt/data
           HOME: /opt/data
           TZ: Europe/Zurich
+          CLAUDE_SUBSCRIPTION_DIRECTSDK_COMMAND: /opt/data/.npm-global/bin/claude
         envFrom:
           - secretRef:
               name: hermes
