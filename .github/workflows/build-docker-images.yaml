@@ -90,8 +90,11 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  # Runs per image even when another image's build failed; an image missing any
+  # of its arches is not tagged.
   merge:
     needs: [discover, build]
+    if: ${{ !cancelled() && needs.discover.outputs.images != '[]' }}
     runs-on: home-ops
     permissions:
       contents: read
@@ -121,10 +124,16 @@ jobs:
           IMAGE: ${{ env.REGISTRY }}/swibrow/${{ matrix.image }}
         run: |
           version=$(grep -oP 'ARG \w+_VERSION=\K.+' docker/${{ matrix.image }}/Dockerfile | head -1)
+          shopt -s nullglob
           sources=()
           for digest in "${RUNNER_TEMP}"/digests/*; do
             sources+=("${IMAGE}@sha256:$(basename "$digest")")
           done
+          expected=$(cat docker/${{ matrix.image }}/platforms 2>/dev/null || echo linux/amd64 linux/arm64)
+          if (( ${#sources[@]} != $(wc -w <<< "$expected") )); then
+            echo "::error::${{ matrix.image }}: ${#sources[@]} of $(wc -w <<< "$expected") arches built"
+            exit 1
+          fi
           docker buildx imagetools create \
             -t "${IMAGE}:${version:-${{ github.sha }}}" \
             -t "${IMAGE}:latest" \
