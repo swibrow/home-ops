@@ -1,0 +1,10 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+# Standing pieces for fine-tuning runs. The Job itself is run-once, so it is
+# submitted from the training repo rather than synced here.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ai
+resources:
+  - pvc.yaml
+  - resourceclaimtemplate.yaml

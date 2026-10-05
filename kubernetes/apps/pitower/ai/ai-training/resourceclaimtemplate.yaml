@@ -1,0 +1,15 @@
+---
+# The RTX 3090 Ti through the NVIDIA DRA driver (system/dra-driver-nvidia-gpu).
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaimTemplate
+metadata:
+  name: ai-training-gpu
+spec:
+  spec:
+    devices:
+      requests:
+        - name: gpu
+          exactly:
+            deviceClassName: gpu.nvidia.com
+            allocationMode: ExactCount
+            count: 1

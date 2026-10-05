@@ -1,0 +1,14 @@
+---
+# Hugging Face cache, uploaded datasets and run outputs on ai-01's NVMe. The
+# training data is private, so it is copied in by hand and never committed.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ai-training
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: openebs-hostpath-models
+  resources:
+    requests:
+      storage: 100Gi
