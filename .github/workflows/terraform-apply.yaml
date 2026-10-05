@@ -7,6 +7,7 @@ on:
       # Only the stacks in this workflow's matrix; terraform/unifi has its own
       # workflow on the self-hosted runner for VLAN 20 access.
       - "terraform/alexa/**"
+      - "terraform/garrison-alexa/**"
       - "terraform/bootstrap/**"
       - "terraform/general/**"
 
@@ -22,6 +23,7 @@ jobs:
       matrix:
         stack:
           - alexa
+          - garrison-alexa
           - bootstrap
           - general
       fail-fast: false
