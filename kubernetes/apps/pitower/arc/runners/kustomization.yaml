@@ -443,6 +443,19 @@ helmCharts:
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.15.0
+    releaseName: kontractor-runners
+    namespace: arc-runners
+    valuesFile: values.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/cloudsnacks/kontractor
+      runnerScaleSetName: kontractor
+      template:
+        spec:
+          serviceAccountName: kontractor-runners
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.15.0
     releaseName: money-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -531,19 +544,6 @@ helmCharts:
       template:
         spec:
           serviceAccountName: trade-ops-runners
-  - name: gha-runner-scale-set
-    repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.15.0
-    releaseName: vast-ai-operator-runners
-    namespace: arc-runners
-    valuesFile: values.yaml
-    valuesMerge: override
-    valuesInline:
-      githubConfigUrl: https://github.com/cloudsnacks/vast-ai-operator
-      runnerScaleSetName: vast-ai-operator
-      template:
-        spec:
-          serviceAccountName: vast-ai-operator-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.15.0
