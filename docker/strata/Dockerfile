@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # Upstream's Dockerfile (github.com/Niko1221/Strata), built from the release
 # tag instead of a local checkout because upstream publishes no image.
-FROM nvidia/cuda:13.0.0-devel-ubuntu24.04
+FROM nvidia/cuda:13.4.2-devel-ubuntu24.04
 
 ARG STRATA_VERSION=v0.1.39
 # RTX 3090 Ti only; a different card needs its arch added here.
