@@ -1,0 +1,99 @@
+---
+# Always-on Omarchy dev VM without a GPU. The first boot falls through the empty
+# root disk to the ISO, which finds the cidata disk, installs unattended and
+# reboots into the installed system. Console: virtctl vnc dev -n vms
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: dev
+spec:
+  runStrategy: Always
+  dataVolumeTemplates:
+    - metadata:
+        name: dev-iso
+      spec:
+        source:
+          http:
+            url: https://iso.omarchy.org/omarchy-4.0.4.iso
+        storage:
+          storageClassName: ceph-block
+          resources:
+            requests:
+              storage: 7Gi
+    # ceph-block's StorageProfile makes these RWX Block, which is what lets the
+    # VM live-migrate between the AMD nodes.
+    - metadata:
+        name: dev-root
+      spec:
+        source:
+          blank: {}
+        storage:
+          storageClassName: ceph-block
+          resources:
+            requests:
+              storage: 100Gi
+  template:
+    metadata:
+      labels:
+        kubevirt.io/vm: dev
+    spec:
+      # Overrides the cluster-wide None: worker-01/02/03 share a host CPU model
+      # (EPYC-Rome), so drains and upgrades can migrate the VM instead of
+      # stopping it.
+      evictionStrategy: LiveMigrate
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: feature.node.kubernetes.io/amd-gpu
+                    operator: In
+                    values: ["true"]
+      domain:
+        cpu:
+          cores: 4
+        memory:
+          guest: 4Gi
+        # The Omarchy installer refuses Secure Boot and only sets up Limine for UEFI.
+        firmware:
+          bootloader:
+            efi:
+              secureBoot: false
+        devices:
+          video:
+            type: virtio
+          inputs:
+            - name: tablet
+              type: tablet
+              bus: usb
+          rng: {}
+          disks:
+            # Must stay the only virtio disk: the cidata config installs to /dev/vda.
+            - name: root
+              bootOrder: 1
+              disk:
+                bus: virtio
+            - name: iso
+              bootOrder: 2
+              cdrom:
+                bus: sata
+            - name: cidata
+              disk:
+                bus: sata
+          interfaces:
+            - name: default
+              masquerade: {}
+      networks:
+        - name: default
+          pod: {}
+      volumes:
+        - name: root
+          dataVolume:
+            name: dev-root
+        - name: iso
+          dataVolume:
+            name: dev-iso
+        - name: cidata
+          secret:
+            secretName: dev-cidata
+            volumeLabel: cidata
