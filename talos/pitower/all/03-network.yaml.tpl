@@ -51,3 +51,16 @@ podSubnets:
 serviceSubnets:
   - 10.96.0.0/12
   - fd10:96::/112
+{{- with index .Node.Data "lanLinks" }}
+# lanLinks are links on the untagged Default LAN (192.168.0.0/24, PD slice 0).
+# Left alone they autoconfigure a slice-0 address and a second IPv6 default
+# route, and pod egress gets masqueraded to that address instead of leaving
+# via VLAN 20. VLAN subinterfaces and macvlans keep their own IPv6 settings.
+---
+apiVersion: v1alpha1
+kind: SysctlConfig
+params:
+{{- range . }}
+  net.ipv6.conf.{{ . }}.disable_ipv6: "1"
+{{- end }}
+{{- end }}
