@@ -3,7 +3,7 @@
 # release environment and only moves when its deploy PR is merged by hand.
 # Pinned by deploy version for the same spegel reason as the release values.
 image:
-  tag: v0.1.0-dev.37
+  tag: v0.1.0-dev.42
 imagePullSecret: ghcr-pull-secret
 backend:
   env:
