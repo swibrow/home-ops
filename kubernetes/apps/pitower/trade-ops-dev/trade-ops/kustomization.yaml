@@ -4,7 +4,7 @@ namespace: trade-ops-dev
 helmCharts:
   - name: trade-ops
     repo: oci://ghcr.io/swibrow/charts
-    version: 0.1.0-dev.37
+    version: 0.1.0-dev.42
     releaseName: trade-ops
     valuesFile: values.yaml
 # The release env's route is also named trade-ops; Gatus refuses duplicate
