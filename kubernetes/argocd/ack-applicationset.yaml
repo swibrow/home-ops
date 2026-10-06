@@ -87,7 +87,7 @@ spec:
                 annotations:
                   eks.amazonaws.com/role-arn: arn:aws:iam::633355703129:role/pitower-ack-controllers
             elbv2:
-              enabled: true
+              enabled: false
               aws:
                 region: eu-central-2
               serviceAccount:
@@ -108,7 +108,7 @@ spec:
                 annotations:
                   eks.amazonaws.com/role-arn: arn:aws:iam::633355703129:role/pitower-ack-controllers
             rds:
-              enabled: true
+              enabled: false
               aws:
                 region: eu-central-2
               serviceAccount:
@@ -129,7 +129,7 @@ spec:
                 annotations:
                   eks.amazonaws.com/role-arn: arn:aws:iam::633355703129:role/pitower-ack-controllers
             secretsmanager:
-              enabled: true
+              enabled: false
               aws:
                 region: eu-central-2
               serviceAccount:
