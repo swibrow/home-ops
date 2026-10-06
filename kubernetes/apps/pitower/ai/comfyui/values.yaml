@@ -2,6 +2,8 @@ controllers:
   comfyui:
     annotations:
       reloader.stakater.com/auto: "true"
+    # KEDA owns the replica count; a rendered value would scale it up on every sync.
+    replicas: null
     # Recreate, not RollingUpdate: the node has exactly one GPU, so a new pod's
     # claim can never be allocated beside the old one and a rolling update
     # would deadlock.
