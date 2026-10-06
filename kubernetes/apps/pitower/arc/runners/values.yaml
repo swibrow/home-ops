@@ -54,7 +54,7 @@ template:
         effect: NoSchedule
     initContainers:
       - name: init-dind-externals
-        image: ghcr.io/actions/actions-runner:2.337.0
+        image: ghcr.io/actions/actions-runner:2.338.0
         command: ["cp"]
         args: ["-r", "/home/runner/externals/.", "/home/runner/tmpDir/"]
         volumeMounts:
@@ -89,7 +89,7 @@ template:
             mountPath: /var/lib/docker
     containers:
       - name: runner
-        image: ghcr.io/actions/actions-runner:2.337.0
+        image: ghcr.io/actions/actions-runner:2.338.0
         command: ["/home/runner/run.sh"]
         env:
           - name: DOCKER_HOST
