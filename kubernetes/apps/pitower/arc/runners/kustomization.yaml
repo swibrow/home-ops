@@ -76,6 +76,20 @@ helmCharts:
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.15.0
+    releaseName: cloudsnacks-runners
+    namespace: arc-runners
+    valuesFile: values.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/cloudsnacks
+      githubConfigSecret: arc-github-app-cloudsnacks
+      runnerScaleSetName: cloudsnacks
+      template:
+        spec:
+          serviceAccountName: cloudsnacks-runners
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.15.0
     releaseName: dotfiles-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -440,19 +454,6 @@ helmCharts:
       template:
         spec:
           serviceAccountName: how-runners
-  - name: gha-runner-scale-set
-    repo: oci://ghcr.io/actions/actions-runner-controller-charts
-    version: 0.15.0
-    releaseName: kontractor-runners
-    namespace: arc-runners
-    valuesFile: values.yaml
-    valuesMerge: override
-    valuesInline:
-      githubConfigUrl: https://github.com/cloudsnacks/kontractor
-      runnerScaleSetName: kontractor
-      template:
-        spec:
-          serviceAccountName: kontractor-runners
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.15.0
