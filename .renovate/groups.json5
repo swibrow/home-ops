@@ -2,17 +2,6 @@
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
   packageRules: [
     {
-      description: "Flux Group",
-      groupName: "Flux",
-      matchPackagePatterns: ["^flux", "^ghcr.io/fluxcd/"],
-      matchDatasources: ["docker", "github-tags"],
-      versioning: "semver",
-      group: {
-        commitMessageTopic: "{{{groupName}}} group",
-      },
-      separateMinorPatch: true,
-    },
-    {
       description: "Rook-Ceph image and chart",
       groupName: "Rook Ceph",
       matchPackagePatterns: ["rook.ceph"],
@@ -70,16 +59,6 @@
       group: {
         commitMessageTopic: "{{{groupName}}} group",
       },
-    },
-    {
-      description: "silence-operator image and CRD",
-      groupName: "silence-operator",
-      matchPackagePatterns: ["silence-operator"],
-      matchDatasources: ["docker", "github-releases"],
-      group: {
-        commitMessageTopic: "{{{groupName}}} group",
-      },
-      separateMinorPatch: true,
     },
   ],
 }

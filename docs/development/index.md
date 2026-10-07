@@ -6,13 +6,13 @@ Guide for contributing to the home lab repository and developing new application
 
 ## Overview
 
-All cluster state is defined as code in this Git repository. Changes are made via pull requests to the `main` branch, and ArgoCD automatically syncs the desired state to the cluster.
+All cluster state is defined as code in this Git repository. Changes go through pull requests to `main`; CI renders and diffs them, and ArgoCD syncs `main` to the cluster.
 
 ```mermaid
 flowchart LR
     Dev((Developer)) -->|Edit| Local[Local Clone]
     Local -->|Push| Branch[Feature Branch]
-    Branch -->|PR| Main[main branch]
+    Branch -->|PR: checks + ArgoCD Diff| Main[main branch]
     Main -->|Webhook| ArgoCD[ArgoCD]
     ArgoCD -->|Sync| Cluster[Cluster]
 ```
@@ -22,27 +22,25 @@ flowchart LR
 ## Repository Layout
 
 ```
-pitower/kubernetes/apps/
-├── ai/                    # AI workloads
-├── banking/               # Financial tools
-├── cert-manager/          # TLS certificate management
-├── cloudnative-pg/        # PostgreSQL operator and clusters
-├── home-automation/       # Home Assistant ecosystem
-├── kube-system/           # Core Kubernetes components
-├── media/                 # Media management stack
-├── monitoring/            # Observability stack
-├── networking/            # Network infrastructure
-├── openebs/               # Local persistent volumes
-├── rook-ceph/             # Distributed storage
-├── security/              # Auth, secrets, identity
-├── selfhosted/            # General self-hosted apps
-└── system/                # System utilities
+kubernetes/
+├── apps/pitower/          # <category>/<app>/ - one ArgoCD Application per app directory
+├── argocd/                # ApplicationSets (applied manually)
+├── bootstrap/             # ArgoCD installation
+└── components/            # Reusable kustomize components: pvc, kopiur, cnpg-db-shared
+talos/pitower/             # Talos machine config, managed with topf
+terraform/                 # AWS, Cloudflare, UniFi and other stacks
+docker/                    # Images built by the Build Docker Images workflow
+docs/                      # These pages (Markdown)
+site/                      # Astro project that builds docs/ into this site
 ```
 
-Each application lives in its own subdirectory and contains:
+Each application directory typically contains:
 
-- `kustomization.yaml` -- Kustomize config with Helm chart reference
-- `values.yaml` -- Helm chart values
+- `kustomization.yaml`: namespace, components, and the `helmCharts` generator
+- `values.yaml`: Helm values (usually app-template)
+- `externalsecret.yaml`: optional, secrets from Infisical
+
+See [GitOps > Adding Apps](../gitops/adding-apps.md#categories) for the current categories.
 
 ---
 
@@ -50,33 +48,35 @@ Each application lives in its own subdirectory and contains:
 
 ### Prerequisites
 
+Tool versions are pinned in the root `mise.toml`; `mise install` installs them, and `mise` also sets `KUBECONFIG` to `~/.kube/pitower.yaml` (the default `~/.kube/config` is a different cluster).
+
 | Tool | Purpose |
 |:-----|:--------|
 | `kubectl` | Kubernetes CLI |
-| `kustomize` | Manifest generation (with Helm support) |
-| `helm` | Helm chart operations |
-| `talosctl` | Talos node management |
-| `sops` | Secret decryption |
-| `just` | Task runner for justfile recipes |
-| `argocd` | ArgoCD CLI (optional) |
+| `kustomize` | Manifest rendering (with Helm support) |
+| `helm` | Used by `kustomize --enable-helm` |
+| `talosctl` | Talos diagnostics |
+| `sops` | Secret decryption (Talos secrets) |
+| `jq` | JSON processing |
+| `just` | Task runner for `justfile` recipes (not managed by mise) |
+| `pre-commit` | yamllint, whitespace and terraform hooks (`just pre-commit-init`) |
 
 ### Validate Changes Locally
 
-Before pushing, validate your Helm templates render correctly:
+Render an app the same way ArgoCD does:
 
 ```bash
-cd pitower/kubernetes/apps/<category>/<app>
-kustomize build . --enable-helm
+kustomize build --enable-helm --load-restrictor LoadRestrictionsNone \
+  kubernetes/apps/pitower/<category>/<app>
 ```
 
-This renders the full Kubernetes manifest without applying it.
+`--load-restrictor LoadRestrictionsNone` is needed for apps that use `kubernetes/components/`. Kustomize downloads charts into a `charts/` directory inside the app, which is gitignored.
 
 ### Test with Dry Run
 
-Apply with `--dry-run=server` to validate against the cluster's API:
-
 ```bash
-kustomize build . --enable-helm | kubectl apply --dry-run=server -f -
+kustomize build --enable-helm --load-restrictor LoadRestrictionsNone \
+  kubernetes/apps/pitower/<category>/<app> | kubectl apply --dry-run=server -f -
 ```
 
 ---
@@ -94,24 +94,40 @@ kustomize build . --enable-helm | kubectl apply --dry-run=server -f -
 
 ### Naming
 
-- **Namespaces** match the category directory name (e.g., `selfhosted`, `media`, `networking`)
+- **Namespaces** match the category directory name (`selfhosted`, `media`, `networking`)
 - **Release names** match the application directory name
-- **Hostnames** follow the pattern `<app>.example.com`
+- **Hostnames** are `<app>.wibrow.dev`
 
 ### Values Files
 
-- Use the bjw-s [app-template](https://github.com/bjw-s-labs/helm-charts/tree/main/charts/other/app-template) chart (v4.6.2) for most applications
-- Always set resource requests and limits
-- Use `reloader.stakater.com/auto: "true"` annotation for automatic reloads on ConfigMap/Secret changes
-- Configure health probes (liveness, readiness, startup)
+- Use the bjw-s [app-template](https://github.com/bjw-s-labs/helm-charts/tree/main/charts/other/app-template) chart (5.2.1) for most applications
+- Set resource requests and a memory limit; the weekly [krr-rightsize](../ci-cd/github-actions.md#krr-rightsize) workflow tunes requests from Prometheus data
+- Add `reloader.stakater.com/auto: "true"` to controllers that consume Secrets or ConfigMaps
+- Set `TZ: Europe/Zurich` where the app cares about time zones
 
 ### Gateway Routing
 
-- **External services** (public, Cloudflare-proxied): Use `envoy-external` gateway
-- **Internal services** (LAN/VPN only): Use `envoy-internal` gateway
+- **`envoy-external`**: public, reached through the towonel tunnel
+- **`envoy-internal`**: LAN and Tailscale only
+
+Both live in the `networking` namespace and are referenced with `sectionName: https`.
 
 ### Secrets
 
 - Never commit plaintext secrets
-- Use External Secrets Operator with 1Password Connect for runtime secrets
-- Use SOPS with age encryption for secrets that must live in Git (e.g., Talos configs)
+- Runtime secrets come from Infisical via External Secrets (`ClusterSecretStore` `infisical`), stored at `/<category>/<app>/<SECRET_NAME>`
+- Database credentials come from the `cnpg-secrets-database` store via the `cnpg-db-shared` component
+- SOPS with age is used for secrets that must live in Git (Talos configs, ArgoCD bootstrap)
+
+### Commits
+
+Conventional Commits (`type(scope): summary`), for example `feat(selfhosted): add linkding`.
+
+### Documentation
+
+Pages are plain Markdown in `docs/`, written to read well on GitHub too. `site/` is an Astro project that renders them to [swibrow.github.io/home-ops](https://swibrow.github.io/home-ops); `just docs serve` runs it locally on port 8888 and `just docs build` does what CI does.
+
+- Link between pages with relative `.md` paths (`../storage/garage.md#buckets`); the build rewrites them and fails on any link or anchor that does not resolve
+- Callouts use GitHub alerts (`> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`); a bold first line becomes the title. Collapsible blocks use `<details><summary>`
+- Diagrams are ` ```mermaid ` fences, rendered in the browser
+- A new page must be added to the navigation in `site/src/nav.ts`, or the build fails

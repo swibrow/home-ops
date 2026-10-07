@@ -18,10 +18,6 @@ spec:
   targets:
     staticConfig:
       static:
-        # The LDAP listener on envoy-internal. Jellyfin and anything else
-        # authenticating against kanidm over LDAPS depends on it, and nothing
-        # checked it. Note this VIP answers TCP but not ICMP.
-        - 10.20.10.238:389
         # NUT upsd. Until the exporter lands in a later phase this at least
         # proves the UPS daemon is alive.
         - 10.20.85.197:3493
@@ -36,10 +32,6 @@ spec:
         exposure: internal
         scope: lan
       relabelingConfigs:
-        - sourceLabels: [__param_target]
-          regex: ".*:389"
-          targetLabel: component
-          replacement: "ldap-listener"
         - sourceLabels: [__param_target]
           regex: ".*:3493"
           targetLabel: component

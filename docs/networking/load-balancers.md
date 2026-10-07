@@ -4,186 +4,41 @@ title: Load Balancers
 
 # Load Balancers
 
-Load balancing in the cluster is handled entirely by Cilium's LoadBalancer IP Address Management (LBIPAM). There is no MetalLB -- Cilium's L2 announcements provide the same functionality with fewer components and tighter integration with the CNI.
+LoadBalancer Services get their IPs from Cilium's LoadBalancer IP Address Management (LB-IPAM). There is no MetalLB: Cilium announces each IP two ways at once, over L2 (ARP) and over BGP to the UniFi gateway.
 
-## How Cilium LBIPAM Works
-
-When a Kubernetes Service of type `LoadBalancer` is created, Cilium assigns it an IP address from the configured pool and responds to ARP requests for that IP on all Linux nodes. This allows clients on the LAN to reach the service at the assigned IP.
+## How It Works
 
 ```mermaid
 flowchart TB
-    subgraph Pool["CiliumLoadBalancerIPPool<br/>192.168.0.220 - 192.168.0.239"]
-        IP1[.220 - CoreDNS]
-        IP2[.221 - nginx-internal]
-        IP3[.222 - LLDAP]
-        IP4[.226 - Mosquitto]
-        IP5[.227 - Home Assistant]
-        IP6[.228 - Matter Server]
-        IP7[.229 - Jellyfin]
-        IP8[.230 - OTBR]
-        IP9[.231 - nginx-external]
-        IP10[.238 - envoy-internal]
-        IP11[.239 - envoy-external]
+    subgraph Pool["CiliumLoadBalancerIPPool 'pool'"]
+        V4["10.20.10.128 - 10.20.10.255"]
+        V6["2a02:16a:2a0a:3::/112"]
     end
 
-    subgraph Cilium["Cilium Agent (per node)"]
-        L2[L2 Announcement<br/>ARP Responder]
+    subgraph Cilium["Cilium agents (all nodes except worker-ai-01)"]
+        L2[L2 announcement<br/>ARP responder]
+        BGP[BGP speaker<br/>ASN 64513]
     end
 
-    Client((LAN Client)) -->|"ARP: Who has<br/>192.168.0.238?"| L2
-    L2 -->|"ARP Reply:<br/>Node MAC"| Client
-    Client -->|"IP Traffic"| IP10
+    V4 --> L2 & BGP
+    V6 --> BGP
 
-    classDef pool fill:#00b894,stroke:#00a381,color:#fff
-    class IP1,IP2,IP3,IP4,IP5,IP6,IP7,IP8,IP9,IP10,IP11 pool
+    VLAN20((VLAN 20 client)) -->|"ARP"| L2
+    UCG[UCG Fiber<br/>ASN 64512] <-->|"/32 and /128 routes"| BGP
+    Other((Other VLAN client)) --> UCG
 ```
 
-### IP Assignment Methods
+- **L2**: needed because the IPv4 pool is inside VLAN 20 (`10.20.0.0/16`), so clients on that VLAN ARP for the VIP directly. One node holds a lease per IP.
+- **BGP**: every peering node advertises every LoadBalancer IP, so clients on other VLANs get ECMP routes via the gateway, and a failed node is withdrawn within the 9s hold time instead of waiting out an L2 lease.
+- **IPv6**: the `2a02:16a:2a0a:3::/112` block is assigned to no network, so it is reachable only through the BGP `/128`s. Only Services that request dual-stack with `ipFamilyPolicy` get an address from it.
 
-There are two ways a Service gets an IP from the pool:
+See [Cilium CNI](cilium-cni.md#bgp) for the BGP configuration.
 
-**Automatic assignment**: If no specific IP is requested, Cilium picks the next available IP from the pool.
+## Requesting an IP
 
-**Explicit assignment**: Services can request a specific IP using the `lbipam.cilium.io/ips` annotation:
+Pin an address with the `lbipam.cilium.io/ips` annotation; without it, Cilium picks the next free one.
 
-```yaml
-apiVersion: v1
-kind: Service
-metadata:
-  annotations:
-    lbipam.cilium.io/ips: "192.168.0.238"
-spec:
-  type: LoadBalancer
-```
-
-!!! tip "Gateway Infrastructure Annotations"
-    For Envoy Gateway, the `lbipam.cilium.io/ips` annotation is placed in the Gateway's `spec.infrastructure.annotations` block (not on the Gateway metadata). Envoy Gateway copies these annotations to the Service it creates.
-
-    ```yaml
-    apiVersion: gateway.networking.k8s.io/v1
-    kind: Gateway
-    metadata:
-      name: envoy-internal
-    spec:
-      infrastructure:
-        annotations:
-          lbipam.cilium.io/ips: "192.168.0.238"
-    ```
-
-## IP Pool Configuration
-
-The LBIPAM pool is defined by two Cilium CRDs:
-
-```yaml title="pitower/kubernetes/apps/kube-system/cilium/config/cilium-l2.yaml"
-apiVersion: cilium.io/v2alpha1
-kind: CiliumL2AnnouncementPolicy
-metadata:
-  name: policy
-spec:
-  loadBalancerIPs: true
-  nodeSelector:
-    matchLabels:
-      kubernetes.io/os: linux
----
-apiVersion: cilium.io/v2alpha1
-kind: CiliumLoadBalancerIPPool
-metadata:
-  name: pool
-spec:
-  allowFirstLastIPs: "Yes"
-  blocks:
-    - start: 192.168.0.220
-      stop: 192.168.0.239
-```
-
-| Setting | Value | Purpose |
-|:--------|:------|:--------|
-| `loadBalancerIPs` | `true` | Announce LoadBalancer IPs via L2 (ARP) |
-| `nodeSelector` | `kubernetes.io/os: linux` | All Linux nodes participate in L2 announcements |
-| `allowFirstLastIPs` | `Yes` | Allow `.220` and `.239` to be used (not reserved) |
-| `blocks` | `.220` - `.239` | 20 IP addresses available |
-
-## IP Allocation Table
-
-Current LoadBalancer IP assignments across the cluster:
-
-| IP Address | Service | Namespace | Type | Notes |
-|:-----------|:--------|:----------|:-----|:------|
-| `192.168.0.220` | CoreDNS | kube-system | ClusterDNS | Fallback DNS |
-| `192.168.0.221` | nginx-internal | networking | Ingress Controller | Internal ingress (legacy) |
-| `192.168.0.222` | LLDAP | security | LDAP Service | LDAP on port 389 |
-| `192.168.0.223` | -- | -- | -- | Available |
-| `192.168.0.224` | -- | -- | -- | Available |
-| `192.168.0.225` | -- | -- | -- | Available |
-| `192.168.0.226` | Mosquitto | home-automation | MQTT Broker | MQTT on port 1883 |
-| `192.168.0.227` | Home Assistant | home-automation | Home Automation | HTTP on port 8123 |
-| `192.168.0.228` | Matter Server | home-automation | Matter Protocol | Matter on port 5580 |
-| `192.168.0.229` | Jellyfin | media | Media Server | HTTP on port 8096 |
-| `192.168.0.230` | OTBR | home-automation | Thread Border Router | Thread/mDNS services |
-| `192.168.0.231` | nginx-external | networking | Ingress Controller | Cloudflare tunnel target |
-| `192.168.0.232` | -- | -- | -- | Available |
-| `192.168.0.233` | -- | -- | -- | Available |
-| `192.168.0.234` | -- | -- | -- | Available |
-| `192.168.0.235` | -- | -- | -- | Available |
-| `192.168.0.236` | -- | -- | -- | Available |
-| `192.168.0.237` | -- | -- | -- | Available |
-| `192.168.0.238` | envoy-internal | networking | Gateway | Internal services |
-| `192.168.0.239` | envoy-external | networking | Gateway | Cloudflare tunnel ingress |
-
-!!! info "IP Assignment Convention"
-    Networking infrastructure uses the upper end of the pool (`.238-.239`), home automation services cluster around `.226-.230`, and utility services use the lower end (`.220-.222`). The middle range (`.232-.237`) is available for future services.
-
-## Why Certain Services Need LoadBalancer IPs
-
-Not all services need a dedicated LoadBalancer IP. Most applications use HTTPRoute/Ingress and are accessible through the Envoy gateways. However, some services require their own IP because:
-
-| Reason | Services | Explanation |
-|:-------|:---------|:------------|
-| **Non-HTTP protocols** | Mosquitto, LLDAP, Home Assistant, Matter Server | MQTT, LDAP, and Matter use TCP protocols that cannot be routed through HTTP gateways |
-| **mDNS / discovery** | OTBR, Home Assistant | Need to be directly reachable on the LAN for device discovery |
-| **Media streaming** | Jellyfin | Benefits from direct access for DLNA and client apps |
-| **Gateway infrastructure** | envoy-external/internal, nginx-external/internal | These ARE the gateways -- they need stable IPs |
-| **Cluster DNS** | CoreDNS | Must have a known, stable IP for DNS resolution |
-
-## Adding a New LoadBalancer Service
-
-To assign a specific IP to a new LoadBalancer service:
-
-### For a Standard Service
-
-```yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: my-service
-  annotations:
-    lbipam.cilium.io/ips: "192.168.0.223"  # Pick an available IP
-spec:
-  type: LoadBalancer
-  ports:
-    - port: 8080
-      targetPort: 8080
-```
-
-### For an Envoy Gateway
-
-```yaml
-apiVersion: gateway.networking.k8s.io/v1
-kind: Gateway
-metadata:
-  name: my-gateway
-spec:
-  gatewayClassName: envoy
-  infrastructure:
-    annotations:
-      lbipam.cilium.io/ips: "192.168.0.223"
-  listeners:
-    - name: https
-      protocol: HTTPS
-      port: 443
-```
-
-### For an App-Template (bjw-s) Service
+### App-template (bjw-s) Service
 
 ```yaml
 service:
@@ -191,60 +46,65 @@ service:
     controller: my-app
     type: LoadBalancer
     annotations:
-      lbipam.cilium.io/ips: "192.168.0.223"
+      lbipam.cilium.io/ips: "10.20.10.236"
     ports:
       http:
         port: 8080
 ```
 
-## Troubleshooting
+### Envoy Gateway
 
-### Check IP Pool Status
+On a Gateway the annotation goes in `spec.infrastructure.annotations`; Envoy Gateway copies it to the Service it creates:
 
-```bash
-# View the IP pool and available IPs
-kubectl get ciliumloadbalancerippools
-
-# Check detailed pool status
-kubectl describe ciliumloadbalancerippool pool
+```yaml
+spec:
+  infrastructure:
+    annotations:
+      lbipam.cilium.io/ips: "10.20.10.238"
 ```
 
-### List All LoadBalancer Services
+## IP Allocation
+
+Current pinned assignments:
+
+| IP Address | Service | Namespace | Ports |
+|:-----------|:--------|:----------|:------|
+| `10.20.10.229` | jellyfin | media | 8096/TCP |
+| `10.20.10.230` | forgejo-ssh | dev | 22/TCP |
+| `10.20.10.231` | dev-desktop | dev | Moonlight/Sunshine streaming (TCP + UDP) |
+| `10.20.10.232` | herdr-app | dev | 22/TCP |
+| `10.20.10.233` | omarchy | vms | 22/TCP, Moonlight/Sunshine streaming |
+| `10.20.10.234` | dev | vms | 22/TCP |
+| `10.20.10.235` | frigate-webrtc-udp | home-automation | 8555/UDP |
+| `10.20.10.238` | envoy-internal | networking | 80/TCP, 443/TCP, 443/UDP, 389/TCP |
+| `10.20.10.239` | envoy-external | networking | 80/TCP, 443/TCP |
+
+Find the current list (and a free address) with:
 
 ```bash
-# List all LoadBalancer services with their external IPs
 kubectl get svc -A --field-selector spec.type=LoadBalancer
 ```
 
-### Check L2 Announcement Status
+> [!TIP]
+> **Why a Service gets its own IP**
+>
+> Most apps are reached through the Envoy gateways with an HTTPRoute. A dedicated IP is only for non-HTTP protocols (SSH, WebRTC UDP, game/desktop streaming) or clients that need a direct address (Jellyfin apps), and for the gateways themselves.
+
+## Troubleshooting
 
 ```bash
-# Verify the L2 announcement policy
-kubectl get ciliuml2announcementpolicies
+# Pool status (IPS AVAILABLE, CONFLICTING)
+kubectl get ciliumloadbalancerippools
+kubectl describe ciliumloadbalancerippool pool
 
-# Check which node is announcing a specific IP
+# Which node holds the L2 lease for each Service
 kubectl get leases -n kube-system | grep cilium-l2
+
+# Routes advertised to the gateway
+kubectl -n kube-system exec ds/cilium -c cilium-agent -- cilium bgp routes advertised ipv4 unicast
 ```
 
-### IP Conflict Troubleshooting
-
-!!! warning "IP Conflicts"
-    If two services try to use the same IP, Cilium will assign it to whichever service was created first. The second service will remain in `Pending` state. Check for conflicts:
-
-    ```bash
-    # Find services stuck in Pending
-    kubectl get svc -A --field-selector spec.type=LoadBalancer | grep Pending
-
-    # Check events for IP allocation issues
-    kubectl events -A --field-selector reason=IPAllocationFailed
-    ```
-
-### Verify ARP Responses
-
-```bash
-# From a LAN machine, check ARP for a LoadBalancer IP
-arp -n 192.168.0.238
-
-# Or use arping to test
-arping -c 3 192.168.0.238
-```
+> [!WARNING]
+> **IP conflicts**
+>
+> If two Services request the same IP, the second one stays `<pending>`. Check `kubectl describe svc` for the LB-IPAM condition.

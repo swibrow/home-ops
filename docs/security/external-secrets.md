@@ -4,46 +4,33 @@ title: External Secrets
 
 # External Secrets
 
-[External Secrets Operator](https://external-secrets.io/) (ESO) syncs secrets from external providers into Kubernetes `Secret` resources. The cluster uses two secret backends -- **1Password Connect** for application secrets and **Infisical** for infrastructure secrets -- connected through `ClusterSecretStore` resources.
+[External Secrets Operator](https://external-secrets.io/) (ESO, Helm chart `2.12.0`, namespace `security`) syncs secrets into Kubernetes `Secret` resources. App secrets come from **Infisical**; database credentials come from **CNPG** secrets in the `database` namespace through a Kubernetes-provider store. A few secrets are generated in-cluster with ESO generators.
 
 ## Architecture
 
 ```mermaid
 flowchart TD
-    subgraph External Providers
-        OP[1Password Vault]
-        INF[Infisical\nhome-lab project]
+    INF[Infisical<br/>eu.infisical.com, project home-lab]
+    DB[database namespace<br/>per-tenant CNPG secrets]
+
+    subgraph Stores["ClusterSecretStores"]
+        CSS1[infisical]
+        CSS2[infisical-cert-manager]
+        CSS3[infisical-networking-*]
+        CSS4[cnpg-secrets-database]
     end
 
-    subgraph Cluster - security namespace
-        OPC[1Password Connect\nIn-Cluster API]
-        CSS1[ClusterSecretStore\nonepassword-connect]
-        CSS2[ClusterSecretStore\ninfisical]
-        CSS3[ClusterSecretStore\ninfisical-cert-manager]
-        CSS4[ClusterSecretStore\ninfisical-networking-*]
-    end
+    INF -->|Universal Auth| CSS1 & CSS2 & CSS3
+    DB -->|Kubernetes provider| CSS4
 
-    subgraph Application Namespaces
-        ES1[ExternalSecret] --> KS1[Kubernetes Secret]
-        ES2[ExternalSecret] --> KS2[Kubernetes Secret]
-    end
-
-    OP -->|Connect API| OPC
-    OPC --> CSS1
-    INF -->|Universal Auth| CSS2
-    INF --> CSS3
-    INF --> CSS4
-    CSS1 --> ES1
-    CSS2 --> ES2
+    CSS1 & CSS2 & CSS3 & CSS4 --> ES[ExternalSecret] --> KS[Kubernetes Secret] --> Pod[Pods]
 ```
 
-## Components
+## Operator
 
-### External Secrets Operator
+`kubernetes/apps/pitower/security/external-secrets/operator/values.yaml`:
 
-The operator is deployed via Helm in the `security` namespace:
-
-```yaml title="operator/values.yaml"
+```yaml
 installCRDs: true
 replicaCount: 1
 leaderElect: true
@@ -54,185 +41,99 @@ serviceMonitor:
   interval: 1m
 ```
 
-All sub-controllers (background, cleanup, reports) have ServiceMonitors enabled for Prometheus scraping.
-
-### 1Password Connect
-
-[1Password Connect](https://developer.1password.com/docs/connect/) runs as an in-cluster API server that provides authenticated access to the 1Password vault:
-
-```yaml title="1password-connect/values.yaml"
-connect:
-  create: true
-operator:
-  create: false
-```
-
-It is deployed via the official 1Password Connect Helm chart (v2.2.1). The connect server credentials (`1password-credentials.json` and token) are stored as SOPS-encrypted secrets in the repository.
-
-!!! info "Why in-cluster?"
-    Running 1Password Connect inside the cluster avoids external API calls for every secret sync. The connect server caches vault data locally and serves it to External Secrets over the cluster network.
-
----
+The background, cleanup and reports controllers have ServiceMonitors too.
 
 ## ClusterSecretStores
 
-### 1Password Store
+### Infisical
 
-The `onepassword-connect` ClusterSecretStore connects to the in-cluster 1Password Connect server:
+Defined in `stores/infisical/clustersecretstore.yaml`. All of them use `hostAPI: https://eu.infisical.com`, project `home-lab-iwi-y`, environment `prod`, `recursive: true`:
 
-```yaml title="stores/onepassword/clustersecretstore.yaml"
-apiVersion: external-secrets.io/v1
-kind: ClusterSecretStore
-metadata:
-  name: onepassword-connect
-spec:
-  provider:
-    onepassword:
-      connectHost: http://onepassword-connect:8080
-      vaults:
-        pitower: 1
-      auth:
-        secretRef:
-          connectTokenSecretRef:
-            name: onepassword-connect-token
-            key: token
-            namespace: security
-```
+| Store | `secretsPath` | Used By |
+|:------|:--------------|:--------|
+| `infisical` | `/` | Everything else; ExternalSecrets usually reference absolute keys like `/category/app/SECRET_NAME` |
+| `infisical-cert-manager` | `/cert-manager` | Cloudflare token for DNS-01 |
+| `infisical-networking-external-dns` | `/networking/external-dns` | Cloudflare token for external-dns |
+| `infisical-networking-towonel-agent` | `/networking/towonel-agent` | towonel invite token |
+| `infisical-networking-tailscale` | `/networking/tailscale` | Tailscale operator OAuth client |
 
-### Infisical Stores
+They authenticate with Universal Auth credentials from the `security/universal-auth-credentials` Secret. That Secret is the one bootstrap credential: it lives SOPS-encrypted in `stores/infisical/secret.sops.yaml`, is not part of the kustomization, and is applied by hand (see [SOPS](sops.md)).
 
-Multiple Infisical ClusterSecretStores provide scoped access to different secret paths:
+### CNPG
 
-| Store Name | Secrets Path | Used By |
-|:-----------|:-------------|:--------|
-| `infisical` | `/` (root, recursive) | General application secrets |
-| `infisical-cert-manager` | `/cert-manager` | Cloudflare API token for DNS-01 challenges |
-| `infisical-networking-towonel-agent` | `/networking/towonel-agent` | Towonel tunnel invite token |
-| `infisical-networking-external-dns` | `/networking/external-dns` | External DNS Cloudflare token |
-| `infisical-networking-tailscale` | `/networking/tailscale` | Tailscale auth key |
+`cnpg-secrets-database` (`kubernetes/apps/pitower/database/clustersecretstore/`) uses the Kubernetes provider to read Secrets from the `database` namespace, authenticating as the `database/external-secrets-pg` ServiceAccount (read-only on Secrets). Apps consume it through the `kubernetes/components/cnpg-db-shared` component, which templates `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME` and `DB_URL` from a per-tenant source Secret.
 
-All Infisical stores authenticate using Universal Auth credentials stored in the `universal-auth-credentials` secret (SOPS-encrypted in Git):
+### ClusterExternalSecret: `ghcr-pull-secret`
 
-```yaml title="stores/infisical/clustersecretstore.yaml (example)"
-apiVersion: external-secrets.io/v1
-kind: ClusterSecretStore
-metadata:
-  name: infisical
-spec:
-  provider:
-    infisical:
-      hostAPI: https://eu.infisical.com
-      auth:
-        universalAuthCredentials:
-          clientId:
-            key: clientId
-            namespace: security
-            name: universal-auth-credentials
-          clientSecret:
-            key: clientSecret
-            namespace: security
-            name: universal-auth-credentials
-      secretsScope:
-        projectSlug: home-lab-iwi-y
-        environmentSlug: prod
-        secretsPath: /
-        recursive: true
-```
+`ghcr-pull-secret/clusterexternalsecret.yaml` fans a `ghcr.io` dockerconfigjson (token from Infisical `/security/ghcr/token`) out to every namespace except `kube-system`, `kube-public` and `kube-node-lease`, so any workload can use `imagePullSecrets: [ghcr-pull-secret]`.
 
----
+## ExternalSecret Patterns
 
-## ExternalSecret Pattern
+### Whole path
 
-Applications reference a `ClusterSecretStore` to sync secrets into their namespace. Here is the typical pattern:
-
-### Simple Key Extraction
-
-Pull all fields from a 1Password item into a Kubernetes secret:
+Pull every key under a scoped store's path (used by the networking and cert-manager stores):
 
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-  name: my-app
-  namespace: my-app
+  name: external-dns-secret
 spec:
-  refreshInterval: 5m
   secretStoreRef:
     kind: ClusterSecretStore
-    name: onepassword-connect
+    name: infisical-networking-external-dns
   target:
-    name: my-app-secret
+    name: external-dns-secret
+  dataFrom:
+    - find:
+        name:
+          regexp: .*
+```
+
+### Single keys
+
+Reference absolute Infisical paths through the root store:
+
+```yaml
+spec:
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: infisical
+  target:
+    name: external-dns-unifi-secret
     creationPolicy: Owner
-  dataFrom:
-    - extract:
-        key: my-app  # 1Password item name
+  data:
+    - secretKey: api-key
+      remoteRef:
+        key: /networking/external-dns-unifi/api-key
 ```
 
-### Templated Secrets
+### Generated secrets
 
-Combine external secret values with templates to produce configuration files:
-
-```yaml
-apiVersion: external-secrets.io/v1
-kind: ExternalSecret
-metadata:
-  name: my-app-config
-spec:
-  secretStoreRef:
-    kind: ClusterSecretStore
-    name: onepassword-connect
-  target:
-    name: my-app-config
-    template:
-      data:
-        config.yaml: |
-          database_url: postgres://{{ .db_user }}:{{ .db_pass }}@db:5432/myapp
-          api_key: {{ .api_key }}
-  dataFrom:
-    - extract:
-        key: my-app
-```
-
-### Rewriting Keys
-
-Prefix keys from external sources to avoid naming collisions:
-
-```yaml
-dataFrom:
-  - extract:
-      key: my-app
-    rewrite:
-      - regexp:
-          source: "(.*)"
-          target: "myapp_$1"
-```
-
----
+For secrets nothing external needs to know, a `generators.external-secrets.io` `Password` generator with `refreshInterval: "0"` creates a value once and keeps it (e.g. the CrowdSec LAPI and bouncer keys).
 
 ## Secret Lifecycle
 
 ```mermaid
 sequenceDiagram
-    participant OP as 1Password / Infisical
+    participant Src as Infisical / database namespace
     participant ESO as External Secrets Operator
     participant KS as Kubernetes Secret
-    participant Pod as Application Pod
     participant RL as Reloader
+    participant Pod as Application Pod
 
-    ESO->>OP: Poll for changes (refreshInterval)
-    OP-->>ESO: Return secret data
-    ESO->>KS: Create/Update Secret
+    ESO->>Src: Poll (refreshInterval)
+    Src-->>ESO: Secret data
+    ESO->>KS: Create/update Secret
     RL->>KS: Detect change
-    RL->>Pod: Trigger rolling restart
-    Pod->>KS: Mount updated secret
+    RL->>Pod: Rolling restart
 ```
 
-!!! tip "Refresh intervals"
-    Most ExternalSecrets use a `refreshInterval` of `5m`. This means changes in 1Password or Infisical propagate to the cluster within 5 minutes. For critical secrets, this can be reduced to `1m`.
+Controllers that consume secrets carry `reloader.stakater.com/auto: "true"`.
 
-### Adding an Infisical secret from the CLI
+## Adding an Infisical Secret from the CLI
 
-The `infisical` module wraps the CLI with the project settings from `mise.toml` (`INFISICAL_DOMAIN`, `INFISICAL_PROJECT_ID`, environment `prod`). Values are read from stdin or a hidden prompt, never from a command-line argument, so they stay out of shell history.
+The `infisical` just module wraps the CLI with the project settings from `mise.toml` (`INFISICAL_DOMAIN`, `INFISICAL_PROJECT_ID`, environment `prod`). Values are read from stdin or a hidden prompt, never from a command-line argument, so they stay out of shell history.
 
 ```bash
 just infisical ls /ai/agentgateway                          # names only
@@ -240,19 +141,21 @@ just infisical set /ai/agentgateway UI_OIDC_CLIENT_SECRET   # prompts for the va
 some-command | just infisical set /ai/agentgateway API_KEY  # or pipe it in
 ```
 
-The path mirrors the `remoteRef.key` of the ExternalSecret that will consume it (`/category/app/NAME`). To pick the new value up before the next `refreshInterval`:
+The path mirrors the `remoteRef.key` of the ExternalSecret that consumes it (`/category/app/NAME`). To pick the new value up before the next refresh:
 
 ```bash
 just k8s es-sync ai agentgateway-ui-oidc
 ```
 
-!!! note "`INFISICAL_TOKEN`"
-    The recipes run the CLI with `INFISICAL_TOKEN` unset: a stale token in the environment overrides the `infisical login` session and fails with a confusing 404.
+> [!NOTE]
+> **`INFISICAL_TOKEN`**
+>
+> The recipes run the CLI with `INFISICAL_TOKEN` unset: a stale token in the environment overrides the `infisical login` session and fails with a confusing 404.
 
-## Monitoring
+## Troubleshooting
 
-The operator exposes Grafana dashboards and Prometheus metrics:
-
-- **ServiceMonitor** on the main operator and all sub-controllers
-- **Grafana dashboard** auto-provisioned (`grafana.enabled: true`)
-- Alerts can be configured based on `externalsecret_sync_calls_error` and `externalsecret_status_condition` metrics
+```bash
+kubectl get clustersecretstores          # all should be Valid / Ready
+kubectl get externalsecrets -A | grep -v SecretSynced
+kubectl describe externalsecret <name> -n <namespace>
+```

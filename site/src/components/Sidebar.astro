@@ -1,0 +1,49 @@
+---
+import type { NavSection } from "../nav.ts";
+import { docHref } from "../lib/slug.ts";
+
+interface Props {
+  section: NavSection;
+  currentId: string;
+}
+
+const { section, currentId } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+const current = (id?: string) => (id === currentId ? "page" : undefined);
+---
+
+<nav class="sidebar-nav" aria-label={section.label}>
+  <a class="sidebar-section" href={docHref(base, section.id)} aria-current={current(section.id)}>{section.label}</a>
+  <ul>
+    {
+      section.items.map((item) =>
+        "items" in item ? (
+          <li class="group">
+            {item.id ? (
+              <a href={docHref(base, item.id)} aria-current={current(item.id)}>
+                {item.label}
+              </a>
+            ) : (
+              <span>{item.label}</span>
+            )}
+            <ul>
+              {item.items.map((p) => (
+                <li>
+                  <a href={docHref(base, p.id)} aria-current={current(p.id)}>
+                    {p.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </li>
+        ) : (
+          <li>
+            <a href={docHref(base, item.id)} aria-current={current(item.id)}>
+              {item.label}
+            </a>
+          </li>
+        ),
+      )
+    }
+  </ul>
+</nav>

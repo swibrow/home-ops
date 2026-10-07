@@ -4,130 +4,111 @@ title: Cilium CNI
 
 # Cilium CNI
 
-Cilium is the Container Network Interface (CNI) for the cluster, replacing both kube-proxy and MetalLB. It uses eBPF for high-performance packet processing and provides L2 announcements for LoadBalancer IP allocation, Direct Server Return (DSR) for optimized traffic flow, and Maglev consistent hashing for load balancing.
+Cilium (Helm chart `1.20.2`) is the CNI for the cluster and replaces kube-proxy. It provides eBPF service handling, LoadBalancer IPs (LB-IPAM, announced over L2 and BGP), native routing for dual-stack pod traffic, and Hubble for observability. Multus runs alongside it for secondary pod interfaces.
+
+Manifests live in `kubernetes/apps/pitower/kube-system/cilium/`:
+
+| Path | Content |
+|:-----|:--------|
+| `operator/values.yaml` | Helm values |
+| `operator/httproute-hubble.yaml` | Hubble UI route |
+| `config/cilium-l2.yaml` | `CiliumL2AnnouncementPolicy` and `CiliumLoadBalancerIPPool` |
+| `config/cilium-bgp.yaml` | BGP cluster config, peer configs and advertisements |
 
 ## Why Cilium
-
-Traditional Kubernetes networking stacks involve multiple components: a CNI plugin (Flannel, Calico), kube-proxy for service routing, and MetalLB for LoadBalancer IPs. Cilium consolidates all of these into a single eBPF-powered component:
 
 | Concern | Traditional Stack | Cilium |
 |:--------|:-----------------|:-------|
 | CNI | Flannel / Calico | Cilium (eBPF) |
-| Service proxy | kube-proxy (iptables) | Cilium (eBPF, DSR) |
-| LoadBalancer IPs | MetalLB (L2/BGP) | Cilium L2 Announcements + LBIPAM |
+| Service proxy | kube-proxy (iptables) | Cilium (eBPF) |
+| LoadBalancer IPs | MetalLB (L2/BGP) | LB-IPAM + L2 announcements + BGP control plane |
 | Network observability | Third-party tools | Hubble (built-in) |
-| Network policy | CNI-specific | Cilium NetworkPolicy + CiliumNetworkPolicy |
 
-## Helm Values
+## Key Helm Values
 
-The full Cilium Helm values used in this cluster:
-
-```yaml title="pitower/kubernetes/apps/kube-system/cilium/operator/values.yaml"
-hubble:
-  enabled: true
-  metrics:
-    enabled:
-      - dns:query;ignoreAAAA
-      - drop
-      - tcp
-      - flow
-      - port-distribution
-      - icmp
-      - http
-  relay:
-    enabled: true
-    rollOutPods: true
-    prometheus:
-      serviceMonitor:
-        enabled: true
-  ui:
-    enabled: true
-    rollOutPods: true
-    ingress:
-      enabled: false
-  serviceMonitor:
-    enabled: true
-  dashboards:
-    enabled: true
-    annotations:
-      grafana_folder: Cilium
-
-operator:
-  prometheus:
-    enabled: true
-    serviceMonitor:
-      enabled: true
-  dashboards:
-    enabled: true
-    annotations:
-      grafana_folder: Cilium
-  replicas: 2
-  rollOutPods: true
-
+```yaml title="kubernetes/apps/pitower/kube-system/cilium/operator/values.yaml (excerpt)"
 cluster:
-  name: home-ops
+  name: pitower
   id: 1
 
-cgroup:
-  autoMount:
-    enabled: false
-  hostRoot: /sys/fs/cgroup
+kubeProxyReplacement: true
+kubeProxyReplacementHealthzBindAddr: 0.0.0.0:10256
+k8sServiceHost: 127.0.0.1
+k8sServicePort: 7445
 
+routingMode: native
 autoDirectNodeRoutes: true
-
-bpf:
-  masquerade: true
-
 endpointRoutes:
   enabled: true
-
 ipam:
   mode: kubernetes
 ipv4NativeRoutingCIDR: 10.244.0.0/16
-k8sServiceHost: 127.0.0.1
-k8sServicePort: 7445
-kubeProxyReplacement: true
-kubeProxyReplacementHealthzBindAddr: 0.0.0.0:10256
+ipv6:
+  enabled: true
+ipv6NativeRoutingCIDR: fd10:244::/56
 
+bpf:
+  masquerade: true
+bgpControlPlane:
+  enabled: true
 l2announcements:
   enabled: true
-
 loadBalancer:
   algorithm: maglev
-  mode: dsr
-
+  mode: snat
 localRedirectPolicy: true
 
-routingMode: native
+# Multus owns 00-multus.conf in /etc/cni/net.d
+cni:
+  exclusive: false
 
-rollOutCiliumPods: true
+# KubeVirt VM traffic never passes through connect()/sendmsg()
+socketLB:
+  hostNamespaceOnly: true
+
+envoy:
+  enabled: false
+gatewayAPI:
+  enabled: false
 ```
+
+Cilium's own Envoy and Gateway API support are disabled; ingress is handled by [Envoy Gateway](envoy-gateway.md).
 
 ## Kube-Proxy Replacement
 
-Cilium fully replaces kube-proxy in this cluster. The key settings:
+> [!NOTE]
+> **Talos Linux Integration**
+>
+> kube-proxy is disabled in the Talos config. `k8sServiceHost: 127.0.0.1` and `k8sServicePort: 7445` point Cilium at KubePrism, Talos's local API server proxy, so it can reach the API without kube-proxy from the first boot.
 
-```yaml
-kubeProxyReplacement: true
-kubeProxyReplacementHealthzBindAddr: 0.0.0.0:10256
-k8sServiceHost: 127.0.0.1
-k8sServicePort: 7445
-```
+All ClusterIP, NodePort and LoadBalancer handling is done in eBPF. Load balancing uses Maglev consistent hashing in SNAT mode.
 
-!!! info "Talos Linux Integration"
-    On Talos Linux, kube-proxy is disabled at bootstrap time. The `k8sServiceHost: 127.0.0.1` and `k8sServicePort: 7445` point to Talos's built-in API server proxy, allowing Cilium to operate without kube-proxy from the very first boot.
+`socketLB.hostNamespaceOnly: true` keeps socket-level service translation to the host namespace, so pod and KubeVirt VM traffic is translated at tc level instead.
 
-With kube-proxy replacement, all ClusterIP, NodePort, and LoadBalancer service handling is done in eBPF -- no iptables rules are created for service routing.
+## Native Routing and IPv6
+
+Pod traffic is routed without encapsulation. `autoDirectNodeRoutes` installs routes to other nodes' pod CIDRs, and each node's pod CIDR is also advertised to the gateway over BGP, so the LAN reaches pod IPs directly (except on `worker-ai-01`, which does not peer).
+
+The cluster is dual-stack with IPv4 primary:
+
+| | IPv4 | IPv6 |
+|:--|:-----|:-----|
+| Pods | `10.244.0.0/16` (a `/24` per node) | `fd10:244::/56` ULA (a `/64` per node) |
+| Services | `10.96.0.0/12` | `fd10:96::/112` |
+| LoadBalancer pool | `10.20.10.128`-`255` | `2a02:16a:2a0a:3::/112` |
+
+Pod subnets come from the Talos `KubeNetworkConfig` (`talos/pitower/all/03-network.yaml.tpl`). Pod egress to anything outside the native routing CIDRs is masqueraded to the node address with BPF masquerade; ULA is not routable upstream. Services stay IPv4-only unless they set `ipFamilyPolicy`.
+
+> [!WARNING]
+> **Pod CIDRs are immutable**
+>
+> `spec.podCIDRs` cannot change on an existing Node. A node registered before a pod subnet change keeps its old CIDRs until its Node object is deleted and kubelet restarted.
 
 ## L2 Announcements
 
-Instead of MetalLB, Cilium's L2 announcement mode responds to ARP requests for LoadBalancer service IPs. This is configured with two resources:
+The pool sits inside VLAN 20, so on-VLAN clients ARP for the VIPs. Every Linux node except `worker-ai-01` (often booted into another OS) can hold the lease:
 
-### CiliumL2AnnouncementPolicy
-
-Tells Cilium to respond to ARP requests for LoadBalancer IPs on all Linux nodes:
-
-```yaml title="pitower/kubernetes/apps/kube-system/cilium/config/cilium-l2.yaml"
+```yaml title="kubernetes/apps/pitower/kube-system/cilium/config/cilium-l2.yaml"
 apiVersion: cilium.io/v2alpha1
 kind: CiliumL2AnnouncementPolicy
 metadata:
@@ -137,98 +118,70 @@ spec:
   nodeSelector:
     matchLabels:
       kubernetes.io/os: linux
-```
-
-### CiliumLoadBalancerIPPool (LBIPAM)
-
-Defines the pool of IPs that Cilium can assign to LoadBalancer services:
-
-```yaml title="pitower/kubernetes/apps/kube-system/cilium/config/cilium-l2.yaml"
-apiVersion: cilium.io/v2alpha1
+    matchExpressions:
+      - key: kubernetes.io/hostname
+        operator: NotIn
+        values: [worker-ai-01]
+---
+apiVersion: cilium.io/v2
 kind: CiliumLoadBalancerIPPool
 metadata:
   name: pool
 spec:
   allowFirstLastIPs: "Yes"
   blocks:
-    - start: 192.168.0.220
-      stop: 192.168.0.239
+    - start: 10.20.10.128
+      stop: 10.20.10.255
+    - cidr: 2a02:16a:2a0a:3::/112
 ```
 
-!!! tip "IP Allocation"
-    The pool covers `192.168.0.220` through `192.168.0.239` -- a 20-IP range. Services can request a specific IP from this pool using the `lbipam.cilium.io/ips` annotation on their Service resource. See the [Load Balancers](load-balancers.md) page for the full allocation table.
+See [Load Balancers](load-balancers.md) for allocations.
 
-## DSR Mode (Direct Server Return)
+## BGP
 
-DSR mode allows response traffic to bypass the load balancer node and go directly from the backend pod to the client. This reduces latency and cuts the load balancer's bandwidth usage in half.
+Cilium peers with the UniFi Cloud Gateway (UCG Fiber) from every node except `worker-ai-01`:
+
+| Setting | Value |
+|:--------|:------|
+| Cluster ASN | `64513` |
+| Gateway ASN | `64512` |
+| IPv4 peer | `ucg`, `10.20.0.1` |
+| IPv6 peer | `ucg-v6`, `2a02:16a:2a0a:2::1` |
+| Timers | keepalive 3s, hold 9s |
+| Advertised | LoadBalancer IPs (every Service) and each node's pod CIDR, per family |
+
+IPv6 routes use their own session because over the IPv4 one the next hop would be an IPv4-mapped address the gateway cannot use.
+
+The gateway side is `terraform/unifi/frr-bgp.conf`. The UniFi provider has no BGP resource, so it is pushed with `mise run unifi:bgp-upload` from `terraform/`. It lists each node IP as an IPv4 neighbor (IPv6 peers are accepted by `bgp listen range 2a02:16a:2a0a:2::/64`), only accepts `/32`s from the LB pool, `/24` pod CIDRs (and the IPv6 equivalents), and sends nothing back. Adding or renumbering a node means editing it and re-running the task.
+
+## Multus
+
+Multus (thick plugin, `kube-system/multus`, `v4.3.1`) adds secondary pod interfaces; Cilium stays the primary CNI, which is why `cni.exclusive` is `false`. An init container copies the `macvlan` and `static` CNI plugins onto the host, since Talos does not ship them.
+
+| NetworkAttachmentDefinition | Network | Parent |
+|:----------------------------|:--------|:-------|
+| `kube-system/vlan20` | VLAN 20 | Each node's default-route link |
+| `networking/lan` | Untagged LAN | `enp0s25` (worker-05/06 only), used by netboot |
+
+Attachments use macvlan with static IPAM, so each pod picks its own address:
 
 ```yaml
-loadBalancer:
-  mode: dsr
+k8s.v1.cni.cncf.io/networks: '[{"name":"vlan20","namespace":"kube-system","ips":["10.20.x.y/16"]}]'
 ```
 
-```mermaid
-sequenceDiagram
-    participant Client
-    participant LB as Load Balancer Node
-    participant Pod as Backend Pod
+Keep those addresses outside the DHCP scope and the LB pool.
 
-    Note over Client,Pod: Standard Mode (SNAT)
-    Client->>LB: Request
-    LB->>Pod: Forward (SNAT)
-    Pod->>LB: Response
-    LB->>Client: Forward response
+> [!WARNING]
+> **Multus caveats**
+>
+> - Traffic on `net1` bypasses Cilium policy and Hubble.
+> - A pod cannot reach its own node over macvlan.
+> - Normal cluster pods cannot reach a pod's `net1` address from another subnet (asymmetric return path).
+> - If pods lose `net1` after a Cilium rollout, check `/etc/cni/net.d` for `00-multus.conf.cilium_bak` and restart that node's Multus pod.
 
-    Note over Client,Pod: DSR Mode
-    Client->>LB: Request
-    LB->>Pod: Forward
-    Pod->>Client: Response (direct)
-```
+## Hubble
 
-!!! warning "DSR and Source IP"
-    DSR mode preserves the client's source IP address at the backend pod. However, the `externalTrafficPolicy` on the gateway services is set to `Cluster` (not `Local`), which means any node can handle the traffic -- the eBPF program handles the DSR encapsulation.
-
-## Maglev Load Balancing
-
-Maglev is Google's consistent hashing algorithm for load balancing. It provides better distribution than standard hashing and maintains connection affinity even when backends change.
-
-```yaml
-loadBalancer:
-  algorithm: maglev
-```
-
-Benefits over the default random algorithm:
-
-- **Consistent hashing**: The same client IP maps to the same backend, providing session affinity without cookies
-- **Minimal disruption**: Adding or removing backends only remaps a small fraction of connections
-- **Even distribution**: Maglev's permutation-based hashing produces very uniform load distribution
-
-## Native Routing
-
-The cluster uses native routing mode (instead of encapsulation/overlay):
-
-```yaml
-routingMode: native
-ipv4NativeRoutingCIDR: 10.244.0.0/16
-autoDirectNodeRoutes: true
-endpointRoutes: true
-```
-
-This means pod-to-pod traffic is routed directly at the kernel level without VXLAN or Geneve encapsulation, reducing overhead and improving performance. The `autoDirectNodeRoutes` setting automatically inserts routes to other nodes' pod CIDRs, and `endpointRoutes` creates per-endpoint routes for more precise routing.
-
-## Hubble Observability
-
-Hubble is Cilium's built-in observability platform, providing deep visibility into network flows, DNS queries, and HTTP requests.
-
-### Components
-
-| Component | Purpose |
-|:----------|:--------|
-| Hubble Agent | Runs on every node, captures eBPF events |
-| Hubble Relay | Aggregates flows from all agents |
-| Hubble UI | Web dashboard for flow visualization |
-
-### Enabled Metrics
+Hubble relay and UI are enabled, with these flow metrics:
 
 ```yaml
 hubble:
@@ -243,91 +196,25 @@ hubble:
       - http
 ```
 
-The `dns:query;ignoreAAAA` filter captures DNS query metrics while ignoring AAAA (IPv6) lookups, which reduces noise in an IPv4-only cluster.
-
-### Accessing Hubble UI
-
-Hubble UI is exposed on the `envoy-internal` gateway:
-
-```yaml title="pitower/kubernetes/apps/kube-system/cilium/operator/httproute-hubble.yaml"
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: hubble-ui
-  namespace: kube-system
-spec:
-  hostnames:
-    - hubble.example.com
-  parentRefs:
-    - name: envoy-internal
-      namespace: networking
-      sectionName: https
-  rules:
-    - backendRefs:
-        - name: hubble-ui
-          port: 80
-```
-
-Access it at `https://hubble.example.com` from the LAN or via Tailscale.
-
-### Grafana Dashboards
-
-Hubble, Cilium agent, and Cilium operator all export Prometheus metrics with Grafana dashboards auto-provisioned into the `Cilium` folder:
-
-```yaml
-dashboards:
-  enabled: true
-  annotations:
-    grafana_folder: Cilium
-```
-
-## BPF Masquerade
-
-```yaml
-bpf:
-  masquerade: true
-```
-
-BPF masquerade performs SNAT in eBPF instead of iptables. This is required for native routing mode to work correctly -- outbound traffic from pods to external destinations is masqueraded to the node's IP address using eBPF programs rather than iptables MASQUERADE rules.
+The UI is on `envoy-internal` at `https://hubble.wibrow.dev`. Agent, operator, relay and Hubble metrics are scraped via ServiceMonitors, and dashboards are provisioned into the Grafana `Networking` folder.
 
 ## Troubleshooting
 
-### Check Cilium Status
-
 ```bash
-kubectl -n kube-system exec ds/cilium -- cilium status --brief
-```
+# Agent status
+kubectl -n kube-system exec ds/cilium -c cilium-agent -- cilium status --brief
 
-### Verify L2 Announcements
+# BGP sessions (both should be "established")
+kubectl -n kube-system exec ds/cilium -c cilium-agent -- cilium bgp peers
 
-```bash
-# Check if the L2 announcement policy is active
-kubectl get ciliuml2announcementpolicies
+# LB pool and L2 policy
+kubectl get ciliumloadbalancerippools,ciliuml2announcementpolicies
+kubectl get leases -n kube-system | grep cilium-l2
 
-# Check IP pool allocation
-kubectl get ciliumloadbalancerippools
-kubectl get services -A -o wide | grep LoadBalancer
-```
+# Service table
+kubectl -n kube-system exec ds/cilium -c cilium-agent -- cilium service list
 
-### Verify kube-proxy Replacement
-
-```bash
-# Should show kube-proxy replacement is active
-kubectl -n kube-system exec ds/cilium -- cilium status | grep KubeProxyReplacement
-
-# Verify no iptables rules for services
-kubectl -n kube-system exec ds/cilium -- cilium service list
-```
-
-### Hubble CLI
-
-```bash
-# Observe live flows
-kubectl -n kube-system exec ds/cilium -- hubble observe --follow
-
-# Filter by namespace
-kubectl -n kube-system exec ds/cilium -- hubble observe --namespace networking
-
-# DNS queries
-kubectl -n kube-system exec ds/cilium -- hubble observe --protocol dns
+# Live flows
+kubectl -n kube-system exec ds/cilium -c cilium-agent -- hubble observe --follow
+kubectl -n kube-system exec ds/cilium -c cilium-agent -- hubble observe --namespace networking
 ```

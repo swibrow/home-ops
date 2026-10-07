@@ -12,39 +12,33 @@ The cluster is built in layers, each managed declaratively through code in this 
 flowchart TB
     subgraph Hardware["Hardware Layer"]
         direction LR
-        RPi4["Raspberry Pi 4\nx4"]
-        Lenovo["Lenovo T440p\nx2"]
-        Ace["Acemagician AM06\nx3"]
-        RPi3["Raspberry Pi 3B+\nx1"]
+        AMD["AMD mini PCs\nworker-01..03"]
+        Intel["Intel nodes\nworker-04..06"]
+        R630["Dell R630\nworker-07"]
+        RPi["Raspberry Pi 4\nworker-08..10"]
+        GPU["GPU node\nworker-ai-01"]
     end
 
     subgraph OS["Operating System"]
-        Talos["Talos Linux v1.12.4\nImmutable, API-driven"]
+        Talos["Talos Linux v1.14.0\nmanaged with topf"]
     end
 
-    subgraph K8s["Kubernetes Layer"]
+    subgraph K8s["Kubernetes Layer (v1.36.1)"]
         direction LR
-        Cilium["Cilium CNI\neBPF / L2 / DSR"]
+        Cilium["Cilium CNI\neBPF / L2 / BGP"]
+        Multus["Multus\nsecondary NICs"]
         CoreDNS["CoreDNS"]
-        Metrics["Metrics Server"]
     end
 
     subgraph GitOps["GitOps Layer"]
         direction LR
         ArgoCD["ArgoCD"]
-        AppSets["ApplicationSets\nper category"]
+        AppSet["ApplicationSet\npitower"]
     end
 
-    subgraph Apps["Application Categories"]
+    subgraph Apps["Applications"]
         direction LR
-        Net["networking"]
-        Media["media"]
-        HA["home-automation"]
-        Mon["monitoring"]
-        Sec["security"]
-        Self["selfhosted"]
-        Sys["system"]
-        More["ai, banking,\ncert-manager,\ncloudnative-pg,\nkube-system,\nopenebs, rook-ceph"]
+        Cat["kubernetes/apps/pitower/\n{category}/{app}"]
     end
 
     Hardware --> OS
@@ -57,46 +51,51 @@ flowchart TB
 
 #### Hardware Layer
 
-The cluster runs on a mix of ARM64 and AMD64 hardware. Raspberry Pi 4 boards serve as control plane nodes and lightweight workers. Lenovo ThinkPad T440p laptops and Acemagician AM06 mini-PCs provide AMD64 compute capacity, with the AM06 units contributing 512 GB NVMe drives for Ceph distributed storage. A TP-Link 24-port PoE switch powers the Pi nodes, and an Eaton 500VA UPS protects core infrastructure from power outages.
+The cluster runs on 11 nodes, all on VLAN 20 (`10.20.10.1` - `10.20.10.11`). Three AMD Ryzen mini PCs (worker-01..03) are the control planes and also run workloads; each carries a SATA SSD for Rook Ceph. Three Intel nodes (worker-04..06) provide Intel iGPUs. worker-07 is a bare-metal Dell R630 with two ZFS pools that back the OpenEBS hostpath classes and Garage S3, and hosts the self-hosted CI runners. Three Raspberry Pi 4s (worker-08..10) are arm64 workers, and worker-ai-01 is a GPU workstation with an RTX 3090 Ti. See [Hardware](../infrastructure/hardware.md).
 
 #### Operating System
 
-All nodes run [Talos Linux](https://www.talos.dev/) v1.12.4, an immutable, minimal Linux distribution purpose-built for Kubernetes. There is no SSH access, no shell, and no package manager. All configuration is applied through the Talos API using `talosctl`. Machine configs are generated from patches stored in `pitower/talos/patches/` and applied per node.
+All nodes run [Talos Linux](https://www.talos.dev/) v1.14.0, an immutable, minimal Linux distribution purpose-built for Kubernetes. There is no SSH access, no shell, and no package manager. Machine configs are rendered and applied by [topf](https://github.com/postfinance/topf) from `talos/pitower/topf.yaml` and the layered patches in `all/`, `control-plane/`, and `node/<host>/`. A GitHub Actions workflow runs `topf apply` on every merge to `main` that touches `talos/`. See [Talos Linux](../infrastructure/talos-linux.md).
 
 #### Kubernetes Layer
 
-The Kubernetes cluster uses [Cilium](https://cilium.io/) as the CNI, fully replacing kube-proxy with eBPF datapath. Cilium is configured with:
+The cluster is dual-stack (IPv4 primary). [Cilium](https://cilium.io/) is the CNI and fully replaces kube-proxy. It is configured with:
 
-- **L2 announcements** for LoadBalancer IP allocation (`192.168.0.220-239`)
-- **Direct Server Return (DSR)** for efficient load balancing
-- **Maglev** consistent hashing for connection affinity
+- **Native routing** (no tunnel); each node's pod CIDR is advertised to the gateway over BGP, so pods are routable from the LAN
+- **LoadBalancer IPs** from the pool `10.20.10.128` - `10.20.10.255`, announced over L2 (ARP) and BGP to the UniFi gateway
+- **Maglev** consistent hashing for load balancing
 
-CoreDNS handles in-cluster DNS, and Metrics Server provides resource utilization data.
+[Multus](https://github.com/k8snetworkplumbingwg/multus-cni) adds secondary macvlan interfaces where a pod needs a presence on another network (for example netboot on the untagged LAN). CoreDNS is deployed by its Helm chart rather than by Talos, and Metrics Server provides resource utilization data.
 
 #### GitOps Layer
 
-[ArgoCD](https://argoproj.github.io/cd/) is the sole deployment mechanism. An `ApplicationSet` resource exists for each app category (e.g., `appset-networking.yaml`, `appset-media.yaml`), which automatically discovers and deploys all applications within that category directory. This means adding a new app is as simple as creating a new directory under the appropriate category in `pitower/kubernetes/apps/`.
+[ArgoCD](https://argoproj.github.io/cd/) is the sole deployment mechanism. A single ApplicationSet (`kubernetes/argocd/clusters/pitower.yaml`) uses a Git directory generator over `kubernetes/apps/pitower/*/*`. Each `{category}/{app}` directory becomes an Application named `pitower-{category}-{app}`, deployed into a namespace named after the category. Adding a new app is as simple as creating a new directory.
+
+ArgoCD manages its own installation through the `argocd-bootstrap` Application, which points at `kubernetes/bootstrap/`.
 
 #### Application Layer
 
-Applications are organized into 14 categories:
+Applications are organized into 31 categories. The main ones:
 
 | Category | Example Applications |
 |:---------|:--------------------|
-| `ai` | browser-use, zeroclaw |
-| `banking` | -- |
-| `cert-manager` | cert-manager |
-| `cloudnative-pg` | CloudNativePG operator |
-| `home-automation` | Home Assistant, Zigbee2MQTT, Mosquitto, Matter Server, OTBR |
-| `kube-system` | Cilium, CoreDNS, metrics-server |
-| `media` | Jellyfin, Sonarr, Radarr, Prowlarr, qBittorrent, SABnzbd, Autobrr |
-| `monitoring` | kube-prometheus-stack, Grafana, Loki, Fluent Bit |
-| `networking` | Envoy Gateway, external-dns, towonel-agent, Tailscale |
-| `openebs` | OpenEBS local volumes |
-| `rook-ceph` | Rook Ceph distributed storage |
-| `security` | Authelia, LLDAP, External Secrets, 1Password Connect |
-| `selfhosted` | Miniflux, n8n, Excalidraw, Glance, Homepage, Tandoor, and more |
-| `system` | Reloader, VolSync, Node Feature Discovery, snapshot-controller |
+| `ai` | agentgateway, Open WebUI, ToolHive, ComfyUI, MLflow, llmkube, agent-sandbox |
+| `banking` | Actual, Firefly III, Ghostfolio, Paperless-ngx |
+| `database` | CloudNativePG operator and clusters, Dragonfly operator, ClickHouse operator |
+| `dev` | Forgejo, dev-desktop, herdr, propagit |
+| `home-automation` | Home Assistant (proxied to HAOS), Frigate |
+| `kopiur-system` | kopiur operator and the Garage-backed repository |
+| `kube-system` | Cilium, CoreDNS, metrics-server, Multus |
+| `kubevirt` / `vms` | KubeVirt, CDI, and the VirtualMachines themselves |
+| `media` | Jellyfin, Immich, Sonarr, Radarr, Prowlarr, qBittorrent, SABnzbd, Autobrr |
+| `monitoring` | kube-prometheus-stack, Grafana Operator, VictoriaMetrics, VictoriaLogs, Fluent Bit, Tempo, Gatus, ntfy |
+| `networking` | Envoy Gateway, external-dns (Cloudflare and UniFi), towonel-agent, Tailscale, netboot |
+| `rook-ceph` / `openebs` | Distributed and local storage |
+| `security` | Kanidm, External Secrets, CrowdSec, RBAC |
+| `selfhosted` | Homepage, Glance, Miniflux, Mealie, n8n, Excalidraw, Atuin, and more |
+| `system` | Garage, Reloader, KEDA, Headlamp, Spegel, NVIDIA DRA driver, Intel device plugins |
+
+See the [App Catalog](../reference/app-catalog.md) for the complete list.
 
 ---
 
@@ -109,61 +108,65 @@ flowchart TB
     subgraph External["External Traffic Path"]
         direction LR
         Internet1((Internet))
-        CF["Cloudflare\nDNS + Proxy"]
-        Tunnel["towonel-agent\nTunnel Pod"]
-        Nginx["nginx\nReverse Proxy\n192.168.0.231"]
-        EnvoyExt["Envoy External\nGateway\n192.168.0.239"]
+        CF["Cloudflare DNS\n(unproxied)"]
+        Hub["towonel hub\novh-vps"]
+        Agent["towonel-agent\npods"]
+        EnvoyExt["Envoy External\n10.20.10.239"]
     end
 
     subgraph Internal["Internal / VPN Traffic Path"]
         direction LR
         User((User))
-        TS["Tailscale\nVPN"]
-        LAN["Local\nNetwork"]
-        EnvoyInt["Envoy Internal\nGateway\n192.168.0.238"]
+        TS["Tailscale\nsubnet router"]
+        LAN["Home network"]
+        EnvoyInt["Envoy Internal\n10.20.10.238"]
     end
 
     AppPods["Application Pods"]
 
-    Internet1 -->|"*.example.com\n(proxied)"| CF
-    CF --> Tunnel
-    Tunnel --> Nginx
-    Nginx --> EnvoyExt
+    Internet1 -->|"*.wibrow.dev"| CF
+    CF -->|CNAME tunnel.wibrow.dev| Hub
+    Hub -->|outbound tunnel| Agent
+    Agent --> EnvoyExt
     EnvoyExt --> AppPods
 
     User -->|Remote| TS
     TS --> EnvoyInt
-    User -->|"LAN\n192.168.0.0/24"| LAN
+    User -->|Local| LAN
     LAN --> EnvoyInt
     EnvoyInt --> AppPods
 ```
 
-### External Traffic (Cloudflare Tunnel)
+### External Traffic (towonel Tunnel)
 
-Public-facing services are exposed through a self-hosted [towonel](../networking/towonel-tunnel.md) tunnel. DNS records for `*.example.com` are unproxied CNAMEs to the towonel hub on a VPS, which SNI-routes the connection over an outbound tunnel to the `towonel-agent` pods in the cluster; those proxy to the `envoy-external` gateway. This keeps the home IP unpublished with no inbound port forwards, and TLS is terminated in-cluster rather than at a third-party edge.
+Public-facing services are exposed through a self-hosted [towonel](../networking/towonel-tunnel.md) tunnel. DNS records for `*.wibrow.dev` are unproxied CNAMEs to the towonel hub on a VPS (`tunnel.wibrow.dev`), which SNI-routes the connection over an outbound tunnel to the `towonel-agent` pods in the cluster; those proxy to the `envoy-external` gateway. TLS is terminated in-cluster.
 
-!!! info "No port forwarding required"
-    The Cloudflare Tunnel creates an outbound connection from the cluster to Cloudflare's edge, so no inbound firewall rules or port forwarding is needed on the home router.
+> [!NOTE]
+> **No port forwarding required**
+>
+> The agent dials out to the hub, so no inbound firewall rules or port forwarding are needed on the home router, and the home IP stays unpublished.
 
 ### Internal / VPN Traffic
 
-Internal services are accessed either from the local network (`192.168.0.0/24`) or remotely through [Tailscale](https://tailscale.com/) VPN. Both paths route through the `envoy-internal` gateway at `192.168.0.238`, resolving as `internal.example.com`. These services are never exposed to the public internet.
+Internal services are reached from the home network or remotely through [Tailscale](https://tailscale.com/). Both paths route to the `envoy-internal` gateway at `10.20.10.238`; app hostnames CNAME to `internal.wibrow.dev`, an A record pointing at that private address. These services are never exposed to the public internet.
 
 ---
 
 ## Gateway Architecture
 
-The two Envoy Gateway instances serve different audiences and have distinct configurations:
+The two Envoy Gateway instances serve different audiences:
 
-| Gateway | IP Address | Domain Target | Audience | DNS Proxy |
-|:--------|:-----------|:--------------|:---------|:----------|
-| `envoy-external` | `192.168.0.239` | `external.example.com` | Public (via Cloudflare) | Cloudflare proxied |
-| `envoy-internal` | `192.168.0.238` | `internal.example.com` | LAN and VPN users | Not proxied |
+| Gateway | IP Address | DNS Target | Audience |
+|:--------|:-----------|:-----------|:---------|
+| `envoy-external` | `10.20.10.239` | `external.wibrow.dev` (CNAME to `tunnel.wibrow.dev`) | Public (via towonel) |
+| `envoy-internal` | `10.20.10.238` | `internal.wibrow.dev` (A record, unproxied) | Home network and Tailscale users |
 
-Cilium L2 announcements advertise the gateway IPs on the local network. The `external-dns` controller watches for Gateway and HTTPRoute resources with the label `external-dns.alpha.kubernetes.io/enabled=true` and automatically creates or updates DNS records in Cloudflare.
+Cilium advertises the gateway IPs over L2 and BGP. The `external-dns` controller watches HTTPRoutes attached to Gateways labelled `external-dns.alpha.kubernetes.io/enabled=true` and creates the matching records in Cloudflare.
 
-!!! note "Routing an app to a specific gateway"
-    To control which gateway serves an application, set the `parentRefs` field in the HTTPRoute to reference the desired gateway (`envoy-external` for public services or `envoy-internal` for internal-only access).
+> [!NOTE]
+> **Routing an app to a specific gateway**
+>
+> Set the HTTPRoute `parentRefs` to `envoy-external` (public) or `envoy-internal` (internal-only), namespace `networking`, sectionName `https`.
 
 ---
 
@@ -172,31 +175,36 @@ Cilium L2 announcements advertise the gateway IPs on the local network. The `ext
 ```mermaid
 flowchart LR
     subgraph Distributed["Distributed Storage"]
-        NVMe1["AM06 #1\n512GB NVMe"]
-        NVMe2["AM06 #2\n512GB NVMe"]
-        NVMe3["AM06 #3\n512GB NVMe"]
-        Ceph["Rook Ceph\nCluster"]
-        NVMe1 --> Ceph
-        NVMe2 --> Ceph
-        NVMe3 --> Ceph
+        SSD1["worker-01\nSATA SSD"]
+        SSD2["worker-02\nSATA SSD"]
+        SSD3["worker-03\nSATA SSD"]
+        Ceph["Rook Ceph\nceph-block"]
+        SSD1 --> Ceph
+        SSD2 --> Ceph
+        SSD3 --> Ceph
     end
 
-    subgraph Local["Local Storage"]
-        SSD["128GB SSD\nBoot Drives"]
-        OpenEBS["OpenEBS\nLocal PV"]
-        SSD --> OpenEBS
+    subgraph Local["Local Storage (OpenEBS hostpath)"]
+        Boot["Node disks\nopenebs-hostpath"]
+        ZFS["worker-07 ZFS\n-fast / -media / -runners"]
+        Models["worker-ai-01 NVMe\n-models"]
     end
 
     subgraph External["External Storage"]
-        Synology["Synology NAS\n4-Bay 8TB"]
+        Synology["Synology NAS\nNFS server data"]
     end
 
+    Garage["Garage S3\n(worker-07)"]
     PVC["Persistent\nVolume Claims"]
     Ceph --> PVC
-    OpenEBS --> PVC
+    Boot --> PVC
+    ZFS --> PVC
+    Models --> PVC
     Synology -->|NFS| PVC
+    PVC -->|kopiur snapshots| Garage
 ```
 
-- **Rook Ceph** provides replicated block storage across three Acemagician AM06 nodes, each contributing a 512 GB NVMe drive as a Ceph OSD. This is used for workloads that need high availability and data replication.
-- **OpenEBS** provides local persistent volumes backed by the 128 GB SSD boot drives. This is used for workloads that benefit from local-disk performance and do not require replication.
-- **Synology NAS** provides NFS-backed volumes for bulk storage (media files, backups), accessed over the local network.
+- **Rook Ceph** provides replicated block storage (`ceph-block`, the default StorageClass) from one SATA SSD on each control plane node. Most PVCs use it.
+- **OpenEBS** provides local hostpath volumes: `openebs-hostpath` on the node disks, `-fast`, `-media`, and `-runners` on worker-07's ZFS pools, and `-models` on worker-ai-01's model NVMe.
+- **Synology NAS** provides NFS volumes (server `data`) for media and bulk data.
+- **Garage** is an S3 store on worker-07. kopiur backs up PVCs to it with Kopia, and CNPG writes base backups and WAL to it through the Barman Cloud plugin.

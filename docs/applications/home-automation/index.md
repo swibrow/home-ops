@@ -4,78 +4,56 @@ title: Home Automation
 
 # Home Automation
 
-The home automation stack runs in the `home-automation` namespace and provides smart home control, Zigbee device management, Matter/Thread protocol support, and MQTT messaging. All components are pinned to `worker-04`, which has the required USB hardware attached.
+The `home-automation` namespace holds two apps: **Frigate**, the camera NVR, and **home-assistant**, which is only an ingress route. Home Assistant itself runs as Home Assistant OS on a dedicated Raspberry Pi outside the cluster, and that host also answers MQTT on port 1883.
 
 ## Architecture
 
 ```mermaid
 flowchart TD
-    subgraph Devices
-        ZD[Zigbee Devices]
-        MD[Matter Devices]
-        TD[Thread Devices]
-    end
-
-    subgraph Coordinators["Hardware Coordinators"]
-        SLZB[SLZB-06<br/>Zigbee Coordinator<br/>tcp://slzb-06:6638]
+    subgraph IoT["IoT VLAN 101"]
+        HAOS[Home Assistant OS<br/>Raspberry Pi 4<br/>homeassistant.iot]
+        CAM[IP cameras<br/>RTSP]
     end
 
     subgraph Cluster["home-automation namespace"]
-        Z2M[Zigbee2MQTT<br/>Port 8080]
-        MOS[Mosquitto<br/>MQTT Broker<br/>Port 1883]
-        HA[Home Assistant<br/>Port 8123]
-        MS[Matter Server<br/>Port 5580]
-        OTBR[OTBR<br/>Thread Border Router<br/>Port 80]
+        FR[Frigate<br/>worker-04, Intel GPU]
+        BE[Envoy Backend<br/>home-assistant]
     end
 
-    ZD <-->|Zigbee protocol| SLZB
-    SLZB <-->|TCP| Z2M
-    Z2M -->|Publish device state| MOS
-    MOS -->|Subscribe to updates| HA
-    HA <-->|WebSocket| MS
-    MD <-->|Matter protocol| MS
-    TD <-->|Thread protocol| OTBR
-    OTBR --> HA
+    GW[envoy-external<br/>ha.wibrow.dev] --> BE
+    GW2[envoy-internal<br/>frigate.wibrow.dev] --> FR
+    BE -->|:8123| HAOS
+    CAM -->|RTSP via go2rtc| FR
+    FR -->|MQTT :1883<br/>events| HAOS
+    FR -->|recordings| NAS[(Synology NAS<br/>/volume1/cctv)]
 
-    classDef broker fill:#f59e0b,stroke:#d97706,color:#000
     classDef hub fill:#7c3aed,stroke:#5b21b6,color:#fff
-    class MOS broker
-    class HA hub
+    class HAOS hub
 ```
 
 ## Application Summary
 
-| App | Purpose | Gateway | URL | LoadBalancer IP |
-|:----|:--------|:--------|:----|:----------------|
-| [Home Assistant](home-assistant.md) | Smart home hub | `envoy-external` | `ha.example.com` | `192.168.0.227` |
-| [Zigbee2MQTT](zigbee2mqtt.md) | Zigbee device bridge | `envoy-internal` | `zigbee.example.com` | -- |
-| [Mosquitto](mosquitto.md) | MQTT broker | LoadBalancer | `mosquitto.example.com` | `192.168.0.226` |
-| Matter Server | Matter protocol server | `envoy-internal` | `matter.example.com` | `192.168.0.228` |
-| OTBR | Thread border router | `envoy-internal` | `otbr.example.com` | `192.168.0.230` |
+| App | Purpose | Gateway | URL |
+|:----|:--------|:--------|:----|
+| [Home Assistant](home-assistant.md) | Smart home hub on HAOS, proxied into the gateway | `envoy-external` | `ha.wibrow.dev` |
+| Frigate | NVR with object detection | `envoy-internal` | `frigate.wibrow.dev` |
 
-## Node Pinning
+## Frigate
 
-All home automation components are pinned to `worker-04` (an Acemagician AM06 node) using `nodeSelector`:
+[Frigate](https://frigate.video/) records the IP cameras and detects objects with OpenVINO on the node's Intel GPU.
 
-```yaml
-nodeSelector:
-  kubernetes.io/hostname: worker-04
-```
+| Setting | Value |
+|:--------|:------|
+| **Image** | `ghcr.io/blakeblackshear/frigate` |
+| **Node** | `worker-04` (`nodeSelector` on hostname and `intel.feature.node.kubernetes.io/gpu`; tolerates `dedicated=media-home`) |
+| **GPU** | `gpu.intel.com/i915: 1`, VA-API hardware decoding (`LIBVA_DRIVER_NAME: iHD`) |
+| **Detector** | OpenVINO on `GPU` |
+| **Config** | ConfigMap `frigate-config` mounted at `/config/config.yml`; camera credentials from the `frigate-secret` ExternalSecret |
+| **Storage** | PVC `frigate` (5Gi) at `/config` via the `pvc` component, backed up by `kopiur` (mover runs as root to read Frigate's files); recordings on NFS `data:/volume1/cctv` |
+| **WebRTC** | `LoadBalancer` Service on `10.20.10.235` for UDP 8555; RTSP 8554 and WebRTC TCP 8555 on the app Service |
 
-This is required because:
+Recording keeps everything for 7 days, then only footage around alerts and detections. Frigate publishes events to the MQTT broker on the HAOS host (`homeassistant.iot:1883`), which is how Home Assistant receives them.
 
-- The SLZB-06 Zigbee coordinator is accessible via TCP from this node's network segment
-- Matter Server requires `hostNetwork: true` for mDNS discovery and must be co-located with Home Assistant
-- OTBR needs access to `/dev` for Thread radio hardware
+## Configuration Outside the Cluster
 
-## Protocol Stack
-
-| Protocol | Coordinator | Bridge | Integration |
-|:---------|:------------|:-------|:------------|
-| **Zigbee** | SLZB-06 (network) | Zigbee2MQTT | MQTT discovery in Home Assistant |
-| **Matter** | -- | Matter Server | WebSocket to Home Assistant |
-| **Thread** | OTBR | OTBR REST API | Home Assistant Thread integration |
-| **MQTT** | -- | Mosquitto | Native Home Assistant integration |
-
-!!! info "SLZB-06 Coordinator"
-    The Zigbee coordinator is an [SLZB-06](https://smlight.tech/product/slzb-06/) network-attached coordinator, accessed over TCP (`tcp://slzb-06:6638`) rather than USB serial. This removes the need for USB passthrough into the container.
+Home Assistant blueprints, dashboards and packages, ESPHome device configs, and Button+ configs live in the repository's `iot/` directory. The HAOS host is managed with Ansible (`ansible/`, `just ansible deploy-homeassistant`); see `ansible/README.md`.

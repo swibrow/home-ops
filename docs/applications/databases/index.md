@@ -9,14 +9,16 @@ managed by a single [CloudNative-PG](https://cloudnative-pg.io/) operator. The
 same namespace hosts the Dragonfly and ClickHouse operators, so all stateful
 data engines are in one place.
 
-There are **three** PostgreSQL clusters serving **18** databases. Applications
-do not get a cluster of their own; they get a *tenant* — a database and a login
+There are **three** PostgreSQL clusters serving **21** databases. Applications
+do not get a cluster of their own; they get a *tenant*: a database and a login
 role on one of the two shared clusters.
 
-!!! info "This layout is new as of 2026-07-29"
-    It replaced 21 single-database clusters spread over two namespaces. The
-    migration, including the per-app procedure and the traps it turned up, is
-    written up in [CNPG Consolidation](../../operations/cnpg-consolidation.md).
+> [!NOTE]
+> **This layout is new as of 2026-07-29**
+>
+> It replaced 21 single-database clusters spread over two namespaces. The
+> migration, including the per-app procedure and the traps it turned up, is
+> written up in [CNPG Consolidation](../../operations/cnpg-consolidation.md).
 
 ## Architecture
 
@@ -28,15 +30,15 @@ flowchart TD
         OS[ObjectStore: garage<br/>s3://cnpg/]
         CSS[ClusterSecretStore<br/>cnpg-secrets-database]
 
-        SHARED[("shared<br/>pg18 · 11 tenants")]
-        AI[("ai<br/>vectorchord 18 · 6 tenants")]
+        SHARED[("shared<br/>pg18 · 15 tenants")]
+        AI[("ai<br/>vectorchord 18 · 5 tenants")]
         IMMICH[("immich<br/>vchord 16 · dedicated")]
 
         TS[Tenant Secrets<br/>shared-*, ai-*]
     end
 
     subgraph Apps["Application namespaces"]
-        A1[16 apps via the<br/>cnpg-db-shared component]
+        A1[19 apps via the<br/>cnpg-db-shared component]
         A3[immich · inline ExternalSecret]
     end
 
@@ -72,7 +74,7 @@ Definitions live in `kubernetes/apps/pitower/database/clusters/`.
 **Why `ai` is separate from `shared`:** memini's backend runs
 `CREATE EXTENSION IF NOT EXISTS vchord CASCADE` at startup and needs the
 extension binaries present. `vchord` is a background-worker extension, so it
-must be in `shared_preload_libraries` at postmaster start — that is cluster-wide
+must be in `shared_preload_libraries` at postmaster start, which is cluster-wide
 and not something to impose on tenants that do not need it.
 
 **Why `immich` stays dedicated:** its migrations create `cube`,
@@ -112,8 +114,8 @@ Three of those are deliberate and easy to get wrong:
   cache, which for Postgres means the shared buffer working set gets evicted and
   reads fall through to disk.
 - **`max_connections: "200"` is a cluster-wide budget**, the sum across all
-  eleven tenants, not a per-app allowance. Steady state is around 40. An app
-  with an unbounded connection pool can starve every other tenant — see
+  of its tenants, not a per-app allowance. An app
+  with an unbounded connection pool can starve every other tenant; see
   [Adding a database](#5-cap-the-connection-pool-if-the-app-needs-it).
 
 ## Tenancy model
@@ -175,22 +177,26 @@ spec:
 
 Three rules hold this together:
 
-!!! danger "Never add tenants to `spec.managed.roles` on the Cluster"
-    Declaring them as `Database` + `DatabaseRole` CRs means onboarding an app
-    **never mutates the Cluster resource**, so the primary is never rolled to
-    add a tenant. `tenants/` is also its own ArgoCD Application, separate from
-    `clusters/`, so a tenant change can never surface as a diff against a
-    Cluster.
+> [!CAUTION]
+> **Never add tenants to `spec.managed.roles` on the Cluster**
+>
+> Declaring them as `Database` + `DatabaseRole` CRs means onboarding an app
+> **never mutates the Cluster resource**, so the primary is never rolled to
+> add a tenant. `tenants/` is also its own ArgoCD Application, separate from
+> `clusters/`, so a tenant change can never surface as a diff against a
+> Cluster.
 
-!!! warning "Both reclaim policies must stay `retain`"
-    They are what stop a deleted CR — or an ArgoCD prune — from issuing
-    `DROP DATABASE` or `DROP ROLE`.
+> [!WARNING]
+> **Both reclaim policies must stay `retain`**
+>
+> They are what stop a deleted CR (or an ArgoCD prune) from issuing
+> `DROP DATABASE` or `DROP ROLE`.
 
 **The tenant Secret does double duty.** CNPG reads `username`/`password` from it
 to reconcile the `DatabaseRole`, and the consuming application reads all five
 keys out of the same object. Because it carries `host`/`port`/`dbname` too, the
-consumer component needs no namespace and no service FQDN of its own — moving a
-cluster or renaming a service changes the source Secret, not sixteen consumers.
+consumer component needs no namespace and no service FQDN of its own: moving a
+cluster or renaming a service changes the source Secret, not every consumer.
 
 Note the key is `username`, not the `user` that CNPG's own `<cluster>-app`
 Secrets use.
@@ -199,7 +205,7 @@ Passwords live in Infisical at `/database/tenants/<APP>_PASSWORD`.
 
 ## Consuming a database
 
-Sixteen apps use the `cnpg-db-shared` kustomize component. It reads the tenant
+Nineteen apps use the `cnpg-db-shared` kustomize component. It reads the tenant
 Secret through the `cnpg-secrets-database` ClusterSecretStore and emits a single
 Secret in the app's namespace:
 
@@ -226,19 +232,24 @@ configMapGenerator:
       - DB_SCHEME=postgresql
 ```
 
-!!! tip "`DB_SCHEME` is required, and it is not cosmetic"
-    Drivers disagree about the scheme for the same server. SQLAlchemy resolves a
-    bare `postgresql://` to psycopg2, so anything on psycopg 3 must say
-    `postgresql+psycopg` (rackrat is the one case today). Host, port, user,
-    password and dbname are identical either way. Kustomize hard-errors on a
-    replacement whose source field is absent, so every consumer has to name its
-    driver explicitly rather than inherit a wrong default.
+> [!TIP]
+> **`DB_SCHEME` is required, and it is not cosmetic**
+>
+> Drivers disagree about the scheme for the same server. SQLAlchemy resolves a
+> bare `postgresql://` to psycopg2, so anything on psycopg 3 must say
+> `postgresql+psycopg` (rackrat is the one case today). Host, port, user,
+> password and dbname are identical either way. Kustomize hard-errors on a
+> replacement whose source field is absent, so every consumer has to name its
+> driver explicitly rather than inherit a wrong default.
 
 ### Tenant map
 
 | Tenant | Cluster | Consuming app | Namespace |
 |:-------|:--------|:--------------|:----------|
+| affine | `shared` | affine | `second-brain` |
+| atuin | `shared` | atuin | `selfhosted` |
 | autobrr | `shared` | autobrr | `media` |
+| crowdsec | `shared` | crowdsec | `security` |
 | firefly | `shared` | firefly | `banking` |
 | forgejo | `shared` | forgejo | `dev` |
 | gatus | `shared` | gatus | `monitoring` |
@@ -246,12 +257,14 @@ configMapGenerator:
 | house_hunter | `shared` | house-hunter | `selfhosted` |
 | miniflux | `shared` | miniflux | `selfhosted` |
 | paperless | `shared` | paperless | `banking` |
+| pitwall | `shared` | (consumer not in this repo) | |
 | propagit | `shared` | propagit | `dev` |
-| rackrat | `shared` | rackrat | `rackrat` |
+| rackrat | `shared` | rackrat-comps | `rackrat` |
 | rybbit | `shared` | rybbit | `analytics` |
 | garrison | `ai` | garrison | `garrison` |
 | goat | `ai` | goat | `goat` |
 | memini | `ai` | memini | `ai` |
+| mlflow | `ai` | mlflow | `ai` |
 | open_webui | `ai` | open-webui | `ai` |
 | immich | `immich` | immich | `media` |
 
@@ -276,9 +289,9 @@ env -u INFISICAL_TOKEN infisical secrets set "MYAPP_PASSWORD=$pw" \
   --path=/database/tenants --env=prod --silent
 ```
 
-!!! note
-    `env -u INFISICAL_TOKEN` matters: a stale `INFISICAL_TOKEN` in the
-    environment overrides the logged-in session and fails with a confusing 404.
+> [!NOTE]
+> `env -u INFISICAL_TOKEN` matters: a stale `INFISICAL_TOKEN` in the
+> environment overrides the logged-in session and fails with a confusing 404.
 
 ### 2. Add the tenant file
 
@@ -307,7 +320,7 @@ restarts it.
 ### 5. Cap the connection pool if the app needs it
 
 `max_connections: "200"` is shared across every tenant. If the app's pool is
-unbounded by default — Forgejo's is — set a limit as part of onboarding:
+unbounded by default (Forgejo's is), set a limit as part of onboarding:
 
 ```yaml
 MAX_OPEN_CONNS: 20
@@ -345,9 +358,11 @@ Barman namespaces each cluster's backups under its own `serverName`, which
 defaults to the cluster name, so `shared` and `ai` land in `s3://cnpg/shared/`
 and `s3://cnpg/ai/` without extra configuration.
 
-!!! danger "`spec.configuration.serverName` must stay unset"
-    It exists only for API compatibility with the deprecated in-tree field.
-    Setting it collapses every cluster into one backup prefix.
+> [!CAUTION]
+> **`spec.configuration.serverName` must stay unset**
+>
+> It exists only for API compatibility with the deprecated in-tree field.
+> Setting it collapses every cluster into one backup prefix.
 
 Each Cluster opts in with a plugin entry:
 
@@ -362,9 +377,11 @@ plugins:
 WAL archiving is continuous and independent of the nightly `ScheduledBackup`;
 the schedule only sets how far back a PITR has to replay from.
 
-!!! warning "The schedule is six fields, not five"
-    CNPG prepends a seconds field, so `0 0 2 * * *` is 02:00 UTC — not what the
-    same string means to a Kubernetes CronJob.
+> [!WARNING]
+> **The schedule is six fields, not five**
+>
+> CNPG prepends a seconds field, so `0 0 2 * * *` is 02:00 UTC, not what the
+> same string means to a Kubernetes CronJob.
 
 Backups run `target: prefer-standby` so they do not compete with tenant traffic
 on the primary. Storage is [Garage](../../storage/garage.md) (`system/garage`);
@@ -398,10 +415,12 @@ spec:
 Adding a third database node means editing this patch. The patch is applied to
 every `Cluster` in the overlay by kind, so it cannot be forgotten for a new one.
 
-!!! warning "A second kustomization once omitted this patch"
-    That is how an `immich` instance ended up scheduled on `worker-07`, the
-    node with a ~11 ms write-latency floor. If you add a kustomization that
-    renders Clusters, it needs the affinity patch too.
+> [!WARNING]
+> **A second kustomization once omitted this patch**
+>
+> That is how an `immich` instance ended up scheduled on `worker-07`, the
+> node with a ~11 ms write-latency floor. If you add a kustomization that
+> renders Clusters, it needs the affinity patch too.
 
 ## Monitoring
 
@@ -410,7 +429,7 @@ each instance directly. The operator itself is scraped via
 `monitoring.podMonitorEnabled: true` in its Helm values.
 
 The operator chart's bundled Grafana dashboard is **disabled**
-(`grafanaDashboard.create: false`); dashboards are vendored centrally instead —
+(`grafanaDashboard.create: false`); dashboards are vendored centrally instead;
 see [Grafana](../../monitoring/grafana.md).
 
 ## Ad-hoc access
@@ -423,15 +442,17 @@ new tenant is picked up on the next pod restart with no configuration change.
 It connects as each database's **owning role**, so its `execute_sql` tool can
 write. Only the `*_list_tables` half is exposed through garrison's allowlist.
 
-!!! tip "Restarting it after a password change"
-    The init container renders passwords at pod start, so a rotated tenant
-    password leaves it holding a stale credential. Restart the **StatefulSet**
-    pod, not the Deployment of the same name — that one is the ToolHive proxy:
-
-    ```bash
-    kubectl --context=admin@pitower -n ai delete pod database-toolbox-0
-    kubectl --context=admin@pitower -n ai logs database-toolbox-0 -c generate-tools
-    ```
+> [!TIP]
+> **Restarting it after a password change**
+>
+> The init container renders passwords at pod start, so a rotated tenant
+> password leaves it holding a stale credential. Restart the **StatefulSet**
+> pod, not the Deployment of the same name, which is the ToolHive proxy:
+>
+> ```bash
+> kubectl --context=admin@pitower -n ai delete pod database-toolbox-0
+> kubectl --context=admin@pitower -n ai logs database-toolbox-0 -c generate-tools
+> ```
 
 Direct `psql` access, for when that is not enough:
 
@@ -446,20 +467,22 @@ The `database` namespace also hosts two non-Postgres operators:
 
 | Operator | Chart | Scope | Used by |
 |:---------|:------|:------|:--------|
-| Dragonfly | `dragonfly-operator` v1.6.1 | all namespaces | forgejo, immich, cryptgeon, toolhive-auth |
-| ClickHouse | `altinity-clickhouse-operator` v0.27.2 | all namespaces (`watchNamespaces: [".*"]`) | — |
+| Dragonfly | `dragonfly-operator` v1.7.0 | all namespaces | affine, cryptgeon, forgejo, immich, toolhive-auth |
+| ClickHouse | `altinity-clickhouse-operator` 0.27.4 | all namespaces (`watchNamespaces: [".*"]`) | -- |
 
 Dragonfly instances are declared as `Dragonfly` CRs next to the app that uses
 them, not here.
 
-!!! note "The ClickHouse operator currently manages nothing"
-    Rybbit's ClickHouse runs as a plain app-template StatefulSet rather than a
-    `ClickHouseInstallation` CR, so there are no CRs for the operator to
-    reconcile today.
+> [!NOTE]
+> **The ClickHouse operator currently manages nothing**
+>
+> Rybbit's ClickHouse runs as a plain app-template StatefulSet rather than a
+> `ClickHouseInstallation` CR, so there are no CRs for the operator to
+> reconcile today.
 
 ## See also
 
-- [CNPG Consolidation](../../operations/cnpg-consolidation.md) — how this layout came to be
+- [CNPG Consolidation](../../operations/cnpg-consolidation.md): how this layout came to be
 - [Backup & Restore](../../storage/backup-restore.md)
 - [Garage S3](../../storage/garage.md)
 - [External Secrets](../../security/external-secrets.md)

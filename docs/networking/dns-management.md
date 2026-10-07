@@ -4,238 +4,115 @@ title: DNS Management
 
 # DNS Management
 
-DNS in the cluster involves several layers: Cloudflare as the authoritative DNS provider, Talos Linux's built-in host DNS forwarding (CoreDNS is disabled), and a critical workaround for the Ubiquiti router's DNS interception behavior. This page covers the full DNS architecture and the solutions developed to handle each challenge.
+DNS has three layers: Cloudflare as the authoritative public DNS, the UniFi gateway as the LAN resolver (with records published from the cluster), and CoreDNS plus Talos hostDNS inside the cluster. On top of that, the router intercepts outbound port 53, which needs a workaround for anything that must see real Cloudflare answers.
 
 ## DNS Architecture
 
 ```mermaid
 flowchart TB
     subgraph Internet
-        CF[Cloudflare DNS<br/>Authoritative for example.com]
+        CF[Cloudflare DNS<br/>wibrow.dev, propagit.dev, cloudsnacks.dev]
     end
 
-    subgraph Router["Ubiquiti Router"]
-        DNAT["DNAT Rule<br/>Intercepts port 53 traffic<br/>Redirects to router DNS"]
+    subgraph Router["UniFi gateway"]
+        UDNS["Local DNS<br/>records from external-dns-unifi"]
     end
 
-    subgraph Cluster["Cluster"]
-        subgraph Pods
-            App[Application Pod]
-            RRDA[RRDA Pod]
-            DNSProxy["dnsproxy sidecar<br/>DoH to 1.1.1.1"]
-        end
-
-        subgraph DNS["Cluster DNS"]
-            HostDNS["Talos hostDNS<br/>(forwarding proxy)"]
-        end
-
-        EDNS[external-dns<br/>Updates Cloudflare records]
+    subgraph Cluster["pitower"]
+        App[Application Pod]
+        CoreDNS["CoreDNS<br/>kube-dns 10.96.0.10"]
+        HostDNS["Talos hostDNS<br/>(per node)"]
+        RRDA["rrda + dnsproxy sidecar"]
+        EDNS[external-dns<br/>Cloudflare]
+        EDNSU[external-dns-unifi]
     end
 
-    App -->|"DNS query\n(port 53)"| HostDNS
-    HostDNS -->|"port 53"| DNAT
-    DNAT -->|"Intercepted!"| DNAT
-    DNAT -.->|"Answers from\nrouter cache"| HostDNS
-
-    RRDA -->|"DNS query\n(port 53)"| DNSProxy
-    DNSProxy -->|"DoH (port 443)\nBypasses interception"| CF
-
-    EDNS -->|"API calls"| CF
-
-    classDef problem fill:#ef4444,stroke:#b91c1c,color:#fff
-    classDef solution fill:#22c55e,stroke:#16a34a,color:#fff
-    class DNAT problem
-    class DNSProxy solution
+    App --> CoreDNS -->|"forward . /etc/resolv.conf"| HostDNS --> UDNS
+    RRDA -->|"DoH :443"| CF
+    EDNS -->|API| CF
+    EDNSU -->|API| UDNS
 ```
 
-## Cloudflare as Authoritative DNS
+## Public DNS: Cloudflare
 
-The domain `example.com` is managed by Cloudflare. All DNS records are created and updated automatically by [external-dns](external-dns.md), which runs in the cluster and uses the Cloudflare API.
-
-Key DNS records:
+Cloudflare is authoritative for `wibrow.dev`, `propagit.dev` and `cloudsnacks.dev`. Records are created by [external-dns](external-dns.md) from HTTPRoutes and DNSEndpoints:
 
 | Record | Type | Target | Proxied |
 |:-------|:-----|:-------|:--------|
-| `external.example.com` | CNAME | `<tunnel-id>.cfargotunnel.com` | No (tunnel routing) |
-| `*.example.com` (external apps) | CNAME | `external.example.com` | Yes |
+| `wibrow.dev` | AAAA | `100::` (Cloudflare Worker placeholder) | Yes |
+| `status.wibrow.dev` | AAAA | `100::` (Cloudflare Worker placeholder) | Yes |
+| `external.wibrow.dev`, `*.wibrow.dev` | CNAME | `tunnel.wibrow.dev` (towonel hub) | No |
+| `internal.wibrow.dev` | A | `10.20.10.238` | No |
+| `<app>.wibrow.dev` on `envoy-external` | CNAME | `external.wibrow.dev` | No |
+| `<app>.wibrow.dev` on `envoy-internal` | CNAME | `internal.wibrow.dev` | No |
 
-## Cluster DNS: Talos hostDNS
+Only the two Worker placeholders are proxied; everything on the tunnel must stay unproxied for SNI passthrough. See [Towonel Tunnel](towonel-tunnel.md#dns).
 
-The cluster does **not** run CoreDNS. Instead, Talos Linux provides a built-in host DNS forwarding proxy that handles cluster DNS resolution. This is configured at the Talos machine config level and forwards queries to upstream resolvers.
+## LAN DNS: UniFi
 
-!!! info "Why Not CoreDNS?"
-    While CoreDNS is deployed (at `192.168.0.220`), it serves as a fallback. The primary cluster DNS is Talos's built-in `hostDNS` feature, which provides a lightweight forwarding DNS proxy directly on each node. This avoids the overhead of running CoreDNS pods and reduces single-point-of-failure risk.
+`external-dns-unifi` publishes `wibrow.dev` records into the UniFi gateway through the [UniFi webhook provider](external-dns.md#unifi-instance). LAN clients therefore resolve app hostnames straight to the gateway LoadBalancer IPs (`10.20.10.238`/`.239`) without leaving the network or going through the tunnel.
+
+## Cluster DNS: CoreDNS and Talos hostDNS
+
+CoreDNS (`kubernetes/apps/pitower/kube-system/coredns/`) runs 2 replicas on the control-plane nodes behind the `kube-dns` Service:
+
+| Setting | Value |
+|:--------|:------|
+| ClusterIPs | `10.96.0.10`, `fd10:96::a` (`PreferDualStack`) |
+| `cluster.local` | Served by the `kubernetes` plugin |
+| Everything else | `forward . /etc/resolv.conf` (the node resolver), cached 30s |
+
+Talos puts the 10th address of each Service subnet into every pod's `resolv.conf`, so the IPv6 ClusterIP must exist or lookups that reach it time out.
+
+Talos `hostDNS` is enabled on every node (`talos/pitower/all/01-general.yaml`) with `forwardKubeDNSToHost: false`, so pods use CoreDNS and only CoreDNS's upstream queries go through the node's host DNS cache.
 
 ## The DNS Interception Problem
 
-!!! danger "Critical Gotcha: Ubiquiti Router Intercepts Port 53"
-    The Ubiquiti router performs transparent DNS interception (DNAT) on **all** outbound traffic to port 53. This means any DNS query from the cluster that exits the node toward an external DNS server (like `1.1.1.1` or `8.8.8.8`) gets intercepted and answered by the router's own DNS resolver instead.
+> [!CAUTION]
+> **The router intercepts port 53**
+>
+> The UniFi router answers outbound DNS on port 53 itself, regardless of the destination (`1.1.1.1`, `8.8.8.8`, ...). Plain `dig` from inside the network can therefore return the router's view instead of what Cloudflare actually has.
 
-    This has several consequences:
-
-    1. **Stale records**: The router's DNS cache may serve outdated records for `example.com` subdomains
-    2. **Incorrect answers**: The router resolves against its own upstream, which may not reflect recent Cloudflare changes
-    3. **Verification impossible**: You cannot verify Cloudflare DNS records from within the network using standard `dig` commands
-
-### How to Verify Actual Cloudflare Records
-
-Since standard DNS queries on port 53 get intercepted, you must use DNS-over-HTTPS (DoH) to verify what Cloudflare actually returns:
+Use DNS-over-HTTPS to check what Cloudflare really returns:
 
 ```bash
-# Verify a record via Cloudflare DoH (bypasses router interception)
-curl -s "https://1.1.1.1/dns-query?name=app.example.com&type=A" \
-  -H "Accept: application/dns-json" | jq .
-
-# Compare with what the router returns (intercepted)
-dig app.example.com @1.1.1.1 +short
-
-# These may return DIFFERENT results!
+curl -s "https://1.1.1.1/dns-query?name=app.wibrow.dev&type=CNAME" \
+  -H "Accept: application/dns-json" | jq '.Answer'
 ```
 
-!!! tip "Quick DoH Check"
-    ```bash
-    # One-liner to check if a CNAME exists on Cloudflare
-    curl -s "https://1.1.1.1/dns-query?name=myapp.example.com&type=CNAME" \
-      -H "Accept: application/dns-json" | jq '.Answer[].data'
-    ```
+cert-manager uses DoH resolvers for its DNS-01 propagation checks for the same reason (see [cert-manager](../security/cert-manager.md)).
 
-## The DoH Sidecar Solution
+## The DoH Sidecar: RRDA
 
-For applications that **must** resolve DNS records accurately against Cloudflare (not the router's intercepted version), a DNS-over-HTTPS sidecar is deployed alongside the application.
+[RRDA](https://github.com/swibrow/rrda) (`kubernetes/apps/pitower/selfhosted/rrda/`) is a REST API for DNS lookups at `rrda.wibrow.dev`. It needs real answers, so it runs a `dnsproxy` sidecar that listens on port 53 inside the pod and forwards everything over DoH:
 
-### RRDA + dnsproxy
-
-The [RRDA](https://github.com/swibrow/rrda) application is a REST API for DNS lookups. It needs to query actual authoritative DNS servers to return correct results. Since standard port 53 queries get intercepted by the Ubiquiti router, RRDA runs a `dnsproxy` sidecar that provides a local DNS server (on port 53 within the pod) that forwards all queries via DoH.
-
-```yaml title="pitower/kubernetes/apps/selfhosted/rrda/values.yaml"
-controllers:
-  rrda:
-    strategy: RollingUpdate
-    containers:
-      app:
-        image:
-          repository: ghcr.io/cloudsnacks/rrda
-          tag: 1.4.1
-        probes:
-          liveness: &probes
-            enabled: true
-            custom: true
-            spec:
-              httpGet:
-                path: /127.0.0.1:53/example.com/A
-                port: &port 8080
-              initialDelaySeconds: 5
-              periodSeconds: 30
-              timeoutSeconds: 5
-          readiness: *probes
-      dns-over-https:
-        image:
-          repository: docker.io/adguard/dnsproxy
-          tag: v0.78.2
-        args:
-          - --listen=0.0.0.0
-          - --port=53
-          - --upstream=https://1.1.1.1/dns-query
-          - --upstream=https://1.0.0.1/dns-query
-          - --bootstrap=9.9.9.9:53
+```yaml title="kubernetes/apps/pitower/selfhosted/rrda/values.yaml (excerpt)"
+dns-over-https:
+  image:
+    repository: docker.io/adguard/dnsproxy
+    tag: v0.86.0
+  args:
+    - --listen=0.0.0.0
+    - --port=53
+    - --upstream=https://1.1.1.1/dns-query
+    - --upstream=https://1.0.0.1/dns-query
+    - --bootstrap=9.9.9.9:53
 ```
 
-### How It Works
-
-```mermaid
-flowchart LR
-    subgraph Pod["RRDA Pod"]
-        RRDA[rrda app<br/>port 8080]
-        DNSProxy["dnsproxy sidecar<br/>port 53"]
-    end
-
-    Client[Client] -->|"HTTP GET /1.1.1.1:53/example.com/A"| RRDA
-    RRDA -->|"DNS query to<br/>127.0.0.1:53"| DNSProxy
-    DNSProxy -->|"DoH (HTTPS/443)<br/>to 1.1.1.1"| Cloudflare[Cloudflare DNS]
-    Cloudflare -->|"Response"| DNSProxy
-    DNSProxy -->|"DNS response"| RRDA
-    RRDA -->|"JSON response"| Client
-```
-
-1. RRDA receives an HTTP request asking for a DNS record
-2. RRDA performs a standard DNS query to `127.0.0.1:53` (the pod's localhost)
-3. The `dnsproxy` sidecar receives the query on port 53
-4. `dnsproxy` forwards the query via DNS-over-HTTPS to `https://1.1.1.1/dns-query` (port 443)
-5. Since the query goes over HTTPS (port 443), the Ubiquiti router does **not** intercept it
-6. The actual Cloudflare response comes back through the DoH tunnel
-
-### dnsproxy Configuration
-
-| Flag | Purpose |
-|:-----|:--------|
-| `--listen=0.0.0.0` | Listen on all interfaces within the pod |
-| `--port=53` | Standard DNS port |
-| `--upstream=https://1.1.1.1/dns-query` | Primary DoH upstream (Cloudflare) |
-| `--upstream=https://1.0.0.1/dns-query` | Secondary DoH upstream (Cloudflare backup) |
-| `--bootstrap=9.9.9.9:53` | Bootstrap DNS to resolve the DoH upstream hostnames |
-
-!!! note "Bootstrap DNS"
-    The `--bootstrap` flag is needed because `dnsproxy` needs to resolve `1.1.1.1` and `1.0.0.1` before it can use DoH. Since these are IP addresses (not hostnames), the bootstrap is technically only needed if DoH upstreams were specified as hostnames. It is included as a safety net using Quad9 (`9.9.9.9`).
-
-### Why Not Use DoH Cluster-Wide?
-
-Running DoH for the entire cluster would bypass the router's DNS entirely, which is actually desirable in some cases. However:
-
-1. **Performance**: DoH adds latency compared to plain DNS for every query
-2. **Complexity**: Would require changing Talos's hostDNS configuration on all nodes
-3. **Scope**: Only RRDA actually needs authoritative Cloudflare results -- most apps just need standard resolution
-4. **Router features**: The Ubiquiti router provides useful features like local DNS entries and DHCP-based hostname resolution that would be lost
-
-The sidecar approach solves the problem surgically for the apps that need it.
+RRDA queries `127.0.0.1:53`, `dnsproxy` sends it to Cloudflare over HTTPS on port 443, and the router does not touch it. Its liveness and readiness probes resolve `example.com` through the sidecar.
 
 ## Troubleshooting
 
-### Check What the Router Returns vs. Cloudflare
-
 ```bash
-# What the router returns (after interception)
-dig +short myapp.example.com
-
-# What Cloudflare actually has
-curl -s "https://1.1.1.1/dns-query?name=myapp.example.com&type=CNAME" \
+# Router view vs. Cloudflare's
+dig +short myapp.wibrow.dev
+curl -s "https://1.1.1.1/dns-query?name=myapp.wibrow.dev&type=CNAME" \
   -H "Accept: application/dns-json" | jq .
 
-# If these differ, the router's DNS cache is stale
-```
+# Through RRDA
+curl -s https://rrda.wibrow.dev/1.1.1.1:53/myapp.wibrow.dev/CNAME | jq .
 
-### Flush Router DNS Cache
-
-If the Ubiquiti router is serving stale DNS records, you may need to flush its cache. Refer to your Ubiquiti documentation for the specific command, as it varies by firmware version.
-
-### Check RRDA's DNS Resolution
-
-```bash
-# Test RRDA's DNS resolution (uses the DoH sidecar)
-curl -s https://rrda.example.com/1.1.1.1:53/example.com/A | jq .
-
-# Test a example.com domain through RRDA
-curl -s https://rrda.example.com/1.1.1.1:53/myapp.example.com/CNAME | jq .
-```
-
-### Verify dnsproxy Sidecar Is Running
-
-```bash
-# Check pod containers
-kubectl get pods -n selfhosted -l app.kubernetes.io/name=rrda -o jsonpath='{.items[*].spec.containers[*].name}'
-# Should output: app dns-over-https
-
-# Check dnsproxy logs
-kubectl logs -n selfhosted -l app.kubernetes.io/name=rrda -c dns-over-https
-```
-
-### Test DoH Directly
-
-```bash
-# Test DNS-over-HTTPS from your workstation
-curl -s "https://1.1.1.1/dns-query?name=example.com&type=A" \
-  -H "Accept: application/dns-json"
-
-# Test with a specific record type
-curl -s "https://1.1.1.1/dns-query?name=example.com&type=TXT" \
-  -H "Accept: application/dns-json" | jq '.Answer'
+# CoreDNS
+kubectl -n kube-system get pods -l app.kubernetes.io/instance=coredns
+kubectl -n kube-system logs -l app.kubernetes.io/instance=coredns
 ```

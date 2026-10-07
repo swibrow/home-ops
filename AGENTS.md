@@ -7,7 +7,7 @@ Kubernetes home lab GitOps repository.
 - **Talos Linux** — immutable Kubernetes OS
 - **ArgoCD** — GitOps continuous delivery
 - **Cilium** — CNI with L2 announcements + BGP to the UniFi gateway (LoadBalancer IPs: 10.20.10.128-255)
-- **Envoy Gateway** — ingress (external/internal/direct gateways)
+- **Envoy Gateway** — ingress (external/internal gateways)
 - **CloudNativePG** — PostgreSQL operator
 - **kopiur** — PVC snapshots (Kopia) to Garage S3
 - **External Secrets** — Infisical + CNPG ClusterSecretStores
@@ -29,12 +29,12 @@ kubernetes/apps/{cluster}/{category}/{app}/
 - One ApplicationSet per cluster using git directory generator: `kubernetes/apps/{cluster}/*/*`
 - App naming: `{cluster}-{category}-{app}` from path segments
 - Namespace derived from category
-- Helm chart: `app-template` (bjw-s-labs) v4.6.2 via `oci://ghcr.io/bjw-s-labs/helm`
+- Helm chart: `app-template` (bjw-s-labs) v5.2.1 via `oci://ghcr.io/bjw-s-labs/helm`
 
 ## Key Conventions
 
-- **Routes** use Gateway API (`HTTPRoute`) with `parentRefs` to `envoy-internal`, `envoy-external`, or `envoy-direct` in namespace `networking`, sectionName `https`
-- **Databases** use CNPG clusters defined in `kubernetes/apps/pitower/cloudnative-pg/cluster/cluster.yaml`, accessed via `cnpg-secrets` ClusterSecretStore
+- **Routes** use Gateway API (`HTTPRoute`) with `parentRefs` to `envoy-internal` or `envoy-external` in namespace `networking`, sectionName `https`
+- **Databases** use CNPG clusters defined in `kubernetes/apps/pitower/database/clusters/` (`shared`, `immich`, `ai`), accessed via the `cnpg-secrets-database` ClusterSecretStore
 - **App secrets** stored in Infisical at `/category/app/SECRET_NAME`
 - **kopiur** backups via reusable kustomize component at `kubernetes/components/kopiur`, configured per-app with a `kopiur-config` ConfigMap (`APP_NAME`, `CLAIM_NAME`); repository is the `garage` ClusterRepository
 - **Timezone**: `Europe/Zurich`
@@ -56,7 +56,12 @@ To track a site, embed the snippet in the page `<head>` (get `data-site-id` from
 ## Bootstrap
 
 - ArgoCD + ApplicationSets at `kubernetes/bootstrap/`
-- CNPG operator + clusters at `kubernetes/apps/pitower/cloudnative-pg/`
+- CNPG operator + clusters at `kubernetes/apps/pitower/database/`
+
+## Docs
+
+- Markdown in `docs/`, rendered by the Astro project in `site/` (bun) to `swibrow.github.io/home-ops` by `deploy-docs.yml`. `cd site && bun run build` builds, indexes with Pagefind and fails on broken internal links or anchors.
+- Write for GitHub too: GitHub alerts (`> [!NOTE]`) instead of admonitions, relative `.md` links, `<details>` for collapsibles. Every page must be listed in `site/src/nav.ts` or the build fails.
 
 ## Infrastructure
 

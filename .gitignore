@@ -62,9 +62,6 @@ TODO.md
 
 .esphome
 
-# MkDocs build output
-site/
-
 # Python
 __pycache__/
 *.py[cod]
@@ -84,6 +81,7 @@ dist/
 .secrets/
 .gstack/
 
-# Node / Cloudflare Workers (workers/)
+# Node / Cloudflare Workers (workers/), docs site (site/)
 node_modules/
 .wrangler/
+.astro/

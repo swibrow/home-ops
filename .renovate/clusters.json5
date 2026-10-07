@@ -6,15 +6,5 @@
       matchFileNames: ["kubernetes/apps/**"],
       additionalBranchPrefix: "kubernetes-",
     },
-    {
-      description: "Separate PRs for pitower cluster",
-      matchFileNames: ["pitower/**"],
-      additionalBranchPrefix: "pitower-",
-    },
-    {
-      description: "Separate PRs for pistack cluster",
-      matchFileNames: ["pistack/**"],
-      additionalBranchPrefix: "pistack-",
-    },
   ],
 }

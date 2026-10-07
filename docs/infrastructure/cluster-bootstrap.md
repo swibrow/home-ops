@@ -4,23 +4,20 @@ title: Cluster Bootstrap
 
 # Cluster Bootstrap
 
-This page documents the full process of bootstrapping the cluster from scratch. All steps use `just` recipes defined in `pitower/talos/justfile`.
+This page documents bootstrapping the cluster from scratch. Talos steps use the `just talos pitower <recipe>` recipes (defined in `talos/talos.justfile` and `talos/pitower/justfile`), which wrap [topf](https://github.com/postfinance/topf). Run them from the repository root so `mise.toml` sets `KUBECONFIG` and `SOPS_AGE_KEY_FILE`.
 
 ## Prerequisites
 
-Before starting, ensure the following are available:
+- [x] **topf**, **sops**, **kubectl**, **kustomize**, **helm**, and **just** installed (see [Prerequisites](../getting-started/prerequisites.md))
+- [x] The age key available via `SOPS_AGE_KEY_FILE`, so topf can decrypt `talos/pitower/secrets.sops.yaml`
+- [x] Every schematic in `talos/pitower/extensions/` submitted to the Image Factory (see [Talos Linux](talos-linux.md#factory-schematics))
+- [x] All nodes booted into Talos maintenance mode and holding their VLAN 20 DHCP reservations (`terraform/unifi/reservations.tf`)
+- [x] Network connectivity from your workstation to `10.20.10.0/24`
 
-- [x] **talosctl** installed (matching Talos v1.12.4)
-- [x] **kubectl** installed
-- [x] **just** command runner installed
-- [x] **sops** installed and configured with the correct age key or GPG key
-- [x] **kustomize** installed (for building CNI addons)
-- [x] All nodes are powered on and booted into Talos maintenance mode
-- [x] Network connectivity between your workstation and all node IPs
-- [x] `secrets.sops.yaml` present in `pitower/talos/`
-
-!!! warning "SOPS Key Required"
-    The `secrets.sops.yaml` file contains the cluster secrets (CA certs, tokens, encryption keys). You must have the corresponding SOPS decryption key (age or GPG) available in your environment.
+> [!WARNING]
+> **SOPS Key Required**
+>
+> `secrets.sops.yaml` holds the cluster secrets (CA certs, tokens, encryption keys). Without the age key topf cannot render any machine config.
 
 ## Bootstrap Steps
 
@@ -28,192 +25,161 @@ Before starting, ensure the following are available:
 
 ```mermaid
 flowchart TD
-    A[1. Decrypt Secrets] --> B[2. Generate Configs]
-    B --> C[3. Patch Per-Node Configs]
-    C --> D[4. Apply Control Plane Configs]
-    D --> E[5. Apply Worker Configs]
-    E --> F[6. Bootstrap Cluster]
-    F --> G[7. Get Kubeconfig]
-    G --> H[8. Apply CNI Addons]
-    H --> I[9. Verify Cluster Health]
+    A[1. Preview configs] --> B[2. Apply configs + bootstrap etcd]
+    B --> C[3. Get kubeconfig]
+    C --> D[4. Apply CNI addons]
+    D --> E[5. Install ArgoCD]
+    E --> F[6. Apply ApplicationSets]
+    F --> G[7. Verify cluster health]
 ```
 
-### Step 1: Generate Base Machine Configs
+### Step 1: Preview the Machine Configs
 
 ```bash
-cd pitower/talos
-just config
+just talos pitower render   # writes full configs to talos/pitower/output/
 ```
 
-This recipe:
+topf generates base configs from `topf.yaml` and the secrets, then layers `all/`, `control-plane/`, and `node/<host>/` patches per node. Review the output before touching any node. `output/` is not committed.
 
-1. Decrypts `secrets.sops.yaml` to `secrets.yaml` using SOPS
-2. Runs `talosctl gen config` with:
-    - Cluster name: `home-ops`
-    - Endpoint: `https://192.168.0.200:6443`
-    - Global patch: `patches/general.patch`
-    - Control plane patch: `patches/controlplane.patch`
-3. Outputs `controlplane.yaml` and `worker.yaml` into `clusterconfig/`
-
-!!! info "The decrypted `secrets.yaml` is written to disk temporarily. It is not committed to Git."
-
-### Step 2: Apply Per-Node Patches
+### Step 2: Apply Configs and Bootstrap
 
 ```bash
-just patch
+just talos pitower bootstrap
 ```
 
-This applies node-specific patches from `patches/nodes/` to create individual config files:
+This runs `topf apply --auto-bootstrap`: it pushes each node's config while the nodes are in maintenance mode, then bootstraps etcd on the first control plane once. The control planes come up behind the VIP `10.20.10.0`, and workers join through it.
 
-| Base Config | Node Patches Applied |
-|-------------|---------------------|
-| `controlplane.yaml` | `worker-01.patch`, `worker-02.patch`, `worker-03.patch` |
-| `worker.yaml` | `worker-04.patch`, `worker-05.patch`, `worker-06.patch` |
+> [!CAUTION]
+> **Bootstrap is a one-time operation**
+>
+> Only run this when creating a new cluster. For an existing cluster use `just talos pitower apply`.
 
-Output files are written to `clusterconfig/` (e.g., `worker-01.yaml`, `worker-04.yaml`).
-
-### Step 3: Apply Configs to Control Plane Nodes
+### Step 3: Get a Kubeconfig
 
 ```bash
-just apply-controlplanes
+just talos pitower kubeconfig
 ```
 
-Applies the generated configs to the three control plane nodes:
-
-| Node | IP | Config File |
-|------|-----|-------------|
-| worker-01 | 192.168.0.201 | `worker-01.yaml` |
-| worker-02 | 192.168.0.202 | `worker-02.yaml` |
-| worker-03 | 192.168.0.203 | `worker-03.yaml` |
-
-!!! tip "Apply Order"
-    Control plane configs must be applied before workers. The control plane nodes form the etcd cluster that workers will join.
-
-### Step 4: Apply Configs to Worker Nodes
-
-```bash
-just apply-workers
-```
-
-Applies configs to the worker nodes:
-
-| Node | IP | Config File |
-|------|-----|-------------|
-| worker-04 | 192.168.0.204 | `worker-04.yaml` |
-
-### Step 5: Bootstrap the Cluster
-
-```bash
-just bootstrap
-```
-
-This recipe:
-
-1. **Bootstraps etcd** on the first control plane node (`192.168.0.201`)
-2. **Retrieves kubeconfig** from the VIP (`192.168.0.200`)
-
-```bash
-talosctl bootstrap --nodes 192.168.0.201
-talosctl kubeconfig --nodes 192.168.0.200
-```
-
-!!! danger "Bootstrap is a one-time operation"
-    The `bootstrap` command should only be run **once** during initial cluster creation. Running it again on an existing cluster can corrupt etcd.
-
-### Step 6: Verify Talos Node Health
-
-Before applying addons, confirm all nodes are up:
-
-```bash
-talosctl get members
-```
-
-Expected output should show all nodes with their IPs and roles.
+This writes a short-lived (12h) admin kubeconfig to `talos/pitower/output/kubeconfig` and prints the `export KUBECONFIG=...` line. The long-lived kubeconfig used day to day is `~/.kube/pitower.yaml`.
 
 ## Post-Bootstrap
 
-### Apply CNI and Addons
+### Step 4: Apply CNI and Addons
 
-The cluster starts with no CNI (`cni.name: none`) and no kube-proxy (`proxy.disabled: true`). Cilium and the kubelet CSR approver must be installed as the first addons:
-
-```bash
-just addons
-```
-
-This runs:
+The cluster starts with no CNI (Flannel is deleted) and no kube-proxy. Install Cilium and the kubelet CSR approver first:
 
 ```bash
-kustomize build ./addons --enable-helm | kubectl apply -f -
+just talos pitower addons
 ```
 
-The addons kustomization includes:
+This runs `kustomize build ./addons --enable-helm | kubectl apply -f -` in `talos/pitower`:
 
 | Addon | Namespace | Purpose |
 |-------|-----------|---------|
-| **Cilium** (v1.18.7) | `kube-system` | CNI, kube-proxy replacement, network policies |
-| **kubelet-csr-approver** (v1.2.13) | `system-controllers` | Auto-approves kubelet certificate signing requests |
+| **Cilium** (1.20.2) | `kube-system` | CNI, kube-proxy replacement |
+| **kubelet-csr-approver** (1.2.15) | `system-controllers` | Approves kubelet serving certificate CSRs |
 
-!!! warning "Cilium Must Be Applied First"
-    Pods will remain in `Pending` state until Cilium is installed because there is no CNI to assign pod IPs. The `just addons` step is critical and must be run immediately after bootstrap.
+> [!WARNING]
+> **Cilium Must Be Applied First**
+>
+> Pods stay `Pending` until Cilium is installed, because nothing assigns pod IPs. Once ArgoCD is up, `kube-system/cilium` and `system/kubelet-csr-approver` take these over with the full configuration (BGP, L2, IPv6).
 
-### Verify Cluster Health
+### Step 5: Install ArgoCD
 
-After addons are applied, verify the cluster is healthy:
+ArgoCD installs itself from `kubernetes/bootstrap/` (the `argo-cd` Helm chart 10.9.6 plus namespace, AppProject, repo credentials, and ExternalSecrets). The SOPS-encrypted secrets in that directory (`secrets.sops.yaml`, `age-key.sops.yaml`) are not part of the kustomization and are applied by hand with `sops -d ... | kubectl apply -f -`; they include the Infisical machine identity (`security/universal-auth-credentials`) that External Secrets needs.
 
-=== "Check Node Status"
+Then apply the self-managing bootstrap Application:
 
-    ```bash
-    kubectl get nodes -o wide
-    ```
+```bash
+kubectl apply -f kubernetes/bootstrap/app-argocd.yaml
+```
 
-    All nodes should show `Ready` status.
+See [ArgoCD Setup](../gitops/argocd-setup.md) for details.
 
-=== "Check Cilium Status"
+### Step 6: Apply the ApplicationSets
 
-    ```bash
-    kubectl -n kube-system get pods -l app.kubernetes.io/name=cilium
-    ```
+ApplicationSets are applied manually and are not managed by ArgoCD:
 
-    All Cilium agent pods should be `Running`.
+```bash
+kubectl apply -f kubernetes/argocd/clusters/pitower.yaml
+kubectl apply -f kubernetes/argocd/ack-applicationset.yaml
+```
 
-=== "Check System Pods"
+The `pitower` ApplicationSet discovers every `kubernetes/apps/pitower/{category}/{app}` directory and creates `pitower-{category}-{app}` Applications.
 
-    ```bash
-    kubectl get pods -A
-    ```
+> [!NOTE]
+> **Ordering**
+>
+> Many apps depend on External Secrets, the `infisical` ClusterSecretStore, Rook Ceph, and CNPG. Until those are healthy, dependent Applications retry and may show `Degraded`. ArgoCD's retry policy usually settles this without intervention.
 
-    Core system pods (kube-apiserver, kube-controller-manager, kube-scheduler, etcd) should be `Running` on control plane nodes.
+### Step 7: Verify Cluster Health
 
-=== "Talos Health"
+#### Nodes
 
-    ```bash
-    talosctl health --nodes 192.168.0.201
-    ```
+```bash
+kubectl get nodes -o wide
+```
 
-    Should report all checks passing.
+All 11 nodes should be `Ready`.
+
+#### Cilium
+
+```bash
+kubectl -n kube-system get pods -l app.kubernetes.io/name=cilium-agent
+```
+
+One agent per node, all `Running`.
+
+#### ArgoCD
+
+```bash
+kubectl -n argocd get applications
+```
+
+Applications should converge to `Synced` / `Healthy`.
+
+#### Talos
+
+```bash
+just talos pitower talosconfig
+just talos pitower health
+```
+
+Should report all checks passing.
 
 ## Troubleshooting
 
-??? failure "Nodes not appearing after bootstrap"
-    - Verify network connectivity: `talosctl get addresses -n <node-ip>`
-    - Check if the node received its config: `talosctl get machineconfig -n <node-ip>`
-    - Ensure the bootstrap node (192.168.0.201) completed etcd initialization
+<details>
+<summary>Nodes not appearing after bootstrap</summary>
 
-??? failure "Pods stuck in Pending after bootstrap"
-    This is expected until Cilium is installed. Run `just addons` to install the CNI.
+- Check the node holds its VLAN 20 address: `talosctl -n <node-ip> get addresses`
+- Check the node received its config: `talosctl -n <node-ip> get machineconfig`
+- Confirm the schematic was submitted to the Image Factory; an unknown schematic makes the installer image 404
 
-??? failure "Certificate errors after bootstrap"
-    The kubelet CSR approver handles automatic certificate approval. If nodes show certificate errors:
+</details>
 
-    ```bash
-    kubectl get csr
-    kubectl certificate approve <csr-name>
-    ```
+<details>
+<summary>Pods stuck in Pending after bootstrap</summary>
 
-    Once the kubelet-csr-approver is running, future CSRs are approved automatically.
+Expected until Cilium is installed. Run `just talos pitower addons`.
 
-??? failure "SOPS decryption fails"
-    Ensure your SOPS key is available:
+</details>
 
-    - **age**: Set `SOPS_AGE_KEY_FILE` environment variable
-    - **GPG**: Ensure the GPG key is in your keyring
+<details>
+<summary>Kubelet serving certificate CSRs pending</summary>
+
+kubelet-csr-approver approves them once it runs. It resolves the node name and denies the CSR unless the name resolves to the node's VLAN 20 IP. Approve manually in the meantime:
+
+```bash
+kubectl get csr
+kubectl certificate approve <csr-name>
+```
+
+</details>
+
+<details>
+<summary>SOPS decryption fails</summary>
+
+Make sure `SOPS_AGE_KEY_FILE` points at the age key. `mise.toml` sets it to `~/.config/mise/age.txt`; the Talos justfile falls back to `age.key` at the repository root.
+
+</details>

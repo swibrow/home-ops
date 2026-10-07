@@ -4,7 +4,7 @@
 # The MCPServer "aws-api" (namespace "ai", ServiceAccount "toolhive-aws-ro")
 # runs the awslabs aws-api-mcp-server, which executes AWS CLI commands. It
 # assumes this role via the amazon-eks-pod-identity-webhook using the cluster
-# OIDC provider (created in terraform/bootstrap, looked up in volsync.tf).
+# OIDC provider (created in terraform/bootstrap, looked up in main.tf).
 #
 # Read-only is enforced in two layers: READ_OPERATIONS_ONLY=true on the server
 # (tool layer) AND the AWS-managed ReadOnlyAccess policy here (IAM layer). A

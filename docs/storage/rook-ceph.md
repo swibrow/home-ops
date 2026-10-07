@@ -4,14 +4,15 @@ title: Rook Ceph
 
 # Rook Ceph
 
-[Rook Ceph](https://rook.io/) provides distributed block storage for the cluster. Three 512 GB NVMe drives on the Acemagician AM06 nodes form a Ceph cluster managed by the Rook operator, delivering replicated, high-availability persistent volumes.
+[Rook Ceph](https://rook.io/) provides distributed block storage for the cluster. Three SATA SSDs, one in each control-plane node (worker-01/02/03), form a Ceph cluster managed by the Rook operator. `ceph-block` is the cluster's default StorageClass.
 
 ## Architecture
 
 ```mermaid
 flowchart TD
-    subgraph Rook Operator
+    subgraph Operators
         OP[rook-ceph-operator\nManages Ceph lifecycle]
+        CSIOP[ceph-csi-operator\nManages CSI drivers]
     end
 
     subgraph Ceph Cluster
@@ -19,15 +20,16 @@ flowchart TD
         MON2[MON\nworker-02]
         MON3[MON\nworker-03]
         MGR[MGR\nCluster manager]
-        OSD1[OSD\nworker-01\n512GB NVMe]
-        OSD2[OSD\nworker-02\n512GB NVMe]
-        OSD3[OSD\nworker-03\n512GB NVMe]
+        OSD1[OSD\nworker-01\nSATA SSD]
+        OSD2[OSD\nworker-02\nSATA SSD]
+        OSD3[OSD\nworker-03\nSATA SSD]
     end
 
     subgraph Resources
-        BP[CephBlockPool\nReplicated x3]
+        BP[CephBlockPool\nceph-blockpool\nReplicated x3]
         SC[StorageClass\nceph-block]
-        DASH[Dashboard\nrook.example.com]
+        VSC[VolumeSnapshotClass\ncsi-ceph-blockpool]
+        DASH[Dashboard\nrook.wibrow.dev]
     end
 
     OP --> MON1 & MON2 & MON3
@@ -35,61 +37,64 @@ flowchart TD
     OP --> OSD1 & OSD2 & OSD3
     BP --> OSD1 & OSD2 & OSD3
     SC --> BP
+    VSC --> BP
+    CSIOP -->|rbd Driver| SC
     MGR --> DASH
 ```
 
 ## Repository Layout
 
-The Rook Ceph deployment is split into three kustomization directories:
+The deployment is split into four directories under `kubernetes/apps/pitower/rook-ceph/`, each its own ArgoCD application:
 
 ```
-pitower/kubernetes/apps/rook-ceph/
-├── operator/           # Rook operator Helm chart + CRDs
-│   ├── kustomization.yaml
-│   ├── namespace.yaml
-│   └── values.yaml
-├── cluster/            # CephCluster CR, dashboard HTTPRoute
-│   ├── kustomization.yaml
-│   ├── values.yaml
-│   └── httproute.yaml
-└── add-ons/            # Grafana dashboards for Ceph monitoring
-    ├── kustomization.yaml
-    └── dashboard/
-        ├── kustomization.yaml
-        ├── ceph-cluster-dashboard.json
-        ├── ceph-osd-dashboard.json
-        └── ceph-pools-dashboard.json
+kubernetes/apps/pitower/rook-ceph/
+├── operator/      # rook-ceph chart: operator, CRDs, ceph-csi-operator
+├── csi-drivers/   # ceph-csi-drivers chart: OperatorConfig + rbd Driver CR
+├── cluster/       # rook-ceph-cluster chart: CephCluster, pool, StorageClass, dashboard HTTPRoute
+└── add-ons/       # Ceph Grafana dashboards (GrafanaDashboard CRs)
 ```
 
-!!! info "Separation of concerns"
-    The operator and cluster are deployed as separate ArgoCD applications. This allows the operator to be upgraded independently of the cluster, and prevents accidental cluster disruption during operator updates.
+> [!NOTE]
+> **Separation of concerns**
+>
+> The operator and cluster are separate ArgoCD applications, so the operator can be upgraded independently of the cluster. Renovate never auto-merges Rook updates.
 
 ## Operator
 
-The Rook operator is deployed via the `rook-ceph` Helm chart (v1.17.9) into the `rook-ceph` namespace:
+The Rook operator is deployed via the `rook-ceph` Helm chart (`v1.20.8`) into the `rook-ceph` namespace:
 
-```yaml title="operator/values.yaml"
+```yaml title="operator/values.yaml (abridged)"
+image:
+  repository: ghcr.io/rook/ceph
 crds:
   enabled: true
-csi:
-  enableCephfsDriver: false
 monitoring:
-  enabled: false
-resources:
-  requests:
-    memory: 128Mi
-    cpu: 100m
-  limits: {}
+  enabled: true
+nodeSelector: &cephControllerNodes
+  node-role.kubernetes.io/control-plane: ""
+ceph-csi-operator:
+  controllerManager:
+    nodeSelector: *cephControllerNodes
 ```
 
 Key decisions:
 
-- **CephFS driver disabled** -- the cluster uses block storage only (`cephFileSystems: []`)
-- **CRDs managed by the chart** -- `crds.enabled: true` ensures CRDs are installed and upgraded with the operator
+- **CRDs managed by the chart**: `crds.enabled: true` installs and upgrades the CRDs with the operator.
+- **`monitoring.enabled: true`**: grants the operator RBAC to create the `rook-ceph-mgr` / `rook-ceph-exporter` ServiceMonitors and PrometheusRules. Without it no `ceph_*` metrics are scraped.
+- **Controllers stay on the OSD hosts**: the chart only exposes `nodeSelector`, so the operator and ceph-csi-operator ride the control-plane role label (today exactly worker-01/02/03).
+
+## CSI Drivers
+
+Since Rook v1.20 the operator chart no longer configures the CSI drivers; the `ceph-csi-operator` does. `csi-drivers/` deploys the `ceph-csi-drivers` chart (`1.1.0`), which renders the `OperatorConfig` and the `rbd` `Driver` CR:
+
+- Only **RBD** is enabled; CephFS, NFS and NVMe-oF drivers are disabled.
+- The RBD node plugin tolerates every `dedicated=*` taint, so volumes can mount wherever pods land.
+- The controller plugin (provisioner, attacher, snapshotter, resizer) runs 2 replicas pinned to worker-01/02/03.
+- `CephConnection` / `ClientProfile` CRs are left to Rook, which owns the live `rook-ceph` ones.
 
 ## Cluster Configuration
 
-The `rook-ceph-cluster` Helm chart deploys the `CephCluster` custom resource:
+The `rook-ceph-cluster` Helm chart (`v1.20.8`) deploys the `CephCluster` custom resource.
 
 ### Monitors and Managers
 
@@ -97,11 +102,20 @@ The `rook-ceph-cluster` Helm chart deploys the `CephCluster` custom resource:
 |:----------|:-----:|:--------|
 | MON | 3 | Maintain cluster map consensus (one per node) |
 | MGR | 1 | Cluster management, dashboard, metrics |
-| OSD | 3 | One per NVMe drive, stores actual data |
+| OSD | 3 | One per SSD, stores actual data |
+
+### Placement
+
+`placement.all` pins every Ceph daemon to worker-01/02/03 and tolerates the `node-issue` and `dedicated=storage` taints. The toolbox is a chart-owned Deployment, so it carries the same node affinity separately.
+
+> [!WARNING]
+> **Moving mons**
+>
+> Never narrow the placement list by more than one mon's node at a time. Each mon is nodeSelector-pinned to the node it was created on, so excluding two nodes at once leaves two mons unschedulable and loses quorum. The procedure used for the 2026-07-26 migration off worker-05/06/07 is documented in the comments of `cluster/values.yaml`.
 
 ### Storage Nodes
 
-Each OSD is pinned to a specific NVMe device by disk ID to prevent accidental data loss:
+Each OSD is pinned to a specific device by disk ID:
 
 ```yaml title="cluster/values.yaml (storage section)"
 cephClusterSpec:
@@ -113,17 +127,19 @@ cephClusterSpec:
     nodes:
       - name: "worker-01"
         devices:
-          - name: "/dev/disk/by-id/nvme-AirDisk_512GB_SSD_NFQ0044006866P70GX"
+          - name: "/dev/disk/by-id/ata-SanDisk_SD7SB2Q512G1001_153141400183"
       - name: "worker-02"
         devices:
-          - name: "/dev/disk/by-id/nvme-AirDisk_512GB_SSD_NFQ0044007344P70GX"
+          - name: "/dev/disk/by-id/ata-Samsung_SSD_850_EVO_500GB_S21JNSAG160704R"
       - name: "worker-03"
         devices:
-          - name: "/dev/disk/by-id/nvme-AirDisk_512GB_SSD_NFQ0044010702P70GX"
+          - name: "/dev/disk/by-id/ata-KINGSTON_SA400S37480G_50026B7384393346"
 ```
 
-!!! warning "Device selection"
-    `useAllNodes` and `useAllDevices` are both set to `false`. Each node and device is explicitly listed to prevent Ceph from consuming unintended disks. Devices are referenced by `/dev/disk/by-id/` paths for stability across reboots.
+> [!WARNING]
+> **Device selection**
+>
+> `useAllNodes` and `useAllDevices` are both `false`. Each node and device is listed explicitly so Ceph never consumes an unintended disk. Devices are referenced by `/dev/disk/by-id/` paths for stability across reboots.
 
 ### Network
 
@@ -135,31 +151,37 @@ cephClusterSpec:
 
 Host networking is used for Ceph daemons to maximize throughput and minimize latency between OSDs and monitors.
 
+### cephx Key Rotation
+
+Daemon keys are rotated with `security.cephx.daemon.keyRotationPolicy: KeyGeneration`; bump `keyGeneration` to rotate. Rook rolls the daemons one at a time, so the pool must be `active+clean` first. The CSI client keys deliberately stay on `aes` until every node runs a Linux kernel >= 7.0; the reasoning and the muted health checks are documented in `cluster/values.yaml`.
+
 ### Resource Limits
 
 | Daemon | CPU Request | Memory Request | Memory Limit |
 |:-------|:------------|:---------------|:-------------|
-| MGR | 125m | 512Mi | 2Gi |
-| MON | 49m | 512Mi | 1Gi |
-| OSD | 442m | 1Gi | 6Gi |
+| MGR | 73m | 283Mi | 2Gi |
+| MON | 30m | 512Mi | 1Gi |
+| OSD | 48m | 1Gi | 6Gi |
 | MGR Sidecar | 49m | 128Mi | 256Mi |
-| Crash Collector | 15m | 64Mi | 64Mi |
-| Log Collector | 100m | 100Mi | 1Gi |
+| Crash Collector | 15m | 7Mi | 64Mi |
+| Log Collector | 25m | 100Mi | 1Gi |
 
 ## Storage Resources
 
 ### CephBlockPool
 
-The default block pool provides three-way replication across the three OSD nodes. This is configured through the `rook-ceph-cluster` Helm chart's defaults.
+The chart's default `ceph-blockpool` pool replicates three ways with `host` as the failure domain, so each OSD node holds one copy.
 
-!!! note "Current configuration"
-    - `cephFileSystems: []` -- No CephFS filesystems are deployed
-    - `cephObjectStores: []` -- No S3-compatible object stores are deployed
-    - `cephBlockPoolsVolumeSnapshotClass.enabled: false` -- Volume snapshot class for block pools is not yet enabled
+> [!NOTE]
+> **Current configuration**
+>
+> - `cephFileSystems: []`: no CephFS filesystems
+> - `cephObjectStores: []`: no Ceph object stores (S3 is provided by [Garage](garage.md))
+> - `cephBlockPoolsVolumeSnapshotClass.enabled: true`: the `csi-ceph-blockpool` VolumeSnapshotClass, used by kopiur and for [manual snapshots](backup-restore.md#csi-snapshots)
 
 ### StorageClass
 
-The Helm chart creates a `ceph-block` StorageClass that provisions RBD (RADOS Block Device) volumes from the block pool. Applications request storage through PVCs referencing this class:
+The chart creates the `ceph-block` StorageClass (the cluster default) that provisions RBD volumes from the pool:
 
 ```yaml
 apiVersion: v1
@@ -177,7 +199,7 @@ spec:
 
 ## Dashboard
 
-The Ceph dashboard is enabled and accessible via the internal gateway:
+The Ceph dashboard is enabled and exposed via the internal gateway:
 
 ```yaml title="cluster/httproute.yaml"
 apiVersion: gateway.networking.k8s.io/v1
@@ -187,7 +209,7 @@ metadata:
   namespace: rook-ceph
 spec:
   hostnames:
-    - rook.example.com
+    - rook.wibrow.dev
   parentRefs:
     - name: envoy-internal
       namespace: networking
@@ -198,21 +220,25 @@ spec:
           port: 7000
 ```
 
-Access the dashboard at `https://rook.example.com` from the internal network or via Tailscale VPN.
+Access the dashboard at `https://rook.wibrow.dev` from the LAN or via Tailscale.
 
-!!! tip "Dashboard credentials"
-    The dashboard admin password is stored in the `rook-ceph-dashboard-password` secret in the `rook-ceph` namespace:
-
-    ```bash
-    kubectl -n rook-ceph get secret rook-ceph-dashboard-password \
-      -o jsonpath='{.data.password}' | base64 -d
-    ```
+> [!TIP]
+> **Dashboard credentials**
+>
+> The dashboard admin password is stored in the `rook-ceph-dashboard-password` secret in the `rook-ceph` namespace:
+>
+> ```bash
+> kubectl -n rook-ceph get secret rook-ceph-dashboard-password \
+>   -o jsonpath='{.data.password}' | base64 -d
+> ```
 
 ## Monitoring
 
+The cluster chart sets `monitoring.enabled: true` and `createPrometheusRules: true`, so Prometheus scrapes the mgr and exporter and the stock Ceph alert rules are installed.
+
 ### Grafana Dashboards
 
-Three Grafana dashboards are deployed as ConfigMaps with the `grafana_dashboard: "true"` label, automatically discovered by the Grafana sidecar:
+`add-ons/dashboard/` ships three dashboard JSON files as ConfigMaps, each referenced by a `GrafanaDashboard` CR in the **Storage** folder:
 
 | Dashboard | Grafana ID | Purpose |
 |:----------|:-----------|:--------|
@@ -238,29 +264,31 @@ rados df
 
 Common commands to verify Ceph cluster health:
 
-=== "Quick Status"
+### Quick Status
 
-    ```bash
-    kubectl -n rook-ceph exec deploy/rook-ceph-tools -- ceph status
-    ```
+```bash
+kubectl -n rook-ceph exec deploy/rook-ceph-tools -- ceph status
+```
 
-=== "OSD Tree"
+### OSD Tree
 
-    ```bash
-    kubectl -n rook-ceph exec deploy/rook-ceph-tools -- ceph osd tree
-    ```
+```bash
+kubectl -n rook-ceph exec deploy/rook-ceph-tools -- ceph osd df tree
+```
 
-=== "Pool Usage"
+### Pool Usage
 
-    ```bash
-    kubectl -n rook-ceph exec deploy/rook-ceph-tools -- ceph df
-    ```
+```bash
+kubectl -n rook-ceph exec deploy/rook-ceph-tools -- ceph df
+```
 
-=== "PG Status"
+### PG Status
 
-    ```bash
-    kubectl -n rook-ceph exec deploy/rook-ceph-tools -- ceph pg stat
-    ```
+```bash
+kubectl -n rook-ceph exec deploy/rook-ceph-tools -- ceph pg stat
+```
 
-!!! danger "Data safety"
-    The `cleanupPolicy.confirmation` field is left empty (`""`). Setting it to `"yes-really-destroy-data"` would allow the cleanup job to wipe all Ceph data when the CephCluster resource is deleted. Never change this unless you are intentionally decommissioning the cluster.
+> [!CAUTION]
+> **Data safety**
+>
+> The `cleanupPolicy.confirmation` field is left empty (`""`). Setting it to `"yes-really-destroy-data"` would allow the cleanup job to wipe all Ceph data when the CephCluster resource is deleted. Never change this unless you are intentionally decommissioning the cluster.

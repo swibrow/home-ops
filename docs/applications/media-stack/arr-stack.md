@@ -28,7 +28,7 @@ flowchart TD
     RA -->|Search & send downloads| SAB
 ```
 
-All *arr apps are exposed through `envoy-internal`, making them accessible only from the LAN or via Tailscale VPN.
+All four are exposed through `envoy-internal`, so they are reachable only from the LAN or via Tailscale. They run on worker-07 (`wibrow.dev/compute: "true"`), keep their config on PVCs from the `pvc` component, and are backed up hourly by `kopiur` with the mover patched to uid/gid 2000 to match the apps. Autobrr is the exception: it has no PVC and keeps its state in PostgreSQL.
 
 ---
 
@@ -38,10 +38,10 @@ All *arr apps are exposed through `envoy-internal`, making them accessible only 
 
 | Setting | Value |
 |:--------|:------|
-| **Image** | `ghcr.io/home-operations/sonarr:4.0.16.2946` |
+| **Image** | `ghcr.io/home-operations/sonarr` |
 | **Port** | 8989 |
-| **URL** | `sonarr.example.com` |
-| **Authentication** | External (Authelia), disabled for local addresses |
+| **URL** | `sonarr.wibrow.dev` |
+| **Authentication** | `External`, not required for local addresses |
 
 ### Configuration
 
@@ -51,7 +51,7 @@ env:
   SONARR__PORT: 8989
   SONARR__AUTHENTICATION_METHOD: External
   SONARR__AUTHENTICATION_REQUIRED: DisabledForLocalAddresses
-  SONARR__APPLICATION_URL: "https://sonarr.example.com"
+  SONARR__APPLICATION_URL: "https://sonarr.wibrow.dev"
 ```
 
 ### Storage
@@ -61,20 +61,20 @@ env:
 | `/config` | PVC `sonarr-config` | Sonarr database and settings |
 | `/data/nas-media` | NFS `data:/volume1/media` | Media library (shared with downloaders) |
 
-Sonarr runs as UID/GID 568 with `fsGroupChangePolicy: OnRootMismatch`.
+Sonarr runs as UID/GID 2000 with `fsGroupChangePolicy: OnRootMismatch`.
 
 ---
 
 ## Radarr (Movies)
 
-[Radarr](https://radarr.video/) is the movie equivalent of Sonarr -- it searches for, downloads, and organizes movies.
+[Radarr](https://radarr.video/) is the movie equivalent of Sonarr: it searches for, downloads, and organizes movies.
 
 | Setting | Value |
 |:--------|:------|
-| **Image** | `ghcr.io/home-operations/radarr:6.1.1.10317` |
+| **Image** | `ghcr.io/home-operations/radarr` |
 | **Port** | 7878 |
-| **URL** | `radarr.example.com` |
-| **Authentication** | External (Authelia), disabled for local addresses |
+| **URL** | `radarr.wibrow.dev` |
+| **Authentication** | `External`, not required for local addresses |
 
 ### Configuration
 
@@ -84,7 +84,7 @@ env:
   RADARR__PORT: 7878
   RADARR__AUTHENTICATION_METHOD: External
   RADARR__AUTHENTICATION_REQUIRED: DisabledForLocalAddresses
-  RADARR__APPLICATION_URL: "https://radarr.example.com"
+  RADARR__APPLICATION_URL: "https://radarr.wibrow.dev"
   RADARR__LOG_LEVEL: info
 ```
 
@@ -95,7 +95,7 @@ env:
 | `/config` | PVC `radarr-config` | Radarr database and settings |
 | `/data/nas-media` | NFS `data:/volume1/media` | Media library (shared with downloaders) |
 
-Radarr uses a hardened security context with `readOnlyRootFilesystem: true` and runs as UID/GID 2000.
+Radarr runs as UID/GID 2000 (`runAsNonRoot: true`), with `emptyDir` volumes for `/tmp` and add-ons.
 
 ---
 
@@ -105,10 +105,10 @@ Radarr uses a hardened security context with `readOnlyRootFilesystem: true` and 
 
 | Setting | Value |
 |:--------|:------|
-| **Image** | `ghcr.io/home-operations/prowlarr:2.3.2` |
+| **Image** | `ghcr.io/home-operations/prowlarr` |
 | **Port** | 9696 |
-| **URL** | `prowlarr.example.com` |
-| **Authentication** | External (Authelia) |
+| **URL** | `prowlarr.wibrow.dev` |
+| **Authentication** | `External` |
 
 ### Configuration
 
@@ -126,12 +126,14 @@ env:
         key: api_key
 ```
 
-!!! info "API Key"
-    Prowlarr's API key is stored in an `ExternalSecret` (`prowlarr-secret`) and injected as an environment variable. This key is used by Sonarr and Radarr to authenticate with Prowlarr's API.
+> [!NOTE]
+> **API Key**
+>
+> Prowlarr's API key is stored in an `ExternalSecret` (`prowlarr-secret`) and injected as an environment variable. This key is used by Sonarr and Radarr to authenticate with Prowlarr's API.
 
 ### Storage
 
-Prowlarr stores its configuration in a single PVC (`prowlarr-config`). It does not need access to the NFS media share since it only manages indexer metadata.
+Prowlarr stores its configuration in a single PVC (`prowlarr-config`). It does not mount the NFS media share since it only manages indexer metadata.
 
 ---
 
@@ -141,21 +143,26 @@ Prowlarr stores its configuration in a single PVC (`prowlarr-config`). It does n
 
 | Setting | Value |
 |:--------|:------|
-| **Image** | `ghcr.io/autobrr/autobrr:v1.72.1` |
+| **Image** | `ghcr.io/autobrr/autobrr` |
 | **Port** | 7474 |
-| **URL** | `autobrr.example.com` |
-| **Database** | PostgreSQL (CloudNative-PG `autobrr` cluster) |
+| **URL** | `autobrr.wibrow.dev` |
+| **Database** | PostgreSQL, tenant `autobrr` on the `shared` CNPG cluster |
+| **Login** | OIDC via Kanidm (`idm.wibrow.dev`) |
 
 ### Configuration
 
-Autobrr uses PostgreSQL for its database instead of SQLite, with credentials injected from the `autobrr-db-secret` ExternalSecret:
+Autobrr uses PostgreSQL instead of SQLite (`AUTOBRR__DATABASE_TYPE: postgres`). The `cnpg-db-shared` component creates `autobrr-db-secret`, and the individual `AUTOBRR__POSTGRES_*` variables read `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS` and `DB_NAME` from it. Other secrets come from `autobrr-secret` (Infisical).
 
-```yaml title="Secret references"
-envFrom:
-  - secretRef:
-      name: autobrr-secret
-  - secretRef:
-      name: autobrr-db-secret
+```yaml title="kustomization.yaml (excerpt)"
+components:
+  - ../../../../components/cnpg-db-shared
+configMapGenerator:
+  - name: cnpg-db-config
+    literals:
+      - APP_NAME=autobrr
+      - SECRET_NAME=autobrr-db-secret
+      - CNPG_SECRET_KEY=shared-autobrr
+      - DB_SCHEME=postgresql
 ```
 
-Autobrr is a stateless application (aside from the database) and does not require PVC storage. It runs as UID/GID 2000 with a hardened security context.
+Autobrr has no PVC. It runs as UID/GID 2000 with `runAsNonRoot: true`.

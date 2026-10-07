@@ -4,217 +4,172 @@ title: Grafana
 
 # Grafana
 
-[Grafana](https://grafana.com/grafana/) serves as the central visualization layer for the cluster. It connects to Prometheus for metrics and Loki for logs, and auto-provisions dashboards from ConfigMaps across all namespaces. Authentication is handled via Authelia OIDC.
+[Grafana](https://grafana.com/grafana/) is the visualization layer for metrics, logs and traces. It is managed by the [grafana-operator](https://grafana.github.io/grafana-operator/): the Grafana instance, its datasources and every dashboard are Kubernetes custom resources. Users sign in through Kanidm OIDC.
+
+## Layout
+
+`kubernetes/apps/pitower/monitoring/grafana-operator/` is a single ArgoCD application with two kustomizations, ordered by sync waves:
+
+| Directory | Wave | Contents |
+|:----------|:----:|:---------|
+| `grafana-operator/` | 0 | `grafana-operator` Helm chart (`5.25.0`) with CRDs, ServiceMonitor and the operator's own dashboard |
+| `instance/` | 1 | `Grafana` CR, `GrafanaDatasource` CRs, `GrafanaDashboard` CRs and their JSON, HTTPRoute, image renderer, ExternalSecrets |
+
+```mermaid
+flowchart LR
+    subgraph monitoring
+        OP[grafana-operator]
+        G[Grafana CR\nlabel dashboards: grafana]
+        DS[GrafanaDatasource CRs]
+        GD[GrafanaDashboard CRs]
+    end
+    subgraph other namespaces
+        GD2[GrafanaDashboard CRs\nrook-ceph, ai, ...]
+    end
+    OP -->|reconciles| G
+    DS -->|instanceSelector| G
+    GD -->|instanceSelector| G
+    GD2 -->|instanceSelector\nallowCrossNamespaceImport| G
+```
+
+Every datasource and dashboard selects the instance with `instanceSelector.matchLabels: {dashboards: grafana}`.
 
 ## Data Sources
-
-Grafana is configured with four data sources, all provisioned declaratively through the Helm values:
 
 | Data Source | Type | URL | Default |
 |:------------|:-----|:----|:--------|
 | Prometheus | `prometheus` | `http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090` | Yes |
-| Loki | `loki` | `http://loki-headless.monitoring.svc.cluster.local:3100` | No |
+| VictoriaMetrics | `prometheus` | `http://victoria-metrics-server.monitoring.svc.cluster.local:8428` | No |
+| VictoriaLogs | `victoriametrics-logs-datasource` | `http://victoria-logs.monitoring.svc.cluster.local:9428` | No |
+| Tempo | `tempo` | `http://tempo.monitoring.svc.cluster.local:3200` | No |
 | Alertmanager | `alertmanager` | `http://alertmanager.monitoring.svc.cluster.local:9093` | No |
-| GitHub | `grafana-github-datasource` | N/A (API-based) | No |
+| GitHub | `grafana-github-datasource` | API (GitHub App credentials from the `grafana-github-app` secret) | No |
 
-```yaml
-datasources:
-  datasources.yaml:
-    apiVersion: 1
-    datasources:
-      - name: Prometheus
-        type: prometheus
-        uid: prometheus
-        access: proxy
-        url: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
-        isDefault: true
-      - name: Loki
-        type: loki
-        access: proxy
-        url: http://loki-headless.monitoring.svc.cluster.local:3100
+Tempo links traces to logs in VictoriaLogs and to metrics/service maps in Prometheus.
+
+```yaml title="instance/datasources.yaml (one entry)"
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  name: victoriametrics
+  namespace: monitoring
+spec:
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  datasource:
+    name: VictoriaMetrics
+    uid: victoriametrics
+    type: prometheus
+    access: proxy
+    url: http://victoria-metrics-server.monitoring.svc.cluster.local:8428
 ```
 
-## Dashboard Auto-Provisioning
+## Dashboards
 
-Grafana uses two complementary mechanisms for dashboard management:
+Dashboards are `GrafanaDashboard` CRs. Each sets a `folder` and takes its JSON from one of three sources:
 
-### 1. Sidecar Discovery (Cross-Namespace)
+| Source | Example |
+|:-------|:--------|
+| `configMapRef` to vendored JSON | `instance/dashboards/*.json` via a `configMapGenerator`; Ceph dashboards in `rook-ceph/add-ons` |
+| `grafanaCom` (`id` + `revision`) | Node Exporter Full (1860), cert-manager (20842), NVIDIA DCGM (12239) |
+| `url` | dotdc Kubernetes views, External Secrets |
 
-The Grafana sidecar watches **all namespaces** for ConfigMaps with the label `grafana_dashboard: "true"`. Dashboards are organized into folders using the `grafana_folder` annotation on the ConfigMap.
+kube-prometheus-stack also emits its bundled dashboards as `GrafanaDashboard` CRs (`grafana.operator.dashboardsConfigMapRefEnabled: true`) into the **Kubernetes** folder.
 
-```yaml
-sidecar:
-  dashboards:
-    enabled: true
-    searchNamespace: ALL
-    label: grafana_dashboard
-    folderAnnotation: grafana_folder
-    provider:
-      disableDelete: true
-      foldersFromFilesStructure: true
-```
+Folders in use: AI, CI, Home Assistant, Infrastructure, Kubernetes, Networking, Observability, Status, Storage.
 
-This allows any application to ship its own dashboard by creating a ConfigMap in its own namespace. For example, Cilium's Helm chart creates dashboard ConfigMaps with:
+### Adding a dashboard
+
+Drop the JSON next to the app, generate a ConfigMap, and point a CR at it:
 
 ```yaml
-dashboards:
-  enabled: true
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: my-app
+  namespace: my-namespace
   annotations:
-    grafana_folder: Cilium
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  folder: Infrastructure
+  allowCrossNamespaceImport: true
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  configMapRef:
+    name: my-app-dashboard
+    key: my-app.json
 ```
 
-Similarly, Rook Ceph dashboards use a Kustomize `configMapGenerator` with the appropriate labels and annotations:
+`allowCrossNamespaceImport: true` is required outside the `monitoring` namespace.
 
-```yaml
-generatorOptions:
-  annotations:
-    grafana_folder: Rook CEPH
-  labels:
-    grafana_dashboard: "true"
-```
-
-```mermaid
-flowchart LR
-    subgraph kube-system
-        CM1[Cilium Dashboard\nConfigMap]
-    end
-    subgraph rook-ceph
-        CM2[Ceph Dashboard\nConfigMap]
-    end
-    subgraph monitoring
-        Sidecar[Grafana Sidecar]
-        Grafana[Grafana]
-    end
-
-    CM1 -->|"label: grafana_dashboard\nannotation: grafana_folder=Cilium"| Sidecar
-    CM2 -->|"label: grafana_dashboard\nannotation: grafana_folder=Rook CEPH"| Sidecar
-    Sidecar -->|provisions| Grafana
-```
-
-### 2. Dashboard Providers (Grafana Values)
-
-Dashboards can also be defined directly in the Grafana Helm values. These are organized into named providers, each mapping to a folder in Grafana:
-
-| Provider | Folder | Dashboards |
-|:---------|:-------|:-----------|
-| `default` | (root) | Authelia, external-dns, external-secrets, cert-manager, node-exporter, CloudNativePG |
-| `flux` | Flux | Flux cluster overview, control plane |
-| `kubernetes` | Kubernetes | API server, CoreDNS, global views, namespaces, nodes, pods |
-| `nginx` | Nginx | Request metrics, handling performance |
-| `ceph` | Ceph | Cluster overview, OSD, pools |
-| `github` | GitHub | Repository insights |
-
-!!! tip "Dashboard Sources"
-    Dashboards are loaded from three types of sources:
-
-    - **Grafana.com** via `gnetId` -- e.g., Node Exporter Full (ID: 1860)
-    - **Raw URLs** -- JSON files from upstream project repositories (e.g., Flux, Kubernetes, cert-manager)
-    - **ConfigMaps** -- shipped by Helm charts (e.g., Cilium, Rook Ceph) via the sidecar
-
-## Key Dashboard Categories
-
-### Cilium and Hubble
-
-Cilium and Hubble dashboards are provisioned via the sidecar into the **Cilium** folder. They cover:
-
-- Cilium agent health and eBPF datapath metrics
-- Cilium operator status and IPAM allocation
-- Hubble network observability: DNS queries, TCP connections, HTTP requests, drops, ICMP, flow counts, and port distribution
-
-### Kubernetes
-
-The Kubernetes folder includes dashboards from the [dotdc/grafana-dashboards-kubernetes](https://github.com/dotdc/grafana-dashboards-kubernetes) project:
-
-- API Server performance and request rates
-- CoreDNS query metrics
-- Global cluster resource utilization
-- Per-namespace resource breakdown
-- Per-node CPU, memory, and disk usage
-- Per-pod resource consumption
-
-### Node Health
-
-The **Node Exporter Full** dashboard (Grafana.com ID: 1860) provides deep hardware-level visibility into each node: CPU, memory, disk I/O, network, filesystem usage, and system load.
-
-### Storage
-
-Ceph dashboards in the **Ceph** folder show cluster health, OSD performance, and pool utilization -- critical for monitoring the distributed block storage backing most PVCs.
-
-### Networking
-
-Nginx dashboards track request rates, latency distributions, and error rates for both the external and internal ingress controllers.
+> [!WARNING]
+> **No sidecar**
+>
+> The old Grafana Helm chart's sidecar is gone. ConfigMaps labelled `grafana_dashboard: "true"` are **not** picked up on their own; each needs a `GrafanaDashboard` CR.
 
 ## Authentication
 
-Grafana authenticates users via Authelia using OpenID Connect (OIDC). The configuration maps Authelia groups to Grafana roles:
+Grafana authenticates users via Kanidm (`idm.wibrow.dev`) with OpenID Connect and auto-login. Kanidm groups map to Grafana roles:
 
 ```yaml
-grafana.ini:
-  auth.generic_oauth:
-    enabled: true
-    name: Authelia
-    client_id: grafana
-    scopes: openid profile email groups
-    auth_url: https://auth.example.com/api/oidc/authorization
-    token_url: https://auth.example.com/api/oidc/token
-    api_url: https://auth.example.com/api/oidc/userinfo
-    use_pkce: true
-  auth.generic_oauth.group_mapping:
-    role_attribute_path: |
-      contains(groups[*], 'admins') && 'Admin' || contains(groups[*], 'people') && 'Viewer'
+auth.generic_oauth:
+  enabled: "true"
+  name: Kanidm
+  client_id: grafana
+  scopes: openid profile email groups
+  auth_url: https://idm.wibrow.dev/ui/oauth2
+  token_url: https://idm.wibrow.dev/oauth2/token
+  api_url: https://idm.wibrow.dev/oauth2/openid/grafana/userinfo
+  use_pkce: "true"
+  role_attribute_path: contains(groups[*], 'admins@idm.wibrow.dev') && 'Admin' || contains(groups[*], 'people@idm.wibrow.dev') && 'Viewer'
 ```
 
-| Authelia Group | Grafana Role |
-|:---------------|:-------------|
+| Kanidm Group | Grafana Role |
+|:-------------|:-------------|
 | `admins` | Admin |
 | `people` | Viewer |
 
 ## Secrets Management
 
-Grafana credentials are managed through two ExternalSecrets:
+All secrets come from Infisical through ExternalSecrets:
 
-| Secret | Source | Contents |
-|:-------|:-------|:---------|
-| `grafana-admin-secret` | Infisical (`/monitoring/grafana/`) | `admin-user`, `admin-password` |
-| `grafana-secrets` | 1Password Connect (`grafana`) | `GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET` |
-
-The deployment uses `reloader.stakater.com/auto: "true"` to automatically restart Grafana when secrets are updated.
+| Secret | Infisical path | Contents |
+|:-------|:---------------|:---------|
+| `grafana-admin-secret` | `/monitoring/grafana/admin-user`, `/monitoring/grafana/admin-password` | Local admin login |
+| `grafana-secrets` | `/monitoring/grafana/client_secret` | `GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET` |
+| `grafana-image-renderer` | `/monitoring/grafana/image_renderer_token` | Renderer auth token |
+| `grafana-github-app` | `/arc/github-app/{app_id,installation_id,private_key}` (shared with ARC) | GitHub App credentials |
 
 ## Plugins
 
-The following Grafana plugins are installed:
+Plugins are installed through `GF_INSTALL_PLUGINS` on the Grafana container:
 
 | Plugin | Purpose |
 |:-------|:--------|
-| `grafana-worldmap-panel` | Geographic visualization of data |
-| `grafana-clock-panel` | Clock display for dashboards |
-| `grafana-github-datasource` | GitHub repository metrics and insights |
+| `victoriametrics-logs-datasource` | VictoriaLogs datasource |
+| `grafana-github-datasource` | GitHub repository metrics |
+| `grafana-clock-panel` | Clock panel |
+| `netsage-sankey-panel` | Sankey diagrams |
+
+> [!NOTE]
+> The `GF_INSTALL_PLUGINS` override replaces the list the operator builds from `GrafanaDatasource.spec.plugins`, so a plugin declared on a datasource must also be added there.
+
+## Storage and Rendering
+
+- **Persistence**: a 5Gi `ceph-block` PVC holds Grafana's SQLite DB, so sessions and state survive pod rebuilds (the operator default is an `emptyDir`). The Deployment uses `Recreate`.
+- **Image renderer**: a separate `grafana-operator-image-renderer` Deployment (`grafana/grafana-image-renderer`) serves PNG rendering.
 
 ## Access
 
-Grafana is exposed externally via the Cloudflare tunnel through Envoy Gateway:
-
-```yaml
-route:
-  main:
-    enabled: true
-    hostnames:
-      - grafana.example.com
-    parentRefs:
-      - name: envoy-external
-        namespace: networking
-        sectionName: https
-```
-
-This makes Grafana accessible at `https://grafana.example.com` from anywhere via Cloudflare.
+Grafana is exposed at `https://grafana.wibrow.dev` through `envoy-external`, reachable from the internet via the [towonel tunnel](../networking/towonel-tunnel.md). Gatus checks `/api/health` through an HTTPRoute annotation.
 
 ## Configuration Reference
 
 | Property | Value |
 |:---------|:------|
-| Chart | `grafana/grafana` |
-| Version | `10.5.15` |
+| Operator chart | `oci://ghcr.io/grafana/helm-charts/grafana-operator` |
+| Version | `5.25.0` |
 | Namespace | `monitoring` |
-| Persistence | Disabled (dashboards are provisioned, no state to persist) |
-| Image Renderer | Enabled (for PNG rendering in alerts and sharing) |
-| Manifest path | `pitower/kubernetes/apps/monitoring/grafana/` |
+| Manifest path | `kubernetes/apps/pitower/monitoring/grafana-operator/` |

@@ -4,43 +4,34 @@ title: Tailscale
 
 # Tailscale
 
-[Tailscale](https://tailscale.com/) provides secure remote access to the cluster through a WireGuard-based mesh VPN. The Tailscale operator runs in the cluster and acts as a subnet router (exposing cluster and LAN networks) and an exit node (allowing all traffic to route through the cluster).
+[Tailscale](https://tailscale.com/) provides remote access to the cluster and home network over a WireGuard mesh. The Tailscale operator (Helm chart `tailscale-operator` `1.102.4`, namespace `networking`) runs a `Connector` that acts as a subnet router and exit node, and proxies the Kubernetes API.
+
+Manifests: `kubernetes/apps/pitower/networking/tailscale/` (`operator/` and `connectors/`).
 
 ## Architecture
 
 ```mermaid
 flowchart LR
     subgraph Remote
-        User[Remote User<br/>Tailscale Client]
+        User[Remote device<br/>Tailscale client]
     end
 
-    subgraph Tailscale Network
-        Coord[Tailscale<br/>Coordination Server]
-        DERP[DERP Relay<br/>fallback]
+    Coord[Tailscale<br/>coordination + DERP]
+
+    subgraph Cluster["pitower"]
+        TSO[tailscale-operator]
+        TSC[Connector 'pitower'<br/>subnet router + exit node]
+        EI[envoy-internal<br/>10.20.10.238]
+        Pods[Pod network<br/>10.244.0.0/16]
     end
 
-    subgraph Cluster["Cluster"]
-        TSO[Tailscale Operator]
-        TSC[Tailscale Connector<br/>Subnet Router + Exit Node]
+    LAN[Home VLANs<br/>servers, home, iot, management, default LAN]
 
-        subgraph Networks
-            PodNet["Pod Network<br/>10.244.0.0/16"]
-            SvcNet["Service Network<br/>10.96.0.0/12"]
-            LAN["LAN<br/>192.168.0.0/24"]
-        end
-
-        EI[envoy-internal<br/>192.168.0.238]
-    end
-
-    User -->|"WireGuard<br/>(direct or DERP)"| Coord
-    Coord --> TSC
-    User -.->|"fallback"| DERP
-    DERP -.-> TSC
-
-    TSC --> PodNet
-    TSC --> SvcNet
+    User -->|"WireGuard (direct or DERP)"| Coord --> TSC
+    TSO --> TSC
+    TSC --> Pods
     TSC --> LAN
-    LAN --> EI
+    TSC --> EI
 
     classDef ts fill:#4f46e5,stroke:#3730a3,color:#fff
     class TSO,TSC ts
@@ -48,150 +39,81 @@ flowchart LR
 
 ## Operator Configuration
 
-The Tailscale operator is deployed via Helm with API server proxy mode enabled:
-
-```yaml title="pitower/kubernetes/apps/networking/tailscale/operator/values.yaml"
+```yaml title="operator/values.yaml"
 operatorConfig:
   hostname: tailscale-operator
 apiServerProxyConfig:
   mode: "true"
 ```
 
+The operator's OAuth client credentials come from Infisical through the `infisical-networking-tailscale` ClusterSecretStore into the `operator-oauth` Secret.
+
 ### API Server Proxy
 
-With `apiServerProxyConfig.mode: "true"`, the Tailscale operator acts as a proxy for the Kubernetes API server. This allows you to access `kubectl` commands remotely through Tailscale without exposing the API server publicly.
+`apiServerProxyConfig.mode: "true"` makes the operator a Kubernetes API proxy on the tailnet, authenticating requests as the caller's Tailscale identity. That identity still needs RBAC in the cluster.
 
 ```bash
-# From a remote machine connected to Tailscale
-kubectl --server=https://tailscale-operator:443 get pods -A
+kubectl --server=https://tailscale-operator get nodes
 ```
 
-!!! tip "kubectl via Tailscale"
-    Configure your kubeconfig to use the Tailscale operator as the API server endpoint. This provides authenticated, encrypted access to the cluster API from anywhere in your Tailscale network.
+## Connector
 
-## Connector (Subnet Router + Exit Node)
-
-The Tailscale Connector resource configures the subnet router and exit node:
-
-```yaml title="pitower/kubernetes/apps/networking/tailscale/connectors/connector.yaml"
+```yaml title="connectors/connector.yaml"
 apiVersion: tailscale.com/v1alpha1
 kind: Connector
 metadata:
-  name: home-ops
+  name: pitower
 spec:
-  hostname: home-ops
+  hostname: pitower
   subnetRouter:
     advertiseRoutes:
       - 10.244.0.0/16
-      - 10.96.0.0/12
+      - 10.10.0.0/16
+      - 10.20.0.0/16
+      - 10.50.0.0/24
+      - 10.101.0.0/16
       - 192.168.0.0/24
   exitNode: true
 ```
 
 ### Advertised Routes
 
-| CIDR | Network | Purpose |
-|:-----|:--------|:--------|
-| `10.244.0.0/16` | Pod network | Direct access to pod IPs from remote machines |
-| `10.96.0.0/12` | Service network | Access ClusterIP services by their service IP |
-| `192.168.0.0/24` | LAN | Access LAN devices including LoadBalancer IPs (192.168.0.220-239) |
+| CIDR | Network |
+|:-----|:--------|
+| `10.244.0.0/16` | Pod network (IPv4) |
+| `10.10.0.0/16` | `home` VLAN 10 |
+| `10.20.0.0/16` | `servers` VLAN 20: nodes, API VIP `10.20.10.0`, LoadBalancer IPs `10.20.10.128`-`255` |
+| `10.50.0.0/24` | `management` VLAN 50 |
+| `10.101.0.0/16` | `iot` VLAN 101 |
+| `192.168.0.0/24` | Untagged default LAN |
 
-!!! info "LAN Access"
-    The `192.168.0.0/24` route is the most important for daily use. It allows remote access to:
-
-    - **envoy-internal** (`192.168.0.238`) -- internal-only web services
-    - **envoy-external** (`192.168.0.239`) -- external services without going through Cloudflare
-    - Any other LAN device (NAS, router admin, etc.)
+The `10.20.0.0/16` route is the one that matters day to day: it covers `envoy-internal` (`10.20.10.238`) and every other LoadBalancer IP. The Service network is not advertised.
 
 ### Exit Node
 
-The `exitNode: true` setting allows Tailscale clients to route **all** their internet traffic through the cluster. This is useful for:
+`exitNode: true` lets a client send all its internet traffic out through the home connection.
 
-- Accessing services that are geo-restricted to the cluster's location
-- Using the cluster's DNS configuration for all queries
-- Routing all traffic through the home network when traveling
-
-!!! warning "Exit Node Bandwidth"
-    When using the exit node, all internet traffic from your device passes through the cluster's internet connection. Be mindful of bandwidth constraints, especially on residential connections.
-
-## Secrets
-
-The Tailscale operator requires authentication credentials stored in a secret (managed via External Secrets from 1Password):
-
-- **Client ID and Secret**: OAuth client credentials for the Tailscale API
-- **Auth Key**: Pre-authentication key for automatic device registration
+> [!WARNING]
+> **Route approval**
+>
+> Subnet routes and the exit node must be approved in the Tailscale admin console (or by auto-approvers in the tailnet policy) after the Connector registers. Unapproved routes are advertised but unusable.
 
 ## Typical Usage
 
-### Access Internal Services Remotely
-
-1. Connect to Tailscale on your device
-2. Navigate to `https://hubble.example.com` (or any internal service)
-3. Traffic routes: Device -> Tailscale -> the subnet router -> 192.168.0.238 -> envoy-internal -> app
-
-### Access Kubernetes API
-
-```bash
-# Configure kubectl to use Tailscale proxy
-export KUBERNETES_SERVICE_HOST=tailscale-operator
-export KUBERNETES_SERVICE_PORT=443
-
-# Or use --server flag
-kubectl --server=https://tailscale-operator:443 get nodes
-```
-
-### Use as Exit Node
-
-1. Enable exit node on your Tailscale client
-2. Select the exit node
-3. All traffic now routes through the cluster
+1. Connect the device to the tailnet.
+2. Open an internal service, e.g. `https://hubble.wibrow.dev`. The public CNAME resolves to `internal.wibrow.dev` (`10.20.10.238`), which is reachable through the subnet router.
+3. Path: device, Tailscale, Connector, `envoy-internal`, app.
 
 ## Troubleshooting
 
-### Check Tailscale Operator Status
-
 ```bash
-# Check operator pod
-kubectl get pods -n networking -l app.kubernetes.io/name=tailscale-operator
+kubectl get connector pitower           # SUBNETROUTES, ISEXITNODE, STATUS
+kubectl describe connector pitower
 
-# Check operator logs
-kubectl logs -n networking -l app.kubernetes.io/name=tailscale-operator --tail=50
-```
+kubectl -n networking get pods          # operator-* and ts-pitower-*
+kubectl -n networking logs deploy/operator --tail=50
 
-### Check Connector Status
-
-```bash
-# Check connector resource
-kubectl get connectors
-
-# Describe for detailed status
-kubectl describe connector home-ops
-```
-
-### Verify Subnet Routes
-
-From the Tailscale admin console (`https://login.tailscale.com/admin/machines`):
-
-1. Find the the device
-2. Check that subnet routes `10.244.0.0/16`, `10.96.0.0/12`, and `192.168.0.0/24` are approved
-3. Verify exit node is enabled
-
-!!! warning "Route Approval Required"
-    Subnet routes and exit node must be **approved** in the Tailscale admin console after the connector registers. If routes are advertised but not approved, remote clients will not be able to reach the cluster networks.
-
-### Test Connectivity
-
-```bash
-# From a remote Tailscale-connected device
-# Test LAN access
-ping 192.168.0.238
-
-# Test internal service
-curl -k https://192.168.0.238
-
-# Test pod network access
-curl http://10.244.x.x:port
-
-# Test service network access
-curl http://10.96.x.x:port
+# From a tailnet device
+ping 10.20.10.238
+curl -v --resolve hubble.wibrow.dev:443:10.20.10.238 https://hubble.wibrow.dev
 ```

@@ -14,11 +14,6 @@
   ignorePaths: [
     '.archive/**',
   ],
-  flux: {
-    managerFilePatterns: [
-      '/^kubernetes/.+\\.ya?ml$/',
-    ],
-  },
   'helm-values': {
     managerFilePatterns: [
       '/^kubernetes/.+\\.ya?ml$/',

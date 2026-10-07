@@ -9,7 +9,7 @@ nodes := "10.20.10.1 10.20.10.2 10.20.10.3 10.20.10.4 10.20.10.5 10.20.10.6 10.2
 
 # Apply config to the control planes only
 apply-controlplanes:
-    topf apply --nodes-filter 'worker-0[123]' --dry-run
+    topf apply --nodes-filter 'worker-0[123]'
 
 # Apply config to the workers only
 apply-workers:

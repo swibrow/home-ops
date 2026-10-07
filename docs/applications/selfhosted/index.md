@@ -4,134 +4,137 @@ title: Self-Hosted Applications
 
 # Self-Hosted Applications
 
-The `selfhosted` namespace contains a variety of productivity tools, dashboards, and utility services. Most are deployed using the bjw-s app-template Helm chart and connect to Envoy Gateways via HTTPRoute resources.
+The `selfhosted` namespace contains productivity tools, dashboards, and utility services. All are deployed with the bjw-s app-template Helm chart and attach to `envoy-external`.
 
 ## Application Catalog
 
-| App | Description | Gateway | URL | Database |
-|:----|:------------|:--------|:----|:---------|
-| **Cryptgeon** | Encrypted secret sharing (view-once notes and files) | `envoy-external` | `secrets.example.com` | Valkey (sidecar) |
-| **Echo Server** | HTTP request debugging and inspection | `envoy-external` | `echo.example.com` | -- |
-| **Excalidraw** | Collaborative whiteboard and diagramming | `envoy-external` | `draw.example.com` | -- |
-| **Glance** | Customizable dashboard with feeds and widgets | `envoy-external` | `glance.example.com` | -- |
-| **Homepage** | Kubernetes-aware application dashboard | `envoy-external` | `home.example.com` | -- |
-| **House Hunter** | Property search aggregator | `envoy-external` | `house-hunter.example.com` | PostgreSQL |
-| **Miniflux** | Minimalist RSS/Atom feed reader | `envoy-external` | `miniflux.example.com` | PostgreSQL |
-| **n8n** | Workflow automation platform | `envoy-external` | `n8n.example.com` | SQLite |
-| **RRDA** | DNS REST API for querying DNS records over HTTP | `envoy-external` | `rrda.example.com` | -- |
-| **Sharkord** | Voice/video communication server | `envoy-external` | `sharkord.example.com` | -- |
-| **Tandoor** | Recipe management and meal planning | `envoy-external` | `tandoor.example.com` | PostgreSQL |
-| **Whoami** | Simple HTTP debugging endpoint | `envoy-external` | `whoami.example.com` | -- |
+| App | Description | URL | Data |
+|:----|:------------|:----|:-----|
+| **Atuin** | Shell history sync server | `atuin.wibrow.dev` | PostgreSQL (`shared`) |
+| **Cryptgeon** | Encrypted, view-once notes and files | `secrets.wibrow.dev` | Dragonfly |
+| **Echo Server** | HTTP request debugging | `echo.wibrow.dev` | -- |
+| **Excalidraw** | Collaborative whiteboard | `draw.wibrow.dev` | -- |
+| **Glance** | Dashboard with feeds and widgets | `glance.wibrow.dev` | -- |
+| **Homepage** | Kubernetes-aware application dashboard | `home.wibrow.dev` | -- |
+| **House Hunter** | Property search aggregator | `house-hunter.wibrow.dev` | PostgreSQL (`shared`) |
+| **IT Tools** | Developer utilities in the browser | `tools.wibrow.dev` | -- |
+| **Mealie** | Recipe management and meal planning | `recipes.wibrow.dev` | PVC, kopiur backups |
+| **Miniflux** | Minimalist RSS/Atom reader | `miniflux.wibrow.dev` | PostgreSQL (`shared`) |
+| **n8n** | Workflow automation | `n8n.wibrow.dev` | PVC, kopiur backups |
+| **RRDA** | REST API for DNS lookups | `rrda.wibrow.dev` | -- |
+| **Whoami** | Minimal HTTP debugging endpoint | `whoami.wibrow.dev` | -- |
+
+PostgreSQL apps are tenants on the `shared` CNPG cluster and use the `cnpg-db-shared` component; see [Databases](../databases/index.md).
 
 ---
 
 ## Application Details
 
+### Atuin
+
+[Atuin](https://atuin.sh/) syncs encrypted shell history between machines.
+
+- **Image**: `ghcr.io/atuinsh/atuin`
+- **Database**: tenant `atuin` on the `shared` cluster
+- **Access control**: an Envoy Gateway `SecurityPolicy` on the `atuin` HTTPRoute checks an `X-API-Key` header against the `atuin-apikeys` Secret, since the CLI client cannot follow an OIDC redirect
+
 ### Cryptgeon
 
-[Cryptgeon](https://github.com/cupcakearmy/cryptgeon) provides encrypted, self-destructing notes and file sharing. Messages are encrypted client-side and stored in a Valkey (Redis-compatible) sidecar.
+[Cryptgeon](https://github.com/cupcakearmy/cryptgeon) provides encrypted, self-destructing notes and file sharing. Messages are encrypted client-side.
 
-- **Image**: `cupcakearmy/cryptgeon:2.9.1`
-- **Sidecar**: `valkey/valkey:8.1` for ephemeral encrypted data storage
-- **Size limit**: 100 MB per note
+- **Image**: `cupcakearmy/cryptgeon`, plus a `static-web-server` container for custom branding
+- **Storage**: a `Dragonfly` instance (`cryptgeon-dragonfly`) managed by the Dragonfly operator
 
 ### Echo Server
 
-[HTTP Echo Server](https://github.com/mendhak/docker-http-https-echo) returns request headers, body, and metadata. Useful for debugging Envoy Gateway routing, TLS termination, and header injection.
+[HTTP Echo Server](https://github.com/mendhak/docker-http-https-echo) returns request headers, body, and metadata. Useful for debugging gateway routing, TLS termination, and header injection.
 
-- **Image**: `ghcr.io/mendhak/http-https-echo:39`
+- **Image**: `ghcr.io/mendhak/http-https-echo`
+- **Scale to zero**: a KEDA `ScaledObject` (min 0, max 1) with an HTTP add-on `InterceptorRoute` starts it on demand
 
 ### Excalidraw
 
-[Excalidraw](https://excalidraw.com/) is an open-source collaborative whiteboard tool for sketching diagrams and illustrations.
+[Excalidraw](https://excalidraw.com/) is a collaborative whiteboard for sketching diagrams.
 
-- **Image**: `docker.io/excalidraw/excalidraw:latest`
+- **Image**: `docker.io/excalidraw/excalidraw:latest` (digest pinned)
 - **Storage**: `emptyDir` only (stateless)
 
 ### Glance
 
-[Glance](https://github.com/glanceapp/glance) is a self-hosted dashboard with configurable widgets for RSS feeds, weather, bookmarks, and system monitoring.
+[Glance](https://github.com/glanceapp/glance) is a dashboard with widgets for RSS feeds, weather, bookmarks, and monitoring.
 
-- **Image**: `docker.io/glanceapp/glance:v0.8.4`
-- **Configuration**: ConfigMap `glance-config` mounted as `/config/glance.yml`
+- **Image**: `docker.io/glanceapp/glance`
+- **Configuration**: ConfigMap mounted as the Glance config
 
 ### Homepage
 
-[Homepage](https://gethomepage.dev/) is a Kubernetes-aware application dashboard that auto-discovers services and displays their status.
+[Homepage](https://gethomepage.dev/) is a Kubernetes-aware application dashboard.
 
-- **Image**: `ghcr.io/gethomepage/homepage:v1.9.0`
-- **Configuration**: ConfigMap `homepage-config` with multiple YAML files (bookmarks, services, settings, widgets)
-- **RBAC**: ServiceAccount with cluster read permissions for Kubernetes service discovery
+- **Image**: `ghcr.io/gethomepage/homepage`
+- **Configuration**: ConfigMap with bookmarks, services, settings and widgets, plus `custom.js`, which loads the [Rybbit](https://insights.wibrow.dev) tracking script
+- **RBAC**: ServiceAccount with cluster read permissions for service discovery
+
+> [!TIP]
+> **Keeping it in sync**
+>
+> The `sync-homepage` skill (`.claude/skills/sync-homepage`) compares the Homepage config with the apps deployed in the cluster and reports stale or missing entries.
 
 ### House Hunter
 
-[House Hunter](https://github.com/swibrow/house-hunter) is a custom property search aggregator backed by PostgreSQL.
+[House Hunter](https://github.com/swibrow/house-hunter) is a custom property search aggregator.
 
 - **Image**: `ghcr.io/swibrow/house-hunter:latest`
-- **Database**: PostgreSQL (CloudNative-PG `house-hunter` cluster)
+- **Database**: tenant `house_hunter` on the `shared` cluster
+
+### IT Tools
+
+[IT Tools](https://github.com/sharevb/it-tools) is a collection of developer utilities (encoders, converters, generators).
+
+- **Image**: `ghcr.io/sharevb/it-tools`
+
+### Mealie
+
+[Mealie](https://mealie.io/) is a recipe manager and meal planner.
+
+- **Image**: `ghcr.io/mealie-recipes/mealie`
+- **Storage**: PVC `mealie-data` at `/app/data` via the `pvc` component, backed up by `kopiur` (mover runs as uid 911 to match the app)
+- **Auth**: OIDC client secret from Infisical
 
 ### Miniflux
 
-[Miniflux](https://miniflux.app/) is a minimalist, opinionated RSS feed reader with a clean interface.
+[Miniflux](https://miniflux.app/) is a minimalist RSS feed reader.
 
-- **Image**: `ghcr.io/miniflux/miniflux:2.2.17-distroless`
-- **Database**: PostgreSQL (CloudNative-PG `miniflux` cluster)
-- **Polling**: Every 15 minutes using entry frequency scheduler
+- **Image**: `ghcr.io/miniflux/miniflux` (distroless)
+- **Database**: tenant `miniflux` on the `shared` cluster
+- **Auth**: OIDC via Kanidm (`idm.wibrow.dev`)
+- **Polling**: every 15 minutes using the entry frequency scheduler
 
 ### n8n
 
-[n8n](https://n8n.io/) is a workflow automation platform with a visual editor, supporting hundreds of integrations.
+[n8n](https://n8n.io/) is a workflow automation platform with a visual editor.
 
-- **Image**: `ghcr.io/n8n-io/n8n:2.6.2`
-- **Storage**: PVC `n8n` at `/home/node/.n8n`
-- **Webhook URL**: `https://n8n-webhook.example.com` (separate HTTPRoute)
-- **Timezone**: `Europe/Zurich`
+- **Image**: `ghcr.io/n8n-io/n8n`
+- **Storage**: PVC `n8n` at `/home/node/.n8n` via the `pvc` component, backed up by `kopiur`
 
-!!! info "Dual Routes"
-    n8n has two HTTPRoutes: one for the main UI (`n8n.example.com`) and one for webhook callbacks (`n8n-webhook.example.com`). Both use `envoy-external`.
+> [!NOTE]
+> **Dual Routes**
+>
+> n8n has two HTTPRoutes on `envoy-external`: `n8n.wibrow.dev` for the UI and `n8n-webhook.wibrow.dev` for webhook callbacks.
 
 ### RRDA
 
-[RRDA](https://github.com/swibrow/rrda) is a REST API for DNS record lookups, providing an HTTP interface to DNS queries.
+[RRDA](https://github.com/swibrow/rrda) is a REST API for DNS record lookups.
 
-- **Image**: `ghcr.io/cloudsnacks/rrda:1.4.1` (built from [cloudsnacks/containers](https://github.com/cloudsnacks/containers))
-- **Sidecar**: `adguard/dnsproxy:v0.78.2` -- DNS-over-HTTPS proxy to bypass the Ubiquiti router's DNS interception on port 53
+- **Image**: `ghcr.io/cloudsnacks/rrda` (built in [cloudsnacks/containers](https://github.com/cloudsnacks/containers))
+- **Sidecar**: `adguard/dnsproxy` forwarding to Cloudflare over DNS-over-HTTPS (`1.1.1.1`, `1.0.0.1`)
 
-!!! note "DoH Sidecar"
-    The dnsproxy sidecar resolves DNS queries over HTTPS (DoH) to Cloudflare (`1.1.1.1` / `1.0.0.1`), bypassing the Ubiquiti router which intercepts all DNS traffic on port 53. See [DNS Management](../../networking/dns-management.md) for details on this workaround.
-
-### Sharkord
-
-Sharkord is a voice and video communication server that uses WebRTC for real-time media.
-
-- **Image**: `sharkord/sharkord:latest`
-- **Gateway**: `envoy-external`
-- **Storage**: PVC `sharkord` at `/root/.config/sharkord`
-
-### Tandoor
-
-[Tandoor Recipes](https://tandoor.dev/) is a recipe management and meal planning application.
-
-- **Image**: `ghcr.io/tandoorrecipes/recipes:2.4.2`
-- **Sidecar**: `nginx-unprivileged:1.27.4-alpine` for serving static files and media
-- **Database**: PostgreSQL (CloudNative-PG `tandoor` cluster)
-- **Storage**: PVC `tandoor-data` with subpaths for media, static files, and data
+> [!NOTE]
+> **DoH Sidecar**
+>
+> The dnsproxy sidecar sends queries over HTTPS to avoid the UniFi gateway's interception of plain DNS on port 53. See [DNS Management](../../networking/dns-management.md).
 
 ### Whoami
 
-[Whoami](https://github.com/traefik/whoami) is a lightweight HTTP server that returns connection and request information. Useful for testing gateway routing and TLS configuration.
+[Whoami](https://github.com/traefik/whoami) is a tiny HTTP server that returns connection and request information.
 
-- **Image**: `docker.io/traefik/whoami:v1.11.0`
-
----
-
-## Gateway Distribution
-
-```mermaid
-pie title Gateway Usage
-    "envoy-external" : 11
-    "envoy-internal" : 1
-```
-
-!!! note "Internal-Only Apps"
-    Most selfhosted apps use `envoy-external` for convenience, relying on Cloudflare Access or Authelia for authentication.
+- **Image**: `docker.io/traefik/whoami`

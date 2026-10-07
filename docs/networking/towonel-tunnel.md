@@ -13,7 +13,7 @@ The tunnel has two halves:
 
 | Half | Runs on | Managed by |
 |:-----|:--------|:-----------|
-| **Hub + edge** | `ovh-vps` (`tunnel.wibrow.dev`) | Ansible role `towonel-hub` — see the runbook in `ansible/README.md` |
+| **Hub + edge** | `ovh-vps` (`tunnel.wibrow.dev`) | Ansible role `towonel-hub`; see the runbook in `ansible/README.md` |
 | **Agent** | `pitower` cluster | `kubernetes/apps/pitower/networking/towonel-agent/` |
 
 ## Architecture
@@ -22,7 +22,7 @@ The tunnel has two halves:
 flowchart LR
     User((User))
 
-    subgraph VPS["ovh-vps — tunnel.wibrow.dev"]
+    subgraph VPS["ovh-vps: tunnel.wibrow.dev"]
         Caddy[Caddy L4<br/>SNI demux :443]
         Edge[towonel edge]
         Hub[towonel hub<br/>control API]
@@ -51,7 +51,7 @@ flowchart LR
 
 1. **User** requests `https://myapp.wibrow.dev`.
 2. **Cloudflare DNS** returns the unproxied (grey-cloud) CNAME to `tunnel.wibrow.dev`, which
-   resolves to the VPS. Cloudflare is authoritative DNS only — it is *not* in the data path.
+   resolves to the VPS. Cloudflare is authoritative DNS only; it is *not* in the data path.
 3. **Caddy** on the VPS peeks the TLS ClientHello SNI on `:443` without decrypting it, and routes
    tenant hostnames to the towonel edge.
 4. **The edge** forwards the connection over the already-established outbound tunnel to
@@ -59,14 +59,20 @@ flowchart LR
 5. **towonel-agent** proxies to `envoy-external` on `:443`.
 6. **envoy-external** matches the HTTPRoute hostname and routes to the application.
 
-TLS is terminated by `envoy-external` inside the cluster — the VPS does SNI passthrough and never
+TLS is terminated by `envoy-external` inside the cluster; the VPS does SNI passthrough and never
 sees plaintext.
 
-!!! note "Why Caddy is in front of towonel"
-    The hub's own ACME issuance uses TLS-ALPN-01, which only ever validates on port `:443` — a port
-    that otherwise belongs exclusively to the edge, which has no ACME awareness. Caddy's L4 SNI
-    demux lets the validator connection land on a listener that understands ACME. The full
-    write-up is in the `towonel-hub` runbook in `ansible/README.md`.
+Caddy hands tenant connections to the edge with PROXY protocol v2, and `envoy-external` accepts
+PROXY protocol (its ClientTrafficPolicy sets `proxyProtocol.optional: true`), so Envoy logs and
+CrowdSec see the real client address. See [Envoy Gateway](envoy-gateway.md#clienttrafficpolicies).
+
+> [!NOTE]
+> **Why Caddy is in front of towonel**
+>
+> The hub's own ACME issuance uses TLS-ALPN-01, which only ever validates on port `:443`, a port
+> that otherwise belongs exclusively to the edge, which has no ACME awareness. Caddy's L4 SNI
+> demux lets the validator connection land on a listener that understands ACME. The full
+> write-up is in the `towonel-hub` runbook in `ansible/README.md`.
 
 ## Agent configuration
 
@@ -91,64 +97,70 @@ env:
         key: TOWONEL_INVITE_TOKEN
 ```
 
-Every origin is the same — `envoy-external` — so this list exists only to tell the edge which SNI
+Every origin is the same (`envoy-external`), so this list exists only to tell the edge which SNI
 values belong to this tenant. Each zone's first-level wildcard is listed, so adding an app under
 `*.wibrow.dev`, `*.propagit.dev`, or `*.cloudsnacks.dev` needs no tunnel change, just an HTTPRoute
 with `parentRefs` to `envoy-external`. Anything **deeper** than one label needs its own entry.
 
-!!! danger "A new pattern must also be granted on the hub"
-    This list is only half the story. The hub keeps its own allowlist of hostname patterns per
-    tenant, carried on the invite, and rejects anything else:
+> [!CAUTION]
+> **A new pattern must also be granted on the hub**
+>
+> This list is only half the story. The hub keeps its own allowlist of hostname patterns per
+> tenant, carried on the invite, and rejects anything else:
+>
+> ```
+> hub returned 403 (hostname_not_owned):
+> tenant is not authorized for hostname: *.cloudsnacks.dev
+> ```
+>
+> The agent logs that at WARN, keeps running, and simply serves one hostname fewer, so the
+> Deployment, the ReplicaSet, and ArgoCD all stay green. The edge's `dynamic route update applied`
+> line reports the count the **hub** accepted; compare it against `invite get`, not against the
+> values file.
+>
+> The allowlist itself lives in the hub's SQLite DB (`/data/hub.db`), but it is reconciled from
+> `towonel_hub_invite_hostnames` in the `towonel-hub` role, so grant a pattern by editing that list
+> (keeping it a superset of `TOWONEL_AGENT_SERVICES`) and applying the role. The agent then needs
+> a restart, because it publishes TLS policy only at session start:
+>
+> ```sh
+> just ansible deploy-ovh-vps
+> kubectl -n networking rollout restart deploy/towonel-agent
+> ```
+>
+> Expect a few seconds of failures on the *new* hostname after the restart: the edge drops the old
+> agent session up to ~30s after the new ones register, and until then a connection can still land
+> on a session that predates the grant. The runbook in `ansible/README.md` has the manual
+> `invite get` / `add-hostnames` / `remove-hostname` equivalents, and why `409 hostname_conflict`
+> from `add-hostnames` does not mean the change was rejected.
 
-    ```
-    hub returned 403 (hostname_not_owned):
-    tenant is not authorized for hostname: *.cloudsnacks.dev
-    ```
-
-    The agent logs that at WARN, keeps running, and simply serves one hostname fewer, so the
-    Deployment, the ReplicaSet, and ArgoCD all stay green. The edge's `dynamic route update applied`
-    line reports the count the **hub** accepted — compare it against `invite get`, not against the
-    values file.
-
-    The allowlist itself lives in the hub's SQLite DB (`/data/hub.db`), but it is reconciled from
-    `towonel_hub_invite_hostnames` in the `towonel-hub` role, so grant a pattern by editing that list
-    — keeping it a superset of `TOWONEL_AGENT_SERVICES` — and applying the role. The agent then needs
-    a restart, because it publishes TLS policy only at session start:
-
-    ```sh
-    just ansible deploy-ovh-vps
-    kubectl -n networking rollout restart deploy/towonel-agent
-    ```
-
-    Expect a few seconds of failures on the *new* hostname after the restart: the edge drops the old
-    agent session up to ~30s after the new ones register, and until then a connection can still land
-    on a session that predates the grant. The runbook in `ansible/README.md` has the manual
-    `invite get` / `add-hostnames` / `remove-hostname` equivalents, and why `409 hostname_conflict`
-    from `add-hostnames` does not mean the change was rejected.
-
-!!! warning "An unlisted hostname fails at the VPS, not in Envoy"
-    The edge matches the ClientHello SNI against this list and nothing else. A hostname that is not
-    covered gets its TLS handshake dropped at the VPS (`curl` reports `SSL_ERROR_SYSCALL`) and never
-    reaches the cluster — a cert on `envoy-external` and a working DNS record are not enough.
-
-    Wildcards match a single label. `*.cloudsnacks.dev` covers `pitwall.cloudsnacks.dev` but **not**
-    `foo.apps.cloudsnacks.dev`, which is why `*.apps.cloudsnacks.dev` and the two-label
-    `api.pantry.cloudsnacks.dev` are listed separately. `pitwall.cloudsnacks.dev` shipped with a
-    cert, a listener, and DNS, and stayed unreachable until `*.cloudsnacks.dev` was both listed here
-    and granted on the hub.
+> [!WARNING]
+> **An unlisted hostname fails at the VPS, not in Envoy**
+>
+> The edge matches the ClientHello SNI against this list and nothing else. A hostname that is not
+> covered gets its TLS handshake dropped at the VPS (`curl` reports `SSL_ERROR_SYSCALL`) and never
+> reaches the cluster: a cert on `envoy-external` and a working DNS record are not enough.
+>
+> Wildcards match a single label. `*.cloudsnacks.dev` covers `pitwall.cloudsnacks.dev` but **not**
+> `foo.apps.cloudsnacks.dev`, which is why `*.apps.cloudsnacks.dev` and the two-label
+> `api.pantry.cloudsnacks.dev` are listed separately. `pitwall.cloudsnacks.dev` shipped with a
+> cert, a listener, and DNS, and stayed unreachable until `*.cloudsnacks.dev` was both listed here
+> and granted on the hub.
 
 The deployment runs 2 replicas with an HPA to 4 on 75% CPU (`hpa.yaml`), non-root with a read-only
 root filesystem and all capabilities dropped.
 
-!!! warning "The invite token embeds the hub URL"
-    `TOWONEL_INVITE_TOKEN` (Infisical, `/networking/towonel-agent/`) hard-codes
-    `TOWONEL_HUB_PUBLIC_URL`. Changing the hub URL invalidates the token — it must be reissued from
-    the hub and the agent restarted. Each invite is a new tenant identity; the old tenant is
-    orphaned and should be cleaned up with `towonel tenant remove`.
+> [!WARNING]
+> **The invite token embeds the hub URL**
+>
+> `TOWONEL_INVITE_TOKEN` (Infisical, `/networking/towonel-agent/`) hard-codes
+> `TOWONEL_HUB_PUBLIC_URL`. Changing the hub URL invalidates the token: it must be reissued from
+> the hub and the agent restarted. Each invite is a new tenant identity; the old tenant is
+> orphaned and should be cleaned up with `towonel tenant remove`.
 
 ## DNS
 
-Subdomains are **unproxied** CNAMEs to the hub — Cloudflare proxying would break the SNI
+Subdomains are **unproxied** CNAMEs to the hub: Cloudflare proxying would break the SNI
 passthrough the edge depends on:
 
 ```yaml title="kubernetes/apps/pitower/networking/towonel-agent/dnsendpoint.yaml"
@@ -179,13 +191,15 @@ The other zones on the tunnel get their records the same way, from three places:
 
 The last row is why a route-only hostname such as `pitwall.cloudsnacks.dev` resolves without any
 DNSEndpoint: it chains through `external.wibrow.dev` to `tunnel.wibrow.dev`. It resolving proves
-nothing about the tunnel — the agent still has to advertise the SNI.
+nothing about the tunnel; the agent still has to advertise the SNI.
 
-!!! note "The apex is not on the tunnel"
-    `wibrow.dev` is served entirely by a Cloudflare Worker route at the edge and has no origin. It
-    keeps a **proxied** placeholder record (`AAAA 100::`, the IPv6 discard prefix) purely so the
-    Worker route has a proxied hostname to attach to — see
-    `kubernetes/apps/pitower/networking/external-dns/dnsendpoint.yaml`.
+> [!NOTE]
+> **The apex is not on the tunnel**
+>
+> `wibrow.dev` is served entirely by a Cloudflare Worker route at the edge and has no origin. It
+> keeps a **proxied** placeholder record (`AAAA 100::`, the IPv6 discard prefix) purely so the
+> Worker route has a proxied hostname to attach to; see
+> `kubernetes/apps/pitower/networking/external-dns/dnsendpoint.yaml`.
 
 ## Health and troubleshooting
 
@@ -203,37 +217,53 @@ docker logs -f towonel
 # Is the hub reachable and presenting a valid cert? (run off-VPS)
 curl -v https://tunnel.wibrow.dev/v1/health
 
-# Confirm DNS is unproxied — the answer must be the VPS IP, not a Cloudflare IP
+# Confirm DNS is unproxied: the answer must be the VPS IP, not a Cloudflare IP
 dig +short external.wibrow.dev
 
 # Is a hostname actually advertised to the edge? A 404 means yes, a TLS error means no
 curl -sS -o /dev/null -w '%{http_code}\n' https://myapp.wibrow.dev/
 ```
 
-??? failure "Everything public returns 5xx"
-    Check the agent's tunnel is established (`kubectl logs`), then that the hub is up on the VPS.
-    Because the agent dials out, a hub restart drops every route until the agent reconnects.
+<details>
+<summary>Everything public returns 5xx</summary>
 
-??? failure "A hostname returns 404 from Envoy"
-    The tunnel is fine — the wildcard delivered the request and `envoy-external` had no matching
-    HTTPRoute. Check the app's HTTPRoute `hostnames` and `parentRefs`.
+Check the agent's tunnel is established (`kubectl logs`), then that the hub is up on the VPS.
+Because the agent dials out, a hub restart drops every route until the agent reconnects.
 
-??? failure "TLS handshake error, no HTTP status at all"
-    The edge has no SNI mapping for that hostname. Two causes, in order of likelihood:
+</details>
 
-    1. Nothing in `TOWONEL_AGENT_SERVICES` covers it — remember a wildcard matches one label only.
-    2. It *is* listed, but the hub rejected it as `hostname_not_owned`. The agent logs the 403 at
-       WARN and carries on, so the deployment looks healthy:
+<details>
+<summary>A hostname returns 404 from Envoy</summary>
 
-       ```sh
-       kubectl logs -n networking -l app.kubernetes.io/name=towonel-agent | grep publish_tls
-       ```
+The tunnel is fine: the wildcard delivered the request and `envoy-external` had no matching
+HTTPRoute. Check the app's HTTPRoute `hostnames` and `parentRefs`.
 
-       Compare the accepted count in the edge's `dynamic route update applied` line against the
-       number of entries in `TOWONEL_AGENT_SERVICES` — a mismatch means a pattern was refused.
+</details>
 
-??? failure "Cloudflare error page instead of the app"
-    The DNS record got proxied. `external-dns` runs without `--cloudflare-proxied`, so records
-    default to unproxied and only a `cloudflare-proxied: "true"` providerSpecific turns it on — the
-    explicit `"false"` on the towonel DNSEndpoints is belt-and-braces against that flag ever being
-    added. The one record that must stay proxied is the apex.
+<details>
+<summary>TLS handshake error, no HTTP status at all</summary>
+
+The edge has no SNI mapping for that hostname. Two causes, in order of likelihood:
+
+1. Nothing in `TOWONEL_AGENT_SERVICES` covers it; remember a wildcard matches one label only.
+2. It *is* listed, but the hub rejected it as `hostname_not_owned`. The agent logs the 403 at
+   WARN and carries on, so the deployment looks healthy:
+
+   ```sh
+   kubectl logs -n networking -l app.kubernetes.io/name=towonel-agent | grep publish_tls
+   ```
+
+   Compare the accepted count in the edge's `dynamic route update applied` line against the
+   number of entries in `TOWONEL_AGENT_SERVICES`; a mismatch means a pattern was refused.
+
+</details>
+
+<details>
+<summary>Cloudflare error page instead of the app</summary>
+
+The DNS record got proxied. `external-dns` runs without `--cloudflare-proxied`, so records
+default to unproxied and only a `cloudflare-proxied: "true"` providerSpecific turns it on; the
+explicit `"false"` on the towonel DNSEndpoints is belt-and-braces against that flag ever being
+added. The one record that must stay proxied is the apex.
+
+</details>

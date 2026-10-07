@@ -6,38 +6,27 @@ Before working with the cluster, ensure you have the required tools installed, t
 
 ## CLI Tools
 
-The following command-line tools are required to manage and interact with the cluster:
+Most tools are pinned in the root `mise.toml`; running `mise install` from the repository root installs them at the right versions.
 
-| Tool | Purpose | Install |
-|:-----|:--------|:--------|
-| `talosctl` | Manage Talos Linux nodes (apply configs, upgrade, reboot) | [talos.dev/install](https://www.talos.dev/latest/introduction/getting-started/#talosctl) |
-| `kubectl` | Interact with the Kubernetes API | [kubernetes.io/docs](https://kubernetes.io/docs/tasks/tools/) |
-| `argocd` | ArgoCD CLI for app management and sync operations | [argo-cd.readthedocs.io](https://argo-cd.readthedocs.io/en/stable/cli_installation/) |
-| `sops` | Encrypt and decrypt secrets in the repository | [github.com/getsops/sops](https://github.com/getsops/sops) |
-| `age` | Encryption backend used by SOPS for secret management | [github.com/FiloSottile/age](https://github.com/FiloSottile/age) |
-| `just` | Task runner for executing justfile recipes | [github.com/casey/just](https://github.com/casey/just) |
-| `kustomize` | Build and customize Kubernetes manifests | [kubectl.docs.kubernetes.io](https://kubectl.docs.kubernetes.io/installation/kustomize/) |
-
-!!! tip "Quick install with Homebrew"
-    On macOS, all tools can be installed via Homebrew:
-
-    ```bash
-    brew install siderolabs/tap/talosctl \
-                 kubectl \
-                 argocd \
-                 sops \
-                 age \
-                 just \
-                 kustomize
-    ```
+| Tool | Purpose | Source |
+|:-----|:--------|:-------|
+| `talosctl` | Read-only Talos diagnostics (health, services, logs) | `mise.toml` |
+| `kubectl` | Interact with the Kubernetes API | `mise.toml` |
+| `kustomize` | Render manifests and the Talos bootstrap addons | `mise.toml` |
+| `helm` | Chart rendering (kustomize `helmCharts` uses it) | `mise.toml` |
+| `sops` | Encrypt and decrypt secrets; topf shells out to it | `mise.toml` |
+| `jq` | JSON processing, used in several recipes | `mise.toml` |
+| `topf` | Talos lifecycle: render, apply, upgrade, reset | [postfinance/topf](https://github.com/postfinance/topf) (not in `mise.toml`) |
+| `just` | Task runner for the justfile recipes | [casey/just](https://github.com/casey/just) |
 
 ### Optional but Recommended
 
 | Tool | Purpose |
 |:-----|:--------|
-| `jq` | JSON processing, used in several justfile recipes |
+| `argocd` | ArgoCD CLI for app inspection and sync operations |
+| `infisical` | Infisical CLI, wrapped by `just infisical ls` / `just infisical set` |
+| `terraform` | Plans and applies under `terraform/` |
 | `yq` | YAML processing for manifest inspection |
-| `helm` | Helm chart management (charts are rendered via kustomize, but useful for debugging) |
 | `gh` | GitHub CLI for interacting with the repository |
 | `tailscale` | VPN client for remote access to internal services |
 
@@ -49,58 +38,53 @@ The following command-line tools are required to manage and interact with the cl
 
 You need read access to the [swibrow/home-ops](https://github.com/swibrow/home-ops) repository. Write access is required if you intend to make changes and trigger GitOps deployments.
 
-### Cloudflare API Token
+### Infisical
 
-A Cloudflare API token is required for:
-
-- **external-dns** -- automated DNS record management for `example.com`
-- **cert-manager** -- DNS-01 challenge solving for TLS certificates
-- **towonel** -- self-hosted tunnel for external access (hub on `ovh-vps`, agent in-cluster)
-
-!!! warning "Token scope"
-    The token must have `Zone:DNS:Edit` permissions for the `example.com` zone. Store it as an encrypted secret in the repository using SOPS.
-
-### 1Password Connect
-
-The cluster uses [1Password Connect](https://developer.1password.com/docs/connect/) as a secrets backend via [External Secrets Operator](https://external-secrets.io/). You need:
-
-- Access to the 1Password vault that stores cluster secrets
-- The 1Password Connect credentials (`1password-credentials.json`) and a connect token
+App secrets live in [Infisical](https://infisical.com/) (EU instance, project ID set in `mise.toml`) at `/category/app/SECRET_NAME`, and are synced into the cluster by [External Secrets Operator](https://external-secrets.io/) through the `infisical` ClusterSecretStore. You need access to the Infisical project to read or set them.
 
 ### SOPS / age Key
 
-Secrets in the repository are encrypted with SOPS using an age key. To decrypt or edit secrets, you need the age private key:
+Talos secrets (`talos/pitower/secrets.sops.yaml`) and the ArgoCD bootstrap secrets (`kubernetes/bootstrap/*.sops.yaml`) are encrypted with SOPS using a single age key (`.sops.yaml`). `mise.toml` points `SOPS_AGE_KEY_FILE` at the key:
 
 ```bash
-# Export the key so SOPS can find it
-export SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt
+export SOPS_AGE_KEY_FILE=~/.config/mise/age.txt
 ```
 
-!!! danger "Keep the age key safe"
-    The age private key is the master key for all encrypted secrets in the repository. Never commit it to version control.
+> [!CAUTION]
+> **Keep the age key safe**
+>
+> The age private key decrypts every encrypted secret in the repository, including the Talos cluster CA. Never commit it to version control.
+
+### Cloudflare API Token
+
+A Cloudflare API token (stored in Infisical) is used by:
+
+- **external-dns**: DNS records for `wibrow.dev`
+- **cert-manager**: DNS-01 challenges for Let's Encrypt certificates
 
 ---
 
 ## Network Access
 
-### Local Network
-
-The cluster runs on the `192.168.0.0/24` subnet. You must be on this network (or connected via Tailscale VPN) to reach:
+Cluster nodes live on VLAN 20 (`servers`, `10.20.0.0/16`). You must be on the home network (or connected via Tailscale) to reach:
 
 | Endpoint | Address | Purpose |
 |:---------|:--------|:--------|
-| Talos API | `192.168.0.201` -- `192.168.0.204` | Control plane and worker node management |
-| Kubernetes API | `192.168.0.200:6443` | kubectl access (VIP) |
-| Envoy External | `192.168.0.239` | External gateway (Cloudflare tunnel target) |
-| Envoy Internal | `192.168.0.238` | Internal gateway (LAN / VPN access) |
-| ArgoCD | Available via internal gateway | GitOps dashboard |
+| Talos API | `10.20.10.1` - `10.20.10.11` | Node management (port 50000) |
+| Kubernetes API | `10.20.10.0:6443` | kubectl access (control plane VIP) |
+| Envoy External | `10.20.10.239` | Public gateway (towonel tunnel target) |
+| Envoy Internal | `10.20.10.238` | Internal gateway (LAN / VPN access) |
+| ArgoCD | `argocd.wibrow.dev` | GitOps dashboard |
+
+> [!WARNING]
+> **KUBECONFIG**
+>
+> `mise.toml` sets `KUBECONFIG=~/.kube/pitower.yaml`. The default `~/.kube/config` may point at a different cluster, so always work from inside the repository (or export the variable yourself).
 
 ### Remote Access
 
-For remote access without being on the local network:
-
-- **Tailscale VPN** -- connects you to the internal network and the `envoy-internal` gateway
-- **Cloudflare Tunnel** -- exposes selected services via `*.example.com` through the external gateway
+- **Tailscale**: the `pitower` Connector advertises the home subnets (including VLAN 20 and the pod CIDR), so internal services and the APIs above are reachable remotely
+- **towonel tunnel**: public apps on `*.wibrow.dev` reach `envoy-external` through the hub on a VPS
 
 ---
 
@@ -109,18 +93,21 @@ For remote access without being on the local network:
 Once all tools are installed and credentials are in place, verify connectivity:
 
 ```bash
-# Check Talos API connectivity
-talosctl version --nodes 192.168.0.201
+# Generate a talosconfig and check the Talos API
+just talos pitower talosconfig
+just talos pitower members
 
 # Check Kubernetes API connectivity
-kubectl cluster-info
+kubectl get nodes
 
-# Verify SOPS can decrypt secrets
-sops -d pitower/talos/secrets.sops.yaml > /dev/null && echo "SOPS decryption OK"
+# Verify SOPS can decrypt the Talos secrets
+sops -d talos/pitower/secrets.sops.yaml > /dev/null && echo "SOPS decryption OK"
 
-# Check ArgoCD connectivity
-argocd app list
+# Check topf can read the cluster definition (runs `topf nodes`, read-only)
+just talos pitower status
 ```
 
-!!! success "Ready to go"
-    If all four commands succeed, you are ready to work with the cluster. Head to the [Architecture Overview](architecture-overview.md) to understand how everything fits together.
+> [!TIP]
+> **Ready to go**
+>
+> If all commands succeed, you are ready to work with the cluster. Head to the [Architecture Overview](architecture-overview.md) to understand how everything fits together.

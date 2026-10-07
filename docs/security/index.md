@@ -4,72 +4,71 @@ title: Security
 
 # Security
 
-The cluster follows a defense-in-depth approach, layering multiple security controls from the network edge to individual application secrets. External traffic is filtered by Cloudflare before reaching the cluster, authenticated by Authelia SSO, and served over TLS certificates issued by cert-manager. Secrets are encrypted at rest in Git with SOPS and synced into the cluster via External Secrets Operator.
+Security is layered from the edge to individual secrets. Public traffic arrives through the self-hosted towonel tunnel (no inbound ports, home IP unpublished), is screened by CrowdSec on `envoy-external`, and is served over Let's Encrypt certificates from cert-manager. Kanidm is the identity provider for OIDC and LDAP. Secrets live in Infisical and are synced by External Secrets; the few that must be in Git are encrypted with SOPS and age.
 
 ## Request Flow
 
 ```mermaid
 flowchart LR
-    User((User)) -->|HTTPS| CF[Cloudflare\nWAF + DDoS Protection]
-    CF -->|Tunnel| CFL[towonel-agent]
-    CFL --> EE[Envoy External\nGateway]
-    EE -->|Auth check| AUTH[Authelia\nSSO Portal]
-    AUTH -->|LDAP lookup| LLDAP[LLDAP\nUser Directory]
-    AUTH -->|Authenticated| APP[Application]
-    EE --> APP
+    User((User)) -->|HTTPS| Hub[towonel hub<br/>ovh-vps]
+    VPSB[nftables bouncer] -.->|drops banned IPs| Hub
+    Hub -->|tunnel| TA[towonel-agent]
+    TA -->|PROXY v2| EE[envoy-external]
+    EE -->|ext_authz| CS[CrowdSec bouncer]
+    EE -->|OIDC SecurityPolicy<br/>or app-native login| K[Kanidm<br/>idm.wibrow.dev]
+    EE --> APP[Application]
 ```
 
 ## Secrets Flow
 
 ```mermaid
 flowchart LR
-    OP[1Password Vault] -->|Connect API| OPC[1Password Connect\nIn-Cluster]
-    INF[Infisical\nCloud] -->|Universal Auth| ESO
-    OPC --> ESO[External Secrets\nOperator]
-    ESO -->|Sync| KS[Kubernetes\nSecrets]
-    KS --> APP[Application\nPods]
+    INF[Infisical<br/>eu.infisical.com] -->|Universal Auth| ESO[External Secrets<br/>Operator]
+    DB[CNPG tenant Secrets<br/>database namespace] -->|Kubernetes provider| ESO
+    ESO -->|sync| KS[Kubernetes Secrets]
+    KS --> APP[Application Pods]
 
-    SOPS[SOPS + age\nEncrypted in Git] -->|Decrypt at apply| KS
+    SOPS[SOPS + age<br/>encrypted in Git] -->|manual apply| UAC[universal-auth-credentials]
+    UAC --> ESO
+    SOPS -->|topf| Talos[Talos machine secrets]
 ```
 
 ## Security Layers
 
 | Layer | Technology | Purpose |
 |:------|:-----------|:--------|
-| Edge protection | Cloudflare WAF | DDoS mitigation, bot protection, web application firewall |
-| Transport | Cloudflare Tunnel | Encrypted tunnel without exposing ports to the internet |
-| TLS termination | cert-manager + Let's Encrypt | Automated wildcard certificates for `*.example.com` |
-| Authentication | Authelia | Single sign-on portal with OIDC provider capabilities |
-| User directory | LLDAP | Lightweight LDAP server for user and group management |
-| Secret management | External Secrets + 1Password | Automated sync from 1Password vault to Kubernetes secrets |
-| Secret management | External Secrets + Infisical | Automated sync from Infisical cloud to Kubernetes secrets |
-| Encryption at rest | SOPS + age | Git-committed secrets encrypted with age keys |
-| Network policy | Cilium | eBPF-based network policies for pod-to-pod traffic control |
+| Transport | [towonel tunnel](../networking/towonel-tunnel.md) | Outbound-only tunnel, SNI passthrough, no port forwards |
+| Intrusion prevention | [CrowdSec](crowdsec.md) | Bans abusive IPs at `envoy-external` and on the VPS firewall |
+| TLS | [cert-manager](cert-manager.md) + Let's Encrypt | DNS-01 certificates for `wibrow.dev`, `propagit.dev`, `cloudsnacks.dev` |
+| Identity | [Kanidm](kanidm.md) | Users and groups, OAuth2/OIDC provider, LDAPS |
+| Kubernetes API auth | Kanidm via Talos `KubeAuthenticationConfig` | OIDC logins (Headlamp), RBAC on `oidc:` groups |
+| Secret management | [External Secrets](external-secrets.md) | Infisical and CNPG ClusterSecretStores |
+| Secrets in Git | [SOPS](sops.md) + age | Talos secrets (via topf) and bootstrap Secrets |
+| Cloud access | aws-identity-webhook | Projected service account tokens for AWS IAM roles |
 
 ## Components
 
 | Component | Namespace | Description |
 |:----------|:----------|:------------|
-| [Authelia](authelia.md) | `security` | SSO portal and OIDC provider |
-| [LLDAP](lldap.md) | `security` | Lightweight LDAP user directory |
-| [External Secrets](external-secrets.md) | `security` | Operator that syncs secrets from external stores |
-| [1Password Connect](external-secrets.md#1password-connect) | `security` | In-cluster 1Password API server |
-| [SOPS](sops.md) | N/A (CLI tool) | Encrypts secrets in the Git repository |
-| [cert-manager](cert-manager.md) | `cert-manager` | TLS certificate management via ACME |
+| [Kanidm](kanidm.md) | `security` | Identity provider (OIDC, LDAPS) at `idm.wibrow.dev` |
+| [OIDC Clients](oidc-clients.md) | n/a | How apps are registered as Kanidm OAuth2 clients |
+| [CrowdSec](crowdsec.md) | `security` | Log-based detection, Envoy and VPS bouncers |
+| [External Secrets](external-secrets.md) | `security` | Syncs secrets from Infisical and CNPG |
+| [SOPS](sops.md) | n/a (CLI) | Encrypts secrets committed to Git |
+| [cert-manager](cert-manager.md) | `cert-manager` | ACME certificates via Cloudflare DNS-01 |
+| aws-identity-webhook | `security` | EKS pod identity webhook for IRSA-style AWS access |
+| rbac | n/a | `cluster-admin` for the Kanidm `apps` group |
 
-## Sections
+## AWS Identity Webhook
 
-| Page | Description |
-|:-----|:------------|
-| [Authelia](authelia.md) | SSO portal, OIDC configuration, access control policies |
-| [LLDAP](lldap.md) | Lightweight LDAP server, user and group management |
-| [External Secrets](external-secrets.md) | 1Password Connect and Infisical backends, ClusterSecretStore patterns |
-| [SOPS](sops.md) | age encryption, `.sops.yaml` configuration, encrypt/decrypt workflows |
-| [cert-manager](cert-manager.md) | Let's Encrypt ACME, DNS-01 challenge, ClusterIssuer configuration |
+`kubernetes/apps/pitower/security/aws-identity-webhook/` runs `amazon-eks-pod-identity-webhook` (2 replicas, serving certificate from cert-manager). Pods whose ServiceAccount carries `eks.amazonaws.com/role-arn` get a projected token and AWS environment variables, and exchange the token with STS for that role.
+
+This works because the API server's `service-account-issuer` is `https://raw.githubusercontent.com/swibrow/home-ops/main/pitower/kubernetes` (set in `talos/pitower/control-plane/01-cluster.yaml`), whose discovery document and JWKS are committed under `pitower/kubernetes/`. The IAM OIDC provider for that issuer is created in `terraform/bootstrap/aws_iam_roles.tf`; role trust policies are in `terraform/general/` (e.g. `toolhive.tf`). Current users are the ACK controllers (`kubernetes/argocd/ack-applicationset.yaml`) and the ToolHive AWS MCP server.
 
 ## Key Design Decisions
 
-- **Two secret backends** -- 1Password Connect serves application secrets from the the 1Password vault, while Infisical handles infrastructure secrets (Cloudflare tokens, Tailscale keys). This separation of concerns allows different access controls per category.
-- **SOPS for bootstrap secrets** -- Secrets needed before External Secrets is running (e.g., 1Password Connect credentials, Infisical auth) are encrypted with SOPS and committed to Git.
-- **DNS-01 challenges** -- cert-manager uses Cloudflare DNS-01 challenges instead of HTTP-01, enabling wildcard certificates and working behind the Cloudflare tunnel without exposing challenge endpoints.
-- **LDAP over embedded users** -- LLDAP provides a central user directory that both Authelia and other services can query, avoiding duplicated user management.
+- **One secret backend**: application and infrastructure secrets are all in Infisical, with path-scoped stores for the sensitive infrastructure tokens.
+- **SOPS only where Git is unavoidable**: Talos secrets (topf reads them from the repo) and the Infisical credentials that External Secrets needs before it can sync anything.
+- **DNS-01 challenges**: wildcard certificates and nothing exposed for HTTP-01, which suits a tunnel with SNI passthrough.
+- **CrowdSec fails open**: a bouncer outage degrades protection instead of taking public apps down.
+- **Kanidm over Authelia + LLDAP**: one component for directory, OIDC and LDAP, with per-client issuers.

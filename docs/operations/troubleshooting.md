@@ -19,21 +19,21 @@ Look for failures in etcd, kubelet, or API server connectivity.
 ### Check etcd Membership
 
 ```bash
-talosctl etcd members --nodes 192.168.0.201
+talosctl etcd members --nodes 10.20.10.1
 ```
 
 If the node was previously part of the cluster and was reset, its stale etcd member entry may need to be removed:
 
 ```bash
-talosctl etcd remove-member <member-id> --nodes 192.168.0.201
+talosctl etcd remove-member <member-id> --nodes 10.20.10.1
 ```
 
 ### Verify Machine Config
 
-Ensure the node has the correct machine config applied:
+Ensure the node has the correct machine config applied (from `talos/pitower`; exit 2 = changes pending):
 
 ```bash
-talosctl apply-config --nodes <node-ip> --file ./clusterconfig/<node-config>.yaml --dry-run
+mise exec -- topf apply --dry-run --nodes-filter '^<hostname>$'
 ```
 
 ### Check kubelet-csr-approver
@@ -45,11 +45,13 @@ kubectl get pods -n kube-system -l app.kubernetes.io/name=kubelet-csr-approver
 kubectl get csr
 ```
 
-!!! tip "Bootstrap Addons"
-    If kubelet-csr-approver is not running, apply the bootstrap addons:
-    ```bash
-    cd pitower/talos && just addons
-    ```
+> [!TIP]
+> **Bootstrap Addons**
+>
+> If kubelet-csr-approver is not running, apply the bootstrap addons:
+> ```bash
+> cd talos/pitower && just addons
+> ```
 
 ---
 
@@ -80,10 +82,11 @@ kubectl -n rook-ceph exec deploy/rook-ceph-tools -- ceph status
 kubectl -n rook-ceph exec deploy/rook-ceph-tools -- ceph osd df
 ```
 
-For OpenEBS (local PV):
+For OpenEBS (local PV), check the provisioner and that the claim's node is allowed by the StorageClass (`openebs-hostpath-fast`, `-runners` and `-media` only exist on worker-07, `-models` on worker-ai-01):
 
 ```bash
-kubectl get blockdevice -n openebs
+kubectl -n openebs logs deploy/openebs-localpv-provisioner --tail=50
+kubectl get sc <class> -o yaml | yq '.allowedTopologies'
 ```
 
 ### Check Pod Events
@@ -105,10 +108,12 @@ kubectl get nodes -o custom-columns=NAME:.metadata.name,TAINTS:.spec.taints
 
 **Symptoms**: Services cannot resolve DNS names, or external DNS records are not created.
 
-### Ubiquiti DNS Interception
+### UniFi DNS
 
-!!! warning "Port 53 Interception"
-    The Ubiquiti router intercepts all DNS traffic on port 53. This means standard DNS lookups may return the router's cached results rather than actual Cloudflare records.
+> [!WARNING]
+> **Local answers differ from Cloudflare**
+>
+> On the LAN, the UniFi gateway answers DNS itself (`external-dns-unifi` publishes internal records to it), so `*.wibrow.dev` can resolve to an internal address that differs from the public Cloudflare record.
 
 #### Verify with DoH (DNS over HTTPS)
 
@@ -117,10 +122,10 @@ To check actual Cloudflare DNS records, bypass the router's interception using D
 ```bash
 # Using curl to query Cloudflare DoH
 curl -sH 'accept: application/dns-json' \
-  'https://cloudflare-dns.com/dns-query?name=echo.example.com&type=A' | jq
+  'https://cloudflare-dns.com/dns-query?name=<app>.wibrow.dev&type=A' | jq
 
 # Using dig with DoH (if supported)
-dig @1.1.1.1 echo.example.com +https
+dig @1.1.1.1 <app>.wibrow.dev +https
 ```
 
 ### Check CoreDNS
@@ -132,9 +137,11 @@ kubectl logs -n kube-system -l k8s-app=kube-dns --tail=50
 
 ### Check external-dns
 
+Two instances run in `networking`: `external-dns` (Cloudflare) and `external-dns-unifi` (the UniFi gateway).
+
 ```bash
-kubectl get pods -n networking -l app.kubernetes.io/name=external-dns
-kubectl logs -n networking -l app.kubernetes.io/name=external-dns --tail=50
+kubectl -n networking logs deploy/external-dns --tail=50
+kubectl -n networking logs deploy/external-dns-unifi --tail=50
 ```
 
 Verify external-dns is watching the correct gateways:
@@ -143,8 +150,10 @@ Verify external-dns is watching the correct gateways:
 kubectl get gateways -A -l external-dns.alpha.kubernetes.io/enabled=true
 ```
 
-!!! note "Gateway Label Filter"
-    external-dns uses `--gateway-label-filter=external-dns.alpha.kubernetes.io/enabled=true` to select which gateways to process. Ensure the target gateway has this label.
+> [!NOTE]
+> **Gateway Label Filter**
+>
+> external-dns uses `--gateway-label-filter=external-dns.alpha.kubernetes.io/enabled=true` to select which gateways to process. Ensure the target gateway has this label.
 
 ### Check HTTPRoute and Gateway
 
@@ -190,8 +199,10 @@ Delete the certificate to trigger re-issuance:
 kubectl delete certificate <cert-name> -n <namespace>
 ```
 
-!!! tip "DNS-01 Challenges"
-    If using DNS-01 challenges with Cloudflare, verify the API token has the correct permissions and the DNS zone is accessible.
+> [!TIP]
+> **DNS-01 Challenges**
+>
+> If using DNS-01 challenges with Cloudflare, verify the API token has the correct permissions and the DNS zone is accessible.
 
 ---
 
@@ -216,26 +227,20 @@ kubectl describe httproute <route-name> -n <namespace>
 
 Verify the route's `parentRefs` point to the correct gateway:
 
-- **envoy-external**: For services accessed via Cloudflare tunnel (proxied)
-- **envoy-internal**: For services accessed via Tailscale/LAN
+- **envoy-external** (`10.20.10.239`): public services, reached from the internet through the towonel tunnel
+- **envoy-internal** (`10.20.10.238`): LAN and Tailscale only
 
-### Check Cilium L2 Announcements
+### Check LoadBalancer Announcements
 
-Verify LoadBalancer IPs are being announced:
+LoadBalancer IPs (`10.20.10.128-255`) are announced by Cilium over L2 (ARP) and BGP to the UniFi gateway:
 
 ```bash
 kubectl get svc -A | grep LoadBalancer
-cilium status
+kubectl get ciliuml2announcementpolicies,ciliumbgpclusterconfigs,ciliumbgppeerconfigs
+kubectl -n kube-system exec ds/cilium -c cilium-agent -- cilium-dbg shell -- bgp/peers
 ```
 
-Check that the Cilium L2 announcement policy is active:
-
-```bash
-kubectl get ciliuml2announcementpolicies
-kubectl get ciliumbgppeeringpolicies
-```
-
-### Check Cloudflare Tunnel
+### Check the Tunnel
 
 For externally exposed services:
 
@@ -244,21 +249,15 @@ kubectl get pods -n networking -l app.kubernetes.io/name=towonel-agent
 kubectl logs -n networking -l app.kubernetes.io/name=towonel-agent --tail=50
 ```
 
-### Check nginx Reverse Proxy
-
-```bash
-kubectl get pods -n networking -l app.kubernetes.io/name=nginx
-kubectl get svc -n networking | grep nginx
-```
+See [Towonel Tunnel](../networking/towonel-tunnel.md) for the hub side on `ovh-vps`.
 
 ### End-to-End Request Flow
 
 ```mermaid
 flowchart LR
-    Client --> CF[Cloudflare]
-    CF --> Tunnel[towonel-agent]
-    Tunnel --> Nginx[nginx]
-    Nginx --> EE[envoy-external<br/>192.168.0.239]
+    Client -->|"DNS: Cloudflare, unproxied CNAME"| Hub[towonel hub<br/>ovh-vps]
+    Hub --> Tunnel[towonel-agent]
+    Tunnel --> EE[envoy-external<br/>10.20.10.239]
     EE --> Route[HTTPRoute]
     Route --> Svc[Service]
     Svc --> Pod[Pod]
@@ -324,7 +323,7 @@ kubectl get events -n <namespace> --sort-by='.lastTimestamp'
 For apps using Helm, test rendering locally:
 
 ```bash
-cd pitower/kubernetes/apps/<category>/<app>
+cd kubernetes/apps/pitower/<category>/<app>
 kustomize build . --enable-helm
 ```
 
@@ -348,12 +347,15 @@ kubectl describe pvc <pvc-name> -n <namespace>
 kubectl get sc
 ```
 
-### VolSync Backup Failures
+### kopiur Backup Failures
 
 ```bash
-kubectl get replicationsources -A
-kubectl describe replicationsource <name> -n <namespace>
+kubectl get snapshotpolicies.kopiur.home-operations.com -A
+kubectl -n <namespace> get snapshots.kopiur.home-operations.com
+kubectl -n <namespace> describe snapshot.kopiur.home-operations.com <name>
 ```
+
+See [Backup & Restore](../storage/backup-restore.md#kopiur). A mover that cannot read the app's files usually needs `spec.mover.securityContext` set to the app's uid/gid.
 
 ---
 
@@ -378,5 +380,5 @@ cilium status --verbose
 ### Envoy Gateway Logs
 
 ```bash
-kubectl logs -n envoy-gateway-system deploy/envoy-gateway --tail=50
+kubectl logs -n networking deploy/envoy-gateway --tail=50
 ```

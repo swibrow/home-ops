@@ -9,7 +9,7 @@
 # can assume the role — nothing else in the cluster, and no human/GitHub path.
 #
 # The OIDC provider is created in terraform/bootstrap and looked up via the
-# shared data source in volsync.tf.
+# shared data source in main.tf.
 #
 # BLAST RADIUS: the permissions policy is broad (service-wildcard on the set of
 # services we run controllers for, INCLUDING iam:*). iam:* means a compromised

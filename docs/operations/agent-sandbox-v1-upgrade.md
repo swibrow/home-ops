@@ -89,10 +89,12 @@ kubectl --context=admin@pitower get crd \
   -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.storedVersions}{"\n"}{end}'
 ```
 
-!!! warning "Prune only after the rewrite"
-    Pruning `storedVersions` while a `v1alpha1`-serialised record is still in
-    etcd makes that record unreadable. The unmigrated-object query above is the
-    gate, not a formality.
+> [!WARNING]
+> **Prune only after the rewrite**
+>
+> Pruning `storedVersions` while a `v1alpha1`-serialised record is still in
+> etcd makes that record unreadable. The unmigrated-object query above is the
+> gate, not a formality.
 
 ## Post-upgrade cleanup
 
