@@ -37,7 +37,6 @@
         "ghcr.io/siderolabs/talosctl",
         "envoy-gateway",
         "cert-manager",
-        "volsync",
         "snapshot-controller",
         "openebs",
         "renovate-operator",

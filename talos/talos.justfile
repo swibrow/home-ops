@@ -1,9 +1,9 @@
-# Shared Talos recipes — imported by each cluster justfile.
+# Shared Talos recipes, imported by each cluster justfile.
 #
 # Cluster lifecycle is managed by topf (https://github.com/postfinance/topf):
 # it reads ./topf.yaml, decrypts secrets.sops.yaml transparently via sops
 # (age key from SOPS_AGE_KEY_FILE, exported by the cluster justfile) and
-# layers patches from all/, control-plane/, worker/ and node/<host>/.
+# layers patches from all/, control-plane/ and node/<host>/.
 #
 # talosctl remains for read-only diagnostics that topf does not cover.
 #

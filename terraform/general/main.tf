@@ -31,3 +31,9 @@ locals {
     GithubRepo = "home-ops"
   }
 }
+
+# Cluster OIDC provider, created in the terraform/bootstrap state and looked up
+# here by URL for the IRSA roles.
+data "aws_iam_openid_connect_provider" "kubernetes" {
+  url = "https://raw.githubusercontent.com/swibrow/home-ops/main/pitower/kubernetes"
+}

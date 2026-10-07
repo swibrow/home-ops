@@ -6,7 +6,7 @@ labels:
 # Bare-metal Dell R630 (ex proxmox-01). Six 745GiB SAS SSDs and four 559GiB
 # 10K SAS HDDs behind the PERC in HBA mode. Two SSDs are the Talos system disk
 # as an md RAID1; the other four are the ZFS pool `fast` (two mirrors) and the
-# HDDs the existing `garage` raidz1, both imported by the zfs extension. Their
+# HDDs the raidz1 `hdd` (the old `garage` pool, renamed), both imported by the zfs extension. Their
 # datasets mount under /var/mnt (extra, runners, media, garage), which the
 # kubelet sees without extraMounts - so there are no UserVolumeConfigs here.
 # Pool layout and datasets are in docs/infrastructure/proxmox-01-migration.md.
