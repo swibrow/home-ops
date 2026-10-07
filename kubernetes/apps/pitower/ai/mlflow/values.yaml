@@ -7,12 +7,22 @@ mlflow:
     secretKeyRef:
       name: mlflow-db-secret
       key: DB_URL
+  # Proxied artifacts in Garage's `models` bucket: clients only need the
+  # tracking URL, not S3 credentials. Model files uploaded by hand go
+  # elsewhere in the same bucket, outside mlflow/.
+  artifactsDestination: s3://models/mlflow
 
-# No artifact store configured: Claude Code / GenAI tracing writes trace
-# metadata (spans) into the backend store, not large run artifacts, so this
-# stays Postgres-only like Phoenix — no S3/MinIO tier needed for the trial.
-# storage stays disabled (default) since the backend store is Postgres, not
-# SQLite.
+envFrom:
+  - secretRef:
+      name: mlflow-s3-secret
+
+env:
+  # The public endpoint, not the in-cluster Service: with proxied multipart
+  # uploads the server hands clients presigned part URLs on this host.
+  - name: MLFLOW_S3_ENDPOINT_URL
+    value: https://s3.wibrow.dev
+  - name: MLFLOW_ENABLE_PROXY_MULTIPART_UPLOAD
+    value: "true"
 
 # MLflow's DNS-rebinding guard (default: localhost + private IPs only)
 # rejects the public Host header "mlflow.wibrow.dev" that Envoy Gateway
