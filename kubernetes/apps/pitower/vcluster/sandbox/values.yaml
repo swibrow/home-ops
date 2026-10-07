@@ -1,0 +1,15 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/loft-sh/vcluster/main/chart/values.schema.json
+controlPlane:
+  service:
+    annotations:
+      lbipam.cilium.io/ips: 10.20.10.240
+    spec:
+      type: LoadBalancer
+  proxy:
+    extraSANs:
+      - 10.20.10.240
+
+exportKubeConfig:
+  context: vcluster-sandbox
+  server: https://10.20.10.240
