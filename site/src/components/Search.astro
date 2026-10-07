@@ -1,0 +1,17 @@
+---
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+---
+
+<button type="button" class="search-button" data-open-dialog="search-dialog" aria-label="Search docs">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4.5 4.5"></path></svg>
+  <span class="search-label">Search</span>
+  <kbd>/</kbd>
+</button>
+<dialog id="search-dialog" class="search-dialog" aria-label="Search" data-pagefind-base={`${base}/pagefind/`}>
+  <div class="search-head">
+    <div id="search"></div>
+    <button type="button" class="icon-button" aria-label="Close search" data-close-dialog>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+    </button>
+  </div>
+</dialog>

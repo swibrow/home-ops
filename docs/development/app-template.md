@@ -2,13 +2,13 @@
 
 The [bjw-s app-template](https://github.com/bjw-s-labs/helm-charts/tree/main/charts/other/app-template) Helm chart is used for most applications in the cluster. It provides a standardized, opinionated structure for deploying containerized workloads.
 
-**Current version**: 4.6.2
+**Current version**: 5.2.1 (pinned in each app's `kustomization.yaml` and bumped by Renovate)
 
 ---
 
 ## Overview
 
-The app-template chart abstracts common Kubernetes patterns (Deployments, Services, Ingress/HTTPRoutes, PVCs) into a declarative `values.yaml` format. Instead of writing raw Kubernetes manifests, you define controllers, containers, services, and routes.
+The app-template chart abstracts common Kubernetes patterns (Deployments, Services, HTTPRoutes, PVCs) into a declarative `values.yaml` format. Instead of writing raw Kubernetes manifests, you define controllers, containers, services, and routes.
 
 ```mermaid
 flowchart TD
@@ -34,7 +34,7 @@ namespace: selfhosted
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm
-    version: 4.6.2
+    version: 5.2.1
     releaseName: my-app
     namespace: selfhosted
     valuesFile: values.yaml
@@ -78,14 +78,14 @@ controllers:
               periodSeconds: 5
 service:
   app:
+    controller: my-app
     ports:
       http:
         port: 8080
 route:
   app:
-    enabled: true
     hostnames:
-      - my-app.example.com
+      - my-app.wibrow.dev
     parentRefs:
       - name: envoy-external
         namespace: networking
@@ -164,7 +164,7 @@ Define Kubernetes Services that expose container ports:
 ```yaml
 service:
   app:
-    controller: my-app  # Links to the controller (optional if name matches)
+    controller: my-app
     ports:
       http:
         port: 8080
@@ -177,15 +177,22 @@ service:
 ```yaml
 service:
   app:
+    controller: frigate
     ports:
       http:
-        port: 8080
-  mqtt:
+        port: 5000
+  webrtc-udp:
+    controller: frigate
     type: LoadBalancer
+    annotations:
+      lbipam.cilium.io/ips: 10.20.10.235
     ports:
-      mqtt:
-        port: 1883
+      webrtc-udp:
+        port: 8555
+        protocol: UDP
 ```
+
+LoadBalancer Services get a fixed address from the Cilium LB-IPAM pool (`10.20.10.128`-`255`) via `lbipam.cilium.io/ips`.
 
 ---
 
@@ -193,36 +200,48 @@ service:
 
 Routes configure Gateway API HTTPRoutes for ingress:
 
-### External Route (Cloudflare-proxied)
+### External Route (public, via the towonel tunnel)
 
 ```yaml
 route:
   app:
-    enabled: true
     hostnames:
-      - my-app.example.com
+      - my-app.wibrow.dev
     parentRefs:
       - name: envoy-external
         namespace: networking
         sectionName: https
 ```
 
-### Internal Route (LAN/VPN only)
+### Internal Route (LAN and Tailscale only)
 
 ```yaml
 route:
   app:
-    enabled: true
     hostnames:
-      - my-app.internal.example.com
+      - my-app.wibrow.dev
     parentRefs:
       - name: envoy-internal
         namespace: networking
         sectionName: https
 ```
 
-!!! note "Annotation Placement"
-    The `cloudflare-proxied` annotation is read from the Route resource, not the Gateway. The `external-dns.alpha.kubernetes.io/target` annotation only works on Gateway resources, not on HTTPRoutes.
+When a Service exposes several ports, pin the backend with `rules`:
+
+```yaml
+route:
+  app:
+    hostnames:
+      - frigate.wibrow.dev
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+    rules:
+      - backendRefs:
+          - identifier: app
+            port: 5000
+```
 
 ---
 
@@ -230,30 +249,44 @@ route:
 
 Define persistent storage for your application:
 
-### PVC (Rook Ceph)
+### Existing PVC (preferred)
 
-```yaml
-persistence:
-  data:
-    enabled: true
-    type: persistentVolumeClaim
-    accessMode: ReadWriteOnce
-    size: 5Gi
-    storageClass: ceph-block
-    globalMounts:
-      - path: /data
-```
-
-### Existing PVC
+App data PVCs are declared with the `pvc` kustomize component (see [Adding Apps](adding-apps.md#step-6-add-persistence-optional)) and mounted by name:
 
 ```yaml
 persistence:
   config:
-    enabled: true
-    type: persistentVolumeClaim
     existingClaim: my-app-config
     globalMounts:
       - path: /config
+```
+
+### Chart-managed PVC
+
+For disposable data such as caches, the chart can create the PVC itself:
+
+```yaml
+persistence:
+  model-cache:
+    accessMode: ReadWriteOnce
+    size: 10Gi
+    storageClass: openebs-hostpath-fast
+    advancedMounts:
+      machine-learning:
+        app:
+          - path: /cache
+```
+
+### NFS
+
+```yaml
+persistence:
+  media:
+    type: nfs
+    server: data
+    path: /volume1/media
+    globalMounts:
+      - path: /data/nas-media
 ```
 
 ### EmptyDir
@@ -317,8 +350,10 @@ probes:
       periodSeconds: 5
 ```
 
-!!! tip "Startup Probes"
-    Use startup probes with a high `failureThreshold` for applications that take a long time to initialize. This prevents the liveness probe from killing the container during startup.
+> [!TIP]
+> **Startup Probes**
+>
+> Use startup probes with a high `failureThreshold` for applications that take a long time to initialize. This prevents the liveness probe from killing the container during startup.
 
 ---
 
@@ -363,63 +398,67 @@ env:
 
 ## Full Example
 
-A complete example showing all common patterns:
+Miniflux (`selfhosted/miniflux`), with OIDC, a shared CNPG database and a custom liveness probe:
 
 ```yaml title="values.yaml"
 controllers:
-  tandoor:
+  miniflux:
+    strategy: RollingUpdate
     annotations:
       reloader.stakater.com/auto: "true"
+    pod:
+      securityContext:
+        runAsUser: 2000
+        runAsGroup: 2000
     containers:
       app:
         image:
-          repository: ghcr.io/tandoorrecipes/recipes
-          tag: 1.5.0
+          repository: ghcr.io/miniflux/miniflux
+          tag: 2.3.3-distroless
         env:
-          TZ: Europe/Zurich
-          DB_ENGINE: django.db.backends.postgresql
-          POSTGRES_HOST: postgres-rw.cloudnative-pg.svc.cluster.local
-          POSTGRES_PORT: "5432"
+          BASE_URL: https://miniflux.wibrow.dev
+          RUN_MIGRATIONS: "1"
+          OAUTH2_PROVIDER: oidc
+          OAUTH2_CLIENT_ID: miniflux
+          OAUTH2_OIDC_DISCOVERY_ENDPOINT: https://idm.wibrow.dev/oauth2/openid/miniflux
+          DATABASE_URL:
+            valueFrom:
+              secretKeyRef:
+                name: miniflux-db-secret
+                key: DB_URL
         envFrom:
           - secretRef:
-              name: tandoor-secrets
-        resources:
-          requests:
-            cpu: 50m
-            memory: 256Mi
-          limits:
-            memory: 512Mi
+              name: miniflux-secret
         probes:
           liveness:
             enabled: true
-          readiness:
-            enabled: true
-          startup:
-            enabled: true
+            custom: true
             spec:
-              failureThreshold: 30
-              periodSeconds: 5
+              httpGet:
+                path: /healthcheck
+                port: 8080
+        resources:
+          requests:
+            cpu: 12m
+            memory: 64M
+          limits:
+            memory: 256M
+
 service:
   app:
+    controller: miniflux
     ports:
       http:
         port: 8080
+
 route:
   app:
-    enabled: true
     hostnames:
-      - recipes.example.com
+      - miniflux.wibrow.dev
     parentRefs:
       - name: envoy-external
         namespace: networking
         sectionName: https
-persistence:
-  data:
-    enabled: true
-    type: persistentVolumeClaim
-    accessMode: ReadWriteOnce
-    size: 2Gi
-    storageClass: ceph-block
-    globalMounts:
-      - path: /opt/recipes/mediafiles
 ```
+
+`miniflux-db-secret` comes from the `cnpg-db-shared` component and `miniflux-secret` from an Infisical ExternalSecret (abridged; see `kubernetes/apps/pitower/selfhosted/miniflux/`).

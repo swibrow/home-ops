@@ -4,31 +4,29 @@ title: GitOps
 
 # GitOps
 
-The cluster is managed entirely through GitOps using [ArgoCD](https://argoproj.github.io/cd/). Every application, infrastructure component, and configuration change flows through a single Git repository. ArgoCD continuously watches the repository and reconciles the cluster state to match what is declared in code.
+The cluster is managed through GitOps using [ArgoCD](https://argoproj.github.io/cd/). Every application, infrastructure component, and configuration change flows through the [home-ops](https://github.com/swibrow/home-ops) repository. ArgoCD watches the `main` branch and reconciles the cluster to match what is declared in code.
 
 ---
 
 ## How It Works
 
-The GitOps workflow follows a simple, predictable loop:
-
-1. A developer pushes a change to the `main` branch of the [home-ops](https://github.com/swibrow/home-ops) repository.
-2. ArgoCD detects the new commit on `main`.
-3. ApplicationSets evaluate the repository directory structure and generate Application resources for each discovered app.
-4. Each Application syncs its manifests to the cluster, creating or updating Kubernetes resources as needed.
+1. A change is merged to the `main` branch.
+2. A GitHub webhook tells ArgoCD about the new commit. Polling every 30 minutes (`timeout.reconciliation: 1800s`, plus up to 5 minutes jitter) is only a drift-detection fallback.
+3. The `pitower` ApplicationSet evaluates the directory structure under `kubernetes/apps/pitower/` and generates one Application per app directory.
+4. Each Application renders its `kustomization.yaml` (with Helm inflation) and syncs the result to the cluster.
 
 ```mermaid
 flowchart LR
-    Dev((Developer)) -->|git push| GH[GitHub\nmain branch]
-    GH -->|watches| ArgoCD[ArgoCD\nController]
-    ArgoCD -->|evaluates| AppSets[ApplicationSets\n15 categories]
-    AppSets -->|generates| Apps[Application\nResources]
+    Dev((Developer)) -->|merge| GH[GitHub\nmain branch]
+    GH -->|webhook| ArgoCD[ArgoCD\nController]
+    ArgoCD -->|evaluates| AppSet[ApplicationSet\npitower]
+    AppSet -->|generates| Apps[Application\nper app directory]
     Apps -->|syncs| Cluster[Kubernetes\nCluster]
 
     style Dev fill:#7c3aed,color:#fff
     style GH fill:#333,color:#fff
     style ArgoCD fill:#ef652a,color:#fff
-    style AppSets fill:#18b7be,color:#fff
+    style AppSet fill:#18b7be,color:#fff
     style Apps fill:#18b7be,color:#fff
     style Cluster fill:#326ce5,color:#fff
 ```
@@ -40,49 +38,38 @@ flowchart LR
 | Principle | Implementation |
 |:----------|:---------------|
 | **Single source of truth** | All cluster state is declared in the `home-ops` Git repository |
-| **Declarative configuration** | Kubernetes manifests and Helm values define desired state, not imperative scripts |
-| **Automated reconciliation** | ArgoCD continuously syncs changes from Git to the cluster |
-| **Pull-based delivery** | The cluster pulls its own state from Git -- no external CI pushing to the cluster |
+| **Declarative configuration** | Kustomize and Helm values define desired state, not imperative scripts |
+| **Automated reconciliation** | ArgoCD syncs changes from Git to the cluster automatically |
+| **Pull-based delivery** | The cluster pulls its own state from Git; CI never applies Kubernetes manifests |
 | **Auditability** | Every change is a Git commit with full history and attribution |
 
 ---
 
 ## Repository Layout
 
-ArgoCD manages the cluster through three key directories:
-
 ```
-pitower/kubernetes/
-├── argocd/              # ArgoCD Application + ApplicationSet definitions
-│   ├── app-argocd.yaml  # Bootstrap Application (self-managing)
-│   ├── appset-networking.yaml
-│   ├── appset-media.yaml
-│   ├── appset-security.yaml
-│   └── ...              # 15 ApplicationSets total
-├── bootstrap/           # Initial cluster resources (ArgoCD Helm chart, project, namespace)
+kubernetes/
+├── argocd/                    # ApplicationSets (applied manually, not managed by ArgoCD)
+│   ├── clusters/
+│   │   └── pitower.yaml       # Git directory generator over apps/pitower/*/*
+│   └── ack-applicationset.yaml  # AWS Controllers for Kubernetes (native Helm source)
+├── bootstrap/                 # ArgoCD itself: Helm chart, AppProject, repo creds, secrets
+│   ├── app-argocd.yaml        # Self-managing bootstrap Application
 │   ├── kustomization.yaml
-│   ├── appproject.yaml
-│   ├── namespace.yaml
 │   └── argocd-values.yaml
-└── apps/                # Application manifests organized by category
-    ├── ai/
-    ├── banking/
-    ├── cert-manager/
-    ├── cloudnative-pg/
-    ├── home-automation/
-    ├── kube-system/
-    ├── media/
-    ├── monitoring/
-    ├── networking/
-    ├── openebs/
-    ├── rook-ceph/
-    ├── security/
-    ├── selfhosted/
-    └── system/
+├── components/                # Reusable kustomize components (pvc, kopiur, cnpg-db-shared)
+└── apps/
+    └── pitower/               # One directory per category, one subdirectory per app
+        ├── ai/
+        ├── analytics/
+        ├── banking/
+        ├── database/
+        ├── media/
+        ├── ...
+        └── workshop/
 ```
 
-!!! info "15 Application Categories"
-    Each category directory under `apps/` has a corresponding ApplicationSet in `argocd/`. When you add a new subdirectory to any category, ArgoCD automatically creates and syncs a new Application for it.
+Each category directory becomes a namespace, and each subdirectory inside it becomes an ArgoCD Application named `pitower-<category>-<app>`. There is no per-category ApplicationSet; adding a new category is just a new directory.
 
 ---
 
@@ -93,14 +80,14 @@ pitower/kubernetes/
 | [ArgoCD Setup](argocd-setup.md) | Bootstrap process, self-managing Application, project configuration |
 | [ApplicationSets](application-sets.md) | Git directory generator pattern, Go templates, naming conventions |
 | [Sync Policies](sync-policies.md) | Automated sync, prune, selfHeal, retry strategy, and syncOptions |
-| [Adding Apps](adding-apps.md) | Step-by-step guide to deploying a new application through GitOps |
+| [Adding Apps](adding-apps.md) | How a new directory becomes a running Application |
 
 ---
 
 ## Design Decisions
 
-- **ArgoCD over Flux** -- ArgoCD was chosen for its mature UI, ApplicationSet pattern, and straightforward Helm/Kustomize integration.
-- **ApplicationSets over individual Applications** -- A single ApplicationSet per category eliminates boilerplate. Adding a new app is as simple as creating a directory.
-- **Git directory generator** -- Directory structure drives application discovery. No manual Application YAML is needed for each app.
-- **selfHeal disabled** -- Manual intervention is preferred over automatic drift correction, giving operators time to investigate before changes are reverted. See [Sync Policies](sync-policies.md) for the rationale.
-- **Kustomize with HelmChartInflationGenerator** -- Most apps use `kustomization.yaml` to inflate Helm charts with local `values.yaml` files, combining the flexibility of Helm with the composability of Kustomize.
+- **ArgoCD over Flux**: ArgoCD was chosen for its UI, the ApplicationSet pattern, and straightforward Helm/Kustomize integration.
+- **One ApplicationSet per cluster**: a single Git directory generator over `kubernetes/apps/pitower/*/*` removes per-app and per-category boilerplate.
+- **selfHeal disabled for workloads**: drift is surfaced as OutOfSync rather than reverted, so live debugging and restores are not undone. See [Sync Policies](sync-policies.md).
+- **Kustomize with `helmCharts`**: most apps inflate the bjw-s app-template chart from a local `values.yaml` via kustomize's Helm generator (`kustomize.buildOptions: --enable-helm --load-restrictor LoadRestrictionsNone`), which also lets them pull in shared components.
+- **PR previews**: the [ArgoCD Diff](../ci-cd/github-actions.md#argocd-diff) workflow renders and diffs changed apps on every pull request that touches `kubernetes/**`.

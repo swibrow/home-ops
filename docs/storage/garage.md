@@ -65,9 +65,11 @@ ExternalSecret refresh or force it with a `force-sync` annotation; Reloader rest
 The node's identity (`node_key`) and cluster layout live in the metadata directory. Keep that
 directory and the node comes back as the same node with the same layout.
 
-!!! note "S3 keys are not in git"
-    Garage stores access keys in its own metadata. Read one back with `garage key info
-    --show-secret <name>` (see [Operations](#operations)).
+> [!NOTE]
+> **S3 keys are not in git**
+>
+> Garage stores access keys in its own metadata. Read one back with `garage key info
+> --show-secret <name>` (see [Operations](#operations)).
 
 ## Buckets and keys
 
@@ -97,9 +99,11 @@ s3 =
 aws --profile garage s3 ls s3://garage/
 ```
 
-!!! warning "Path-style addressing is required"
-    `root_domain = ".s3.garage.wibrow.dev"` enables vhost-style bucket URLs, but no DNS exists for
-    them. Without `addressing_style = path`, clients build hostnames that do not resolve.
+> [!WARNING]
+> **Path-style addressing is required**
+>
+> `root_domain = ".s3.garage.wibrow.dev"` enables vhost-style bucket URLs, but no DNS exists for
+> them. Without `addressing_style = path`, clients build hostnames that do not resolve.
 
 `s3.wibrow.dev` resolves to the internal gateway (`internal.wibrow.dev`, an RFC1918 address), so
 it only works from the LAN, the cluster, or the tailnet. It is deliberately not reachable from the
@@ -141,10 +145,12 @@ reports anything but healthy.
 
 ## Redundancy
 
-!!! danger "Single node, one copy"
-    `replication_factor = 1`: one copy of every object, on one node. ZFS raidz1 protects against a
-    single disk failure, not against losing worker-07. Anything irreplaceable needs a copy somewhere
-    else too.
+> [!CAUTION]
+> **Single node, one copy**
+>
+> `replication_factor = 1`: one copy of every object, on one node. ZFS raidz1 protects against a
+> single disk failure, not against losing worker-07. Anything irreplaceable needs a copy somewhere
+> else too.
 
 A second replica (on the Synology, or off-site over a VPN) is planned. Garage wants an odd number of
 nodes for metadata quorum. Raising `replication_factor` needs the new nodes joined and the layout

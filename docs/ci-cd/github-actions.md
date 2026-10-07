@@ -1,183 +1,151 @@
 # GitHub Actions
 
-GitHub Actions workflows for linting, Docker builds, and documentation deployment.
+GitHub Actions workflows in `.github/workflows/`. Third-party actions are pinned to commit SHAs, and Renovate keeps the pins current.
 
 ---
 
 ## Workflows
 
-| Workflow | File | Trigger |
-|:---------|:-----|:--------|
-| Lint | `.github/workflows/lint.yaml` | Pull requests to `main` |
-| Build Docker Images | `.github/workflows/build-docker-images.yaml` | Push to `main` (docker/**) or manual dispatch — most images now live in [cloudsnacks/containers](https://github.com/cloudsnacks/containers) |
-| Deploy Docs | `.github/workflows/deploy-docs.yml` | Push to `main` (docs/** or mkdocs.yml) |
+| Workflow | File | Trigger | Runner |
+|:---------|:-----|:--------|:-------|
+| Checks | `checks.yaml` | Every PR to `main` | `home-ops` |
+| ArgoCD Diff | `argocd-diff.yaml` | PR touching `kubernetes/**` | `home-ops` |
+| Talos Diff | `talos-diff.yaml` | PR touching `talos/**` | `home-ops` |
+| Talos Apply | `talos-apply.yaml` | Push to `main` touching `talos/**`, or manual | `home-ops` |
+| Terraform Plan | `terraform-plan.yaml` | PR touching `terraform/{alexa,garrison-alexa,bootstrap,general}/**` | `ubuntu-latest` |
+| Terraform Apply | `terraform-apply.yaml` | Push to `main` touching the same stacks | `home-ops` |
+| Terraform UniFi | `terraform-unifi.yaml` | PR or push touching `terraform/unifi/**`, or manual | `home-ops` |
+| Build Docker Images | `build-docker-images.yaml` | Push to `main` touching `docker/**`, or manual | `home-ops`, `home-ops-arm64` |
+| Deploy Docs | `deploy-docs.yml` | Push to `main` touching `docs/**`, `site/**`, `images/**` or the workflow, or manual | `home-ops` |
+| krr-rightsize | `krr-rightsize.yaml` | Mondays 06:00 UTC, or manual | `home-ops` |
+| rightsize-report | `rightsize-report.yaml` | Tuesdays 07:00 UTC, or manual | `home-ops` |
+| Deploy Status Worker | `deploy-status-worker.yaml` | Manual only | `home-ops` |
 
 ---
 
-## Lint Workflow
+## Runners
 
-Runs on every pull request targeting the `main` branch. Validates code quality before merge.
+`home-ops` and `home-ops-arm64` are [Actions Runner Controller](https://github.com/actions/actions-runner-controller) scale sets defined in `kubernetes/apps/pitower/arc/runners/` (controller in `arc/controller/`). The same file defines scale sets for other personal repositories.
 
-```yaml title=".github/workflows/lint.yaml"
-name: Linter
+| Scale set | Nodes | Image | Notes |
+|:----------|:------|:------|:------|
+| `home-ops` | worker-07 (`wibrow.dev/compute: "true"`) | `ghcr.io/cloudsnacks/actions-runner` | Ships actionlint, tflint and other CLIs via mise; Docker-in-Docker sidecar; work volumes on `openebs-hostpath-runners` |
+| `home-ops-arm64` | Raspberry Pi workers (worker-08/09/10, `kubernetes.io/arch: arm64`) | `ghcr.io/cloudsnacks/actions-runner` | Used only for native linux/arm64 image builds |
 
-on:
-  pull_request:
-    branches: [main]
+Scale sets start at zero runners (`minRunners: 0`) and are capped by `maxRunners`.
 
+> [!WARNING]
+> **Runners live on worker-07**
+>
+> While worker-07 is drained or down, jobs on `home-ops` stay queued. Run `terraform` or `topf` locally instead. Talos Apply runs inside the cluster it is applying to, so a change that reboots worker-07 kills its own job; re-run the workflow or finish with `topf apply` locally.
+
+---
+
+## Checks
+
+The required status check. It has no path filter so it reports on every PR.
+
+1. `actionlint`
+2. `pre-commit/action` with the hooks in `.pre-commit-config.yaml`: end-of-file-fixer, trailing-whitespace, yamllint, terraform_fmt and terraform_tflint. `terraform_validate` is skipped because it needs `terraform init` per stack, which the Terraform workflows already do.
+
+`MISE_IGNORED_CONFIG_PATHS` is set so the runner's mise shims do not try to decrypt the repo's age-encrypted `[env]` values.
+
+---
+
+## ArgoCD Diff
+
+Uses [drydock](https://github.com/sholdee/drydock)'s `pr-action` to render the Kustomize/Helm output of changed apps under `kubernetes/` on both the PR head and the base branch, and comments the diff on the PR. Changes only to `.github/**`, `terraform/**`, `docs/**` or `*.md` do not trigger a full render.
+
+---
+
+## Talos Diff and Talos Apply
+
+Both detect which `talos/<cluster>/` directories changed and run a matrix over them:
+
+1. Install [topf](https://github.com/postfinance/topf) and sops (versions pinned with Renovate annotations).
+2. Write the `AGE_SECRET_KEY` secret to a temp file and export `SOPS_AGE_KEY_FILE`.
+3. **Diff**: `topf apply --dry-run --redact`; exit code 2 means changes are pending. The output is posted as a sticky PR comment (one per cluster, found by an HTML marker).
+4. **Apply**: `topf apply --redact` with `TOPF_CONFIRM=false`, serialised per cluster with a concurrency group. A manual run can pass an explicit JSON list of clusters.
+
+`--redact` keeps secret values out of logs and comments, since the repository is public.
+
+---
+
+## Terraform
+
+**Terraform Plan** and **Terraform Apply** run a matrix over the `alexa`, `garrison-alexa`, `bootstrap` and `general` stacks with [dflook/terraform-plan](https://github.com/dflook/terraform-github-actions) and `terraform-apply` (`auto_approve: true`). AWS credentials come from OIDC (`AWS_OIDC_ROLE_ARN`, region `eu-central-2`).
+
+**Terraform UniFi** is separate because the UniFi provider talks to the gateway's local API, which only the in-cluster runner can reach. It:
+
+- decrypts `UNIFI_*` credentials from `terraform/mise.toml` with mise and the age key,
+- checks the UniFi API is reachable before planning,
+- plans on PRs, applies on push to `main`,
+- offers a manual `unlock` action to release a stale S3 state lock left by a killed run.
+
+Plans and applies share one concurrency group (`terraform-unifi`) because they share the state lock.
+
+---
+
+## Build Docker Images
+
+See [Docker Builds](docker-builds.md).
+
+---
+
+## Deploy Docs
+
+```yaml title=".github/workflows/deploy-docs.yml (abridged)"
 jobs:
-  lint:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: home-ops
+    defaults:
+      run:
+        working-directory: site
     steps:
-      - uses: actions/checkout@v6
-      - run: |
-          echo "Linting..."
-```
-
-!!! tip "Extending the Linter"
-    This is a minimal linting skeleton. Add steps for YAML validation, Helm template checks, or shellcheck as needed.
-
----
-
-## Build Docker Images Workflow
-
-Automatically discovers changed Dockerfiles, extracts versions, and builds multi-architecture images. See [Docker Builds](docker-builds.md) for detailed documentation.
-
-### Trigger
-
-```yaml
-on:
-  push:
-    branches: [main]
-    paths:
-      - docker/**
-  workflow_dispatch:
-```
-
-- **Push**: Only triggers when files under `docker/` change on `main`
-- **Manual dispatch**: Rebuilds all images regardless of changes
-
-### Discovery Job
-
-The `discover` job identifies which images need to be built:
-
-```yaml
-discover:
-  runs-on: ubuntu-latest
-  outputs:
-    images: ${{ steps.set-matrix.outputs.images }}
-  steps:
-    - uses: actions/checkout@v4
-
-    - id: changed
-      if: github.event_name == 'push'
-      uses: tj-actions/changed-files@v47
-      with:
-        dir_names: "true"
-        dir_names_max_depth: "2"
-        files: docker/**
-        json: "true"
-        escape_json: "false"
-
-    - id: set-matrix
-      run: |
-        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-          echo "images=$(ls -d docker/*/ | xargs -I{} basename {} | \
-            jq -R -s -c 'split("\n") | map(select(length > 0))')" >> "$GITHUB_OUTPUT"
-        else
-          echo "images=$(echo '${{ steps.changed.outputs.all_changed_files }}' | \
-            jq -c '[.[] | ltrimstr("docker/")]')" >> "$GITHUB_OUTPUT"
-        fi
-```
-
-**On push**: Uses `tj-actions/changed-files` to detect which `docker/` subdirectories have changed, producing a JSON array like `["app1", "app2"]`.
-
-**On manual dispatch**: Lists all directories under `docker/`, building everything.
-
-### Build Job
-
-Uses a matrix strategy to build each discovered image in parallel:
-
-```yaml
-build:
-  needs: discover
-  if: needs.discover.outputs.images != '[]'
-  runs-on: ubuntu-latest
-  permissions:
-    contents: read
-    packages: write
-  strategy:
-    matrix:
-      image: ${{ fromJson(needs.discover.outputs.images) }}
-```
-
-Key build steps:
-
-1. **QEMU setup** -- Enables cross-architecture emulation for ARM64 builds
-2. **Buildx setup** -- Configures Docker Buildx for multi-platform builds
-3. **Registry login** -- Authenticates to ghcr.io using the GitHub token
-4. **Version extraction** -- Reads the version from `ARG *_VERSION=` in the Dockerfile
-5. **Build and push** -- Builds for `linux/amd64` and `linux/arm64`, tags with version and `latest`
-
-### Version Extraction
-
-```yaml
-- id: version
-  run: |
-    version=$(grep -oP 'ARG \w+_VERSION=\K.+' docker/${{ matrix.image }}/Dockerfile | head -1)
-    echo "tag=${version:-${{ github.sha }}}" >> "$GITHUB_OUTPUT"
-```
-
-The version tag is extracted from the first `ARG *_VERSION=` line in the Dockerfile. If no version ARG is found, it falls back to the Git commit SHA.
-
-### Image Tags
-
-Each image is tagged twice:
-
-```
-ghcr.io/swibrow/<image>:<version>
-ghcr.io/swibrow/<image>:latest
-```
-
----
-
-## Deploy Docs Workflow
-
-Builds and deploys the MkDocs Material documentation site to GitHub Pages.
-
-```yaml title=".github/workflows/deploy-docs.yml"
-name: Deploy Docs
-
-on:
-  push:
-    branches: [main]
-    paths:
-      - "docs/**"
-      - "mkdocs.yml"
-      - "requirements.txt"
-  workflow_dispatch:
-
-permissions:
-  contents: write
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@<sha> # v7.0.1
         with:
           fetch-depth: 0
-
-      - uses: actions/setup-python@v5
+      - uses: oven-sh/setup-bun@<sha> # v2.2.0
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - uses: actions/upload-pages-artifact@<sha> # v5.0.0
         with:
-          python-version: "3.12"
-          cache: pip
-
-      - run: pip install -r requirements.txt
-
-      - run: mkdocs gh-deploy --force
+          path: site/dist
+  deploy:
+    needs: build
+    runs-on: home-ops
+    permissions:
+      pages: write
+      id-token: write
+    environment: github-pages
+    steps:
+      - uses: actions/deploy-pages@<sha> # v5.0.1
 ```
 
-- Triggered when docs, mkdocs config, or Python requirements change
-- Uses `fetch-depth: 0` for the git-revision-date-localized plugin
-- Deploys to the `gh-pages` branch
+- `bun run build` runs `astro build`, indexes the output with Pagefind, then fails on any internal link or anchor that does not resolve
+- `fetch-depth: 0` gives each page its "last updated" date from git
+- `actions/deploy-pages` publishes the artifact; the repository's Pages source is "GitHub Actions"
+
+---
+
+## krr-rightsize
+
+Weekly right-sizing PR:
+
+1. Runs [KRR](https://github.com/robusta-dev/krr) `simple` against the in-cluster Prometheus with `--cpu_percentile 50`.
+2. `scripts/krr_rightsize.py` writes CPU requests at p50 and memory requests at the trailing average working set into `kubernetes/apps/pitower`. Limits are not touched.
+3. Force-pushes the result to the long-lived `bot/krr-rightsize` branch and opens a PR labelled `automation` if none is open.
+
+app-template values are matched automatically; other charts are only patched where a `# krr: <workload>/<container>` marker annotates the resources block.
+
+---
+
+## rightsize-report
+
+Runs `scripts/rightsize_report.py` weekly and upserts a single open issue labelled `rightsize-report` ("Cluster right-sizing report").
+
+---
+
+## Deploy Status Worker
+
+Builds, tests and deploys the Cloudflare Worker in `workers/status` (`status.wibrow.dev`) with Bun and Wrangler. It is manual only, deliberately: the Worker route cannot bind the hostname while external-dns still owns a record for it.

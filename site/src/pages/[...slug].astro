@@ -1,0 +1,117 @@
+---
+import { Image } from "astro:assets";
+import { render } from "astro:content";
+import Base from "../layouts/Base.astro";
+import Sidebar from "../components/Sidebar.astro";
+import Toc from "../components/Toc.astro";
+import { findPage } from "../nav.ts";
+import { docHref } from "../lib/slug.ts";
+import { docTitle, lastUpdated, loadDocs, type Doc } from "../lib/docs.ts";
+import rack from "../../../images/rack.jpg";
+
+export async function getStaticPaths() {
+  const docs = await loadDocs();
+  const titles = Object.fromEntries(docs.map((d) => [d.id, docTitle(d, d.id)]));
+  return docs.map((doc) => ({
+    params: { slug: doc.id === "index" ? undefined : doc.id },
+    props: { doc, titles },
+  }));
+}
+
+interface Props {
+  doc: Doc;
+  titles: Record<string, string>;
+}
+
+const { doc, titles } = Astro.props;
+const { Content, headings } = await render(doc);
+const { page, prev, next } = findPage(doc.id);
+const section = page.section;
+const title = titles[doc.id];
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+const sourcePath = doc.filePath?.replace(/^(\.\.\/)+/, "");
+const updated = lastUpdated(doc.filePath);
+const isHome = doc.id === "index";
+---
+
+<Base title={title} section={section} currentId={doc.id}>
+  {
+    isHome && (
+      <section class="hero">
+        <div class="hero-text">
+          <h1>{title}</h1>
+          <p class="lede">
+            How <strong>pitower</strong> is built and run: an 11-node Talos Linux cluster in a 12U rack, managed through GitOps from{" "}
+            <a href="https://github.com/swibrow/home-ops">swibrow/home-ops</a>.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href={docHref(base, "getting-started")}>
+              Get started
+            </a>
+            <a class="button" href={docHref(base, "infrastructure/hardware")}>
+              See the hardware
+            </a>
+          </div>
+        </div>
+        <figure class="hero-figure">
+          <Image src={rack} alt="The pitower rack: mini PCs, a Dell R630, Raspberry Pis, switches and a UPS" widths={[480, 720, 960]} sizes="(min-width: 900px) 420px, 100vw" loading="eager" />
+        </figure>
+      </section>
+    )
+  }
+  <div class:list={["layout", { "layout-home": isHome, "layout-wide": !section }]}>
+    {
+      section && (
+        <aside class="sidebar">
+          <Sidebar section={section} currentId={doc.id} />
+        </aside>
+      )
+    }
+    <main id="content" class="main">
+      <article class:list={["prose", { "home-prose": isHome }]} data-pagefind-body>
+        {section && <p class="breadcrumb" data-pagefind-ignore>{section.label}</p>}
+        <Content />
+      </article>
+      <footer class="page-footer" data-pagefind-ignore>
+        <div class="page-meta">
+          {sourcePath && <a href={`https://github.com/swibrow/home-ops/edit/main/${sourcePath}`}>Edit this page on GitHub</a>}
+          {
+            updated && (
+              <span>
+                Last updated{" "}
+                <time datetime={updated.toISOString()}>
+                  {updated.toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric", timeZone: "Europe/Zurich" })}
+                </time>
+              </span>
+            )
+          }
+        </div>
+        <nav class="pager" aria-label="Previous and next pages">
+          {
+            prev && (
+              <a class="pager-prev" href={docHref(base, prev.id)} rel="prev">
+                <span>Previous</span>
+                {titles[prev.id]}
+              </a>
+            )
+          }
+          {
+            next && (
+              <a class="pager-next" href={docHref(base, next.id)} rel="next">
+                <span>Next</span>
+                {titles[next.id]}
+              </a>
+            )
+          }
+        </nav>
+      </footer>
+    </main>
+    {
+      !isHome && (
+        <aside class="toc-column">
+          <Toc headings={headings} />
+        </aside>
+      )
+    }
+  </div>
+</Base>

@@ -4,14 +4,14 @@ title: cert-manager
 
 # cert-manager
 
-[cert-manager](https://cert-manager.io/) automates TLS certificate management for the cluster. It obtains certificates from Let's Encrypt using ACME DNS-01 challenges via Cloudflare, enabling wildcard certificates for `*.example.com` without exposing any HTTP challenge endpoints.
+[cert-manager](https://cert-manager.io/) automates TLS certificate management for the cluster. It obtains certificates from Let's Encrypt using ACME DNS-01 challenges via Cloudflare, enabling wildcard certificates for `wibrow.dev`, `propagit.dev` and `cloudsnacks.dev` without exposing any HTTP challenge endpoints.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
     CM[cert-manager] -->|ACME DNS-01| LE[Let's Encrypt]
-    CM -->|Create TXT record| CF[Cloudflare DNS\nexample.com]
+    CM -->|Create TXT record| CF[Cloudflare DNS]
     LE -->|Verify TXT record| CF
     LE -->|Issue certificate| CM
     CM -->|Store| SEC[Kubernetes Secret\nTLS cert + key]
@@ -20,7 +20,7 @@ flowchart LR
 
 ## Deployment
 
-cert-manager is deployed via its official Helm chart in the `cert-manager` namespace:
+cert-manager (Helm chart `v1.21.2`) runs in the `cert-manager` namespace. Manifests: `kubernetes/apps/pitower/cert-manager/` (`cert-manager/` for the chart, `issuers/` for the ClusterIssuers and token).
 
 ```yaml title="cert-manager/values.yaml"
 global:
@@ -30,6 +30,8 @@ crds:
   enabled: true
 dns01RecursiveNameservers: https://1.1.1.1:443/dns-query,https://1.0.0.1:443/dns-query
 dns01RecursiveNameserversOnly: true
+extraArgs:
+  - --logging-format=json
 prometheus:
   enabled: true
   servicemonitor:
@@ -44,12 +46,14 @@ prometheus:
 | `dns01RecursiveNameserversOnly` | `true` | Forces cert-manager to use only the specified resolvers |
 | `crds.enabled` | `true` | CRDs managed by the Helm chart |
 
-!!! info "Why DoH nameservers?"
-    The Ubiquiti router intercepts DNS traffic on port 53. By configuring cert-manager to use Cloudflare's DNS-over-HTTPS endpoints (`1.1.1.1:443/dns-query`), DNS-01 challenge verification queries bypass the local DNS interception and reach Cloudflare directly.
+> [!NOTE]
+> **Why DoH nameservers?**
+>
+> The Ubiquiti router intercepts DNS traffic on port 53. By configuring cert-manager to use Cloudflare's DNS-over-HTTPS endpoints (`1.1.1.1:443/dns-query`), DNS-01 challenge verification queries bypass the local DNS interception and reach Cloudflare directly.
 
 ## ClusterIssuers
 
-Two ClusterIssuers are configured -- production and staging:
+Two ClusterIssuers are configured, production and staging, both solving DNS-01 for the three zones:
 
 ### Production
 
@@ -72,35 +76,19 @@ spec:
               key: api-token
         selector:
           dnsZones:
-            - "example.com"
+            - "wibrow.dev"
+            - "propagit.dev"
+            - "cloudsnacks.dev"
 ```
 
 ### Staging
 
-```yaml
-apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
-metadata:
-  name: letsencrypt-staging
-spec:
-  acme:
-    server: https://acme-staging-v02.api.letsencrypt.org/directory
-    email: sam.wibrow.wa@gmail.com
-    privateKeySecretRef:
-      name: letsencrypt-staging
-    solvers:
-      - dns01:
-          cloudflare:
-            apiTokenSecretRef:
-              name: cert-manager-secret
-              key: api-token
-        selector:
-          dnsZones:
-            - "example.com"
-```
+`letsencrypt-staging` is identical except for `server: https://acme-staging-v02.api.letsencrypt.org/directory` and `privateKeySecretRef: letsencrypt-staging`.
 
-!!! tip "Use staging first"
-    When testing new certificate configurations, use `letsencrypt-staging` to avoid hitting Let's Encrypt production rate limits. Staging certificates are not trusted by browsers but validate the entire ACME flow.
+> [!TIP]
+> **Use staging first**
+>
+> When testing new certificate configurations, use `letsencrypt-staging` to avoid hitting Let's Encrypt production rate limits. Staging certificates are not trusted by browsers but validate the entire ACME flow.
 
 ## Cloudflare API Token
 
@@ -123,7 +111,7 @@ spec:
           regexp: .*
 ```
 
-The token requires `Zone:DNS:Edit` permissions for the `example.com` zone in Cloudflare.
+The token lives in Infisical under `/cert-manager` and needs `Zone:DNS:Edit` on each of the three zones.
 
 ## How DNS-01 Challenge Works
 
@@ -133,9 +121,9 @@ sequenceDiagram
     participant LE as Let's Encrypt
     participant CF as Cloudflare DNS
 
-    CM->>LE: Request certificate for *.example.com
+    CM->>LE: Request certificate for *.wibrow.dev
     LE-->>CM: Return challenge token
-    CM->>CF: Create TXT record _acme-challenge.example.com
+    CM->>CF: Create TXT record _acme-challenge.wibrow.dev
     CM->>LE: Notify challenge is ready
     LE->>CF: Query TXT record
     CF-->>LE: Return challenge token
@@ -147,36 +135,26 @@ sequenceDiagram
 The DNS-01 challenge method:
 
 1. **Proves domain ownership** by creating a DNS TXT record
-2. **Supports wildcards** -- unlike HTTP-01, DNS-01 can issue `*.example.com` certificates
-3. **Works behind tunnels** -- no need to expose port 80 or 443 for challenge verification
+2. **Supports wildcards**: unlike HTTP-01, DNS-01 can issue wildcard certificates
+3. **Works behind the tunnel**: no need to expose port 80 or 443 for challenge verification
 
-## Requesting a Certificate
+## Certificates in the Cluster
 
-### Wildcard Certificate
+| Certificate | Namespace | Names | Used By |
+|:------------|:----------|:------|:--------|
+| `wibrow-dev-production` | networking | `wibrow.dev`, `*.wibrow.dev` | Both Envoy gateways |
+| `propagit-dev-production` | networking | `propagit.dev`, `*.propagit.dev` | `envoy-external` |
+| `cloudsnacks-apps-production` | networking | `*.apps.cloudsnacks.dev`, `api.pantry.cloudsnacks.dev` | `envoy-external` |
+| `pitwall-cloudsnacks-dev-production` | networking | `pitwall.cloudsnacks.dev` | `envoy-external` |
+| `kanidm-tls` | security | `idm.wibrow.dev` | Kanidm (terminates TLS itself) |
 
-```yaml
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: wildcard-cert
-  namespace: networking
-spec:
-  secretName: wildcard-cert-tls
-  issuerRef:
-    name: letsencrypt-production
-    kind: ClusterIssuer
-  dnsNames:
-    - "example.com"
-    - "*.example.com"
-```
-
-### Single-Domain Certificate
+The gateway certificates are in `kubernetes/apps/pitower/networking/envoy-gateway/certificate.yaml`. A wildcard covers one label only, so a deeper name such as `*.apps.cloudsnacks.dev` needs its own SAN.
 
 ```yaml
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: my-app-cert
+  name: my-app-tls
   namespace: my-app
 spec:
   secretName: my-app-tls
@@ -184,43 +162,10 @@ spec:
     name: letsencrypt-production
     kind: ClusterIssuer
   dnsNames:
-    - "my-app.example.com"
+    - "my-app.wibrow.dev"
 ```
 
-## Internal PKI
-
-In addition to Let's Encrypt certificates, cert-manager manages internal self-signed certificates for cluster components. For example, the [Snapshot Controller](../storage/backup-restore.md#snapshot-controller) webhook uses a self-signed CA chain:
-
-```yaml
-# Self-signed root issuer
-apiVersion: cert-manager.io/v1
-kind: Issuer
-metadata:
-  name: snapshot-controller-webhook-selfsign
-spec:
-  selfSigned: {}
-
-# CA certificate (5-year duration)
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: snapshot-controller-webhook-ca
-spec:
-  secretName: snapshot-controller-webhook-ca
-  duration: 43800h
-  isCA: true
-  issuerRef:
-    name: snapshot-controller-webhook-selfsign
-
-# CA issuer for signing webhook certs
-apiVersion: cert-manager.io/v1
-kind: Issuer
-metadata:
-  name: snapshot-controller-webhook-ca
-spec:
-  ca:
-    secretName: snapshot-controller-webhook-ca
-```
+cert-manager also issues webhook serving certificates for charts that ask for it, such as `amazon-eks-pod-identity-webhook` (`pki.certManager.enabled: true`).
 
 ## Troubleshooting
 
@@ -231,7 +176,7 @@ spec:
 kubectl get certificates -A
 
 # Describe a specific certificate for detailed status
-kubectl describe certificate wildcard-cert -n networking
+kubectl describe certificate wibrow-dev-production -n networking
 
 # Check certificate requests
 kubectl get certificaterequests -A
@@ -250,8 +195,10 @@ kubectl get challenges -A
 | Rate limit hit | Too many production certificate requests | Use `letsencrypt-staging` for testing, wait for rate limit to reset |
 | Certificate not renewing | cert-manager pod not running | Check `cert-manager` namespace for pod health |
 
-!!! note "Automatic renewal"
-    cert-manager automatically renews certificates before they expire (default: 30 days before expiry). No manual intervention is needed for routine renewals.
+> [!NOTE]
+> **Automatic renewal**
+>
+> cert-manager automatically renews certificates before they expire (default: 30 days before expiry). No manual intervention is needed for routine renewals.
 
 ## Monitoring
 

@@ -60,8 +60,10 @@ The same OTLP/HTTP port serves all three signals (`/v1/traces`, `/v1/metrics`, `
 | Metrics | `otlp` | `prometheus` (port 8889) | Scraped by a `ServiceMonitor`, then kube-prometheus-stack's Prometheus `remote_write`s to VictoriaMetrics |
 | Logs | `otlp` | `otlphttp/victorialogs` | `victoria-logs.monitoring.svc.cluster.local:9428/insert/opentelemetry/v1/logs` |
 
-!!! warning "The metrics path has an extra hop, and it's fragile"
-    Metrics don't flow directly to VictoriaMetrics -- the collector only exposes them in Prometheus exposition format on port 8889. A `ServiceMonitor` has to actually scrape that port for anything to reach Prometheus (and from there, VictoriaMetrics via `remote_write`). See the gotcha below; this is exactly the link that broke.
+> [!WARNING]
+> **The metrics path has an extra hop, and it's fragile**
+>
+> Metrics don't flow directly to VictoriaMetrics -- the collector only exposes them in Prometheus exposition format on port 8889. A `ServiceMonitor` has to actually scrape that port for anything to reach Prometheus (and from there, VictoriaMetrics via `remote_write`). See the gotcha below; this is exactly the link that broke.
 
 ## ovh-vps: `otel-agent`
 
@@ -79,13 +81,17 @@ The service runs as a dedicated `otel-agent` system user (no shell, no home dire
 
 Two real bugs surfaced while wiring `ovh-vps` up, both worth knowing if you touch this stack again.
 
-!!! danger "The OpenTelemetry Operator adopts and overwrites same-named ServiceMonitors"
-    The operator's own reconciler claims any `ServiceMonitor` named `<collector-name>-collector` (here, `otel-collector`) to manage the collector's self-telemetry -- it added an `ownerReference` to a manually-authored `ServiceMonitor` of that name and silently rewrote its spec to target a `prometheus`-named port that doesn't exist on any of the collector's Services (the actual port is `prom-metrics`). The result: **zero scrape targets, and metrics from every external OTLP client -- not just `ovh-vps` -- were never actually reaching VictoriaMetrics**, despite the pipeline itself working end to end up to that point.
+> [!CAUTION]
+> **The OpenTelemetry Operator adopts and overwrites same-named ServiceMonitors**
+>
+> The operator's own reconciler claims any `ServiceMonitor` named `<collector-name>-collector` (here, `otel-collector`) to manage the collector's self-telemetry -- it added an `ownerReference` to a manually-authored `ServiceMonitor` of that name and silently rewrote its spec to target a `prometheus`-named port that doesn't exist on any of the collector's Services (the actual port is `prom-metrics`). The result: **zero scrape targets, and metrics from every external OTLP client -- not just `ovh-vps` -- were never actually reaching VictoriaMetrics**, despite the pipeline itself working end to end up to that point.
+>
+> Fixed by renaming the `ServiceMonitor` to `otel-collector-app-metrics` and pinning its selector to `operator.opentelemetry.io/collector-service-type: base` (the operator will still recreate a broken `otel-collector` ServiceMonitor targeting the nonexistent port -- that's expected and harmless, just ignore it).
 
-    Fixed by renaming the `ServiceMonitor` to `otel-collector-app-metrics` and pinning its selector to `operator.opentelemetry.io/collector-service-type: base` (the operator will still recreate a broken `otel-collector` ServiceMonitor targeting the nonexistent port -- that's expected and harmless, just ignore it).
-
-!!! warning "Debian's OpenSSH unit is ssh.service, not sshd.service"
-    Modern Debian ships socket-activated OpenSSH as `ssh.service` (per-connection handling shows up as `sshd-session[pid]` inside it). A `journald` receiver filtered on `sshd.service` matches nothing, silently -- `journalctl --unit sshd.service` just returns no lines, no error. Always confirm unit names with `systemctl list-units --all` on the actual host rather than assuming the RHEL/Ubuntu convention.
+> [!WARNING]
+> **Debian's OpenSSH unit is ssh.service, not sshd.service**
+>
+> Modern Debian ships socket-activated OpenSSH as `ssh.service` (per-connection handling shows up as `sshd-session[pid]` inside it). A `journald` receiver filtered on `sshd.service` matches nothing, silently -- `journalctl --unit sshd.service` just returns no lines, no error. Always confirm unit names with `systemctl list-units --all` on the actual host rather than assuming the RHEL/Ubuntu convention.
 
 ## Verifying Data Is Flowing
 
@@ -107,7 +113,8 @@ curl -s 'http://localhost:9428/select/logsql/query' -d 'query=host.name:ovh-vps 
 
 | Property | Value |
 |:---------|:------|
-| Operator chart | `open-telemetry/opentelemetry-operator` |
+| Operator chart | `open-telemetry/opentelemetry-operator` `0.124.1` |
+| Collector image (cluster) | `opentelemetry-collector-contrib` `0.162.0` |
 | Manifest path | `kubernetes/apps/pitower/monitoring/opentelemetry/` |
 | External endpoint | `https://otlp.wibrow.dev` |
 | ovh-vps role | `ansible/roles/otel-agent/` |

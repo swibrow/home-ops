@@ -1,75 +1,65 @@
 # Docker Builds
 
-Automated Docker image builds using GitHub Actions with multi-architecture support and GitHub Container Registry (GHCR).
+Container images built from this repository by `.github/workflows/build-docker-images.yaml` and pushed to the GitHub Container Registry (GHCR).
 
 ---
 
 ## Overview
 
-!!! warning "Most images now live in `cloudsnacks/containers`"
+> [!WARNING]
+> **Most images live in `cloudsnacks/containers`**
+>
+> General-purpose images were migrated to [cloudsnacks/containers](https://github.com/cloudsnacks/containers),
+> which publishes to `ghcr.io/cloudsnacks/<name>`. Add new images there by default.
+>
+> The `docker/` directory here is for images that do not fit that repo's conventions, such as
+> `browser-use`, which runs a supervised multi-process VNC stack as root.
 
-    General-purpose images were migrated to [cloudsnacks/containers](https://github.com/cloudsnacks/containers),
-    which builds multi-arch on native runners with SBOM and provenance attestations, and publishes to
-    `ghcr.io/cloudsnacks/<name>`. Add new images there by default.
-
-    The `docker/` directory here is for images that can't meet that repo's conventions — currently only
-    `browser-use`, which runs a supervised multi-process VNC stack as root.
-
-Images still built here live in the `docker/` directory at the repository root. Each subdirectory contains a `Dockerfile` and any supporting files for a single image.
+Each subdirectory of `docker/` holds one image:
 
 ```
 docker/
-└── browser-use/
+├── browser-use/
+│   ├── Dockerfile
+│   └── supervisord.conf
+└── strata/
     ├── Dockerfile
-    └── supervisord.conf
+    └── platforms        # linux/amd64 only
 ```
 
 ---
 
-## Auto-Discovery
+## Pipeline
 
-The build workflow automatically discovers which images need to be built based on the trigger:
+The workflow has three jobs:
 
-### On Push to `main`
-
-When files under `docker/` are changed and pushed to `main`, the workflow uses [tj-actions/changed-files](https://github.com/tj-actions/changed-files) to detect which subdirectories have been modified:
-
-```yaml
-- id: changed
-  uses: tj-actions/changed-files@v47
-  with:
-    dir_names: "true"
-    dir_names_max_depth: "2"
-    files: docker/**
-    json: "true"
-    escape_json: "false"
+```mermaid
+flowchart LR
+    D[discover\nimage x platform matrix] --> B[build\none job per image and arch\nnative runner, push by digest]
+    B --> M[merge\none job per image\nimagetools create]
+    M --> T[":version and :latest"]
 ```
 
-Only the changed images are built, saving time and compute resources.
+### discover
 
-### On Manual Dispatch
+- **Push to `main`**: [tj-actions/changed-files](https://github.com/tj-actions/changed-files) lists the changed `docker/<image>` directories.
+- **Manual dispatch**: every directory under `docker/`.
 
-When manually triggered via `workflow_dispatch`, all images under `docker/` are discovered and built:
+Directories without a `Dockerfile` are skipped. For each image, the platforms come from `docker/<image>/platforms` (one per line), defaulting to `linux/amd64` and `linux/arm64`. The output is a matrix of `{image, platform, arch}` entries.
 
-```bash
-ls -d docker/*/ | xargs -I{} basename {}
-```
+### build
+
+One job per image and architecture, each on a native runner: `home-ops` for amd64 and `home-ops-arm64` for arm64. There is no QEMU emulation. Each job builds with Buildx and pushes **by digest only** (`push-by-digest=true`), then uploads the digest as an artifact.
+
+### merge
+
+One job per image, run even if another image failed. It downloads that image's digests and, if every expected architecture is present, creates the multi-arch manifest with `docker buildx imagetools create`. An image missing any architecture is not tagged.
 
 ---
 
 ## Version Extraction
 
-Image versions are automatically extracted from the Dockerfile's `ARG` directives:
-
-```dockerfile
-# Example Dockerfile
-ARG APP_VERSION=1.2.3
-
-FROM ubuntu:22.04
-# ...
-```
-
-The build step uses a regex to extract the version:
+The tag comes from the first `ARG <NAME>_VERSION=` line in the Dockerfile:
 
 ```bash
 version=$(grep -oP 'ARG \w+_VERSION=\K.+' docker/${{ matrix.image }}/Dockerfile | head -1)
@@ -77,147 +67,46 @@ version=$(grep -oP 'ARG \w+_VERSION=\K.+' docker/${{ matrix.image }}/Dockerfile 
 
 | Scenario | Tag |
 |:---------|:----|
-| `ARG APP_VERSION=1.2.3` found | `1.2.3` |
+| `ARG STRATA_VERSION=v0.1.39` found | `v0.1.39` |
 | No `*_VERSION` ARG found | Git commit SHA |
-
-!!! tip "Version ARG Naming"
-    Any ARG ending in `_VERSION` will be detected. Common patterns:
-    ```dockerfile
-    ARG APP_VERSION=2.0.0
-    ARG TOOL_VERSION=1.5.3
-    ARG BASE_VERSION=3.18
-    ```
-
----
-
-## Multi-Platform Builds
-
-All images are built for two architectures using Docker Buildx and QEMU emulation:
-
-| Platform | Architecture | Use Case |
-|:---------|:-------------|:---------|
-| `linux/amd64` | x86_64 | Intel/AMD worker nodes |
-| `linux/arm64` | AArch64 | Raspberry Pi nodes |
-
-```yaml
-- uses: docker/setup-qemu-action@v3
-
-- uses: docker/setup-buildx-action@v3
-
-- uses: docker/build-push-action@v6
-  with:
-    context: docker/${{ matrix.image }}
-    platforms: linux/amd64,linux/arm64
-    push: true
-    tags: |
-      ghcr.io/swibrow/${{ matrix.image }}:<version>
-      ghcr.io/swibrow/${{ matrix.image }}:latest
-```
-
-!!! note "Build Times"
-    ARM64 builds on AMD64 runners use QEMU emulation, which is slower than native builds. Expect ARM64 builds to take 2-5x longer than AMD64 builds.
-
----
-
-## Registry
-
-All images are pushed to the **GitHub Container Registry (GHCR)**:
-
-```
-ghcr.io/swibrow/<image-name>:<tag>
-```
-
-### Authentication
-
-The workflow authenticates using the built-in `GITHUB_TOKEN`:
-
-```yaml
-- uses: docker/login-action@v3
-  with:
-    registry: ghcr.io
-    username: ${{ github.actor }}
-    password: ${{ secrets.GITHUB_TOKEN }}
-```
-
-### Permissions
-
-The build job requires `packages: write` permission to push images:
-
-```yaml
-permissions:
-  contents: read
-  packages: write
-```
 
 ---
 
 ## Image Tags
 
-Each successful build produces two tags:
-
-| Tag | Purpose |
-|:----|:--------|
-| `<version>` | Immutable version tag extracted from Dockerfile |
-| `latest` | Rolling tag pointing to the most recent build |
-
-Example for an image `browser-use` with `ARG BROWSER_USE_VERSION=v3.0.0`:
+Each image gets two tags on the merged manifest:
 
 ```
-ghcr.io/swibrow/browser-use:v3.0.0
-ghcr.io/swibrow/browser-use:latest
+ghcr.io/swibrow/<image>:<version>
+ghcr.io/swibrow/<image>:latest
 ```
+
+Authentication uses the workflow's `GITHUB_TOKEN` with `packages: write`.
 
 ---
 
 ## Adding a New Docker Image
 
-!!! tip "Prefer `cloudsnacks/containers`"
+> [!TIP]
+> **Prefer `cloudsnacks/containers`**
+>
+> Only use `docker/` when an image cannot follow that repo's conventions.
 
-    Add new images to [cloudsnacks/containers](https://github.com/cloudsnacks/containers) unless they need
-    root, an init framework, or multiple processes. Only then use the steps below.
-
-1. Create a new directory under `docker/`:
-
-    ```bash
-    mkdir docker/my-app
-    ```
-
-2. Add a `Dockerfile` with a version ARG:
+1. Create `docker/my-app/Dockerfile` with a version ARG:
 
     ```dockerfile
-    ARG MY_APP_VERSION=1.0.0
-
     FROM python:3.12-slim
+
+    ARG MY_APP_VERSION=1.0.0
     # ... build steps
     ```
 
-3. Commit and push to `main`:
-
-    ```bash
-    git add docker/my-app/
-    git commit -m "feat(docker): add my-app image"
-    git push origin main
-    ```
-
-4. The build workflow will automatically detect the new directory and build the image.
-
-5. The image will be available at:
+2. Optionally add `docker/my-app/platforms` to limit architectures:
 
     ```
-    ghcr.io/swibrow/my-app:1.0.0
-    ghcr.io/swibrow/my-app:latest
+    linux/amd64
     ```
 
----
+3. Merge to `main`. The workflow builds the image and publishes `ghcr.io/swibrow/my-app:1.0.0` and `:latest`.
 
-## Matrix Strategy
-
-The build job uses a matrix strategy to build all discovered images in parallel:
-
-```yaml
-strategy:
-  matrix:
-    image: ${{ fromJson(needs.discover.outputs.images) }}
-```
-
-This means if three images change in a single push, three build jobs run concurrently, each handling one image independently.
+Renovate's Dockerfile manager updates the `FROM` base images. The `*_VERSION` ARGs carry no Renovate annotation today, so they are bumped by hand.

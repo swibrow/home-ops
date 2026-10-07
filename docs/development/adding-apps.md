@@ -6,78 +6,68 @@ Step-by-step guide for adding a new application to the cluster.
 
 ## Overview
 
-Adding a new application involves creating a directory with two files, pushing to `main`, and letting ArgoCD auto-discover and deploy it.
+Adding an application means creating a directory under `kubernetes/apps/pitower/<category>/`, opening a PR, and merging it. ArgoCD discovers the directory and deploys it as `pitower-<category>-<app>`.
 
 ```mermaid
 flowchart LR
-    Create[Create app directory] --> Files[Add kustomization.yaml<br/>+ values.yaml]
-    Files --> Push[Push to main]
-    Push --> ArgoCD[ArgoCD discovers app]
-    ArgoCD --> Sync[App synced to cluster]
+    Create[Create app directory] --> Files[kustomization.yaml<br/>+ values.yaml<br/>+ optional extras]
+    Files --> PR[PR: checks + ArgoCD Diff]
+    PR --> Merge[Merge to main]
+    Merge --> Sync[ArgoCD syncs app]
 ```
 
 ---
 
 ## Step 1: Choose a Category
 
-Applications are organized by category under `pitower/kubernetes/apps/`. Choose the appropriate category for your application:
+The category is the namespace. See [GitOps > Adding Apps](../gitops/adding-apps.md#categories) for the full list. Common choices:
 
 | Category | Purpose | Examples |
-|:---------|:--------|:--------|
-| `ai` | AI and ML workloads | browser-use, zeroclaw |
-| `banking` | Financial tools | firefly, firefly-importer |
-| `home-automation` | Smart home | home-assistant, zigbee2mqtt |
-| `media` | Media management | jellyfin, sonarr, radarr |
-| `monitoring` | Observability | grafana, loki |
-| `networking` | Network infrastructure | towonel-agent, external-dns |
-| `security` | Auth and secrets | authelia, lldap |
-| `selfhosted` | General self-hosted apps | miniflux, n8n, tandoor |
-| `system` | System utilities | reloader, node-feature-discovery |
+|:---------|:--------|:---------|
+| `ai` | AI and ML workloads | open-webui, comfyui, searxng |
+| `banking` | Financial tools | actual, firefly, ghostfolio, paperless |
+| `dev` | Developer tooling | forgejo, dev-desktop |
+| `media` | Media management | jellyfin, immich, sonarr, radarr |
+| `monitoring` | Observability | gatus, grafana-operator, victoria-logs |
+| `networking` | Network infrastructure | envoy-gateway, external-dns, tailscale |
+| `security` | Auth and secrets | kanidm, external-secrets, crowdsec |
+| `selfhosted` | General self-hosted apps | homepage, miniflux, mealie, n8n |
+| `system` | Cluster utilities | reloader, keda, node-feature-discovery |
 
 ---
 
 ## Step 2: Create the Directory
 
 ```bash
-mkdir -p pitower/kubernetes/apps/<category>/<app-name>
-```
-
-For example:
-
-```bash
-mkdir -p pitower/kubernetes/apps/selfhosted/my-app
+mkdir -p kubernetes/apps/pitower/<category>/<app-name>
 ```
 
 ---
 
 ## Step 3: Create kustomization.yaml
 
-Create a `kustomization.yaml` that references the bjw-s app-template Helm chart:
-
-```yaml title="pitower/kubernetes/apps/<category>/<app-name>/kustomization.yaml"
+```yaml title="kubernetes/apps/pitower/<category>/<app-name>/kustomization.yaml"
 ---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: <category>
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm
-    version: 4.6.2
+    version: 5.2.1
     releaseName: <app-name>
     namespace: <category>
     valuesFile: values.yaml
 ```
 
-!!! important "Namespace"
-    The namespace typically matches the category directory name. Ensure the namespace exists in the cluster or is created by another resource.
+The namespace is created by ArgoCD (`CreateNamespace=true`), so no Namespace manifest is needed.
 
 ---
 
 ## Step 4: Create values.yaml
 
-Create a `values.yaml` with your application's configuration. At minimum, define a controller, container, and service:
-
-```yaml title="pitower/kubernetes/apps/<category>/<app-name>/values.yaml"
+```yaml title="kubernetes/apps/pitower/<category>/<app-name>/values.yaml"
 controllers:
   <app-name>:
     annotations:
@@ -95,291 +85,270 @@ controllers:
             memory: 64Mi
           limits:
             memory: 256Mi
-        probes:
-          liveness:
-            enabled: true
-          readiness:
-            enabled: true
-          startup:
-            enabled: true
-            spec:
-              failureThreshold: 30
-              periodSeconds: 5
+
 service:
   app:
+    controller: <app-name>
     ports:
       http:
         port: 8080
+
+route:
+  app:
+    hostnames:
+      - <app-name>.wibrow.dev
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
 ```
 
-See the [App Template](app-template.md) page for the full values reference.
+See [App Template](app-template.md) for more patterns.
 
 ---
 
-## Step 5: Configure Routing (Optional)
+## Step 5: Pick a Gateway
 
-If the application needs to be accessible via a URL, add an HTTPRoute configuration to `values.yaml`:
+| Gateway | Exposure | Use for |
+|:--------|:---------|:--------|
+| `envoy-external` | Public, through the towonel tunnel | Apps used from outside the LAN |
+| `envoy-internal` | LAN and Tailscale only | Admin UIs, *arr apps, anything not meant to be public |
 
-=== "External (Cloudflare-proxied)"
-
-    ```yaml
-    route:
-      app:
-        enabled: true
-        hostnames:
-          - <app-name>.example.com
-        parentRefs:
-          - name: envoy-external
-            namespace: networking
-            sectionName: https
-    ```
-
-=== "Internal (LAN/VPN only)"
-
-    ```yaml
-    route:
-      app:
-        enabled: true
-        hostnames:
-          - <app-name>.internal.example.com
-        parentRefs:
-          - name: envoy-internal
-            namespace: networking
-            sectionName: https
-    ```
+External DNS creates the record from the HTTPRoute hostname. Apps that support OIDC authenticate against Kanidm (`idm.wibrow.dev`).
 
 ---
 
 ## Step 6: Add Persistence (Optional)
 
-If the application needs persistent storage:
+App data PVCs come from the `pvc` component, not from the chart, so backup tooling can be added or removed without touching the volume:
 
-```yaml
-persistence:
-  config:
-    enabled: true
-    type: persistentVolumeClaim
-    accessMode: ReadWriteOnce
-    size: 1Gi
-    storageClass: ceph-block
-    globalMounts:
-      - path: /config
+```yaml title="kustomization.yaml"
+components:
+  - ../../../../components/pvc
+configMapGenerator:
+  - name: pvc-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=<app-name>-pvc        # names the ConfigMap; must be unique in the namespace
+      - CLAIM_NAME=<app-name>-data     # the PVC name
+      - STORAGE_SIZE=1Gi
 ```
 
-Available storage classes:
+The component creates a `ReadWriteOnce` PVC on `ceph-block`. Mount it in `values.yaml`:
 
-| Storage Class | Backend | Access Modes | Use Case |
-|:-------------|:--------|:-------------|:---------|
-| `ceph-block` | Rook Ceph RBD | ReadWriteOnce | General purpose, databases |
-| `ceph-filesystem` | Rook CephFS | ReadWriteMany | Shared storage across pods |
-| `openebs-hostpath` | OpenEBS | ReadWriteOnce | Local node storage |
+```yaml title="values.yaml"
+persistence:
+  data:
+    existingClaim: <app-name>-data
+    globalMounts:
+      - path: /data
+```
+
+> [!CAUTION]
+> **Keep CLAIM_NAME stable**
+>
+> Renaming the claim makes ArgoCD prune the old PVC, and Ceph deletes the volume with it.
+
+Other storage classes:
+
+| Storage Class | Backend | Use Case |
+|:--------------|:--------|:---------|
+| `ceph-block` (default) | Rook Ceph RBD | General purpose app data |
+| `openebs-hostpath` | OpenEBS local PV | Node-local data such as CNPG clusters and caches |
+| `openebs-hostpath-fast`, `-media`, `-runners` | OpenEBS on worker-07's ZFS pools | Only provision on worker-07 |
 
 ---
 
-## Step 7: Add Secrets (Optional)
+## Step 7: Add Backups (Optional)
 
-If your application needs secrets, create an ExternalSecret to pull from 1Password:
+Add the `kopiur` component next to `pvc` to snapshot the PVC hourly to the `garage` ClusterRepository (keeps 24 hourly, 7 daily, 4 weekly, 3 latest):
 
-```yaml title="pitower/kubernetes/apps/<category>/<app-name>/externalsecret.yaml"
-apiVersion: external-secrets.io/v1beta1
+```yaml title="kustomization.yaml"
+components:
+  - ../../../../components/pvc
+  - ../../../../components/kopiur
+configMapGenerator:
+  # ... pvc-config as above
+  - name: kopiur-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=<app-name>-kopiur
+      - CLAIM_NAME=<app-name>-data
+```
+
+The mover runs as uid/gid 1000 by default. If the app writes its files as another user, patch the `SnapshotPolicy` to match, or the mover cannot read files written `0600`:
+
+```yaml title="kustomization.yaml"
+patches:
+  - target:
+      kind: SnapshotPolicy
+      name: <app-name>-kopiur
+    patch: |
+      - op: replace
+        path: /spec/mover/securityContext/runAsUser
+        value: 2000
+      - op: replace
+        path: /spec/mover/securityContext/runAsGroup
+        value: 2000
+```
+
+See [Backup & Restore](../storage/backup-restore.md) for restores.
+
+---
+
+## Step 8: Add a Database (Optional)
+
+PostgreSQL databases are tenants on a shared CNPG cluster in the `database` namespace. Add the tenant under `kubernetes/apps/pitower/database/tenants/` first, then consume it with the `cnpg-db-shared` component:
+
+```yaml title="kustomization.yaml"
+components:
+  - ../../../../components/cnpg-db-shared
+configMapGenerator:
+  - name: cnpg-db-config
+    literals:
+      - APP_NAME=<app-name>
+      - SECRET_NAME=<app-name>-db-secret
+      - CNPG_SECRET_KEY=shared-<app-name>   # tenant secret in the database namespace
+      - DB_SCHEME=postgresql                # or postgresql+psycopg for psycopg 3
+```
+
+This creates `<app-name>-db-secret` with `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME` and `DB_URL`. The full recipe is in [Databases](../applications/databases/index.md#adding-a-database).
+
+---
+
+## Step 9: Add Secrets (Optional)
+
+Secrets live in Infisical at `/<category>/<app-name>/<SECRET_NAME>` and are pulled by an ExternalSecret:
+
+```yaml title="kubernetes/apps/pitower/<category>/<app-name>/externalsecret.yaml"
+---
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-  name: <app-name>-secrets
-  namespace: <category>
+  name: <app-name>
 spec:
-  refreshInterval: 5m
   secretStoreRef:
     kind: ClusterSecretStore
-    name: onepassword
+    name: infisical
   target:
-    name: <app-name>-secrets
-    creationPolicy: Owner
+    name: <app-name>-secret
   data:
-    - secretKey: DB_PASSWORD
+    - secretKey: API_KEY
       remoteRef:
-        key: <app-name>
-        property: DB_PASSWORD
+        key: /<category>/<app-name>/API_KEY
 ```
 
-Then reference it in `kustomization.yaml`:
-
-```yaml
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-namespace: <category>
-resources:
-  - externalsecret.yaml
-helmCharts:
-  - name: app-template
-    repo: oci://ghcr.io/bjw-s-labs/helm
-    version: 4.6.2
-    releaseName: <app-name>
-    namespace: <category>
-    valuesFile: values.yaml
-```
-
-And reference the secret in `values.yaml`:
+Add it to `resources:` in `kustomization.yaml` and reference it from `values.yaml`:
 
 ```yaml
 envFrom:
   - secretRef:
-      name: <app-name>-secrets
+      name: <app-name>-secret
 ```
+
+Keep `reloader.stakater.com/auto: "true"` on the controller so a rotated secret restarts the pod.
 
 ---
 
-## Step 8: Validate Locally
-
-Test that your manifests render correctly:
+## Step 10: Validate Locally
 
 ```bash
-cd pitower/kubernetes/apps/<category>/<app-name>
-kustomize build . --enable-helm
+kustomize build --enable-helm --load-restrictor LoadRestrictionsNone \
+  kubernetes/apps/pitower/<category>/<app-name>
 ```
 
-This outputs the full rendered Kubernetes manifests. Check for errors and verify the output looks correct.
-
-For a server-side dry run:
-
-```bash
-kustomize build . --enable-helm | kubectl apply --dry-run=server -f -
-```
+For a server-side dry run, pipe the output to `kubectl apply --dry-run=server -f -`.
 
 ---
 
-## Step 9: Push to Main
-
-Commit and push your changes to the `main` branch:
+## Step 11: Open a PR and Merge
 
 ```bash
-git add pitower/kubernetes/apps/<category>/<app-name>/
-git commit -m "feat(<category>): add <app-name>"
-git push origin main
+git switch -c feat/<app-name>
+git add kubernetes/apps/pitower/<category>/<app-name>/
+git commit -s -m "feat(<category>): add <app-name>"
+git push -u origin feat/<app-name>
+gh pr create --fill
 ```
 
-!!! tip "PR Workflow"
-    For non-trivial additions, create a feature branch and open a pull request. This triggers the lint workflow and allows for code review before deployment.
-
----
-
-## Step 10: Verify Deployment
-
-ArgoCD will auto-discover the new application and begin syncing:
+On the PR, **Checks** runs yamllint and the other pre-commit hooks, and **ArgoCD Diff** comments the rendered manifests. After merge, verify:
 
 ```bash
-# Check ArgoCD application status
-argocd app list | grep <app-name>
-
-# Check pods
-kubectl get pods -n <category> -l app.kubernetes.io/name=<app-name>
-
-# Check service
-kubectl get svc -n <category> -l app.kubernetes.io/name=<app-name>
-
-# Check HTTPRoute
-kubectl get httproutes -n <category>
+kubectl get applications.argoproj.io -n argocd pitower-<category>-<app-name>
+kubectl get pods,httproute -n <category> -l app.kubernetes.io/name=<app-name>
 ```
 
 ---
 
 ## Complete Example
 
-Here is a complete example for adding a new app called "linkding" (a bookmarks manager) to the `selfhosted` category.
-
-### Directory structure
+[Mealie](https://mealie.io/) in `selfhosted`, with a backed-up PVC and an OIDC secret:
 
 ```
-pitower/kubernetes/apps/selfhosted/linkding/
+kubernetes/apps/pitower/selfhosted/mealie/
+├── externalsecret.yaml
 ├── kustomization.yaml
 └── values.yaml
 ```
 
-### kustomization.yaml
-
-```yaml
+```yaml title="kustomization.yaml"
 ---
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: selfhosted
+resources:
+  - externalsecret.yaml
+components:
+  - ../../../../components/pvc
+  - ../../../../components/kopiur
+configMapGenerator:
+  - name: pvc-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=mealie-pvc
+      - CLAIM_NAME=mealie-data
+      - STORAGE_SIZE=1Gi
+  - name: kopiur-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=mealie-kopiur
+      - CLAIM_NAME=mealie-data
+patches:
+  # mealie writes its data as uid 911; the kopiur mover must match to read it.
+  - target:
+      kind: SnapshotPolicy
+      name: mealie-kopiur
+    patch: |
+      - op: replace
+        path: /spec/mover/securityContext/runAsUser
+        value: 911
+      - op: replace
+        path: /spec/mover/securityContext/runAsGroup
+        value: 911
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm
-    version: 4.6.2
-    releaseName: linkding
+    version: 5.2.1
+    releaseName: mealie
     namespace: selfhosted
     valuesFile: values.yaml
 ```
 
-### values.yaml
-
-```yaml
-controllers:
-  linkding:
-    annotations:
-      reloader.stakater.com/auto: "true"
-    containers:
-      app:
-        image:
-          repository: sissbruecker/linkding
-          tag: 1.25.0
-        env:
-          LD_SUPERUSER_NAME: admin
-          LD_SERVER_PORT: "9090"
-        envFrom:
-          - secretRef:
-              name: linkding-secrets
-        resources:
-          requests:
-            cpu: 10m
-            memory: 64Mi
-          limits:
-            memory: 256Mi
-        probes:
-          liveness:
-            enabled: true
-          readiness:
-            enabled: true
-          startup:
-            enabled: true
-            spec:
-              failureThreshold: 30
-              periodSeconds: 5
-service:
-  app:
-    ports:
-      http:
-        port: 9090
-route:
-  app:
-    enabled: true
-    hostnames:
-      - linkding.example.com
-    parentRefs:
-      - name: envoy-external
-        namespace: networking
-        sectionName: https
-persistence:
-  data:
-    enabled: true
-    type: persistentVolumeClaim
-    accessMode: ReadWriteOnce
-    size: 1Gi
-    storageClass: ceph-block
-    globalMounts:
-      - path: /etc/linkding/data
-```
+In `values.yaml`, the PVC is mounted with `existingClaim: mealie-data` and the route uses `recipes.wibrow.dev` on `envoy-external`.
 
 ---
 
 ## Checklist
 
-Before pushing your new application:
-
-- [ ] `kustomization.yaml` has correct namespace and chart version
-- [ ] `values.yaml` has resource requests and limits set
-- [ ] Health probes are configured
-- [ ] `reloader.stakater.com/auto: "true"` annotation is set
-- [ ] HTTPRoute points to the correct gateway
-- [ ] Secrets are managed via ExternalSecret (no plaintext)
-- [ ] `kustomize build . --enable-helm` renders without errors
-- [ ] Hostname follows `<app>.example.com` convention
+- [ ] `kustomization.yaml` has the right `namespace` and app-template version
+- [ ] `values.yaml` sets resource requests and a memory limit
+- [ ] `reloader.stakater.com/auto: "true"` on controllers that consume secrets
+- [ ] HTTPRoute on `envoy-internal` or `envoy-external` with `sectionName: https`
+- [ ] Persistent data uses the `pvc` component, with `kopiur` if it needs backups
+- [ ] Database via a tenant and `cnpg-db-shared`, not a dedicated cluster
+- [ ] Secrets via ExternalSecret from Infisical (no plaintext)
+- [ ] `kustomize build --enable-helm --load-restrictor LoadRestrictionsNone` renders cleanly

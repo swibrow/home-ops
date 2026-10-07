@@ -1,0 +1,35 @@
+---
+import Search from "./Search.astro";
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+---
+
+<header class="site-header">
+  <slot name="menu" />
+  <a class="brand" href={`${base}/`}>
+    <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+      <rect width="32" height="32" rx="6" />
+      <rect class="u" x="7" y="8" width="18" height="3" rx="1" />
+      <rect class="u" x="7" y="14.5" width="18" height="3" rx="1" />
+      <rect class="u" x="7" y="21" width="18" height="3" rx="1" />
+    </svg>
+    <span>Home-Ops</span>
+  </a>
+  <div class="header-actions">
+    <Search />
+    <button type="button" class="icon-button theme-toggle" aria-label="Switch color theme" title="Switch color theme">
+      <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true"
+        ><circle cx="12" cy="12" r="4"></circle><path
+          d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg
+      >
+      <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"></path></svg>
+    </button>
+    <a class="icon-button" href="https://github.com/swibrow/home-ops" aria-label="swibrow/home-ops on GitHub" title="swibrow/home-ops on GitHub">
+      <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-fill"
+        ><path
+          d="M12 .5a11.5 11.5 0 0 0-3.6 22.4c.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.9 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A11.5 11.5 0 0 0 12 .5z"
+        ></path></svg
+      >
+    </a>
+  </div>
+</header>

@@ -1,25 +1,14 @@
-# Create Python virtual environment
-[no-cd]
-venv:
-    uv venv
-
-# Sync docs dependencies
+# Install docs site dependencies
 [no-cd]
 sync:
-    #!/usr/bin/env bash
-    source .venv/bin/activate
-    uv pip install -r docs/requirements.txt
+    cd site && bun install
 
 # Serve docs locally with live reload
 [no-cd]
 serve:
-    #!/usr/bin/env bash
-    source .venv/bin/activate
-    mkdocs serve --dirtyreload --dev-addr localhost:8888
+    cd site && bun run dev --port 8888
 
-# Build docs (strict mode)
+# Build docs and check internal links
 [no-cd]
 build:
-    #!/usr/bin/env bash
-    source .venv/bin/activate
-    mkdocs build --strict
+    cd site && bun run build

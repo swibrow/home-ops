@@ -1,0 +1,16 @@
+---
+import Base from "../layouts/Base.astro";
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+---
+
+<Base title="Page not found" currentId="404">
+  <div class="layout layout-wide">
+    <main id="content" class="main">
+      <article class="prose not-found">
+        <h1>Page not found</h1>
+        <p>This page doesn't exist, or it moved when the docs were reorganised. Search the docs or start from the <a href={`${base}/`}>home page</a>.</p>
+      </article>
+    </main>
+  </div>
+</Base>

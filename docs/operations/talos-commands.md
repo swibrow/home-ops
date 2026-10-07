@@ -1,13 +1,17 @@
 # Talos Commands
 
-Common `talosctl` commands for debugging the Talos Linux cluster. Cluster lifecycle (config generation, apply, upgrade, reset) is handled by [topf via the justfile recipes](justfile-recipes.md) — `talosctl` complements it for read-only inspection and low-level operations.
+Common `talosctl` commands for debugging the Talos Linux cluster. Cluster lifecycle (apply, upgrade, reset) is handled by [topf](justfile-recipes.md#talos) (`mise exec -- topf ...` from `talos/pitower`); `talosctl` complements it for read-only inspection and low-level operations.
 
-!!! tip "Default Endpoint"
-    Most commands default to the endpoint configured in `~/.talos/config`. Set the default node/endpoint with:
-    ```bash
-    talosctl config endpoint 10.20.10.1
-    talosctl config node 10.20.10.1
-    ```
+> [!TIP]
+> **Talosconfig**
+>
+> Generate the talosconfig from the secrets bundle and merge it into `~/.talos/config`:
+> ```bash
+> cd talos/pitower
+> just talosconfig && just merge-config
+> talosctl config endpoint 10.20.10.1 10.20.10.2 10.20.10.3
+> talosctl config node 10.20.10.1
+> ```
 
 ---
 
@@ -124,8 +128,10 @@ Take a snapshot of the etcd database.
 talosctl etcd snapshot etcd-backup.snapshot --nodes 10.20.10.1
 ```
 
-!!! warning "etcd Quorum"
-    With a 3-node control plane, losing more than 1 etcd member will break quorum. Always verify etcd membership before performing maintenance.
+> [!WARNING]
+> **etcd Quorum**
+>
+> With a 3-node control plane, losing more than 1 etcd member will break quorum. Always verify etcd membership before performing maintenance.
 
 ---
 
@@ -133,20 +139,18 @@ talosctl etcd snapshot etcd-backup.snapshot --nodes 10.20.10.1
 
 ### Refresh Kubeconfig
 
-Generate or refresh the kubeconfig file for kubectl access.
+Generate a kubeconfig for kubectl access. `mise.toml` points `KUBECONFIG` at `~/.kube/pitower.yaml`; do not write to `~/.kube/config`, which is a different cluster.
 
 ```bash
-talosctl kubeconfig --nodes 10.20.10.0
+talosctl kubeconfig ~/.kube/pitower.yaml --nodes 10.20.10.1
 ```
 
-Write to a specific path:
+`just kubeconfig` (topf) writes a short-lived (12h) admin kubeconfig to `output/kubeconfig` instead.
 
-```bash
-talosctl kubeconfig ~/.kube/config --nodes 10.20.10.0
-```
-
-!!! note "VIP Address"
-    Use the VIP address (10.20.10.0) for kubeconfig generation to ensure HA access to the API server.
+> [!NOTE]
+> **VIP Address**
+>
+> The kubeconfig's server is the API VIP `https://10.20.10.0:6443`. Talos API calls go to a node IP, since the VIP is not a Talos API endpoint.
 
 ---
 
@@ -162,17 +166,14 @@ talosctl get machineconfig --nodes 10.20.10.1 -o yaml
 
 ### Compare Configs
 
-Diff the running config against the declared state (all nodes, redacted):
+Diff the running config against the declared state (redacted; exit 2 = changes pending):
 
 ```bash
-just diff   # topf apply --dry-run
+mise exec -- topf apply --dry-run                              # all nodes
+mise exec -- topf apply --dry-run --nodes-filter '^worker-01$'  # one node
 ```
 
-Or against a single rendered file (`just render` writes them to `output/`):
-
-```bash
-talosctl apply-config --nodes 10.20.10.1 --file ./output/worker-01.yaml --dry-run
-```
+`topf render` writes the full machine configs to `output/` (gitignored) for inspection.
 
 ### Version Information
 
@@ -260,30 +261,17 @@ Shut down a node.
 talosctl shutdown --nodes 10.20.10.4
 ```
 
-### Reset
+### Reset and Upgrade
 
-Reset a node, wiping its state.
-
-```bash
-talosctl reset \
-    --system-labels-to-wipe=EPHEMERAL \
-    --system-labels-to-wipe=META \
-    --reboot \
-    --graceful=false \
-    --nodes 10.20.10.4
-```
-
-### Upgrade
-
-Upgrade Talos on a node to a new version.
+Use topf for both, so the node ends up matching `topf.yaml`:
 
 ```bash
-talosctl upgrade \
-    --image factory.talos.dev/installer/<schematic-id>:v1.12.4 \
-    --nodes 10.20.10.1 \
-    --preserve \
-    --wait
+cd talos/pitower
+mise exec -- topf reset --nodes-filter '^worker-04$' --full=false   # or: just reset worker-04
+mise exec -- topf upgrade --nodes-filter '^worker-04$'
 ```
+
+See [Upgrades](upgrades.md).
 
 ---
 
@@ -292,13 +280,14 @@ talosctl upgrade \
 ### Check Pod CIDR and Service CIDR
 
 ```bash
-talosctl get clusterconfig --nodes 10.20.10.1 -o yaml | grep -A5 clusterNetwork
+talosctl get machineconfig --nodes 10.20.10.1 -o yaml | grep -A3 -E 'podSubnets|serviceSubnets'
+kubectl get nodes -o custom-columns=NAME:.metadata.name,PODCIDRS:.spec.podCIDRs
 ```
 
-### Check Certificate Validity
+### Check Certificate SANs
 
 ```bash
-talosctl get certificate --nodes 10.20.10.1
+talosctl get certsan --nodes 10.20.10.1 -o yaml
 ```
 
 ### Read Machine Config Patches

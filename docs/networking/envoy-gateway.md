@@ -4,26 +4,31 @@ title: Envoy Gateway
 
 # Envoy Gateway
 
-The cluster uses [Envoy Gateway](https://gateway.envoyproxy.io/) as its primary ingress controller, implementing the Kubernetes Gateway API. The architecture deploys two separate Gateway resources -- `envoy-external` and `envoy-internal` -- each serving a distinct traffic path with its own IP address, DNS target, and access policy.
+[Envoy Gateway](https://gateway.envoyproxy.io/) (Helm chart `gateway-helm` `1.9.2`) is the ingress controller, implementing the Kubernetes Gateway API. Two Gateways, `envoy-external` and `envoy-internal`, share one GatewayClass and EnvoyProxy, and each gets its own LoadBalancer IP, DNS target and client policy.
+
+Everything lives in `kubernetes/apps/pitower/networking/envoy-gateway/`.
 
 ## Architecture Overview
 
 ```mermaid
 flowchart LR
-    subgraph External Traffic
-        CF[Cloudflare Tunnel] --> NX[nginx-external<br/>192.168.0.231]
-        NX --> EE
+    subgraph Public
+        Hub[towonel hub/edge] --> TA[towonel-agent]
     end
 
-    subgraph Internal Traffic
-        LAN[LAN / Tailscale] --> EI
+    subgraph Internal
+        LAN[LAN / Tailscale]
     end
+
+    TA -->|"PROXY v2"| EE
+    LAN --> EI
 
     subgraph Gateways
-        EE[envoy-external<br/>192.168.0.239<br/>external.example.com]
-        EI[envoy-internal<br/>192.168.0.238<br/>internal.example.com]
+        EE[envoy-external<br/>10.20.10.239<br/>external.wibrow.dev]
+        EI[envoy-internal<br/>10.20.10.238<br/>internal.wibrow.dev]
     end
 
+    EE -->|ext_authz| CS[crowdsec-envoy-bouncer]
     EE --> Apps[Applications]
     EI --> Apps
 
@@ -35,156 +40,114 @@ flowchart LR
 
 | Property | envoy-external | envoy-internal |
 |:---------|:---------------|:---------------|
-| **IP Address** | 192.168.0.239 | 192.168.0.238 |
-| **DNS Target** | external.example.com | internal.example.com |
-| **Traffic Source** | Cloudflare tunnel (via nginx) | LAN / Tailscale VPN |
-| **Cloudflare Proxied** | Yes (via tunnel) | N/A |
-| **external-dns Label** | `enabled: "true"` | Not set |
-| **DNS Records Created** | Yes | No |
-| **Listeners** | HTTP (80), HTTPS (443) | HTTP (80), HTTPS (443) |
-| **Allowed Namespaces (HTTPS)** | All | All |
-| **Allowed Namespaces (HTTP)** | Same (redirect only) | Same (redirect only) |
-| **Use Case** | Public web apps | Admin dashboards, internal tools |
+| **IP Address** | `10.20.10.239` | `10.20.10.238` |
+| **DNS Target** | `external.wibrow.dev` (CNAME to `tunnel.wibrow.dev`) | `internal.wibrow.dev` (A `10.20.10.238`, unproxied) |
+| **Traffic Source** | towonel tunnel (and LAN via UniFi DNS) | LAN / Tailscale |
+| **Listeners** | HTTP 80, HTTPS 443 | HTTP 80, HTTPS 443 (+ HTTP/3), TCP 389 `ldap` |
+| **Certificates** | `wibrow.dev`, `propagit.dev`, `*.apps.cloudsnacks.dev`, `pitwall.cloudsnacks.dev` | `wibrow.dev` |
+| **Client IP** | PROXY protocol (optional) | `X-Forwarded-For`, 1 trusted hop |
+| **CrowdSec bouncer** | Yes | No |
+| **Fallback 404** | `*.wibrow.dev`, `*.apps.cloudsnacks.dev` | No |
+| **Use Case** | Public apps | Admin dashboards, internal tools |
 
-## Shared Configuration
+Both Gateways carry the `external-dns.alpha.kubernetes.io/enabled: "true"` label, so [external-dns](external-dns.md) publishes records for routes on either. On both, the HTTP listener only accepts routes from `networking` (the redirect route), and HTTPS accepts routes from all namespaces.
 
-Both gateways share a common `GatewayClass`, `EnvoyProxy`, `BackendTrafficPolicy`, and `ClientTrafficPolicy`.
+> [!NOTE]
+> **ldap listener**
+>
+> `envoy-internal` has a TCP listener on port 389 for `TCPRoute`s, but no TCPRoute is currently attached to it.
+
+## Shared Configuration (`envoy.yaml`)
 
 ### EnvoyProxy
 
-Defines the Envoy data plane configuration -- replicas, resources, shutdown behavior, and Prometheus telemetry:
-
-```yaml title="pitower/kubernetes/apps/networking/envoy-gateway/envoy.yaml"
+```yaml
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: EnvoyProxy
 metadata:
   name: envoy
 spec:
-  logging:
-    level:
-      default: info
   provider:
     type: Kubernetes
     kubernetes:
       envoyDeployment:
         replicas: 2
         container:
-          image: mirror.gcr.io/envoyproxy/envoy:v1.35.3
+          image: mirror.gcr.io/envoyproxy/envoy:v1.39.3
           resources:
             requests:
-              cpu: 100m
+              cpu: 29m
+              memory: 96Mi
             limits:
               memory: 1Gi
       envoyService:
         externalTrafficPolicy: Cluster
   shutdown:
     drainTimeout: 180s
-  telemetry:
-    metrics:
-      prometheus:
-        compression:
-          type: Gzip
 ```
 
-!!! note "Replicas and Drain Timeout"
-    Each gateway gets 2 Envoy replicas with a 180-second drain timeout. This ensures zero-downtime during rolling updates -- existing connections have 3 minutes to complete before the old pod is terminated.
+Each Gateway gets its own 2-replica Envoy deployment with a 180s drain timeout. Access logs are JSON on stdout (including `client_ip`, `sni` and `route_name`); CrowdSec reads the `envoy-external` ones from VictoriaLogs.
 
-### GatewayClass
+### BackendTrafficPolicy `envoy`
 
-Links the `envoy` GatewayClass to the EnvoyProxy configuration:
+Targets every Gateway:
 
-```yaml title="pitower/kubernetes/apps/networking/envoy-gateway/envoy.yaml"
-apiVersion: gateway.networking.k8s.io/v1
-kind: GatewayClass
-metadata:
-  name: envoy
+- **Compression**: Brotli and Gzip.
+- **Error pages**: a `responseOverride` replaces 502/503/504 responses with an inline HTML page that retries every 30s. Routes with their own BackendTrafficPolicy do not inherit it.
+
+> [!WARNING]
+> **Inline bodies are format strings**
+>
+> Envoy parses inline response bodies as substitution format strings. A literal `%` is read as a command operator and makes Envoy reject the whole xDS snapshot, freezing config for the gateway. Escape it as `%%`.
+
+### ClientTrafficPolicies
+
+One policy per Gateway, because HTTP/3 and PROXY protocol cannot share one: Envoy Gateway puts the `proxy_protocol` listener filter on the QUIC listener too, and Envoy rejects it ([envoyproxy/gateway#9798](https://github.com/envoyproxy/gateway/issues/9798)).
+
+```yaml
+# envoy-external: the tunnel sends PROXY v2; no XFF trust, so clients cannot
+# choose the IP CrowdSec sees
 spec:
-  controllerName: gateway.envoyproxy.io/gatewayclass-controller
-  parametersRef:
-    group: gateway.envoyproxy.io
-    kind: EnvoyProxy
-    name: envoy
-    namespace: networking
-```
-
-### BackendTrafficPolicy (Compression)
-
-Enables Brotli and Gzip response compression across all gateways:
-
-```yaml title="pitower/kubernetes/apps/networking/envoy-gateway/envoy.yaml"
-apiVersion: gateway.envoyproxy.io/v1alpha1
-kind: BackendTrafficPolicy
-metadata:
-  name: envoy
-spec:
-  targetSelectors:
-    - group: gateway.networking.k8s.io
-      kind: Gateway
-  compression:
-    - type: Brotli
-    - type: Gzip
-```
-
-### ClientTrafficPolicy (HTTP/3, TLS)
-
-Configures HTTP/3 support, TLS settings, and client IP detection:
-
-```yaml title="pitower/kubernetes/apps/networking/envoy-gateway/envoy.yaml"
-apiVersion: gateway.envoyproxy.io/v1alpha1
-kind: ClientTrafficPolicy
-metadata:
-  name: envoy
+  proxyProtocol:
+    optional: true
+  tls:
+    minVersion: "1.2"
+    alpnProtocols: [h2, http/1.1]
+---
+# envoy-internal
 spec:
   clientIPDetection:
     xForwardedFor:
       numTrustedHops: 1
   http3: {}
-  targetSelectors:
-    - group: gateway.networking.k8s.io
-      kind: Gateway
   tls:
     minVersion: "1.2"
-    alpnProtocols:
-      - h2
-      - http/1.1
+    alpnProtocols: [h2, http/1.1]
 ```
 
-!!! info "HTTP/3 Support"
-    The empty `http3: {}` block enables HTTP/3 (QUIC) on all HTTPS listeners. Clients that support it will automatically upgrade to HTTP/3 via the `Alt-Svc` header. The `alpnProtocols` list ensures h2 and http/1.1 fallback for clients that do not support HTTP/3.
+### CrowdSec SecurityPolicy
 
-!!! tip "Client IP Detection"
-    `numTrustedHops: 1` tells Envoy to trust the rightmost IP in the `X-Forwarded-For` header (from the immediate upstream proxy, such as Cloudflare via nginx).
+`securitypolicy.yaml` attaches ext_authz (gRPC, `failOpen: true`) to `envoy-external`, pointing at `security/crowdsec-envoy-bouncer:8080`. See [CrowdSec](../security/crowdsec.md).
 
-### TLS Certificate
+> [!WARNING]
+> **Route-level SecurityPolicies**
+>
+> A route on `envoy-external` with its own SecurityPolicy must set `mergeType: StrategicMerge`, otherwise it replaces the gateway policy and the route skips the bouncer.
 
-All gateways share a wildcard certificate from Let's Encrypt:
+## Certificates (`certificate.yaml`)
 
-```yaml title="pitower/kubernetes/apps/networking/envoy-gateway/certificate.yaml"
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: "wildcard-production"
-  namespace: networking
-spec:
-  secretName: "wildcard-production-tls"
-  issuerRef:
-    name: letsencrypt-production
-    kind: ClusterIssuer
-  commonName: "example.com"
-  dnsNames:
-    - "example.com"
-    - "*.example.com"
-```
+| Certificate | Names |
+|:------------|:------|
+| `wibrow-dev-production` | `wibrow.dev`, `*.wibrow.dev` |
+| `propagit-dev-production` | `propagit.dev`, `*.propagit.dev` |
+| `cloudsnacks-apps-production` | `*.apps.cloudsnacks.dev`, `api.pantry.cloudsnacks.dev` |
+| `pitwall-cloudsnacks-dev-production` | `pitwall.cloudsnacks.dev` |
 
-The certificate covers both `example.com` and `*.example.com`, issued via DNS-01 challenge through Cloudflare.
+All are issued by the `letsencrypt-production` ClusterIssuer via DNS-01 (see [cert-manager](../security/cert-manager.md)). They all hang off the single `https` listener on `envoy-external`; Envoy picks one by SNI.
 
 ## Gateway Definitions
 
-### envoy-external
-
-Receives all Cloudflare-proxied traffic. The `external-dns.alpha.kubernetes.io/enabled: "true"` label tells external-dns to create DNS records for routes attached to this gateway.
-
-```yaml title="pitower/kubernetes/apps/networking/envoy-gateway/external.yaml"
+```yaml title="external.yaml (excerpt)"
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
@@ -192,147 +155,51 @@ metadata:
   labels:
     external-dns.alpha.kubernetes.io/enabled: "true"
   annotations:
-    external-dns.alpha.kubernetes.io/target: &hostname external.example.com
+    external-dns.alpha.kubernetes.io/target: &hostname external.wibrow.dev
 spec:
   gatewayClassName: envoy
   infrastructure:
     annotations:
       external-dns.alpha.kubernetes.io/hostname: *hostname
-      lbipam.cilium.io/ips: "192.168.0.239"
-  listeners:
-    - name: http
-      protocol: HTTP
-      port: 80
-      allowedRoutes:
-        namespaces:
-          from: Same
-    - name: https
-      protocol: HTTPS
-      port: 443
-      allowedRoutes:
-        namespaces:
-          from: All
-      tls:
-        certificateRefs:
-          - group: ''
-            kind: Secret
-            name: wildcard-production-tls
+      lbipam.cilium.io/ips: "10.20.10.239"
 ```
 
-!!! warning "HTTP Listener Scope"
-    The HTTP listener (port 80) uses `from: Same` -- only routes in the `networking` namespace can attach to it. This is because port 80 is only used for the HTTP-to-HTTPS redirect route, not for application traffic.
+`envoy-internal` (`internal.yaml`) is the same shape with target `internal.wibrow.dev`, `cloudflare-proxied: "false"` and IP `10.20.10.238`. Because the external-dns Cloudflare instance only reads HTTPRoute hostnames, `internal-dnsendpoint.yaml` publishes the `internal.wibrow.dev` A record itself; `external.wibrow.dev` comes from the towonel DNSEndpoint.
 
-### envoy-internal
+Both Gateways also carry a `gatus.home-operations.com/endpoint` annotation that labels every child route's Gatus check (`exposure: public` or `internal`). Changing it needs a `kubectl -n monitoring rollout restart deploy/gatus` to take effect.
 
-Internal-only gateway. Notice it has **no** `external-dns.alpha.kubernetes.io/enabled` label, so external-dns ignores it entirely.
+### HTTP-to-HTTPS Redirect
 
-```yaml title="pitower/kubernetes/apps/networking/envoy-gateway/internal.yaml"
-apiVersion: gateway.networking.k8s.io/v1
-kind: Gateway
-metadata:
-  name: envoy-internal
-  annotations:
-    external-dns.alpha.kubernetes.io/target: &hostname internal.example.com
-spec:
-  gatewayClassName: envoy
-  infrastructure:
-    annotations:
-      external-dns.alpha.kubernetes.io/hostname: *hostname
-      lbipam.cilium.io/ips: "192.168.0.238"
-  listeners:
-    - name: http
-      protocol: HTTP
-      port: 80
-      allowedRoutes:
-        namespaces:
-          from: Same
-    - name: https
-      protocol: HTTPS
-      port: 443
-      allowedRoutes:
-        namespaces:
-          from: All
-      tls:
-        certificateRefs:
-          - group: ''
-            kind: Secret
-            name: wildcard-production-tls
-```
+Each Gateway has an HTTPRoute on its `http` section that 301-redirects to HTTPS, annotated `external-dns.alpha.kubernetes.io/controller: none` so no DNS record is created for it.
 
-!!! tip "Accessing Internal Services"
-    Internal services are accessible when your DNS resolves `*.example.com` to `192.168.0.238`. This happens automatically on the LAN (via split DNS) or through Tailscale (which advertises the `192.168.0.0/24` subnet).
+### Fallback 404 (`fallback.yaml`)
 
-## HTTP-to-HTTPS Redirect
+An HTTPRoute on `envoy-external` for `*.wibrow.dev` and `*.apps.cloudsnacks.dev` returns a custom 404 page through an `HTTPRouteFilter`. Specific hostnames always win over the wildcard, so it only serves subdomains with no app.
 
-Each gateway has an accompanying HTTPRoute that redirects all HTTP traffic to HTTPS with a 301 status code:
-
-```yaml
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: envoy-external
-  annotations:
-    external-dns.alpha.kubernetes.io/controller: none  # (1)!
-spec:
-  parentRefs:
-    - group: gateway.networking.k8s.io
-      kind: Gateway
-      name: envoy-external
-      namespace: networking
-      sectionName: http  # (2)!
-  rules:
-    - filters:
-        - requestRedirect:
-            scheme: https
-            statusCode: 301
-          type: RequestRedirect
-      matches:
-        - path:
-            type: PathPrefix
-            value: /
-```
-
-1. The `controller: none` annotation prevents external-dns from creating DNS records for this redirect route.
-2. `sectionName: http` attaches this route only to the HTTP (port 80) listener.
-
-## How Apps Attach to Gateways
-
-Applications create HTTPRoute resources that reference a gateway via `parentRefs`. Example from the RRDA application:
+## How Apps Attach
 
 ```yaml
 route:
   app:
-    enabled: true
     hostnames:
-      - rrda.example.com
+      - myapp.wibrow.dev
     parentRefs:
-      - name: envoy-external      # (1)!
+      - name: envoy-internal   # or envoy-external
         namespace: networking
-        sectionName: https         # (2)!
+        sectionName: https
 ```
 
-1. Choose which gateway to attach to: `envoy-external` or `envoy-internal`.
-2. Always attach to the `https` section for application traffic.
+Moving an app between gateways is a `parentRefs` change. A public app on a new zone or a deeper subdomain also needs a [towonel](towonel-tunnel.md) hostname entry and a certificate.
 
-!!! tip "Moving an App Between Gateways"
-    To move an app from external to internal access (or vice versa), change the `parentRefs` to reference the desired gateway.
+## Controller Values
 
-## Envoy Gateway Helm Values
-
-The Envoy Gateway controller itself is deployed with minimal configuration:
-
-```yaml title="pitower/kubernetes/apps/networking/envoy-gateway/values.yaml"
+```yaml title="values.yaml"
 global:
   imageRegistry: mirror.gcr.io
-
-certgen:
-  job:
-    args:
-      - certgen
-      - --disable-topology-injector
-
 config:
   envoyGateway:
+    extensionApis:
+      enableBackend: true
     provider:
       type: Kubernetes
       kubernetes:
@@ -340,46 +207,22 @@ config:
           type: GatewayNamespace
 ```
 
-The `GatewayNamespace` deploy type means Envoy proxy pods are created in the same namespace as the Gateway resource (the `networking` namespace).
+`GatewayNamespace` puts the Envoy pods in the Gateway's namespace (`networking`). `enableBackend` allows the `Backend` extension API. PodMonitors scrape both the Envoy proxies and the controller.
 
 ## Troubleshooting
 
-### Check Gateway Status
-
 ```bash
-# List all gateways and their conditions
 kubectl get gateways -n networking
-
-# Detailed status of a specific gateway
 kubectl describe gateway envoy-external -n networking
-```
 
-### Check Envoy Proxy Pods
-
-```bash
-# List Envoy proxy pods (one deployment per gateway)
+# Envoy pods per gateway
 kubectl get pods -n networking -l gateway.envoyproxy.io/owning-gateway-name
+kubectl logs -n networking -l gateway.envoyproxy.io/owning-gateway-name=envoy-external -c envoy
 
-# Check logs for a specific gateway's Envoy pods
-kubectl logs -n networking -l gateway.envoyproxy.io/owning-gateway-name=envoy-external
-```
-
-### Verify HTTPRoutes
-
-```bash
-# List all HTTPRoutes across all namespaces
+# Route and policy status
 kubectl get httproutes -A
+kubectl get securitypolicies,clienttrafficpolicies,backendtrafficpolicies -A
 
-# Check if a route is accepted by its gateway
-kubectl describe httproute <route-name> -n <namespace>
-```
-
-### Test Connectivity
-
-```bash
-# Test external gateway (via Cloudflare)
-curl -v https://app.example.com
-
-# Test internal gateway (from LAN)
-curl -v --resolve app.example.com:443:192.168.0.238 https://app.example.com
+# Test the internal gateway directly
+curl -v --resolve app.wibrow.dev:443:10.20.10.238 https://app.wibrow.dev
 ```

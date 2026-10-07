@@ -4,7 +4,7 @@ title: Media Stack
 
 # Media Stack
 
-The media stack provides automated media acquisition, organization, and playback. It consists of seven applications working together in the `media` namespace.
+The media stack provides automated media acquisition, organization, and playback, plus photo management. It consists of eight applications in the `media` namespace.
 
 ## Architecture
 
@@ -51,26 +51,37 @@ flowchart LR
 
 | App | Purpose | Image | Gateway | URL |
 |:----|:--------|:------|:--------|:----|
-| [Jellyfin](jellyfin.md) | Media server with GPU transcoding | `ghcr.io/jellyfin/jellyfin` | `envoy-external` | `jellyfin.example.com` |
-| [Sonarr](arr-stack.md) | TV show management | `ghcr.io/home-operations/sonarr` | `envoy-internal` | `sonarr.example.com` |
-| [Radarr](arr-stack.md) | Movie management | `ghcr.io/home-operations/radarr` | `envoy-internal` | `radarr.example.com` |
-| [Prowlarr](arr-stack.md) | Indexer management | `ghcr.io/home-operations/prowlarr` | `envoy-internal` | `prowlarr.example.com` |
-| [Autobrr](arr-stack.md) | IRC announce monitoring | `ghcr.io/autobrr/autobrr` | `envoy-internal` | `autobrr.example.com` |
-| [qBittorrent](downloaders.md) | Torrent client | `ghcr.io/home-operations/qbittorrent` | `envoy-internal` | `qbittorrent.example.com` |
-| [SABnzbd](downloaders.md) | Usenet client | `ghcr.io/home-operations/sabnzbd` | `envoy-internal` | `sabnzbd.example.com` |
+| [Jellyfin](jellyfin.md) | Media server with GPU transcoding | `ghcr.io/jellyfin/jellyfin` | `envoy-external` | `jellyfin.wibrow.dev` |
+| [Immich](#immich) | Photo and video library | `ghcr.io/immich-app/immich-server` | `envoy-external` | `photos.wibrow.dev` |
+| [Sonarr](arr-stack.md#sonarr-tv-shows) | TV show management | `ghcr.io/home-operations/sonarr` | `envoy-internal` | `sonarr.wibrow.dev` |
+| [Radarr](arr-stack.md#radarr-movies) | Movie management | `ghcr.io/home-operations/radarr` | `envoy-internal` | `radarr.wibrow.dev` |
+| [Prowlarr](arr-stack.md#prowlarr-indexer-manager) | Indexer management | `ghcr.io/home-operations/prowlarr` | `envoy-internal` | `prowlarr.wibrow.dev` |
+| [Autobrr](arr-stack.md#autobrr-irc-announce-monitoring) | IRC announce monitoring | `ghcr.io/autobrr/autobrr` | `envoy-internal` | `autobrr.wibrow.dev` |
+| [qBittorrent](downloaders.md#qbittorrent) | Torrent client | `ghcr.io/home-operations/qbittorrent` | `envoy-internal` | `qbittorrent.wibrow.dev` |
+| [SABnzbd](downloaders.md#sabnzbd) | Usenet client | `ghcr.io/home-operations/sabnzbd` | `envoy-internal` | `sabnzbd.wibrow.dev` |
+
+Image tags are pinned (most with digests) in each app's `values.yaml` and updated by Renovate.
+
+## Placement
+
+| Apps | Node | Why |
+|:-----|:-----|:----|
+| Sonarr, Radarr, Prowlarr, Autobrr, qBittorrent, SABnzbd | worker-07 (`wibrow.dev/compute: "true"`) | The bare-metal compute node |
+| Immich server and machine learning | worker-07 (pinned by hostname) | Library and model cache are on worker-07's local ZFS pools |
+| Jellyfin | worker-04 | Intel iGPU for Quick Sync transcoding |
 
 ## Data Flow
 
 1. **Prowlarr** manages indexer configurations and syncs them to Sonarr and Radarr
-2. **Autobrr** monitors IRC announce channels for new releases and pushes matching torrents to qBittorrent
-3. **Sonarr** (TV) and **Radarr** (movies) search indexers for wanted content and send downloads to qBittorrent or SABnzbd
-4. **qBittorrent** and **SABnzbd** download content to the NAS at `/volume1/media/downloads/`
+2. **Autobrr** monitors IRC announce channels and pushes matching torrents to qBittorrent
+3. **Sonarr** (TV) and **Radarr** (movies) search indexers and send downloads to qBittorrent or SABnzbd
+4. **qBittorrent** downloads to the NAS at `downloads/qbittorrent`; **SABnzbd** stages downloads on a local PVC (`sabnzbd-downloads`) and also mounts the NAS
 5. Sonarr and Radarr import completed downloads, renaming and organizing files into the library
-6. **Jellyfin** serves the organized media library for playback with hardware-accelerated transcoding
+6. **Jellyfin** serves the library with hardware-accelerated transcoding
 
 ## Shared Storage
 
-All media apps mount the same Synology NAS export:
+The *arr apps, download clients and Jellyfin mount the same Synology NAS export:
 
 ```yaml
 persistence:
@@ -82,7 +93,27 @@ persistence:
       - path: /data/nas-media
 ```
 
-This ensures a single unified path structure across all applications, allowing Sonarr/Radarr to hardlink or move files from download directories into library directories without additional copies.
+> [!TIP]
+> **Path Consistency**
+>
+> All apps see the NAS at `/data/nas-media`. Both the download client and the *arr app must see the same filesystem for hardlinks and atomic moves to work.
 
-!!! tip "Path Consistency"
-    All apps see the NAS at `/data/nas-media`. This shared mount point is critical for hardlinking to work -- both the download client and the *arr app must see the same filesystem.
+App config lives on per-app PVCs from the `pvc` component, backed up hourly by `kopiur`. Autobrr has no PVC; its state is in PostgreSQL.
+
+## Immich
+
+[Immich](https://immich.app/) is a self-hosted photo and video library with mobile backup.
+
+| Setting | Value |
+|:--------|:------|
+| **Controllers** | `server` and `machine-learning`, both pinned to worker-07 |
+| **Library** | PVC `immich-library-media` (`openebs-hostpath-media`, worker-07's RAIDZ1 pool at `/var/mnt/media`, reclaim policy `Retain`) mounted at `/data` |
+| **ML model cache** | 10Gi on `openebs-hostpath-fast` |
+| **Database** | Dedicated `immich` CNPG cluster (VectorChord, PostgreSQL 16) via an inline ExternalSecret against `cnpg-secrets-database`; see [Databases](../databases/index.md) |
+| **Cache** | `Dragonfly` instance `immich-dragonfly` (Redis-compatible) |
+| **Auth** | OAuth via Kanidm; the whole Immich system config is rendered from Infisical into the `immich-config-secret` Secret |
+
+> [!NOTE]
+> **Library location**
+>
+> The library has been back on worker-07's local pool since 2026-08-16, after a spell on the NAS. The claim is declared in `pvc-library.yaml` rather than through the chart because `storageClassName` is immutable; see the comments there before moving it again.

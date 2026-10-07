@@ -4,87 +4,132 @@ title: Hardware
 
 # Hardware Inventory
 
-The cluster is built from a mix of ARM and x86 hardware. Raspberry Pi 4 nodes handle lightweight workloads and control plane duties, while Acemagician AM06 mini PCs provide Intel GPUs and NVMe storage for Ceph.
+The cluster is built from a mix of x86 and ARM hardware, mounted in an open-frame 12U rack together with a patch panel, a PDU, and a UPS. AMD mini PCs run the control plane and Ceph, a Dell R630 provides bulk compute and ZFS storage, a GPU workstation runs AI workloads, and Intel nodes and Raspberry Pis fill out the worker pool.
+
+![Server rack](../../images/rack.jpg)
+
+All nodes are on VLAN 20 with static DHCP reservations (`terraform/unifi/reservations.tf`). CPU and memory figures below are what Kubernetes reports.
 
 ## Compute Nodes
 
 ### Control Plane + Workers
 
-These nodes run control plane components **and** schedule workloads (`allowSchedulingOnControlPlanes: true`). The VIP `192.168.0.200` floats across all three for API server high availability.
+These nodes run the control plane **and** schedule workloads: the control-plane taint is removed in `talos/pitower/control-plane/01-cluster.yaml`, with `systemReserved`/`kubeReserved` set so app load cannot starve the API server. The VIP `10.20.10.0` floats across all three (`https://10.20.10.0:6443`).
 
-| Hostname | Hardware | IP | Role | CPU | RAM | Storage | Image Schematic |
-|----------|----------|----|------|-----|-----|---------|-----------------|
-| worker-01 | Lenovo 440p | 192.168.0.201 | Control Plane + Worker | AMD | -- | -- | `amd` |
-| worker-02 | Lenovo 440p | 192.168.0.202 | Control Plane + Worker | AMD | -- | -- | `amd` |
-| worker-03 | Acemagician AM06 | 192.168.0.203 | Control Plane + Worker | AMD | -- | NVMe (Ceph) | `amd` |
+| Hostname | Hardware | IP | CPU | RAM | Storage | Schematic |
+|----------|----------|----|-----|-----|---------|-----------|
+| worker-01 | AMD Ryzen mini PC | 10.20.10.1 | 16 threads | 16 GB | NVMe boot + SATA SSD (Ceph OSD) | `amd` |
+| worker-02 | AMD Ryzen mini PC | 10.20.10.2 | 16 threads | 32 GB | NVMe boot + SATA SSD (Ceph OSD) | `amd` |
+| worker-03 | AMD Ryzen mini PC | 10.20.10.3 | 16 threads | 32 GB | NVMe boot + SATA SSD (Ceph OSD) | `amd` |
 
-!!! info "VIP for API Server"
-    All control plane nodes share the virtual IP `192.168.0.200` for the Kubernetes API endpoint (`https://192.168.0.200:6443`).
+> [!NOTE]
+> **AMD iGPU and uinput**
+>
+> The `amd` schematic adds the `amdgpu` driver and firmware, and `uinput` for the Sunshine-based `dev/dev-desktop` (control-plane only).
 
-### Worker Nodes (Intel)
+### Intel Workers
 
-| Hostname | Hardware | IP | Role | CPU | RAM | Storage | Image Schematic |
-|----------|----------|----|------|-----|-----|---------|-----------------|
-| worker-04 | Acemagician AM06 | 192.168.0.204 | Worker | Intel | -- | eMMC + NVMe (Ceph) | `intel` |
-| worker-05 | Acemagician AM06 | -- | Worker | Intel | -- | NVMe (Ceph) | `intel` |
-| worker-06 | Acemagician AM06 | -- | Worker | Intel | -- | NVMe (Ceph) | `intel` |
+| Hostname | IP | CPU | RAM | Boot disk | Notes | Schematic |
+|----------|----|-----|-----|-----------|-------|-----------|
+| worker-04 | 10.20.10.4 | 4 cores | 8 GB | eMMC | `dedicated=media-home` taint | `intel` |
+| worker-05 | 10.20.10.5 | 4 cores | 8 GB | Samsung SSD | Also on the untagged LAN (`networking/lan`); no VT-x | `intel` |
+| worker-06 | 10.20.10.6 | 4 cores | 8 GB | Samsung SSD | Also on the untagged LAN (`networking/lan`); no VT-x | `intel` |
 
-!!! note "Intel GPU Workloads"
-    The Acemagician AM06 nodes include Intel integrated GPUs (i915) with firmware loaded via Talos extensions. These are used for hardware transcoding in applications like Jellyfin.
+> [!NOTE]
+> **Intel GPU Workloads**
+>
+> These nodes have Intel integrated GPUs (firmware via the `i915-ucode` extension), exposed through `system/intel-device-plugins` for hardware transcoding. worker-05/06 have VT-x disabled in the BIOS, so KubeVirt cannot run VMs there.
 
-### Other Raspberry Pis (Not in cluster)
+### worker-07 (Dell R630)
 
-| Quantity | Model | Use |
-|----------|-------|-----|
-| 4 | Raspberry Pi 2B+ | Spare / other projects |
-| 1 | Raspberry Pi 3B+ | Spare / other projects |
+A bare-metal Dell R630 (ex `proxmox-01`, see the [migration record](proxmox-01-migration.md)) at `10.20.10.7`, on a 10G Intel X710 port.
+
+| Property | Value |
+|----------|-------|
+| CPU | 48 threads |
+| RAM | ~755 GiB usable (ZFS ARC capped at 64 GiB) |
+| Disks | Six 745 GiB SAS SSDs and four ~600 GB 10K SAS HDDs behind the PERC in HBA mode |
+| Talos system disk | md RAID1 across two SSDs (`RAIDArrayConfig`, selected by WWID) |
+| ZFS `fast` | Four SSDs as two mirrors: `/var/mnt/extra`, `/var/mnt/runners`, Garage metadata |
+| ZFS `hdd` | Four HDDs as raidz1: `/var/mnt/media`, Garage blocks |
+| Schematic | `r630` (adds the `zfs` extension) |
+
+The OpenEBS classes `openebs-hostpath-fast`, `-runners`, and `-media` only provision here, and the self-hosted `home-ops` CI runners are pinned to it. It also runs Garage S3. ZFS is administered from a privileged `hostPID` pod with `nsenter`, since Talos has no shell; `system/zfs-scrub` scrubs both pools monthly.
+
+### worker-ai-01 (GPU)
+
+A bare-metal ASUS ProArt B850 board with an NVIDIA RTX 3090 Ti at `10.20.10.11`, dual-booted with Bazzite.
+
+| Property | Value |
+|----------|-------|
+| CPU | AMD, 16 threads |
+| RAM | 64 GB |
+| System disk | 1 TB Kingston NV3 (shared with Bazzite; Talos EPHEMERAL capped at 200 GiB) |
+| Models disk | 2 TB Samsung 9100 Pro, Talos user volume `models` at `/var/mnt/models` (`openebs-hostpath-models`) |
+| Schematic | `nvidia` (open GPU kernel modules + container toolkit) |
+| Taint | `dedicated=gpu:NoSchedule` |
+
+The GPU is shared through the NVIDIA DRA driver (`system/dra-driver-nvidia-gpu`) and can be passed through to a KubeVirt VM with `vfio-pci`. `system/nvidia-power-limit` caps it at 300 W. Because it is often booted into Bazzite, it is excluded from Cilium's L2 and BGP announcements.
+
+### Raspberry Pi Workers
+
+| Hostname | IP | Model | RAM | Boot disk | Schematic |
+|----------|----|-------|-----|-----------|-----------|
+| worker-08 | 10.20.10.8 | Raspberry Pi 4 (PoE HAT) | 4 GB | 128 GB USB SSD | `rpi-poe` |
+| worker-09 | 10.20.10.9 | Raspberry Pi 4 (PoE HAT) | 4 GB | 128 GB USB SSD | `rpi-poe` |
+| worker-10 | 10.20.10.10 | Raspberry Pi 4 (PoE HAT) | 4 GB | 128 GB USB SSD | `rpi-poe` |
+
+The `rpi-poe` schematic uses the `sbc-raspberrypi` overlay and sets PoE HAT fan thresholds. KubeVirt workloads are kept off these arm64 nodes.
 
 ## Network Equipment
 
-| Device | Model | Purpose |
-|--------|-------|---------|
-| Switch | TP-Link 24-Port PoE | Core network switch, powers Pi nodes via PoE |
-| Router | NanoPi R5C | Primary router |
-| Access Point | Ubiquiti U7-Pro | Wi-Fi 7 AP |
-| Access Point | Ubiquiti U6-Lite | Wi-Fi 6 AP |
+| Device | Purpose |
+|--------|---------|
+| UniFi Cloud Gateway Fiber | Router, VLANs, DHCP, BGP peer (ASN 64512) for LoadBalancer and pod routes |
+| TP-Link PoE switch | Powers the Raspberry Pi nodes |
+| UniFi access points | Wi-Fi |
+| Patch panel | Front of the rack |
+
+Networks (`terraform/unifi/networks.tf`):
+
+| Network | VLAN | Subnet |
+|---------|------|--------|
+| Default | untagged | `192.168.0.0/24` |
+| home | 10 | `10.10.0.0/16` |
+| servers | 20 | `10.20.0.0/16` |
+| management | 50 | `10.50.0.0/24` |
+| iot | 101 | `10.101.0.0/16` |
 
 ## Storage
 
-| Device | Capacity | Purpose |
-|--------|----------|---------|
-| Synology 4-Bay NAS | 8 TB | Bulk storage (NFS) |
-| 128 GB SSD | x3 | Boot drives |
-| 512 GB NVMe | x3 | Ceph OSD storage (on Acemagician AM06 nodes) |
-
-!!! info "Ceph Storage"
-    The three 512 GB NVMe drives in the Acemagician AM06 nodes form a Rook-Ceph cluster, providing replicated block storage for persistent volumes.
+| Device | Purpose |
+|--------|---------|
+| Ceph OSDs | One SATA SSD (~500 GB) on each of worker-01..03, `ceph-block` default StorageClass |
+| worker-07 ZFS | `fast` and `hdd` pools, OpenEBS hostpath classes and Garage S3 |
+| worker-ai-01 NVMe | 2 TB `models` volume |
+| Synology NAS (`data`, `10.20.10.100`) | NFS for media and bulk data |
 
 ## Power
 
-| Device | Model | Capacity |
-|--------|-------|----------|
-| UPS | Eaton 500VA | Protects switch, router, and critical nodes |
+| Device | Purpose |
+|--------|---------|
+| PowerWalker UPS | In the rack |
+| PDU | Power distribution in the rack |
+| Eaton 5S, CyberPower PR1500LCDRT2U | UPSes served by the NUT host (`nut`, Ansible role `nut`) and scraped by `monitoring/nut-exporter` |
 
 ## Network Topology
 
 ```mermaid
 graph LR
-    Internet -->|WAN| RT[NanoPi R5C<br/>Router]
-    RT -->|LAN| SW[TP-Link 24-Port<br/>PoE Switch]
+    Internet -->|WAN| GW[UniFi Cloud Gateway Fiber]
+    GW -->|VLAN 20 + LAN| SW[Switching]
 
-    SW --> CP1[worker-01<br/>Lenovo 440p]
-    SW --> CP2[worker-02<br/>Lenovo 440p]
-    SW --> CP3[worker-03<br/>AM06]
-
-    SW --> W4[worker-04<br/>AM06]
-    SW --> W5[worker-05<br/>AM06]
-    SW --> W6[worker-06<br/>AM06]
-
+    SW --> CP[worker-01..03<br/>AMD]
+    SW --> IN[worker-04..06<br/>Intel]
+    SW --> R630[worker-07<br/>R630, 10G]
+    SW -->|PoE| PI[worker-08..10<br/>Pi 4]
+    SW --> AI[worker-ai-01<br/>GPU]
     SW --> NAS[Synology NAS]
 
-    SW -.-> AP1[U7-Pro AP]
-    SW -.-> AP2[U6-Lite AP]
-
-    UPS[Eaton 500VA] -.->|Power| SW
-    UPS -.->|Power| RT
+    CP & IN & R630 & PI -.->|BGP| GW
 ```

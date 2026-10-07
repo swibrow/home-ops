@@ -4,33 +4,41 @@ title: ApplicationSets
 
 # ApplicationSets
 
-ApplicationSets are the core mechanism that makes the GitOps workflow scalable. Instead of writing individual Application resources for each app, a single ApplicationSet per cluster automatically generates Applications based on the repository directory structure.
+ApplicationSets make the GitOps workflow scale. Instead of one Application manifest per app, a single ApplicationSet per cluster generates Applications from the repository directory structure.
 
 ---
 
 ## Overview
 
-The cluster uses **one ApplicationSet per cluster**, stored in `kubernetes/argocd/clusters/` and applied manually with `kubectl apply -f`:
+The ApplicationSets live in `kubernetes/argocd/` and are applied manually with `kubectl apply -f`:
 
-| ApplicationSet | Directory Scanned | Cluster |
-|:---------------|:------------------|:--------|
-| `pitower` | `kubernetes/apps/pitower/*/*` | pitower (primary) |
+| ApplicationSet | File | Generator | Generates |
+|:---------------|:-----|:----------|:----------|
+| `pitower` | `kubernetes/argocd/clusters/pitower.yaml` | Git directories `kubernetes/apps/pitower/*/*` | One Application per app directory |
+| `ack` | `kubernetes/argocd/ack-applicationset.yaml` | Clusters with label `home-ops/cluster: pitower` | `pitower-ack` (AWS Controllers for Kubernetes) |
 
-These are **not** managed by ArgoCD (no nesting) -- they are applied directly to the cluster.
+They are **not** managed by ArgoCD (no nesting). After editing one, re-apply it.
+
+> [!NOTE]
+> **Why ACK has its own ApplicationSet**
+>
+> The umbrella `ack-chart` ships the same common CRDs once per enabled subchart, and `kustomize build --enable-helm` hard-errors on the duplicate resource IDs. The `ack` ApplicationSet uses ArgoCD's native Helm source (`public.ecr.aws/aws-controllers-k8s/ack-chart`) with ServerSideApply instead. Its chart version is baked into the template, so a version bump only reaches the cluster when the file is re-applied.
+
+The live cluster also runs a `cloudsnacks` ApplicationSet in the `cloudsnacks` project, sourced from a separate repository; it is not defined here.
 
 ---
 
 ## Git Directory Generator
 
-The ApplicationSet uses the **Git directory generator**, which scans a specific path in the repository for subdirectories. Every subdirectory it finds becomes an ArgoCD Application.
+The `pitower` ApplicationSet scans `kubernetes/apps/pitower/*/*`. Every directory at that depth becomes an Application.
 
 ```mermaid
 flowchart LR
     subgraph "Repository Structure"
         dir1["apps/pitower/networking/towonel-agent/"]
         dir2["apps/pitower/networking/envoy-gateway/"]
-        dir3["apps/pitower/networking/external-dns/"]
-        dir4["apps/pitower/networking/tailscale/"]
+        dir3["apps/pitower/media/jellyfin/"]
+        dir4["apps/pitower/database/clusters/"]
     end
 
     AS[ApplicationSet\npitower]
@@ -38,8 +46,8 @@ flowchart LR
     subgraph "Generated Applications"
         app1["pitower-networking-towonel-agent"]
         app2["pitower-networking-envoy-gateway"]
-        app3["pitower-networking-external-dns"]
-        app4["pitower-networking-tailscale"]
+        app3["pitower-media-jellyfin"]
+        app4["pitower-database-clusters"]
     end
 
     dir1 & dir2 & dir3 & dir4 --> AS
@@ -52,8 +60,6 @@ flowchart LR
     style app4 fill:#326ce5,color:#fff
 ```
 
-The generator configuration:
-
 ```yaml
 generators:
   - git:
@@ -63,12 +69,11 @@ generators:
         - path: kubernetes/apps/pitower/*/*
 ```
 
-This produces the following template variables for each matched directory:
+Template variables for each matched directory:
 
 | Variable | Example Value | Description |
 |:---------|:-------------|:------------|
 | `{{.path.path}}` | `kubernetes/apps/pitower/networking/envoy-gateway` | Full path to the directory |
-| `{{.path.basename}}` | `envoy-gateway` | Directory name (last segment) |
 | `{{index .path.segments 2}}` | `pitower` | Cluster name |
 | `{{index .path.segments 3}}` | `networking` | Category (also the namespace) |
 | `{{index .path.segments 4}}` | `envoy-gateway` | App name |
@@ -77,17 +82,17 @@ This produces the following template variables for each matched directory:
 
 ## Go Template Usage
 
-ApplicationSets use Go templates with `missingkey=error` to ensure all template variables are resolved. If a variable is missing, the ApplicationSet controller raises an error instead of silently producing empty strings.
-
 ```yaml
 spec:
   goTemplate: true
   goTemplateOptions: ["missingkey=error"]
 ```
 
+`missingkey=error` makes the controller fail on an unresolved variable instead of silently rendering an empty string.
+
 ### Naming Convention
 
-Application names follow the pattern `<cluster>-<category>-<app-name>`:
+Application names follow `<cluster>-<category>-<app>`:
 
 ```yaml
 name: "pitower-{{index .path.segments 3}}-{{index .path.segments 4}}"
@@ -97,25 +102,18 @@ name: "pitower-{{index .path.segments 3}}-{{index .path.segments 4}}"
 |:---------------|:--------------------------|
 | `kubernetes/apps/pitower/networking/envoy-gateway` | `pitower-networking-envoy-gateway` |
 | `kubernetes/apps/pitower/media/jellyfin` | `pitower-media-jellyfin` |
-| `kubernetes/apps/pitower/security/authelia` | `pitower-security-authelia` |
+| `kubernetes/apps/pitower/security/kanidm` | `pitower-security-kanidm` |
 
 ### Namespace Derivation
-
-The target namespace is derived from the category segment of the path:
 
 ```yaml
 destination:
   namespace: "{{index .path.segments 3}}"
 ```
 
-This means all apps in `kubernetes/apps/pitower/networking/*` deploy to the `networking` namespace, all apps in `kubernetes/apps/pitower/media/*` deploy to the `media` namespace, and so on.
-
-!!! tip "Namespace = Category"
-    The namespace matches the category directory name. This convention keeps things predictable -- if an app is in the `selfhosted` category, its resources land in the `selfhosted` namespace.
+Everything in `kubernetes/apps/pitower/media/*` deploys to the `media` namespace, and so on. Some apps also ship a `namespace.yaml` to set extra labels, but the destination namespace is always the category.
 
 ### Labels
-
-Each generated Application receives labels for filtering:
 
 ```yaml
 labels:
@@ -129,20 +127,17 @@ labels:
   home-ops/namespace: "{{index .path.segments 3}}"
 ```
 
-These labels enable filtering in the ArgoCD UI and CLI:
+Filter with them in the CLI. Use the full resource name: the `app` short name collides with another CRD in this cluster.
 
 ```bash
 # All media apps
-kubectl get app -n argocd -l home-ops/category=media
+kubectl get applications.argoproj.io -n argocd -l home-ops/category=media
 
 # Specific app
-kubectl get app -n argocd -l app.kubernetes.io/name=jellyfin
-
-# All apps on pitower
-kubectl get app -n argocd -l home-ops/cluster=pitower
+kubectl get applications.argoproj.io -n argocd -l app.kubernetes.io/name=jellyfin
 
 # Combine filters
-kubectl get app -n argocd -l home-ops/cluster=pitower,home-ops/category=networking
+kubectl get applications.argoproj.io -n argocd -l home-ops/cluster=pitower,home-ops/category=networking
 ```
 
 ---
@@ -164,21 +159,12 @@ spec:
         revision: main
         directories:
           - path: kubernetes/apps/pitower/*/*
-  syncPolicy:
-    preserveResourcesOnDeletion: true
   template:
     metadata:
       name: "pitower-{{index .path.segments 3}}-{{index .path.segments 4}}"
       namespace: argocd
       labels:
-        app.kubernetes.io/name: "{{index .path.segments 4}}"
-        app.kubernetes.io/instance: "pitower-{{index .path.segments 3}}-{{index .path.segments 4}}"
-        app.kubernetes.io/component: "{{index .path.segments 3}}"
-        app.kubernetes.io/part-of: pitower
-        app.kubernetes.io/managed-by: argocd
-        home-ops/cluster: pitower
-        home-ops/category: "{{index .path.segments 3}}"
-        home-ops/namespace: "{{index .path.segments 3}}"
+        # ... see Labels above
       finalizers:
         - resources-finalizer.argocd.argoproj.io
     spec:
@@ -204,6 +190,7 @@ spec:
           - ServerSideApply=true
           - SkipDryRunOnMissingResource=true
           - ApplyOutOfSyncOnly=true
+          - Timeout=600
         retry:
           limit: 5
           backoff:
@@ -217,15 +204,6 @@ spec:
 
 ## Key Design Decisions
 
-### preserveResourcesOnDeletion
-
-```yaml
-syncPolicy:
-  preserveResourcesOnDeletion: true
-```
-
-When an ApplicationSet is deleted, the generated Applications are preserved (not deleted). This prevents accidental cascade deletion of all workloads during migrations or AppSet changes.
-
 ### Finalizers
 
 ```yaml
@@ -233,7 +211,12 @@ finalizers:
   - resources-finalizer.argocd.argoproj.io
 ```
 
-Each generated Application includes the resources finalizer. When an Application is deleted (e.g. by removing its directory), ArgoCD cleans up all managed Kubernetes resources. Without the finalizer, deleting the Application would leave orphaned resources.
+When an Application is deleted (for example because its directory was removed), ArgoCD deletes all the resources it managed. Without the finalizer they would be orphaned.
+
+> [!CAUTION]
+> **Deleting a directory deletes its data**
+>
+> Removing an app directory prunes its PVCs too. Move PVC declarations carefully; see the comment in `kubernetes/components/pvc/kustomization.yaml`.
 
 ### No selfHeal
 
@@ -243,37 +226,30 @@ automated:
   selfHeal: false
 ```
 
-Self-heal is disabled to allow manual changes in the cluster (e.g. scaling down for maintenance, restore operations) without ArgoCD reverting them. Apps still auto-sync on git changes.
+Manual changes in the cluster (scaling down for maintenance, restore operations) are not reverted. Apps still auto-sync on Git changes.
 
-### Not Managed by ArgoCD
+### Managed Namespace Metadata
 
-The ApplicationSet files live in `kubernetes/argocd/clusters/` and are applied manually with `kubectl apply -f`. This avoids nesting (an ArgoCD Application managing the ApplicationSet that manages other Applications) and makes it easy to modify the AppSet without triggering cascading changes.
+Namespaces created by ArgoCD get privileged Pod Security labels, since many workloads (CNI, storage, GPU, runners) need host access.
 
 ---
 
 ## Auto-Discovery in Action
 
-**Adding a new app requires zero ArgoCD configuration.** The ApplicationSet does all the work:
+1. Create `kubernetes/apps/pitower/<category>/<app>/` with a `kustomization.yaml`.
+2. Merge to `main`.
+3. The generator detects the new directory and creates `pitower-<category>-<app>`.
+4. ArgoCD syncs it into the `<category>` namespace.
 
-1. Create a new directory: `kubernetes/apps/pitower/networking/my-new-app/`
-2. Add a `kustomization.yaml` and `values.yaml` inside it.
-3. Push to `main`.
-4. The Git directory generator detects the new directory.
-5. A new Application named `pitower-networking-my-new-app` is created automatically.
-6. ArgoCD syncs the new Application to the cluster.
-
-Removing an app is equally simple -- delete the directory and push. The finalizer ensures all resources are cleaned up.
-
-!!! info "No ApplicationSet Changes Needed"
-    You never need to modify the ApplicationSet to add or remove an app. The directory structure is the only thing that matters.
+Removing an app is the reverse: delete the directory and merge. You never need to edit the ApplicationSet to add or remove an app.
 
 ---
 
 ## Adding a New Cluster
 
-To add a new cluster (e.g. `pistack`):
+The layout supports more clusters, though only `pitower` exists today:
 
-1. Create the ApplicationSet at `kubernetes/argocd/clusters/pistack.yaml`
-2. Create the app directory structure at `kubernetes/apps/pistack/`
-3. Add a cluster secret in `kubernetes/bootstrap/` pointing to the remote cluster
-4. Apply the ApplicationSet: `kubectl apply -f kubernetes/argocd/clusters/pistack.yaml`
+1. Create `kubernetes/argocd/clusters/<cluster>.yaml`, copying `pitower.yaml` and replacing the cluster name and path.
+2. Create `kubernetes/apps/<cluster>/`.
+3. Add a cluster Secret in `kubernetes/bootstrap/` if it is a remote cluster.
+4. `kubectl apply -f kubernetes/argocd/clusters/<cluster>.yaml`.

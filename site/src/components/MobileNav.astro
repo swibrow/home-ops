@@ -1,0 +1,41 @@
+---
+import { sections, type NavSection } from "../nav.ts";
+import { docHref } from "../lib/slug.ts";
+import Sidebar from "./Sidebar.astro";
+
+interface Props {
+  section?: NavSection;
+  currentId: string;
+}
+
+const { section, currentId } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+---
+
+<button type="button" class="icon-button menu-button" aria-label="Open navigation" data-open-dialog="mobile-nav">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+</button>
+<dialog id="mobile-nav" class="drawer" aria-label="Navigation">
+  <div class="drawer-head">
+    <span>Navigation</span>
+    <button type="button" class="icon-button" aria-label="Close navigation" data-close-dialog>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+    </button>
+  </div>
+  {section && <Sidebar section={section} currentId={currentId} />}
+  <nav class="drawer-sections" aria-label="All sections">
+    <p class="drawer-label">All sections</p>
+    <ul>
+      {
+        sections.map((s) => (
+          <li>
+            <a href={docHref(base, s.id)} aria-current={s === section ? "true" : undefined}>
+              <span class="led" aria-hidden="true" />
+              {s.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </nav>
+</dialog>

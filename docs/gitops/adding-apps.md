@@ -4,269 +4,122 @@ title: Adding Apps
 
 # Adding a New Application
 
-Adding a new application to the cluster requires no ArgoCD configuration changes. Thanks to the [ApplicationSet](application-sets.md) pattern, creating a directory in the right place is all it takes.
+Adding an application needs no ArgoCD configuration. Thanks to the [ApplicationSet](application-sets.md), creating a directory in the right place is all it takes. This page covers the GitOps side; the manifests themselves (app-template values, PVCs, backups, databases, secrets) are covered in [Development > Adding Apps](../development/adding-apps.md).
 
 ---
 
 ## Quick Start
 
-To deploy a new application, you need to:
-
-1. Choose the appropriate category for your app.
-2. Create a directory under `kubernetes/apps/pitower/<category>/<app-name>/`.
-3. Add a `kustomization.yaml` and (optionally) a `values.yaml`.
-4. Push to `main`.
-5. ArgoCD auto-discovers and syncs the new app.
+1. Pick a category (or create a new one).
+2. Create `kubernetes/apps/pitower/<category>/<app>/` with a `kustomization.yaml` (and usually a `values.yaml`).
+3. Open a PR. The [ArgoCD Diff](../ci-cd/github-actions.md#argocd-diff) workflow posts the rendered diff.
+4. Merge to `main`.
+5. ArgoCD creates `pitower-<category>-<app>` and syncs it into the `<category>` namespace.
 
 ```mermaid
 flowchart LR
-    A[Create directory\nand manifests] --> B[Push to main]
-    B --> C[ApplicationSet\ndetects new dir]
-    C --> D[Application\ncreated]
-    D --> E[Resources synced\nto cluster]
+    A[Create directory\nand manifests] --> B[PR + ArgoCD Diff]
+    B --> C[Merge to main]
+    C --> D[ApplicationSet\ndetects new dir]
+    D --> E[Application\ncreated and synced]
 
     style A fill:#7c3aed,color:#fff
-    style C fill:#18b7be,color:#fff
+    style B fill:#18b7be,color:#fff
     style D fill:#18b7be,color:#fff
     style E fill:#326ce5,color:#fff
 ```
 
 ---
 
-## Step-by-Step Guide
+## Categories
 
-### 1. Choose a Category
+The category is both the directory and the namespace. Current categories under `kubernetes/apps/pitower/`:
 
-Pick the category that best fits your application:
+| Category | Examples |
+|:---------|:---------|
+| `ai` | open-webui, comfyui, llmkube, agentgateway, toolhive, searxng |
+| `analytics` | rybbit |
+| `arc` | GitHub Actions Runner Controller and runner scale sets |
+| `banking` | actual, firefly, firefly-importer, ghostfolio, paperless |
+| `cert-manager` | cert-manager, issuers |
+| `database` | CNPG operator and clusters, tenants, dragonfly-operator, clickhouse-operator |
+| `dev` | forgejo, dev-desktop, herdr, propagit |
+| `home-automation` | frigate, home-assistant (proxy to an external HAOS host) |
+| `kopiur-system` | kopiur operator and the `garage` ClusterRepository |
+| `kube-system` | cilium, coredns, metrics-server, multus |
+| `kubevirt` | kubevirt, cdi |
+| `media` | jellyfin, immich, sonarr, radarr, prowlarr, autobrr, qbittorrent, sabnzbd |
+| `monitoring` | kube-prometheus-stack, victoria-metrics, victoria-logs, grafana-operator, gatus, ntfy |
+| `networking` | envoy-gateway, external-dns, tailscale, towonel-agent, netboot |
+| `openebs` | openebs |
+| `renovate` | renovate-operator |
+| `rook-ceph` | operator, cluster, csi-drivers, add-ons |
+| `second-brain` | affine, couchdb |
+| `security` | external-secrets, kanidm, crowdsec, aws-identity-webhook, rbac |
+| `selfhosted` | homepage, miniflux, mealie, n8n, atuin, it-tools |
+| `system` | reloader, keda, spegel, node-feature-discovery, intel-device-plugins, garage |
+| `vms` | KubeVirt VMs (dev, omarchy, debian-test) |
+| `workflows` | argo-workflows, argo-events |
+| `workshop` | bambuddy |
 
-| Category | Use For |
-|:---------|:--------|
-| `ai` | AI and machine learning workloads |
-| `banking` | Financial tools and services |
-| `cert-manager` | TLS certificate resources |
-| `cloudnative-pg` | PostgreSQL clusters and backups |
-| `home-automation` | Home Assistant, Zigbee2MQTT, MQTT brokers |
-| `kube-system` | Core cluster components |
-| `media` | Jellyfin, *arr apps, downloaders |
-| `monitoring` | Prometheus, Grafana, Loki, alerting |
-| `networking` | Envoy Gateway, Cilium, DNS, tunnels |
-| `openebs` | Local PV storage |
-| `rook-ceph` | Distributed storage |
-| `security` | Authentication, secrets, certificates |
-| `selfhosted` | General self-hosted applications |
-| `system` | System-level utilities |
+Single-app categories also exist for standalone projects (`flickerd`, `garrison`, `goat`, `pantry-system`, `rackrat`, `trade-ops`, `trade-ops-dev`).
 
-!!! tip "When in Doubt"
-    If your app does not clearly fit a category, `selfhosted` is a good default for general-purpose applications.
+> [!TIP]
+> **When in Doubt**
+>
+> `selfhosted` is the default for general-purpose applications.
 
-### 2. Create the Directory
-
-```bash
-mkdir -p kubernetes/apps/pitower/<category>/<app-name>
-```
-
-The directory name becomes the app name in ArgoCD. Choose a name that is lowercase, uses hyphens for separation, and is descriptive:
-
-- `echo-server` (good)
-- `home-assistant` (good)
-- `myApp` (bad -- use lowercase with hyphens)
-
-### 3. Create the Manifests
-
-Most applications in the cluster use the [bjw-s app-template](https://github.com/bjw-s-labs/helm-charts) Helm chart inflated through Kustomize. This pattern requires two files:
-
-=== "kustomization.yaml"
-
-    ```yaml
-    ---
-    apiVersion: kustomize.config.k8s.io/v1beta1
-    kind: Kustomization
-    namespace: <category>
-    helmCharts:
-      - name: app-template
-        repo: oci://ghcr.io/bjw-s-labs/helm
-        version: 4.6.2
-        releaseName: <app-name>
-        namespace: <category>
-        valuesFile: values.yaml
-    ```
-
-=== "values.yaml"
-
-    ```yaml
-    controllers:
-      <app-name>:
-        containers:
-          app:
-            image:
-              repository: <image-repo>
-              tag: <image-tag>
-            env:
-              TZ: Europe/Zurich
-            resources:
-              requests:
-                cpu: 10m
-                memory: 64Mi
-              limits:
-                memory: 256Mi
-            probes:
-              liveness:
-                enabled: true
-              readiness:
-                enabled: true
-    service:
-      app:
-        ports:
-          http:
-            port: 8080
-    route:
-      app:
-        enabled: true
-        hostnames:
-          - <app-name>.wibrow.dev
-        parentRefs:
-          - name: envoy-internal
-            namespace: networking
-            sectionName: https
-    ```
-
-!!! info "Gateway Selection"
-    Choose the appropriate gateway in `parentRefs` based on how the app should be accessed:
-
-    | Gateway | Use Case |
-    |:--------|:---------|
-    | `envoy-external` | Public access via the towonel tunnel (`external.wibrow.dev`) |
-    | `envoy-internal` | Internal-only access (VPN/LAN via `internal.wibrow.dev`) |
-
-### 4. Push and Verify
-
-```bash
-git add kubernetes/apps/pitower/<category>/<app-name>/
-git commit -m "feat(<category>): add <app-name>"
-git push origin main
-```
-
-After pushing, verify in ArgoCD:
-
-```bash
-# Check that the Application was created
-kubectl get app -n argocd -l app.kubernetes.io/name=<app-name>
-
-# Watch the sync status
-kubectl get app -n argocd pitower-<category>-<app-name> -w
-
-# Filter by category
-kubectl get app -n argocd -l home-ops/category=<category>
-```
+The directory name becomes the app name in ArgoCD: lowercase, hyphen-separated (`echo-server`, not `echoServer`).
 
 ---
 
-## Advanced Patterns
+## Verify
 
-### Apps with VolSync Backups
+```bash
+# The generated Application
+kubectl get applications.argoproj.io -n argocd pitower-<category>-<app>
 
-To enable automated backups for an app with persistent data, include the volsync component:
+# Everything in a category
+kubectl get applications.argoproj.io -n argocd -l home-ops/category=<category>
 
-```yaml title="kustomization.yaml"
+# Workloads
+kubectl get pods -n <category> -l app.kubernetes.io/name=<app>
+```
+
+> [!NOTE]
+> **Full resource name**
+>
+> Use `applications.argoproj.io`, not `app`: the short name resolves to a different CRD in this cluster.
+
 ---
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-namespace: <category>
-components:
-  - ../../../../components/volsync
-helmCharts:
-  - name: app-template
-    repo: oci://ghcr.io/bjw-s-labs/helm
-    version: 4.6.2
-    releaseName: <app-name>
-    namespace: <category>
-    valuesFile: values.yaml
-configMapGenerator:
-  - name: volsync-config
-    literals:
-      - APP_NAME=<app-name>
-      - CLAIM_NAME=<pvc-name>
-      - SECRET_NAME=<app-name>-volsync
-      - STORAGE_SIZE=<size>
-      - RESTIC_REPO=s3:https://s3.eu-central-2.amazonaws.com/pitower-volsync-backups/<category>/<app-name>
-```
 
-See [Backup & Restore](../storage/backup-restore.md) for restore procedures.
-
-### Apps with Extra Resources
-
-Some apps need additional Kubernetes resources beyond what the Helm chart provides:
-
-```yaml
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-namespace: networking
-resources:
-  - certificate.yaml
-  - externalsecret.yaml
-helmCharts:
-  - name: app-template
-    repo: oci://ghcr.io/bjw-s-labs/helm
-    version: 4.6.2
-    releaseName: envoy-gateway
-    namespace: networking
-    valuesFile: values.yaml
-```
+## Variations
 
 ### Apps Without Helm
 
-If your app does not use a Helm chart, you can use plain manifests with Kustomize:
+Plain manifests work too; `home-assistant` is just a Service and an HTTPRoute:
 
 ```yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: <category>
 resources:
-  - deployment.yaml
   - service.yaml
   - httproute.yaml
 ```
 
-### Per-Cluster App Variants
+### Other Helm Charts
 
-For apps that need different configuration per cluster, create a subdirectory per cluster:
+Any chart can be inflated with `helmCharts`, not just app-template. For example, `arc/runners` renders `gha-runner-scale-set` once per repository with `valuesInline` overrides.
 
-```
-kubernetes/apps/pitower/networking/envoy-gateway/pitower/
-kubernetes/apps/pistack/networking/envoy-gateway/pistack/
-```
+### Shared Components
 
-Each cluster's ApplicationSet only scans its own directory tree, so each cluster gets its own configuration.
+`kubernetes/components/` holds kustomize components (`pvc`, `kopiur`, `cnpg-db-shared`) referenced as `../../../../components/<name>`. ArgoCD builds with `--load-restrictor LoadRestrictionsNone` so these paths outside the app directory resolve.
 
 ---
 
 ## Removing an Application
 
-To remove an application from the cluster:
-
-1. Delete the app directory:
-    ```bash
-    rm -rf kubernetes/apps/pitower/<category>/<app-name>
-    ```
-2. Push to `main`:
-    ```bash
-    git add -A && git commit -m "feat(<category>): remove <app-name>"
-    git push origin main
-    ```
-3. The ApplicationSet detects the missing directory and deletes the Application.
-4. The `resources-finalizer.argocd.argoproj.io` finalizer ensures all managed resources are cleaned up from the cluster.
-
----
-
-## Checklist
-
-Use this checklist when adding a new app:
-
-- [ ] Directory created at `kubernetes/apps/pitower/<category>/<app-name>/`
-- [ ] `kustomization.yaml` with correct `namespace` and chart configuration
-- [ ] `values.yaml` with image, resources, probes, and service defined
-- [ ] HTTPRoute configured with the correct gateway
-- [ ] Resource requests and limits set appropriately
-- [ ] VolSync component included (if app has persistent data)
-- [ ] Secrets managed via ExternalSecret (if applicable)
-- [ ] Pushed to `main` and verified in ArgoCD
+1. Delete `kubernetes/apps/pitower/<category>/<app>/` and merge to `main`.
+2. The ApplicationSet deletes the Application.
+3. The `resources-finalizer.argocd.argoproj.io` finalizer deletes everything it managed, **including PVCs**. Take a backup first if the data matters.

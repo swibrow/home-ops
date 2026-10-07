@@ -1,0 +1,53 @@
+---
+import "@fontsource-variable/atkinson-hyperlegible-next";
+import "@fontsource-variable/jetbrains-mono";
+import "../styles/global.css";
+import Header from "../components/Header.astro";
+import SectionBar from "../components/SectionBar.astro";
+import MobileNav from "../components/MobileNav.astro";
+import type { NavSection } from "../nav.ts";
+
+interface Props {
+  title: string;
+  description?: string;
+  section?: NavSection;
+  currentId: string;
+}
+
+const { title, description, section, currentId } = Astro.props;
+const siteName = "Home-Ops";
+const fullTitle = currentId === "index" ? `${siteName}: ${title}` : `${title} | ${siteName}`;
+const favicon = `data:image/svg+xml,${encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="#0f5f69"/><g fill="#7fe3ec"><rect x="7" y="8" width="18" height="3" rx="1"/><rect x="7" y="14.5" width="18" height="3" rx="1"/><rect x="7" y="21" width="18" height="3" rx="1"/></g></svg>`,
+)}`;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    {description && <meta name="description" content={description} />}
+    <link rel="icon" href={favicon} />
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
+    <meta name="color-scheme" content="light dark" />
+    <script is:inline>
+      try {
+        const t = localStorage.getItem("theme");
+        if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+      } catch {}
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#content">Skip to content</a>
+    <Header>
+      <MobileNav slot="menu" section={section} currentId={currentId} />
+    </Header>
+    <SectionBar current={section} />
+    <slot />
+    <script>
+      import "../scripts/page.ts";
+    </script>
+  </body>
+</html>

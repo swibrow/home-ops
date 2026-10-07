@@ -12,54 +12,61 @@ Talos upgrades are driven by [topf](https://github.com/postfinance/topf): the ta
 
 Before upgrading Talos:
 
-- [ ] Verify cluster health: `just health`
+- [ ] Silence Alertmanager for the duration of the work (see [Silences](../monitoring/prometheus-stack.md#silences))
+- [ ] Verify cluster health: `just talos pitower health`
 - [ ] Check etcd membership: `talosctl etcd members --nodes 10.20.10.1`
 - [ ] Back up etcd: `talosctl etcd snapshot etcd-backup.snapshot --nodes 10.20.10.1`
 - [ ] Review the [Talos release notes](https://www.talos.dev/latest/introduction/what-is-new/) for breaking changes
 - [ ] Bump `talosVersion` in `topf.yaml` (and edit `extensions/*.yaml` if extensions change)
-- [ ] Preview: `just upgrade-check` (exit 2 = upgrades due)
+- [ ] Preview: `mise exec -- topf upgrade --dry-run` (exit 2 = upgrades due)
 
 ### Upgrade Procedure
 
-!!! warning "Sequential Upgrades"
-    topf upgrades nodes one at a time with per-node confirmation, data preservation, and a stabilization wait. Never force-parallelize upgrades.
+> [!WARNING]
+> **Sequential Upgrades**
+>
+> topf upgrades one node at a time by default (`--max-parallel 1`; control planes are always one at a time), with a y/n prompt per node. Never force-parallelize upgrades. The `just` recipes export `TOPF_CONFIRM=false` and skip the prompt.
 
 #### Step 1: Upgrade Control Plane Nodes
 
 ```bash
 cd talos/pitower
-just upgrade-controlplanes
+mise exec -- topf upgrade --nodes-filter 'worker-0[123]'
 ```
 
 Each node upgrade:
 
-1. Checks etcd health (refuses to proceed if unhealthy)
-2. Stages the new installer image and reboots (kexec)
-3. Waits for the node to come back with the new version
+1. Cordons and drains the node (`--drain`, default on)
+2. Issues the upgrade (etcd health is validated server-side on Talos >= 1.13) and reboots via kexec
+3. Waits for the node to come back Ready and stay Ready for the stabilization window, then uncordons it
 4. Proceeds to the next node
 
 #### Step 2: Upgrade Worker Nodes
 
 ```bash
-just upgrade-workers
+mise exec -- topf upgrade --nodes-filter 'worker-(0[4-9]|10|ai-01)'
 ```
+
+worker-07 hosts the CI runners, Garage and the monitoring TSDBs; expect those to pause while it reboots.
 
 #### Step 3: Verify
 
 ```bash
-just status
-just health
+mise exec -- topf nodes
+just talos pitower health
 kubectl get nodes -o wide
 ```
+
+Expire the Alertmanager silence once everything is healthy.
 
 ### Updating System Extensions
 
 When you change system extensions:
 
-1. Edit the schematic files in `talos/<cluster>/extensions/` (e.g., `amd.yaml`, `intel.yaml`, `rpi-poe.yaml`)
-2. Check the resolved IDs: `just schematic-ids`
-3. If the extension combination is brand-new to the image factory, register it once with `topf upgrade --dry-run --submit-to-factory`
-4. `just upgrade-check` will now show the affected nodes as due — proceed with the upgrade
+1. Edit the schematic files in `talos/pitower/extensions/` (`amd.yaml`, `intel.yaml`, `r630.yaml`, `rpi-poe.yaml`, `nvidia.yaml`)
+2. Check the resolved IDs: `mise exec -- topf schematic-ids`
+3. If the extension combination is brand-new to the Image Factory, submit it before installing, or the installer image 404s: `curl -X POST --data-binary @extensions/<file>.yaml https://factory.talos.dev/schematics` (or run topf once with the global `--submit-to-factory`)
+4. `mise exec -- topf upgrade --dry-run` now shows the affected nodes as due; proceed with the upgrade
 
 ---
 
@@ -76,16 +83,18 @@ grep kubernetesVersion talos/pitower/topf.yaml
 
 ### Upgrade Kubernetes
 
-Use `talosctl upgrade-k8s` for minor upgrades — it validates version skew and rolls components in order, which `topf apply` does not:
+Use `talosctl upgrade-k8s` for minor upgrades: it validates version skew and rolls components in order, which `topf apply` does not:
 
 ```bash
 talosctl upgrade-k8s --to <version> --nodes 10.20.10.1
 ```
 
-Afterwards, update `kubernetesVersion` in `topf.yaml` to match, so the next `just apply` doesn't revert it. For patch-level bumps (e.g. `1.36.1` → `1.36.2`), editing `kubernetesVersion` and running `just apply` is fine.
+Afterwards, update `kubernetesVersion` in `topf.yaml` to match, so the next `topf apply` (including the Talos Apply workflow on merge) doesn't revert it. For patch-level bumps (e.g. `1.36.1` → `1.36.2`), editing `kubernetesVersion` and running `topf apply` is fine.
 
-!!! info "Talos-Managed Kubernetes"
-    Talos manages the Kubernetes control plane components (API server, controller manager, scheduler, etcd). Each Talos release supports a specific Kubernetes version range — check the release notes before bumping either version.
+> [!NOTE]
+> **Talos-Managed Kubernetes**
+>
+> Talos manages the Kubernetes control plane components (API server, controller manager, scheduler, etcd). Each Talos release supports a specific Kubernetes version range, so check the release notes before bumping either version.
 
 ### Post-Upgrade Verification
 
@@ -115,20 +124,16 @@ flowchart LR
 
 ### Auto-Merge Rules
 
-Renovate automatically merges certain update types:
+Renovate automatically merges certain update types (`.renovate/autoMerge.json5`, `.renovate/automerge-*.json`):
 
 | Update Type | Auto-Merge |
 |:------------|:-----------|
-| Docker digest updates | Yes |
-| Docker patch versions | Yes |
-| Docker pin/pinDigest | Yes |
-| Helm patch versions | Yes |
-| Helm digest/pin | Yes |
-| KPS minor/patch | Yes |
-| GitHub Actions digest/patch | Yes |
-| Docker minor versions | No (manual review) |
-| Docker major versions | No (manual review) |
-| Helm minor versions | No (manual review) |
+| Any patch update | Yes |
+| Docker digest, patch, minor, pin, pinDigest | Yes |
+| Helm digest, patch, minor, pin, pinDigest | Yes |
+| GitHub Actions minor/patch | Yes (after 3 days; `actions/*` and `bjw-s-labs/*` immediately, digests too) |
+| Major versions | No (manual review) |
+| Rook Ceph, Cilium, CloudNativePG, Talos installer/talosctl, Envoy Gateway, cert-manager, snapshot-controller, OpenEBS, renovate-operator | Never (manual review) |
 
 ### Manual Application Upgrade
 
@@ -141,7 +146,7 @@ To manually upgrade an application:
     helmCharts:
       - name: app-template
         repo: oci://ghcr.io/bjw-s-labs/helm
-        version: 4.6.2  # Update this
+        version: 5.2.1  # Update this
     ```
 
     ```yaml
@@ -168,7 +173,7 @@ For bjw-s app-template chart upgrades:
 3. Test locally:
 
     ```bash
-    cd pitower/kubernetes/apps/<category>/<app>
+    cd kubernetes/apps/pitower/<category>/<app>
     kustomize build . --enable-helm
     ```
 
@@ -187,8 +192,10 @@ For a full stack upgrade, follow this order:
 5. **Core Infrastructure** -- cert-manager, external-secrets, ArgoCD
 6. **Applications** -- Workloads last
 
-!!! danger "Never Skip Major Versions"
-    Always upgrade incrementally. Do not skip major versions of Talos, Kubernetes, or critical infrastructure components.
+> [!CAUTION]
+> **Never Skip Major Versions**
+>
+> Always upgrade incrementally. Do not skip major versions of Talos, Kubernetes, or critical infrastructure components.
 
 ---
 
@@ -202,19 +209,14 @@ Talos keeps the previous version available. If an upgrade fails:
 talosctl rollback --nodes <node-ip>
 ```
 
+Then revert `talosVersion`/`schematicId` in `topf.yaml`, or the next `topf upgrade` rolls the node forward again.
+
 ### Application Rollback
 
-Use ArgoCD to roll back to a previous sync:
-
-```bash
-argocd app rollback <app-name>
-```
-
-Or revert the Git commit:
+Every app is auto-synced (`syncPolicy.automated`), and `argocd app rollback` refuses to run while auto-sync is on. Revert the Git commit instead:
 
 ```bash
 git revert <commit-hash>
-git push origin main
 ```
 
-ArgoCD will automatically sync the reverted state.
+Merge the revert to `main` and ArgoCD syncs the reverted state.

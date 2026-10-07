@@ -1,5 +1,10 @@
 # Grafana Dashboard Data Audit
 
+> [!NOTE]
+> **Historical record**
+>
+> A snapshot from June 2026. Paths have moved since: the Grafana Helm values (`grafana/values.yaml`, `grafana/dashboards/`) became the grafana-operator app (`kubernetes/apps/pitower/monitoring/grafana-operator/instance/`), and `controlplane.patch` became `talos/pitower/control-plane/01-cluster.yaml`, managed with topf.
+
 Audit of all 54 Grafana dashboards on `pitower`, run 2026-06-03. Method: for every
 panel, the underlying PromQL metric names were extracted and tested for existence in
 the Prometheus / VictoriaMetrics datasources (`count(<metric>)` instant query). A panel
@@ -32,9 +37,9 @@ Work through the priority buckets below. Healthy dashboards are listed at the bo
 **Applying the Talos change** (item 4) — CPs are worker-01/02/03 = `10.20.10.1/2/3`:
 ```
 cd talos/pitower
-just config && just patch          # regenerate machine configs from the patch
-just apply-controlplanes           # applies worker-0{1,2,3}.yaml to .1/.2/.3
+mise exec -- topf apply --nodes-filter 'worker-0[123]'
 ```
+(At the time this was `just config && just patch && just apply-controlplanes`, before the move to topf.)
 `apply-config` rolls the **scheduler/CM static pods** (kubelet picks up the manifest
 change) but does NOT cycle the Talos-managed **etcd** service. etcd `extraArgs`
 (listen-metrics-urls) only take effect on a **node reboot** — `service etcd restart`

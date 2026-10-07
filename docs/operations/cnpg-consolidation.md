@@ -9,14 +9,16 @@ How 21 single-purpose PostgreSQL clusters became 3, over 2026-07-28 and
 procedure that moved each database, the exact commands, the traps that cost
 time, and what is still outstanding.
 
-!!! info "Scope of this document"
-    Everything here is reconstructed from the git history, the live cluster and
-    the working notes taken during the migration. The shell commands used for
-    the final batch (forgejo, propagit, rybbit) are reproduced verbatim. The
-    commands for the earlier batches are reproduced from the working notes
-    written at the time -- they are accurate as procedure, but were run as
-    ad-hoc one-liners and were never committed, so they are not recoverable
-    byte-for-byte from the repository.
+> [!NOTE]
+> **Scope of this document**
+>
+> Everything here is reconstructed from the git history, the live cluster and
+> the working notes taken during the migration. The shell commands used for
+> the final batch (forgejo, propagit, rybbit) are reproduced verbatim. The
+> commands for the earlier batches are reproduced from the working notes
+> written at the time -- they are accurate as procedure, but were run as
+> ad-hoc one-liners and were never committed, so they are not recoverable
+> byte-for-byte from the repository.
 
 ## Summary
 
@@ -105,17 +107,19 @@ Starting estate, 2026-07-28 07:03 -- 19 single-database clusters in
 | mattermost | `cloudnative-pg` | 16 | -- | **deleted**, 21 MB, no consumer |
 | temporal | `cloudnative-pg` | 17 | -- | **deleted**, unused |
 
-!!! warning "forgejo, propagit and rybbit moved twice"
-    On 2026-07-28 these three were given **dedicated** clusters in `database`,
-    on the reasoning that forgejo's loss would cost source history and the
-    other two were small enough to ride along. On 2026-07-29 that decision was
-    reversed and all three became `shared` tenants, for uniform database
-    management. The intermediate hop is why `components/cnpg-db-database`
-    exists and why these three have two migration cycles in the timeline.
-
-    The reversal is sound -- forgejo's git objects live on a PVC, not in
-    Postgres -- but it did mean paying the migration cost twice. If the
-    allocation had been settled first, one hop would have done.
+> [!WARNING]
+> **forgejo, propagit and rybbit moved twice**
+>
+> On 2026-07-28 these three were given **dedicated** clusters in `database`,
+> on the reasoning that forgejo's loss would cost source history and the
+> other two were small enough to ride along. On 2026-07-29 that decision was
+> reversed and all three became `shared` tenants, for uniform database
+> management. The intermediate hop is why `components/cnpg-db-database`
+> exists and why these three have two migration cycles in the timeline.
+>
+> The reversal is sound -- forgejo's git objects live on a PVC, not in
+> Postgres -- but it did mean paying the migration cost twice. If the
+> allocation had been settled first, one hop would have done.
 
 ## Target architecture
 
@@ -157,16 +161,18 @@ Both are consumed identically by the app -- they emit the same
 `DB_HOST`/`DB_PORT`/`DB_USER`/`DB_PASS`/`DB_NAME`/`DB_URL` Secret -- so flipping
 an app between them is a two-line kustomization change.
 
-!!! note "`cnpg-db-database` has since been deleted"
-    It was written for the dedicated-cluster detour, and its last three
-    consumers left on 2026-07-29, taking it to zero. immich, the only app still
-    reading a CNPG-generated secret, does it with an inline ExternalSecret
-    against the `cnpg-secrets-database` store rather than through a component,
-    so nothing was left to serve. Removed 2026-07-29; the table above is
-    kept because it explains why two components existed during the migration.
-
-    `cnpg-db-shared`, with 16 app consumers, is now the only CNPG consumer
-    component.
+> [!NOTE]
+> **`cnpg-db-database` has since been deleted**
+>
+> It was written for the dedicated-cluster detour, and its last three
+> consumers left on 2026-07-29, taking it to zero. immich, the only app still
+> reading a CNPG-generated secret, does it with an inline ExternalSecret
+> against the `cnpg-secrets-database` store rather than through a component,
+> so nothing was left to serve. Removed 2026-07-29; the table above is
+> kept because it explains why two components existed during the migration.
+>
+> `cnpg-db-shared`, with 16 app consumers, is now the only CNPG consumer
+> component.
 
 ### Backups
 

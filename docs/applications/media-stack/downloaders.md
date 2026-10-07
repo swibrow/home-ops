@@ -4,7 +4,7 @@ title: Downloaders
 
 # Downloaders
 
-The media stack uses two download clients: **qBittorrent** for torrents and **SABnzbd** for Usenet. Both are managed by Sonarr and Radarr and download to the shared Synology NAS.
+The media stack uses two download clients: **qBittorrent** for torrents and **SABnzbd** for Usenet. Both are driven by Sonarr and Radarr, run on worker-07 (`wibrow.dev/compute: "true"`), and keep their config on a PVC from the `pvc` component, backed up hourly by `kopiur`.
 
 ## qBittorrent
 
@@ -14,10 +14,10 @@ The media stack uses two download clients: **qBittorrent** for torrents and **SA
 
 | Setting | Value |
 |:--------|:------|
-| **Image** | `ghcr.io/home-operations/qbittorrent:5.1.4` |
+| **Image** | `ghcr.io/home-operations/qbittorrent` |
 | **Port** | 8080 (WebUI) |
 | **Gateway** | `envoy-internal` |
-| **URL** | `qbittorrent.example.com` |
+| **URL** | `qbittorrent.wibrow.dev` |
 
 ### Configuration
 
@@ -51,8 +51,10 @@ persistence:
         subPath: downloads/qbittorrent
 ```
 
-!!! tip "Download Path"
-    qBittorrent downloads to `/data/nas-media/downloads/qbittorrent` on the NAS. Sonarr and Radarr see the same NFS mount at `/data/nas-media`, which allows them to hardlink or move completed downloads into the organized library folders without duplicating data.
+> [!TIP]
+> **Download Path**
+>
+> qBittorrent downloads to `/data/nas-media/downloads/qbittorrent` on the NAS. Sonarr and Radarr see the same NFS mount at `/data/nas-media`, which allows them to hardlink or move completed downloads into the organized library folders without duplicating data.
 
 ### Security Context
 
@@ -81,8 +83,10 @@ resources:
     memory: 8192Mi
 ```
 
-!!! note "Memory Limit"
-    The 8 GiB memory limit accommodates qBittorrent's in-memory torrent state, which can grow significantly with large numbers of active torrents.
+> [!NOTE]
+> **Memory Limit**
+>
+> The 8 GiB memory limit accommodates qBittorrent's in-memory torrent state, which can grow significantly with large numbers of active torrents.
 
 ---
 
@@ -94,11 +98,11 @@ resources:
 
 | Setting | Value |
 |:--------|:------|
-| **Image** | `ghcr.io/home-operations/sabnzbd:4.5.5` |
+| **Image** | `ghcr.io/home-operations/sabnzbd` |
 | **Port** | 8080 (WebUI) |
 | **Gateway** | `envoy-internal` |
-| **URL** | `sabnzbd.example.com` |
-| **Node Selector** | `kubernetes.io/arch: amd64` |
+| **URL** | `sabnzbd.wibrow.dev` |
+| **Node Selector** | `kubernetes.io/arch: amd64`, `wibrow.dev/compute: "true"` |
 
 ### Configuration
 
@@ -111,11 +115,13 @@ env:
     sabnzbd.downloads.svc,
     sabnzbd.downloads.svc.cluster,
     sabnzbd.downloads.svc.cluster.local,
-    sabnzbd.example.com
+    sabnzbd.wibrow.dev
 ```
 
-!!! info "Host Whitelist"
-    SABnzbd requires explicit host whitelist entries to allow connections from Kubernetes service names and the external hostname. Without these entries, SABnzbd rejects requests from Sonarr/Radarr and the Envoy Gateway.
+> [!NOTE]
+> **Host Whitelist**
+>
+> SABnzbd requires explicit host whitelist entries to allow connections from Kubernetes service names and the external hostname. Without these entries, SABnzbd rejects requests from Sonarr/Radarr and the Envoy Gateway.
 
 ### Storage
 
@@ -123,7 +129,7 @@ env:
 |:------|:-------|:--------|
 | `/config` | PVC `sabnzbd-config` | SABnzbd configuration |
 | `/data/nas-media` | NFS `data:/volume1/media` | Media library (for post-processing) |
-| `/downloads` | PVC `sabnzbd-downloads` | Active download staging area |
+| `/downloads` | PVC `sabnzbd-downloads` (50Gi, `openebs-hostpath-fast`) | Active download staging area |
 | `/tmp` | `emptyDir` | Temporary files |
 
 ```yaml title="Storage mounts"
@@ -142,7 +148,7 @@ persistence:
 
 ### Security Context
 
-SABnzbd runs as UID/GID 568 with a read-only root filesystem and all capabilities dropped.
+SABnzbd runs as UID/GID 2000 with a read-only root filesystem and all capabilities dropped.
 
 ---
 
@@ -170,5 +176,7 @@ sequenceDiagram
     S->>N: Import & rename to /library/
 ```
 
-!!! warning "Path Mapping"
-    If the download client and *arr app see different filesystem paths for the same data, hardlinking will fail and files will be copied instead, doubling disk usage. The shared NFS mount at `/data/nas-media` avoids this problem.
+> [!WARNING]
+> **Path Mapping**
+>
+> If the download client and *arr app see different filesystem paths for the same data, hardlinking will fail and files will be copied instead, doubling disk usage. The shared NFS mount at `/data/nas-media` avoids this problem.

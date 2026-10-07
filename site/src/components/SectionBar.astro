@@ -1,0 +1,26 @@
+---
+import { sections, type NavSection } from "../nav.ts";
+import { docHref } from "../lib/slug.ts";
+
+interface Props {
+  current?: NavSection;
+}
+
+const { current } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+---
+
+<nav class="section-bar" aria-label="Sections">
+  <ul>
+    {
+      sections.map((s) => (
+        <li>
+          <a href={docHref(base, s.id)} aria-current={s === current ? "true" : undefined}>
+            <span class="led" aria-hidden="true" />
+            {s.label}
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</nav>
