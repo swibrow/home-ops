@@ -1,0 +1,151 @@
+---
+# Fine-tune on the data already copied to the ai-training PVC, report to MLflow
+# (experiment = name) and publish the adapter to s3://models/<name>/<version>/.
+#   argo -n ai submit --from workflowtemplate/train -p version=v2
+# A version is never overwritten: Garage has no object versioning, so the check
+# step fails the run before any GPU time is spent.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/argoproj.io/workflowtemplate_v1alpha1.json
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: train
+spec:
+  entrypoint: main
+  serviceAccountName: argo-workflow
+  podGC:
+    strategy: OnPodSuccess
+  ttlStrategy:
+    secondsAfterCompletion: 604800
+  arguments:
+    parameters:
+      - name: version
+      - name: name
+        value: style-gemma-4-12b-lora
+      - name: model
+        value: google/gemma-4-12B-it
+      - name: data
+        value: data
+      - name: epochs
+        value: "1"
+      - name: rank
+        value: "16"
+      - name: lr
+        value: "2e-4"
+  volumes:
+    - name: work
+      persistentVolumeClaim:
+        claimName: ai-training
+    - name: code
+      configMap:
+        name: ai-training-code
+    - name: shm
+      emptyDir:
+        medium: Memory
+        sizeLimit: 8Gi
+  # The PVC is a hostpath on ai-01, so every step that mounts it runs there.
+  nodeSelector:
+    kubernetes.io/hostname: worker-ai-01
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: gpu
+      effect: NoSchedule
+  templates:
+    - name: main
+      steps:
+        - - name: check
+            template: check
+        - - name: train
+            template: train
+        - - name: publish
+            template: publish
+
+    - name: check
+      container:
+        image: docker.io/amazon/aws-cli:2.37.10
+        command: [sh, -c]
+        args:
+          - |
+            set -eu
+            if aws s3 ls "$DEST/" | grep -q .; then
+              echo "$DEST already exists" >&2
+              exit 1
+            fi
+        env: &awsEnv
+          - name: AWS_ENDPOINT_URL
+            value: https://s3.wibrow.dev
+          - name: DEST
+            value: s3://models/{{workflow.parameters.name}}/{{workflow.parameters.version}}
+        envFrom:
+          - secretRef:
+              name: mlflow-s3-secret
+
+    - name: train
+      podSpecPatch: |
+        resourceClaims:
+          - name: gpu
+            resourceClaimTemplateName: ai-training-gpu
+      container:
+        image: docker.io/unsloth/unsloth:core-nightly-2026.10.04
+        command: [sh, -c]
+        # Pinned to the tracking server's version; the image ships without mlflow.
+        args:
+          - |
+            set -eu
+            pip install --quiet mlflow-skinny==3.14.0
+            python /code/train.py \
+              --model "{{workflow.parameters.model}}" \
+              --data "{{workflow.parameters.data}}" \
+              --out "outputs/{{workflow.name}}" \
+              --epochs "{{workflow.parameters.epochs}}" \
+              --rank "{{workflow.parameters.rank}}" \
+              --lr "{{workflow.parameters.lr}}"
+        workingDir: /workspace
+        env:
+          - name: HF_HOME
+            value: /workspace/hf
+          - name: MLFLOW_TRACKING_URI
+            value: http://mlflow.ai.svc:5000
+          - name: MLFLOW_EXPERIMENT_NAME
+            value: "{{workflow.parameters.name}}"
+          - name: MLFLOW_TAGS
+            value: >-
+              {"mlflow.runName": "{{workflow.parameters.version}}",
+              "argo_workflow": "{{workflow.name}}",
+              "model_uri": "s3://models/{{workflow.parameters.name}}/{{workflow.parameters.version}}"}
+        resources:
+          claims:
+            - name: gpu
+          requests:
+            cpu: "2"
+            memory: 16Gi
+          limits:
+            memory: 40Gi
+        volumeMounts:
+          - name: work
+            mountPath: /workspace
+          - name: code
+            mountPath: /code
+          - name: shm
+            mountPath: /dev/shm
+
+    - name: publish
+      container:
+        image: docker.io/amazon/aws-cli:2.37.10
+        command: [sh, -c]
+        args:
+          - |
+            set -eu
+            OUT="/workspace/outputs/{{workflow.name}}"
+            aws s3 cp --recursive --only-show-errors "$OUT/lora/" "$DEST/"
+            last=$(ls -d "$OUT"/checkpoints/checkpoint-* | sort -V | tail -1)
+            aws s3 cp --only-show-errors "$last/trainer_state.json" "$DEST/trainer_state.json"
+            aws s3 ls --recursive --human-readable "$DEST/"
+        env: *awsEnv
+        envFrom:
+          - secretRef:
+              name: mlflow-s3-secret
+        volumeMounts:
+          - name: work
+            mountPath: /workspace
+            readOnly: true
