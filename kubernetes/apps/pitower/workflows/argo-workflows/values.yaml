@@ -1,10 +1,12 @@
-singleNamespace: true
-
 workflow:
   serviceAccount:
     create: true
 
 controller:
+  # ai runs the train WorkflowTemplate next to the ai-training PVC.
+  workflowNamespaces:
+    - workflows
+    - ai
   resources:
     requests:
       cpu: 10m

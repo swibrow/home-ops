@@ -1,0 +1,29 @@
+---
+# Argo Workflows UI users (workflows/argo-workflows rbac-sso.yaml) act as this
+# service account: argo-workflows-edit to submit and manage the train runs,
+# view for their pods and logs. Neither grants Secrets.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: argo-workflows-sso-admin-edit
+subjects:
+  - kind: ServiceAccount
+    name: argo-workflows-sso-admin
+    namespace: workflows
+roleRef:
+  kind: ClusterRole
+  name: argo-workflows-edit
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: argo-workflows-sso-admin-view
+subjects:
+  - kind: ServiceAccount
+    name: argo-workflows-sso-admin
+    namespace: workflows
+roleRef:
+  kind: ClusterRole
+  name: view
+  apiGroup: rbac.authorization.k8s.io
