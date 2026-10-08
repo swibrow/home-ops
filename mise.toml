@@ -1,7 +1,7 @@
 [tools]
 talosctl = "1.14.2"
 kubectl = "1.37.1"
-kustomize = "5.8.2"
+kustomize = "5.8.3"
 helm = "4.3.0"
 sops = "3.13.3"
 jq = "1.8.2"
