@@ -12,7 +12,7 @@ commonAnnotations:
 helmCharts:
   - name: llmkube
     repo: oci://ghcr.io/defilantech/charts
-    version: 0.10.1
+    version: 0.10.2
     releaseName: llmkube
     namespace: ai
     valuesFile: values.yaml
