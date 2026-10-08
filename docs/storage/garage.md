@@ -77,6 +77,7 @@ directory and the node comes back as the same node with the same layout.
 |---|---|---|
 | `kopiur` | `kopiur` | kopiur ClusterRepository `garage` (app PVC snapshots) |
 | `cnpg` | `cnpg` | CNPG ObjectStore `garage` (base backups and WAL) |
+| `models` | `models` | MLflow artifacts under `mlflow/` (`ai/mlflow`), trained model files elsewhere; key in Infisical `/ai/models/` |
 | `garage` | `garage-admin` | Ad-hoc use |
 
 Each key is scoped to its bucket and cannot create others.
