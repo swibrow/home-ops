@@ -67,7 +67,10 @@ spec:
         args:
           - |
             set -eu
-            if aws s3 ls "$DEST/" | grep -q .; then
+            n=$(aws s3api list-objects-v2 --no-paginate --bucket models \
+              --prefix "{{workflow.parameters.name}}/{{workflow.parameters.version}}/" \
+              --max-keys 1 --query KeyCount --output text)
+            if [ "$n" != "0" ]; then
               echo "$DEST already exists" >&2
               exit 1
             fi
