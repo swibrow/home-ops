@@ -217,6 +217,23 @@ spec:
       - field: model
         expression: '"qwen38-flash-next-uncensored"'
 ---
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayModel
+metadata:
+  name: style-gemma4-local
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: agentgateway
+      sectionName: http
+  provider: OpenAI
+  baseURL: http://style-gemma4-scaled.ai.svc.cluster.local:8080/v1
+  policies:
+    transformations:
+      - field: model
+        expression: '"style-gemma4"'
+---
 # Strata (apps/pitower/ai/strata) runs its refusal-direction projection by
 # default; strata sends experimental_speed_projection=false to switch it off
 # per request, so both names share one pod.

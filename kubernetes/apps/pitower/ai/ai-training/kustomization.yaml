@@ -15,3 +15,4 @@ configMapGenerator:
       disableNameSuffixHash: true
     files:
       - train.py
+      - export.py
