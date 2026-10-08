@@ -2,7 +2,11 @@
 # Fine-tune on the data already copied to the ai-training PVC, report to MLflow
 # (experiment = name) and publish the adapter to s3://models/<name>/<version>/.
 #   argo -n ai submit --from workflowtemplate/train -p version=v2
-# A version is never overwritten: Garage has no object versioning, so the check
+# -p gguf=true also merges the adapter into the base model and publishes a
+# llama.cpp GGUF (plus the base's vision mmproj) under <version>/gguf/, which
+# llmkube serves from s3://. For a version that is already published:
+#   argo -n ai submit --from workflowtemplate/train --entrypoint gguf -p version=v2
+# Nothing is ever overwritten: Garage has no object versioning, so the check
 # step fails the run before any GPU time is spent.
 # yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/argoproj.io/workflowtemplate_v1alpha1.json
 apiVersion: argoproj.io/v1alpha1
@@ -31,6 +35,10 @@ spec:
         value: "16"
       - name: lr
         value: "2e-4"
+      - name: gguf
+        value: "false"
+      - name: quant
+        value: q4_k_m
   volumes:
     - name: work
       persistentVolumeClaim:
@@ -55,12 +63,48 @@ spec:
       steps:
         - - name: check
             template: check
+            arguments:
+              parameters:
+                - name: prefix
+                  value: "{{workflow.parameters.version}}/"
         - - name: train
             template: train
         - - name: publish
             template: publish
+        - - name: export
+            template: export
+            when: "{{workflow.parameters.gguf}} == true"
+            arguments:
+              parameters:
+                - name: adapter
+                  value: outputs/{{workflow.name}}/lora
+        - - name: publish-gguf
+            template: publish-gguf
+            when: "{{workflow.parameters.gguf}} == true"
+
+    - name: gguf
+      steps:
+        - - name: check
+            template: check
+            arguments:
+              parameters:
+                - name: prefix
+                  value: "{{workflow.parameters.version}}/gguf/"
+        - - name: fetch
+            template: fetch
+        - - name: export
+            template: export
+            arguments:
+              parameters:
+                - name: adapter
+                  value: outputs/{{workflow.name}}/lora
+        - - name: publish-gguf
+            template: publish-gguf
 
     - name: check
+      inputs:
+        parameters:
+          - name: prefix
       container:
         image: docker.io/amazon/aws-cli:2.37.10
         command: [sh, -c]
@@ -68,10 +112,10 @@ spec:
           - |
             set -eu
             n=$(aws s3api list-objects-v2 --no-paginate --bucket models \
-              --prefix "{{workflow.parameters.name}}/{{workflow.parameters.version}}/" \
+              --prefix "{{workflow.parameters.name}}/{{inputs.parameters.prefix}}" \
               --max-keys 1 --query KeyCount --output text)
             if [ "$n" != "0" ]; then
-              echo "$DEST already exists" >&2
+              echo "s3://models/{{workflow.parameters.name}}/{{inputs.parameters.prefix}} already exists" >&2
               exit 1
             fi
         env: &awsEnv
@@ -84,7 +128,7 @@ spec:
               name: mlflow-s3-secret
 
     - name: train
-      podSpecPatch: |
+      podSpecPatch: &gpu |
         resourceClaims:
           - name: gpu
             resourceClaimTemplateName: ai-training-gpu
@@ -116,7 +160,7 @@ spec:
               {"mlflow.runName": "{{workflow.parameters.version}}",
               "argo_workflow": "{{workflow.name}}",
               "model_uri": "s3://models/{{workflow.parameters.name}}/{{workflow.parameters.version}}"}
-        resources:
+        resources: &gpuResources
           claims:
             - name: gpu
           requests:
@@ -124,7 +168,7 @@ spec:
             memory: 16Gi
           limits:
             memory: 40Gi
-        volumeMounts:
+        volumeMounts: &gpuMounts
           - name: work
             mountPath: /workspace
           - name: code
@@ -152,3 +196,64 @@ spec:
           - name: work
             mountPath: /workspace
             readOnly: true
+
+    - name: fetch
+      container:
+        image: docker.io/amazon/aws-cli:2.37.10
+        command: [sh, -c]
+        args:
+          - |
+            set -eu
+            aws s3 cp --recursive --only-show-errors --exclude "gguf/*" \
+              "$DEST/" "/workspace/outputs/{{workflow.name}}/lora/"
+        env: *awsEnv
+        envFrom:
+          - secretRef:
+              name: mlflow-s3-secret
+        volumeMounts:
+          - name: work
+            mountPath: /workspace
+
+    # Merging writes the base model at 16 bit next to a BF16 GGUF before
+    # quantizing (~46GB at peak for 12B), so publish-gguf removes them after.
+    - name: export
+      inputs:
+        parameters:
+          - name: adapter
+      podSpecPatch: *gpu
+      container:
+        image: docker.io/unsloth/unsloth:core-nightly-2026.10.04
+        command: [python, /code/export.py]
+        args:
+          - --adapter
+          - "{{inputs.parameters.adapter}}"
+          - --out
+          - outputs/{{workflow.name}}/gguf
+          - --quant
+          - "{{workflow.parameters.quant}}"
+        workingDir: /workspace
+        env:
+          - name: HF_HOME
+            value: /workspace/hf
+        resources: *gpuResources
+        volumeMounts: *gpuMounts
+
+    - name: publish-gguf
+      container:
+        image: docker.io/amazon/aws-cli:2.37.10
+        command: [sh, -c]
+        args:
+          - |
+            set -eu
+            OUT="/workspace/outputs/{{workflow.name}}"
+            aws s3 cp --recursive --only-show-errors --exclude "*" --include "*.gguf" \
+              "$OUT/gguf_gguf/" "$DEST/gguf/"
+            aws s3 ls --human-readable "$DEST/gguf/"
+            rm -rf "$OUT/gguf" "$OUT/gguf_gguf"
+        env: *awsEnv
+        envFrom:
+          - secretRef:
+              name: mlflow-s3-secret
+        volumeMounts:
+          - name: work
+            mountPath: /workspace

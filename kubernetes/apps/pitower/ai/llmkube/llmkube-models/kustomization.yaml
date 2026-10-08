@@ -11,6 +11,7 @@ commonAnnotations:
 resources:
   - resourceclaimtemplate.yaml
   - externalsecret-huggingface.yaml
+  - externalsecret-models.yaml
   - qwen38-27b.yaml
   - qwen38-27b-autoscale.yaml
   - qwen38-flash-next.yaml
@@ -18,3 +19,5 @@ resources:
   - qwen38-flash-next-uncensored.yaml
   - qwen38-flash-next-uncensored-autoscale.yaml
   - qwen3-embedding.yaml
+  - style-gemma4.yaml
+  - style-gemma4-autoscale.yaml

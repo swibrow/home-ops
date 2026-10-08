@@ -1,0 +1,62 @@
+---
+# Own fine-tune: the style LoRA from ai/ai-training merged into Gemma 4 12B and
+# exported by the train WorkflowTemplate's gguf step. Ship a new version by
+# pointing source at its <version>/gguf/ prefix; the operator re-stages on a
+# source change.
+#
+#   Q4_K_M weights      ~7.4 GB
+#   mmproj (BF16)       ~0.2 GB  base model's vision projector, untouched by the LoRA
+#   KV cache 32K @q8_0  + compute buffers - comfortably inside the 3090 Ti's 24GB
+apiVersion: inference.llmkube.dev/v1alpha1
+kind: Model
+metadata:
+  name: style-gemma4
+spec:
+  source: s3://models/style-gemma-4-12b-lora/v2/gguf
+  sourceSecretRef:
+    name: garage-models
+  files:
+    - gemma-4-12B-it.Q4_K_M.gguf
+  mmproj: gemma-4-12B-it.BF16-mmproj.gguf
+  format: gguf
+  quantization: Q4_K_M
+  hardware:
+    accelerator: cuda
+    gpu:
+      enabled: true
+      vendor: nvidia
+      resourceClaims:
+        - name: gpu
+          resourceClaimTemplateName: llmkube-gpu
+      layers: -1
+  resources:
+    cpu: "2"
+    memory: "4Gi"
+---
+apiVersion: inference.llmkube.dev/v1alpha1
+kind: InferenceService
+metadata:
+  name: style-gemma4
+spec:
+  modelRef: style-gemma4
+  runtime: llamacpp
+  # replicas unset: KEDA owns it (style-gemma4-autoscale.yaml).
+  endpoint:
+    port: 8080
+    type: ClusterIP
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: gpu
+      effect: NoSchedule
+  nodeSelector:
+    feature.node.kubernetes.io/nvidia-gpu: "true"
+  resources:
+    cpu: "4"
+    memory: "8Gi"
+  contextSize: 32768
+  parallelSlots: 1
+  flashAttention: true
+  cacheTypeK: q8_0
+  cacheTypeV: q8_0
+  jinja: true

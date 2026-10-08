@@ -1,0 +1,50 @@
+---
+# Scale-to-zero on the shared GPU, same as qwen38-27b-autoscale.yaml (see there
+# for the interceptor alias and why KEDA targets the InferenceService).
+apiVersion: v1
+kind: Service
+metadata:
+  name: style-gemma4-scaled
+spec:
+  type: ExternalName
+  externalName: keda-add-ons-http-interceptor-proxy.system.svc.cluster.local
+---
+apiVersion: http.keda.sh/v1beta1
+kind: InterceptorRoute
+metadata:
+  name: style-gemma4
+spec:
+  target:
+    service: style-gemma4
+    port: 8080
+  rules:
+    - hosts:
+        - style-gemma4-scaled.ai.svc.cluster.local
+        - style-gemma4-scaled.ai.svc.cluster.local:8080
+        - style-gemma4-scaled.ai
+        - style-gemma4-scaled
+  scalingMetric:
+    concurrency:
+      targetValue: 1
+  timeouts:
+    readiness: 300s
+    responseHeader: 300s
+    request: 0s
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: style-gemma4
+spec:
+  scaleTargetRef:
+    name: style-gemma4
+    kind: InferenceService
+    apiVersion: inference.llmkube.dev/v1alpha1
+  minReplicaCount: 0
+  maxReplicaCount: 1
+  cooldownPeriod: 900
+  triggers:
+    - type: external-push
+      metadata:
+        scalerAddress: keda-add-ons-http-external-scaler.system:9090
+        interceptorRoute: style-gemma4
