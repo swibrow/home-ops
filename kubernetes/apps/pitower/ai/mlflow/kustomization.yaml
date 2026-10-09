@@ -1,11 +1,10 @@
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
 #
-# Trial deployment evaluating MLflow as a Claude Code tracing backend, in
-# place of Phoenix. See reference_phoenix_claude_code_tracing memory for why:
-# Phoenix's coding-harness-tracing plugin collapses every repo into one
-# project, while MLflow's official claude-code plugin resolves the experiment
-# per-project from .claude/settings.json.
+# Tracking for the ai-training fine-tunes (docs/applications/model-training.md)
+# and the Claude Code tracing backend. It replaced Phoenix, whose tracing plugin
+# collapses every repo into one project, while MLflow's claude-code plugin
+# resolves the experiment per-project from .claude/settings.json.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: ai
