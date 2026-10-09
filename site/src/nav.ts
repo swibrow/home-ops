@@ -114,6 +114,7 @@ export const sections: NavSection[] = [
       },
       { label: "Self-Hosted", id: "applications/selfhosted" },
       { label: "Databases", id: "applications/databases" },
+      { label: "Model Training", id: "applications/model-training" },
     ],
   },
   {
