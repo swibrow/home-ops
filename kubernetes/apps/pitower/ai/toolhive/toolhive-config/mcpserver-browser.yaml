@@ -13,7 +13,7 @@ metadata:
   # MCPServer, and apps/pitower/ai/playwright already owns that name here.
   name: browser
 spec:
-  image: mcr.microsoft.com/playwright/mcp:v0.0.82
+  image: mcr.microsoft.com/playwright/mcp:v0.0.83
   transport: streamable-http
   # The image's entrypoint already runs `--headless --browser chromium
   # --no-sandbox`; these add the HTTP listener. --allowed-hosts '*' because the
