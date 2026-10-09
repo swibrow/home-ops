@@ -41,7 +41,7 @@ spec:
               while true; do
                 driver=$(basename "$(readlink "/sys/bus/pci/devices/$GPU_PCI_ADDRESS/driver")")
                 if [ "$driver" = nvidia ] && [ -z "$applied" ]; then
-                  nvidia-smi -pm 1 && nvidia-smi -pl "$POWER_LIMIT_WATTS" && applied=1
+                  nvidia-smi -i "$GPU_PCI_ADDRESS" -pm 1 && nvidia-smi -i "$GPU_PCI_ADDRESS" -pl "$POWER_LIMIT_WATTS" && applied=1
                 elif [ "$driver" != nvidia ]; then
                   applied=""
                 fi
