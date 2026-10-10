@@ -87,6 +87,27 @@ helmCharts:
       template:
         spec:
           serviceAccountName: cloudsnacks-runners
+          # No memory limit: Go builds with -race and the custom golangci-lint
+          # build OOM at the base 4Gi. The full container is repeated because
+          # valuesMerge replaces the list.
+          containers:
+            - name: runner
+              image: ghcr.io/actions/actions-runner:2.338.0
+              command: ["/home/runner/run.sh"]
+              env:
+                - name: DOCKER_HOST
+                  value: unix:///var/run/docker.sock
+                - name: RUNNER_WAIT_FOR_DOCKER_IN_SECONDS
+                  value: "120"
+              resources:
+                requests:
+                  cpu: 250m
+                  memory: 1Gi
+              volumeMounts:
+                - name: work
+                  mountPath: /home/runner/_work
+                - name: dind-sock
+                  mountPath: /var/run
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.15.0
