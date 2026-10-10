@@ -127,6 +127,7 @@ export const sections: NavSection[] = [
       { label: "CNPG Consolidation", id: "operations/cnpg-consolidation" },
       { label: "Agent Sandbox v1 Upgrade", id: "operations/agent-sandbox-v1-upgrade" },
       { label: "Grafana Dashboard Data Audit", id: "operations/grafana-dashboard-data-audit" },
+      { label: "GPU Benchmarks", id: "operations/gpu-benchmarks" },
     ],
   },
   {
