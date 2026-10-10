@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # Upstream publishes no image. Built from a pinned commit of main: the PyPI
 # 0.1.0 release predates strands-decider-2B-qwen3.5-v1-2610.
-FROM docker.io/library/python:3.14-slim
+FROM docker.io/library/python:3.12-slim
 
 ARG STRANDS_DECIDER_VERSION=0ac22a97e584f3ccf87cc9b8cc5fdbad57cdf534
 
