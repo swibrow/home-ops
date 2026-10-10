@@ -1,4 +1,6 @@
 ---
+# spec is immutable and Argo's server-side diff fails on a change before
+# any sync option applies: delete the template by hand and let Argo recreate it.
 # One whole RTX 3090 Ti per inference pod, through the NVIDIA DRA driver
 # (system/dra-driver-nvidia-gpu). Referenced from each GPU Model's
 # hardware.gpu.resourceClaims; the claim is created per pod and released with it.
@@ -6,9 +8,6 @@ apiVersion: resource.k8s.io/v1
 kind: ResourceClaimTemplate
 metadata:
   name: llmkube-gpu
-  annotations:
-    # spec is immutable; Argo recreates the template on a change instead.
-    argocd.argoproj.io/sync-options: Replace=true
 spec:
   spec:
     devices:

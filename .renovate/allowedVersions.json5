@@ -39,5 +39,12 @@
       matchPackageNames: ["python"],
       allowedVersions: "<3.13",
     },
+    {
+      // strands-decider is tested on 3.12 with torch==2.7.1, which has no 3.14 wheels.
+      matchDatasources: ["docker"],
+      matchFileNames: ["docker/strands-decider/Dockerfile"],
+      matchPackageNames: ["python"],
+      allowedVersions: "<3.13",
+    },
   ],
 }

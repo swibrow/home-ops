@@ -1,4 +1,6 @@
 ---
+# spec is immutable and Argo's server-side diff fails on a change before
+# any sync option applies: delete the template by hand and let Argo recreate it.
 # The whole RTX 3090 Ti on vfio-pci, through the NVIDIA DRA driver's passthrough
 # class (system/dra-driver-nvidia-gpu). Nothing stops the llmkube GPU models
 # and comfyui claiming the same card; see the VM's runStrategy.
@@ -6,9 +8,6 @@ apiVersion: resource.k8s.io/v1
 kind: ResourceClaimTemplate
 metadata:
   name: omarchy-vfio
-  annotations:
-    # spec is immutable; Argo recreates the template on a change instead.
-    argocd.argoproj.io/sync-options: Replace=true
 spec:
   spec:
     devices:
