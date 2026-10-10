@@ -6,6 +6,9 @@ apiVersion: resource.k8s.io/v1
 kind: ResourceClaimTemplate
 metadata:
   name: llmkube-gpu
+  annotations:
+    # spec is immutable; Argo recreates the template on a change instead.
+    argocd.argoproj.io/sync-options: Replace=true
 spec:
   spec:
     devices:
@@ -15,3 +18,7 @@ spec:
             deviceClassName: gpu.nvidia.com
             allocationMode: ExactCount
             count: 1
+            # Keeps these off the RTX PRO 4000, which is reserved for one model.
+            selectors:
+              - cel:
+                  expression: device.attributes['gpu.nvidia.com'].productName == 'NVIDIA GeForce RTX 3090 Ti'

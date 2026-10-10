@@ -6,6 +6,9 @@ apiVersion: resource.k8s.io/v1
 kind: ResourceClaimTemplate
 metadata:
   name: omarchy-vfio
+  annotations:
+    # spec is immutable; Argo recreates the template on a change instead.
+    argocd.argoproj.io/sync-options: Replace=true
 spec:
   spec:
     devices:
@@ -15,6 +18,10 @@ spec:
             deviceClassName: vfio.gpu.nvidia.com
             allocationMode: ExactCount
             count: 1
+            # The RTX PRO 4000 publishes a vfio device too.
+            selectors:
+              - cel:
+                  expression: device.attributes['gpu.nvidia.com'].productName == 'GA102 [GeForce RTX 3090 Ti]'
       # libvirt only does legacy VFIO and refuses assignment without the
       # /dev/vfio/vfio container device, which the driver leaves out by default.
       config:
