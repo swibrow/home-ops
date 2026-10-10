@@ -1,0 +1,75 @@
+---
+# Huihui-Qwen3.8-27B-abliterated (huihui-ai, Apache 2.0): refusal-direction
+# abliteration of Qwen3.8-27B, layers 17-52 only; vision tower and MTP head
+# untouched. The UD files are requantised from unsloth/Qwen3.8-27B-GGUF, the
+# same source as qwen38-27b.
+#
+# Dedicated to the RTX PRO 4000 Blackwell (24 GB) through llmkube-gpu-pro4000,
+# so it is always on: no KEDA, and nothing else contends for the card.
+#
+#   UD-Q4_K_XL weights   ~17.4 GB
+#   mmproj (BF16)        ~0.9  GB  vision projector - image/video input
+#   KV cache 64K @q8_0   ~2    GB
+#   CUDA/compute buffers ~2-3  GB
+#                        -------
+#                        ~23 GB  of 23,987 MiB usable
+#
+# llama-bench on this card with the base UD-Q4_K_M (b11096, fa, q8_0 KV):
+# ~32 tok/s generation, ~1,250 tok/s prompt processing.
+apiVersion: inference.llmkube.dev/v1alpha1
+kind: Model
+metadata:
+  name: qwen38-27b-abliterated
+spec:
+  source: hf://huihui-ai/Huihui-Qwen3.8-27B-abliterated-GGUF
+  files:
+    - Huihui-Qwen3.8-27B-abliterated-UD-Q4_K_XL.gguf
+  mmproj: mmproj-model-bf16.gguf
+  format: gguf
+  quantization: Q4_K_XL
+  hardware:
+    accelerator: cuda
+    gpu:
+      enabled: true
+      vendor: nvidia
+      resourceClaims:
+        - name: gpu
+          resourceClaimTemplateName: llmkube-gpu-pro4000
+      layers: -1
+  # Downloader/staging init container.
+  resources:
+    cpu: "2"
+    memory: "4Gi"
+---
+apiVersion: inference.llmkube.dev/v1alpha1
+kind: InferenceService
+metadata:
+  name: qwen38-27b-abliterated
+spec:
+  modelRef: qwen38-27b-abliterated
+  runtime: llamacpp
+  # The build the PRO 4000 (sm_120) was benchmarked with; the operator default
+  # (b10068) is untested on Blackwell.
+  image: ghcr.io/ggml-org/llama.cpp:server-cuda-b11096
+  replicas: 1
+  endpoint:
+    port: 8080
+    type: ClusterIP
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: gpu
+      effect: NoSchedule
+  nodeSelector:
+    feature.node.kubernetes.io/nvidia-gpu: "true"
+  # Fully offloaded, so the CPU only feeds the GPU. Kept small because this pod
+  # never scales down and qwen38-flash-next needs 8 of ai-01's 16 cores.
+  resources:
+    cpu: "2"
+    memory: "8Gi"
+  contextSize: 65536
+  parallelSlots: 1
+  flashAttention: true
+  cacheTypeK: q8_0
+  cacheTypeV: q8_0
+  jinja: true
