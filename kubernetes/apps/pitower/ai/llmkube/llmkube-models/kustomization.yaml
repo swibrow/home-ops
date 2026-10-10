@@ -15,6 +15,7 @@ resources:
   - externalsecret-models.yaml
   - qwen38-27b.yaml
   - qwen38-27b-autoscale.yaml
+  - qwen38-27b-abliterated.yaml
   - qwen38-flash-next.yaml
   - qwen38-flash-next-autoscale.yaml
   - qwen38-flash-next-uncensored.yaml
