@@ -1,0 +1,100 @@
+---
+# strands-decider-2B-qwen3.5-v1-2610 (Apache 2.0, released 2026-10-09): a
+# typed decision model, not a chat model. A LoRA on Qwen3.5-2B-Base with the LM
+# head swapped for a pointer head, so it answers yes/no, choice and score
+# questions with a calibrated confidence via POST /v1/systemone, in a single
+# forward pass. Stock llama.cpp/vLLM cannot run the head, so this uses the
+# generic runtime with the upstream Python server (docker/strands-decider).
+#
+# No staging: the generic runtime skips the downloader init container, and a
+# bare HF repo source is marked Ready without a controller download. The server
+# pulls the adapter and the ~4.5 GB base into HF_HOME on the shared cache.
+apiVersion: inference.llmkube.dev/v1alpha1
+kind: Model
+metadata:
+  name: strands-decider
+spec:
+  source: StrandsAgents/strands-decider-2B-qwen3.5-v1-2610
+  format: custom
+  hardware:
+    accelerator: cuda
+    gpu:
+      enabled: true
+      vendor: nvidia
+      # Small enough (bf16 weights ~4.5 GB) to time-slice the 3090 Ti rather
+      # than take it whole: see resourceclaim-shared.yaml.
+      resourceClaims:
+        - name: gpu
+          resourceClaimName: gpu-shared
+---
+apiVersion: inference.llmkube.dev/v1alpha1
+kind: InferenceService
+metadata:
+  name: strands-decider
+spec:
+  modelRef: strands-decider
+  runtime: generic
+  image: ghcr.io/swibrow/strands-decider:0ac22a97e584f3ccf87cc9b8cc5fdbad57cdf534
+  # The server binds 127.0.0.1 by default and has no authentication; it stays
+  # behind a ClusterIP.
+  args:
+    - serve
+    - StrandsAgents/strands-decider-2B-qwen3.5-v1-2610
+    - --host
+    - 0.0.0.0
+    - --port
+    - "8080"
+    - --device
+    - cuda
+  # Triton compiles the DeltaNet kernels on the first request (~17s); keep them
+  # on the PVC so a scale-from-zero does not pay that again.
+  env:
+    - name: TRITON_CACHE_DIR
+      value: /cache/triton
+  # replicas unset: KEDA owns it (strands-decider-autoscale.yaml).
+  endpoint:
+    port: 8080
+    type: ClusterIP
+  # The operator adds no GPU toleration on the DRA path.
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: gpu
+      effect: NoSchedule
+  nodeSelector:
+    feature.node.kubernetes.io/nvidia-gpu: "true"
+  resources:
+    cpu: "2"
+    memory: "6Gi"
+  # llama.cpp pods regroup the shared volume to 102 on every start (see
+  # comfyui), so join that group to write the HF cache.
+  podSecurityContext:
+    fsGroup: 102
+    fsGroupChangePolicy: OnRootMismatch
+  extraVolumes:
+    - name: hf-cache
+      persistentVolumeClaim:
+        claimName: llmkube-model-cache
+  extraVolumeMounts:
+    - name: hf-cache
+      mountPath: /cache
+      subPath: strands-decider
+  probeOverrides:
+    # First start downloads the base model before the port opens.
+    startup:
+      httpGet:
+        path: /health
+        port: 8080
+      periodSeconds: 10
+      failureThreshold: 180
+    readiness:
+      httpGet:
+        path: /health
+        port: 8080
+      periodSeconds: 10
+    liveness:
+      httpGet:
+        path: /health
+        port: 8080
+      periodSeconds: 30
+      timeoutSeconds: 5

@@ -1,0 +1,25 @@
+---
+# The RTX 3090 Ti as one named claim that several pods reference, so they
+# time-slice the card instead of each taking it whole (a ResourceClaimTemplate
+# mints a claim per pod, and the driver allows one claim per GPU). There is no
+# VRAM isolation: everything on this claim must fit in 24 GB together.
+#
+# Exclusive with llmkube-gpu on the same card: while a pod holds this claim, a
+# templated claim cannot get the 3090 Ti, and the other way round. The omarchy
+# VM's vfio claim is a different device to the scheduler and is not kept off,
+# so consumers scale to zero to leave the card free.
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: gpu-shared
+spec:
+  devices:
+    requests:
+      - name: gpu
+        exactly:
+          deviceClassName: gpu.nvidia.com
+          allocationMode: ExactCount
+          count: 1
+          selectors:
+            - cel:
+                expression: device.attributes['gpu.nvidia.com'].productName == 'NVIDIA GeForce RTX 3090 Ti'
