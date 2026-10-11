@@ -203,6 +203,10 @@ data:
             icon: mdi-web
             href: https://browser-use.wibrow.dev
             description: AI browser automation
+        - VoiceStudio:
+            icon: mdi-microphone
+            href: https://voicestudio.wibrow.dev
+            description: Transcription, dictation and voice cloning
     - Analytics:
         - Rybbit:
             icon: mdi-chart-line
