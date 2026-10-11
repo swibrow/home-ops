@@ -4,5 +4,6 @@ kind: Kustomization
 namespace: herdr-sandbox
 resources:
   - externalsecret.yaml
+  - rbac.yaml
   - sandboxtemplate.yaml
   - warmpool.yaml
