@@ -28,7 +28,6 @@ extraArgs:
   - --crd-source-apiversion=externaldns.k8s.io/v1alpha1
   - --crd-source-kind=DNSEndpoint
   - --gateway-label-filter=external-dns.alpha.kubernetes.io/enabled=true
-  - --enable-legacy-annotation-prefix
 policy: sync
 sources:
   - crd
@@ -39,7 +38,6 @@ domainFilters: ["wibrow.dev", "propagit.dev", "cloudsnacks.dev"]
 | Setting | Purpose |
 |:--------|:--------|
 | `--gateway-label-filter` | Only HTTPRoutes on Gateways labelled `external-dns.alpha.kubernetes.io/enabled: "true"` are published (both `envoy-external` and `envoy-internal` carry it) |
-| `--enable-legacy-annotation-prefix` | Also reads annotations with the pre-v0.22.0 `external-dns.alpha.kubernetes.io/` prefix, a transition aid for the move to `external-dns.kubernetes.io/` |
 | `crd` source | DNSEndpoint resources for records not tied to a route |
 | `policy: sync` | Deletes records whose Kubernetes source is gone |
 
@@ -75,8 +73,6 @@ provider:
           secretKeyRef:
             name: external-dns-unifi-secret
             key: api-key
-extraArgs:
-  - --enable-legacy-annotation-prefix
 sources:
   - gateway-httproute
   - gateway-udproute

@@ -30,10 +30,6 @@ provider:
         port: http-webhook
       initialDelaySeconds: 10
       timeoutSeconds: 5
-extraArgs:
-  # Keeps alpha-prefixed annotations working while ArgoCD rolls the rename out
-  # app by app; drop once nothing in the cluster still carries the old prefix.
-  - --enable-legacy-annotation-prefix
 policy: sync
 sources:
   - gateway-httproute
