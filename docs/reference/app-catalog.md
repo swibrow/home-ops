@@ -44,14 +44,14 @@ Catalog of every application in `kubernetes/apps/pitower/`, organized by categor
 |:-----|:------|:--------|:----|:------------|
 | agent-sandbox | manifests | -- | -- | Kubernetes `agent-sandbox` controller and CRDs (vendored release) |
 | agentgateway | agentgateway | internal | `llm.wibrow.dev`, `agentgateway.wibrow.dev` | LLM gateway: one OpenAI-compatible endpoint for local and hosted models |
-| ai-training | manifests | -- | -- | Standing PVC and GPU claim template for fine-tuning runs |
+| ai-training | manifests | -- | -- | Fine-tuning `train` WorkflowTemplate, its PVC and GPU claim ([Model Training](../applications/model-training.md)) |
 | browser-use | app-template | internal | `browser-use.wibrow.dev`, `browser-vnc.wibrow.dev` | Browser automation agent with VNC view |
 | comfyui | app-template | internal | `comfyui.wibrow.dev` | Node-based image generation UI |
 | hermes | app-template | internal | `hermes.wibrow.dev`, `hermes-code.wibrow.dev` | Hermes Agent, config managed from this repo |
 | iris | app-template | internal | `iris.wibrow.dev`, `iris-code.wibrow.dev` | Second Hermes Agent with self-managed config |
 | llmkube | llmkube | -- | -- | LLM inference operator plus its Model/InferenceService resources |
 | memini | memini | internal | `memini.wibrow.dev`, `memini-api.wibrow.dev` | Agent memory service on Postgres |
-| mlflow | mlflow | internal | `mlflow.wibrow.dev` | Experiment tracking |
+| mlflow | mlflow | internal | `mlflow.wibrow.dev` | Experiment tracking for fine-tunes and Claude Code traces; artifacts in Garage |
 | open-terminal | app-template | -- | -- | Terminal backend for Open WebUI |
 | open-webui | app-template | external | `chat.wibrow.dev` | Chat UI |
 | paperless-rag | app-template | -- | -- | Syncs Paperless-ngx documents into an Open WebUI knowledge base |
