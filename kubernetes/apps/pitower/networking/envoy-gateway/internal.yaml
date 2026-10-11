@@ -7,8 +7,8 @@ metadata:
   labels:
     external-dns.alpha.kubernetes.io/enabled: "true"
   annotations:
-    external-dns.alpha.kubernetes.io/target: &hostname internal.wibrow.dev
-    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    external-dns.kubernetes.io/target: &hostname internal.wibrow.dev
+    external-dns.kubernetes.io/cloudflare-proxied: "false"
     # See external.yaml for how this inherits onto every child HTTPRoute.
     # These hosts are LAN-only by design, so scope: lan is the whole truth
     # here and they never contribute to the public availability figure.
@@ -21,7 +21,7 @@ spec:
   gatewayClassName: envoy
   infrastructure:
     annotations:
-      external-dns.alpha.kubernetes.io/hostname: *hostname
+      external-dns.kubernetes.io/hostname: *hostname
       lbipam.cilium.io/ips: "10.20.10.238"
   listeners:
     - name: http
@@ -48,7 +48,7 @@ kind: HTTPRoute
 metadata:
   name: envoy-internal
   annotations:
-    external-dns.alpha.kubernetes.io/controller: none
+    external-dns.kubernetes.io/controller: none
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io

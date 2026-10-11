@@ -10,7 +10,7 @@ spec:
       recordType: CNAME
       targets: ["tunnel.wibrow.dev"]
       providerSpecific:
-        - name: external-dns.alpha.kubernetes.io/cloudflare-proxied
+        - name: cloudflare/proxied
           value: "false"
     # Wildcard so any unmatched subdomain resolves to the towonel hub edge and
     # hits the envoy-external fallback 404 route instead of returning NXDOMAIN.
@@ -18,7 +18,7 @@ spec:
       recordType: CNAME
       targets: ["tunnel.wibrow.dev"]
       providerSpecific:
-        - name: external-dns.alpha.kubernetes.io/cloudflare-proxied
+        - name: cloudflare/proxied
           value: "false"
     # propagit.dev rides the same tunnel edge. Cloudflare flattens the apex
     # CNAME, so no A record is needed here.
@@ -26,11 +26,11 @@ spec:
       recordType: CNAME
       targets: ["tunnel.wibrow.dev"]
       providerSpecific:
-        - name: external-dns.alpha.kubernetes.io/cloudflare-proxied
+        - name: cloudflare/proxied
           value: "false"
     - dnsName: "*.propagit.dev"
       recordType: CNAME
       targets: ["tunnel.wibrow.dev"]
       providerSpecific:
-        - name: external-dns.alpha.kubernetes.io/cloudflare-proxied
+        - name: cloudflare/proxied
           value: "false"

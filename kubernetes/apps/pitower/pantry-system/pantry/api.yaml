@@ -97,7 +97,7 @@ metadata:
     # DNS is owned by the DNSEndpoint in this directory (unproxied CNAME to
     # tunnel.wibrow.dev); without the opt-out, external-dns would fight it
     # with a CNAME to external.wibrow.dev.
-    external-dns.alpha.kubernetes.io/controller: none
+    external-dns.kubernetes.io/controller: none
 spec:
   parentRefs:
     - name: envoy-external

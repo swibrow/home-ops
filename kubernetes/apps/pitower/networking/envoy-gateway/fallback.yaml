@@ -153,7 +153,7 @@ kind: HTTPRoute
 metadata:
   name: fallback-404
   annotations:
-    external-dns.alpha.kubernetes.io/controller: none
+    external-dns.kubernetes.io/controller: none
     # Wildcard host (*.wibrow.dev) can't be auto-probed, so opt out of
     # sidecar discovery. It's still monitored as a canary via an explicit
     # 404-asserting endpoint in the gatus config (External Gateway Fallback).

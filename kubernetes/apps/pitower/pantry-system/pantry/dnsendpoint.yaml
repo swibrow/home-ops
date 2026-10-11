@@ -12,11 +12,11 @@ spec:
       recordType: CNAME
       targets: ["tunnel.wibrow.dev"]
       providerSpecific:
-        - name: external-dns.alpha.kubernetes.io/cloudflare-proxied
+        - name: cloudflare/proxied
           value: "false"
     - dnsName: "api.pantry.cloudsnacks.dev"
       recordType: CNAME
       targets: ["tunnel.wibrow.dev"]
       providerSpecific:
-        - name: external-dns.alpha.kubernetes.io/cloudflare-proxied
+        - name: cloudflare/proxied
           value: "false"

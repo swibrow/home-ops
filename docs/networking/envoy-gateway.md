@@ -155,12 +155,12 @@ metadata:
   labels:
     external-dns.alpha.kubernetes.io/enabled: "true"
   annotations:
-    external-dns.alpha.kubernetes.io/target: &hostname external.wibrow.dev
+    external-dns.kubernetes.io/target: &hostname external.wibrow.dev
 spec:
   gatewayClassName: envoy
   infrastructure:
     annotations:
-      external-dns.alpha.kubernetes.io/hostname: *hostname
+      external-dns.kubernetes.io/hostname: *hostname
       lbipam.cilium.io/ips: "10.20.10.239"
 ```
 
@@ -170,7 +170,7 @@ Both Gateways also carry a `gatus.home-operations.com/endpoint` annotation that 
 
 ### HTTP-to-HTTPS Redirect
 
-Each Gateway has an HTTPRoute on its `http` section that 301-redirects to HTTPS, annotated `external-dns.alpha.kubernetes.io/controller: none` so no DNS record is created for it.
+Each Gateway has an HTTPRoute on its `http` section that 301-redirects to HTTPS, annotated `external-dns.kubernetes.io/controller: none` so no DNS record is created for it.
 
 ### Fallback 404 (`fallback.yaml`)
 

@@ -25,5 +25,5 @@ spec:
       recordType: AAAA
       targets: ["100::"]
       providerSpecific:
-        - name: external-dns.alpha.kubernetes.io/cloudflare-proxied
+        - name: cloudflare/proxied
           value: "true"
