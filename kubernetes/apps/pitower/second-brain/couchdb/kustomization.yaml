@@ -21,18 +21,6 @@ configMapGenerator:
     literals:
       - APP_NAME=couchdb-kopiur
       - CLAIM_NAME=couchdb-data
-patches:
-  # couchdb runs as uid 568; the kopiur mover must match to read it.
-  - target:
-      kind: SnapshotPolicy
-      name: couchdb-kopiur
-    patch: |
-      - op: replace
-        path: /spec/mover/securityContext/runAsUser
-        value: 568
-      - op: replace
-        path: /spec/mover/securityContext/runAsGroup
-        value: 568
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm

@@ -5,8 +5,8 @@
 #              unique within the namespace and distinct from the other
 #              components' ConfigMap names - use "<app>-kopiur".
 #   CLAIM_NAME the source PVC to snapshot.
-# The mover defaults to uid/gid 1000; apps running as another uid override
-# spec.mover.securityContext.{runAsUser,runAsGroup} with a patch (see bambuddy).
+# The mover defaults to uid/gid 2000, the house uid apps run as; exceptions
+# override spec.mover.securityContext.{runAsUser,runAsGroup} with a patch (see forgejo).
 apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
 resources:

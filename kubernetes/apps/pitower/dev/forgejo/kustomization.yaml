@@ -31,6 +31,18 @@ configMapGenerator:
     literals:
       - APP_NAME=forgejo-kopiur
       - CLAIM_NAME=forgejo
+patches:
+  # forgejo's rootless image has git fixed at uid 1000, and some of its data is 0600; the kopiur mover must match to read it.
+  - target:
+      kind: SnapshotPolicy
+      name: forgejo-kopiur
+    patch: |
+      - op: replace
+        path: /spec/mover/securityContext/runAsUser
+        value: 1000
+      - op: replace
+        path: /spec/mover/securityContext/runAsGroup
+        value: 1000
 helmCharts:
   - name: forgejo
     repo: oci://code.forgejo.org/forgejo-helm

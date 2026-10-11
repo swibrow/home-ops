@@ -22,18 +22,6 @@ configMapGenerator:
     literals:
       - APP_NAME=prowlarr-kopiur
       - CLAIM_NAME=prowlarr-config
-patches:
-  # prowlarr runs as uid 2000 (asp/ keys are 0600); the kopiur mover must match to read it.
-  - target:
-      kind: SnapshotPolicy
-      name: prowlarr-kopiur
-    patch: |
-      - op: replace
-        path: /spec/mover/securityContext/runAsUser
-        value: 2000
-      - op: replace
-        path: /spec/mover/securityContext/runAsGroup
-        value: 2000
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm

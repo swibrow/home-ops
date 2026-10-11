@@ -37,6 +37,7 @@ kubernetes/apps/{cluster}/{category}/{app}/
 - **Databases** use CNPG clusters defined in `kubernetes/apps/pitower/database/clusters/` (`shared`, `immich`, `ai`), accessed via the `cnpg-secrets-database` ClusterSecretStore
 - **App secrets** stored in Infisical at `/category/app/SECRET_NAME`
 - **kopiur** backups via reusable kustomize component at `kubernetes/components/kopiur`, configured per-app with a `kopiur-config` ConfigMap (`APP_NAME`, `CLAIM_NAME`); repository is the `garage` ClusterRepository
+- **App uid is 2000**: set `runAsUser`/`runAsGroup`/`fsGroup: 2000` (`fsGroupChangePolicy: OnRootMismatch`) on new apps. The kopiur mover defaults to 2000 and can only read 0600 files owned by its own uid, so an app writing as anything else gets `PermissionDenied` backups until its kustomization patches `spec.mover.securityContext` to match (see `dev/forgejo`). Images that must run as root need a root mover plus the namespace annotation `kopiur.home-operations.com/privileged-movers: "true"` (see `ai/voicestudio`).
 - **Timezone**: `Europe/Zurich`
 - **Reloader** annotation `reloader.stakater.com/auto: "true"` on controllers that consume secrets
 

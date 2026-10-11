@@ -38,6 +38,9 @@ controllers:
           PAPERLESS_DATA_DIR: /data/local/data
           PAPERLESS_MEDIA_ROOT: /data/local/media
           PAPERLESS_CONSUMPTION_DIR: /data/local/consume
+          # The image starts as root, remaps its paperless user to this uid and re-owns the data dirs.
+          USERMAP_UID: "2000"
+          USERMAP_GID: "2000"
           PAPERLESS_EXPORT_DIR: /data/local/export
           PAPERLESS_DBHOST:
             valueFrom:
