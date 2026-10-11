@@ -80,3 +80,13 @@ route:
       - name: envoy-internal
         namespace: networking
         sectionName: https
+    rules:
+      - filters:
+          - type: ExtensionRef
+            extensionRef:
+              group: gateway.envoyproxy.io
+              kind: HTTPRouteFilter
+              name: voicestudio-api-key
+        backendRefs:
+          - identifier: app
+            port: 3900
