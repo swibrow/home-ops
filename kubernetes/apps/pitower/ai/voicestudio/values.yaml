@@ -1,0 +1,82 @@
+controllers:
+  voicestudio:
+    annotations:
+      reloader.stakater.com/auto: "true"
+    strategy: Recreate
+    containers:
+      app:
+        image:
+          repository: ghcr.io/debpalash/voicestudio
+          tag: 0.5.6
+        env:
+          TZ: Europe/Zurich
+          OMNIVOICE_DATA_DIR: /app/omnivoice_data
+          # Model weights go to the shared NVMe cache, not the backed-up data volume.
+          HF_HOME: /models/huggingface
+          OMNIVOICE_ANALYTICS_DISABLED: "1"
+        envFrom:
+          - secretRef:
+              name: voicestudio
+        resources:
+          requests:
+            cpu: "1"
+            memory: 4Gi
+          limits:
+            memory: 16Gi
+          claims:
+            - name: gpu
+        probes:
+          liveness: &probe
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /health
+                port: &port 3900
+          readiness: *probe
+          startup:
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                path: /health
+                port: *port
+              failureThreshold: 60
+              periodSeconds: 5
+defaultPodOptions:
+  # Time-slices the 3090 Ti with the other gpu-shared consumers; see
+  # llmkube/llmkube-models/resourceclaim-shared.yaml. While this pod runs, the
+  # card is not free for the omarchy VM.
+  resourceClaims:
+    - name: gpu
+      resourceClaimName: gpu-shared
+  nodeSelector:
+    feature.node.kubernetes.io/nvidia-gpu: "true"
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: gpu
+      effect: NoSchedule
+service:
+  app:
+    ports:
+      http:
+        port: *port
+persistence:
+  data:
+    existingClaim: voicestudio-data
+    globalMounts:
+      - path: /app/omnivoice_data
+  models:
+    existingClaim: llmkube-model-cache
+    globalMounts:
+      - path: /models
+        subPath: voicestudio
+route:
+  app:
+    hostnames:
+      - voicestudio.wibrow.dev
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
