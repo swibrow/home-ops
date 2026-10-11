@@ -1,0 +1,18 @@
+---
+# Read the mounted installation token on every call, so git and gh keep working
+# after the token rotates.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: claude-sandbox-github-bin
+data:
+  gh: |
+    #!/bin/sh
+    GH_TOKEN="$(cat /var/run/secrets/github/token)"
+    export GH_TOKEN
+    exec /usr/local/bin/gh "$@"
+  git-credential-github: |
+    #!/bin/sh
+    [ "$1" = get ] || exit 0
+    echo username=x-access-token
+    echo "password=$(cat /var/run/secrets/github/token)"

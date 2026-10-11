@@ -63,19 +63,23 @@ spec:
       containers:
         - name: sandbox
           image: ghcr.io/cloudsnacks/claude-code:2.1.289
-          # args, not command: keeps the image entrypoint, which configures git
-          # auth from GITHUB_TOKEN before idling.
+          # args, not command: keeps the image entrypoint. GITHUB_TOKEN stays
+          # unset so the entrypoint doesn't bake a token into the git config;
+          # git and gh read the mounted one instead (configmap.yaml).
           args: ["sleep", "infinity"]
           env:
             - name: TZ
               value: Europe/Zurich
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "http://otel-collector.monitoring.svc.cluster.local:4318"
-            - name: GITHUB_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: claude-sandbox
-                  key: GITHUB_TOKEN
+            - name: PATH
+              value: /opt/github-bin:/home/agent/.npm/bin:/home/agent/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+            - name: GIT_CONFIG_COUNT
+              value: "1"
+            - name: GIT_CONFIG_KEY_0
+              value: credential.https://github.com.helper
+            - name: GIT_CONFIG_VALUE_0
+              value: github
             - name: CLAUDE_CODE_OAUTH_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -99,6 +103,12 @@ spec:
           volumeMounts:
             - name: workspace
               mountPath: /workspace
+            - name: github-token
+              mountPath: /var/run/secrets/github
+              readOnly: true
+            - name: github-bin
+              mountPath: /opt/github-bin
+              readOnly: true
           resources:
             requests:
               cpu: 500m
@@ -109,3 +119,10 @@ spec:
       volumes:
         - name: workspace
           emptyDir: {}
+        - name: github-token
+          secret:
+            secretName: claude-sandbox-github
+        - name: github-bin
+          configMap:
+            name: claude-sandbox-github-bin
+            defaultMode: 0755
