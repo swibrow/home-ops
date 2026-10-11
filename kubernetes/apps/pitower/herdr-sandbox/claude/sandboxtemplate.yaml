@@ -1,0 +1,111 @@
+---
+# Template for interactive Claude Code sessions opened from herdr
+# (swibrow/herdr-plugins, agent-sandbox plugin). Pods idle in the warm pool; the
+# plugin claims one and execs its session script, which clones the repo into
+# /workspace/<repo> and runs claude (resuming with --continue on reconnect).
+apiVersion: extensions.agents.x-k8s.io/v1beta1
+kind: SandboxTemplate
+metadata:
+  name: claude
+spec:
+  # Egress: DNS + HTTPS (GitHub, package registries) + the in-cluster
+  # otel-collector + agentgateway (Claude Code's gateway, ai namespace).
+  networkPolicy:
+    egress:
+      - to:
+          - namespaceSelector:
+              matchLabels:
+                kubernetes.io/metadata.name: kube-system
+        ports:
+          - port: 53
+            protocol: UDP
+          - port: 53
+            protocol: TCP
+      - ports:
+          - port: 443
+            protocol: TCP
+      - to:
+          - namespaceSelector:
+              matchLabels:
+                kubernetes.io/metadata.name: monitoring
+            podSelector:
+              matchLabels:
+                app.kubernetes.io/managed-by: opentelemetry-operator
+                app.kubernetes.io/instance: monitoring.otel
+                app.kubernetes.io/component: opentelemetry-collector
+        ports:
+          - port: 4318
+            protocol: TCP
+      - to:
+          - namespaceSelector:
+              matchLabels:
+                kubernetes.io/metadata.name: ai
+            podSelector:
+              matchLabels:
+                gateway.networking.k8s.io/gateway-name: agentgateway
+        ports:
+          - port: 80
+            protocol: TCP
+  podTemplate:
+    metadata:
+      labels:
+        app.kubernetes.io/name: claude-sandbox
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      securityContext:
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+        runAsNonRoot: true
+      nodeSelector:
+        wibrow.dev/compute: "true"
+      containers:
+        - name: sandbox
+          image: ghcr.io/cloudsnacks/claude-code:2.1.289
+          # args, not command: keeps the image entrypoint, which configures git
+          # auth from GITHUB_TOKEN before idling.
+          args: ["sleep", "infinity"]
+          env:
+            - name: TZ
+              value: Europe/Zurich
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.monitoring.svc.cluster.local:4318"
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: claude-sandbox
+                  key: GITHUB_TOKEN
+            - name: CLAUDE_CODE_OAUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: claude-sandbox
+                  key: CLAUDE_CODE_OAUTH_TOKEN
+            - name: AGENTGATEWAY_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: claude-sandbox
+                  key: AGENTGATEWAY_API_KEY
+            # Routes Claude Code through agentgateway for tracing while still
+            # billing the Max subscription: the -max models forward the
+            # CLAUDE_CODE_OAUTH_TOKEN carried in Authorization, so
+            # ANTHROPIC_API_KEY/ANTHROPIC_AUTH_TOKEN must NOT be set here.
+            - name: ANTHROPIC_BASE_URL
+              value: http://agentgateway.ai.svc.cluster.local
+            - name: ANTHROPIC_MODEL
+              value: claude-opus-max
+            - name: ANTHROPIC_CUSTOM_HEADERS
+              value: "x-agentgateway-api-key: $(AGENTGATEWAY_API_KEY)"
+          volumeMounts:
+            - name: workspace
+              mountPath: /workspace
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "4"
+              memory: 8Gi
+      volumes:
+        - name: workspace
+          emptyDir: {}

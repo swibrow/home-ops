@@ -1,0 +1,14 @@
+---
+# One warm pod so a herdr launch binds immediately; the pool refills after each claim.
+apiVersion: extensions.agents.x-k8s.io/v1beta1
+kind: SandboxWarmPool
+metadata:
+  name: claude
+spec:
+  replicas: 1
+  sandboxTemplateRef:
+    name: claude
+  # Default (OnReplenish) leaves already-warm pods on an old image after a
+  # template bump; Recreate replaces drifted ones.
+  updateStrategy:
+    type: Recreate
