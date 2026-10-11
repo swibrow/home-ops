@@ -41,6 +41,8 @@ controllers:
           N8N_HOST: &hostName n8n.wibrow.dev
           N8N_LOG_LEVEL: info
           N8N_LOG_OUTPUT: console
+          # uid 2000 has no passwd entry, so HOME resolves to / without this.
+          N8N_USER_FOLDER: /home/node
           WEBHOOK_URL: https://n8n-webhook.wibrow.dev
         resources:
           requests:
