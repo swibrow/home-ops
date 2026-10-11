@@ -67,6 +67,13 @@ persistence:
           - path: /home/node/.n8n
         chown-data:
           - path: /home/node/.n8n
+  # The image's /home/node is owned by uid 1000; n8n writes generated static assets here on start.
+  cache:
+    type: emptyDir
+    advancedMounts:
+      n8n:
+        app:
+          - path: /home/node/.cache
 
 route:
   app:
