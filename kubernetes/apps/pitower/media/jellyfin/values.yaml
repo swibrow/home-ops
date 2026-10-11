@@ -39,7 +39,7 @@ service:
     controller: jellyfin
     type: LoadBalancer
     annotations:
-      # external-dns.alpha.kubernetes.io/hostname: jellyfin.wibrow.dev
+      # external-dns.kubernetes.io/hostname: jellyfin.wibrow.dev
       lbipam.cilium.io/ips: "10.20.10.229"
     ports:
       http:
@@ -58,7 +58,7 @@ route:
 #   app:
 #     className: external
 #     annotations:
-#       external-dns.alpha.kubernetes.io/target: external.wibrow.dev
+#       external-dns.kubernetes.io/target: external.wibrow.dev
 #     hosts:
 #       - host: &host jellyfin.wibrow.dev
 #         paths:

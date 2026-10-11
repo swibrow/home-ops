@@ -28,7 +28,7 @@ extraArgs:
   - --crd-source-apiversion=externaldns.k8s.io/v1alpha1
   - --crd-source-kind=DNSEndpoint
   - --gateway-label-filter=external-dns.alpha.kubernetes.io/enabled=true
-  - --annotation-prefix=external-dns.alpha.kubernetes.io/
+  - --enable-legacy-annotation-prefix
 policy: sync
 sources:
   - crd
@@ -39,7 +39,7 @@ domainFilters: ["wibrow.dev", "propagit.dev", "cloudsnacks.dev"]
 | Setting | Purpose |
 |:--------|:--------|
 | `--gateway-label-filter` | Only HTTPRoutes on Gateways labelled `external-dns.alpha.kubernetes.io/enabled: "true"` are published (both `envoy-external` and `envoy-internal` carry it) |
-| `--annotation-prefix` | external-dns v0.22.0 dropped the `alpha` prefix with no fallback; without this flag the `controller`, `target` and `cloudflare-proxied` annotations are ignored |
+| `--enable-legacy-annotation-prefix` | Also reads annotations with the pre-v0.22.0 `external-dns.alpha.kubernetes.io/` prefix, a transition aid for the move to `external-dns.kubernetes.io/` |
 | `crd` source | DNSEndpoint resources for records not tied to a route |
 | `policy: sync` | Deletes records whose Kubernetes source is gone |
 
@@ -76,7 +76,7 @@ provider:
             name: external-dns-unifi-secret
             key: api-key
 extraArgs:
-  - --annotation-prefix=external-dns.alpha.kubernetes.io/
+  - --enable-legacy-annotation-prefix
 sources:
   - gateway-httproute
   - gateway-udproute
@@ -84,12 +84,12 @@ sources:
 triggerLoopOnEvent: true
 ```
 
-It has no gateway label filter. The `service` source publishes the Gateway Services' `external-dns.alpha.kubernetes.io/hostname` (`external.wibrow.dev`, `internal.wibrow.dev`) as A records to their LoadBalancer IPs, which is what the route CNAMEs resolve to on the LAN. The API key comes from Infisical at `/networking/external-dns-unifi/api-key`.
+It has no gateway label filter. The `service` source publishes the Gateway Services' `external-dns.kubernetes.io/hostname` (`external.wibrow.dev`, `internal.wibrow.dev`) as A records to their LoadBalancer IPs, which is what the route CNAMEs resolve to on the LAN. The API key comes from Infisical at `/networking/external-dns-unifi/api-key`.
 
 > [!CAUTION]
 > **The annotation prefix matters here too**
 >
-> Without `--annotation-prefix`, the fallback-404 route's `controller: none` opt-out is ignored and `*.wibrow.dev` gets published to UniFi, hijacking hostnames such as `s3.wibrow.dev`.
+> If the prefix on the annotations does not match what the controller reads, the fallback-404 route's `controller: none` opt-out is ignored and `*.wibrow.dev` gets published to UniFi, hijacking hostnames such as `s3.wibrow.dev`.
 
 ## Annotation Patterns
 
@@ -98,17 +98,17 @@ It has no gateway label filter. The `service` source publishes the Gateway Servi
 | Annotation / label | Placement | Purpose |
 |:-------------------|:----------|:--------|
 | `external-dns.alpha.kubernetes.io/enabled` | `.metadata.labels` | Opts the Gateway's routes in (label, not annotation) |
-| `external-dns.alpha.kubernetes.io/target` | `.metadata.annotations` | CNAME target for every attached route |
-| `external-dns.alpha.kubernetes.io/cloudflare-proxied` | `.metadata.annotations` | Default proxy status for attached routes |
-| `external-dns.alpha.kubernetes.io/hostname` | `.spec.infrastructure.annotations` | Hostname for the generated LoadBalancer Service |
+| `external-dns.kubernetes.io/target` | `.metadata.annotations` | CNAME target for every attached route |
+| `external-dns.kubernetes.io/cloudflare-proxied` | `.metadata.annotations` | Default proxy status for attached routes |
+| `external-dns.kubernetes.io/hostname` | `.spec.infrastructure.annotations` | Hostname for the generated LoadBalancer Service |
 | `lbipam.cilium.io/ips` | `.spec.infrastructure.annotations` | Pins the Service IP (Cilium) |
 
 ### On HTTPRoutes
 
 | Annotation | Purpose |
 |:-----------|:--------|
-| `external-dns.alpha.kubernetes.io/controller: none` | Skip this route (redirect and fallback routes) |
-| `external-dns.alpha.kubernetes.io/cloudflare-proxied` | Override proxy status for this route |
+| `external-dns.kubernetes.io/controller: none` | Skip this route (redirect and fallback routes) |
+| `external-dns.kubernetes.io/cloudflare-proxied` | Override proxy status for this route |
 
 > [!CAUTION]
 > **Target only works on Gateways**

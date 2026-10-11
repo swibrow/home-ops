@@ -168,13 +168,13 @@ passthrough the edge depends on:
   recordType: CNAME
   targets: ["tunnel.wibrow.dev"]
   providerSpecific:
-    - name: external-dns.alpha.kubernetes.io/cloudflare-proxied
+    - name: cloudflare/proxied
       value: "false"
 - dnsName: "*.wibrow.dev"
   recordType: CNAME
   targets: ["tunnel.wibrow.dev"]
   providerSpecific:
-    - name: external-dns.alpha.kubernetes.io/cloudflare-proxied
+    - name: cloudflare/proxied
       value: "false"
 ```
 
@@ -187,7 +187,7 @@ The other zones on the tunnel get their records the same way, from three places:
 |:-----|:-------|:-------|
 | `propagit.dev`, `*.propagit.dev` | CNAME → `tunnel.wibrow.dev` | `towonel-agent/dnsendpoint.yaml` |
 | `*.apps.cloudsnacks.dev`, `api.pantry.cloudsnacks.dev` | CNAME → `tunnel.wibrow.dev` | `pantry-system/pantry/dnsendpoint.yaml` |
-| Anything else with an HTTPRoute on `envoy-external` | CNAME → `external.wibrow.dev` | `external-dns`, from the gateway's `external-dns.alpha.kubernetes.io/target` |
+| Anything else with an HTTPRoute on `envoy-external` | CNAME → `external.wibrow.dev` | `external-dns`, from the gateway's `external-dns.kubernetes.io/target` |
 
 The last row is why a route-only hostname such as `pitwall.cloudsnacks.dev` resolves without any
 DNSEndpoint: it chains through `external.wibrow.dev` to `tunnel.wibrow.dev`. It resolving proves

@@ -12,9 +12,9 @@ extraArgs:
   - --crd-source-apiversion=externaldns.k8s.io/v1alpha1
   - --crd-source-kind=DNSEndpoint
   - --gateway-label-filter=external-dns.alpha.kubernetes.io/enabled=true
-  # v0.22.0 dropped the alpha prefix with no fallback; without this every
-  # annotation below (controller, target, cloudflare-proxied) is ignored.
-  - --annotation-prefix=external-dns.alpha.kubernetes.io/
+  # Keeps alpha-prefixed annotations working while ArgoCD rolls the rename out
+  # app by app; drop once nothing in the cluster still carries the old prefix.
+  - --enable-legacy-annotation-prefix
 policy: sync
 sources:
   - crd
