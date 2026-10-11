@@ -5,6 +5,7 @@ kind: Kustomization
 namespace: ai
 resources:
   - ./externalsecret.yaml
+  - ./securitypolicy.yaml
 components:
   - ../../../../components/pvc
   - ../../../../components/kopiur

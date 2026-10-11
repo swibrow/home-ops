@@ -1,0 +1,37 @@
+---
+# Kanidm login in front of the whole app; only app_access members get through.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/gateway.envoyproxy.io/securitypolicy_v1alpha1.json
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: voicestudio
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: voicestudio
+  oidc:
+    provider:
+      issuer: https://idm.wibrow.dev/oauth2/openid/voicestudio
+    clientID: voicestudio
+    clientSecret:
+      name: voicestudio-oidc
+    redirectURL: https://voicestudio.wibrow.dev/oauth2/callback
+    scopes:
+      - openid
+      - profile
+      - email
+---
+# Past the Kanidm login, every request carries the API key, so the UI never
+# asks for it.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/gateway.envoyproxy.io/httproutefilter_v1alpha1.json
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: HTTPRouteFilter
+metadata:
+  name: voicestudio-api-key
+spec:
+  credentialInjection:
+    overwrite: true
+    credential:
+      valueRef:
+        name: voicestudio-credential
