@@ -7,6 +7,8 @@ metadata:
 spec:
   goTemplate: true
   goTemplateOptions: ["missingkey=error"]
+  syncPolicy:
+    preserveResourcesOnDeletion: true
   generators:
     - git:
         repoURL: https://github.com/swibrow/home-ops
@@ -59,3 +61,14 @@ spec:
             factor: 2
             maxDuration: 3m
       revisionHistoryLimit: 3
+  # Namespaces whose apps need a root kopiur mover (frigate, affine, voicestudio). Every app in a
+  # namespace re-applies managedNamespaceMetadata under the same field manager, so the opt-in must
+  # live here; declared in one app's manifests, the next sibling sync strips it.
+  templatePatch: |
+    {{- if has (index .path.segments 3) (list "ai" "home-automation" "second-brain") }}
+    spec:
+      syncPolicy:
+        managedNamespaceMetadata:
+          annotations:
+            kopiur.home-operations.com/privileged-movers: "true"
+    {{- end }}
