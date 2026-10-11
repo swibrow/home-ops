@@ -1,0 +1,64 @@
+---
+# Log-based alerting: LogsQL rules evaluated against VictoriaLogs, sent to the
+# kube-prometheus-stack Alertmanager (same routing as the PrometheusRules).
+# Metric alerts stay in PrometheusRules; this is only for events that exist
+# nowhere but in logs.
+fullnameOverride: vmalert
+
+server:
+  nodeSelector:
+    wibrow.dev/compute: "true"
+  datasource:
+    url: http://victoria-logs.monitoring.svc.cluster.local:9428
+  notifier:
+    url: http://kube-prometheus-stack-alertmanager.monitoring.svc.cluster.local:9093
+  extraArgs:
+    envflag.enable: true
+    envflag.prefix: VM_
+    loggerFormat: json
+    rule:
+      - /config/alert-rules.yaml
+    rule.defaultRuleType: vlogs
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      memory: 256Mi
+  config:
+    alerts:
+      groups:
+        # llama-server (ai/llmkube) exports no metric for context overflows;
+        # these log lines are the only signal. Each rule sets its own _time so
+        # one event keeps the alert active for 15m instead of the 1m interval.
+        - name: llamacpp-context
+          interval: 1m
+          rules:
+            - alert: LlamaCppContextExceeded
+              expr: >-
+                _time:15m kubernetes_namespace_name:ai kubernetes_container_name:llama-server
+                "exceeds the available context size"
+                | stats by (kubernetes_pod_name) count() as rejected
+              labels:
+                severity: warning
+              annotations:
+                summary: >-
+                  {{ $labels.kubernetes_pod_name }} rejected {{ $value }} request(s)
+                  larger than its context window (HTTP 400
+                  exceed_context_size_error). The client must trim the
+                  conversation or contextSize must go up.
+            - alert: LlamaCppContextTruncated
+              expr: >-
+                _time:15m kubernetes_namespace_name:ai kubernetes_container_name:llama-server
+                "truncated = 1"
+                | stats by (kubernetes_pod_name) count() as truncated
+              labels:
+                severity: warning
+              annotations:
+                summary: >-
+                  {{ $labels.kubernetes_pod_name }} cut {{ $value }} reply(ies)
+                  off at the context limit (finish_reason "length"); thinking
+                  models may return an empty answer.
+
+serviceMonitor:
+  enabled: true
