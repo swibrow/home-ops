@@ -1,0 +1,19 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/generators.external-secrets.io/githubaccesstoken_v1alpha1.json
+# Same GitHub App and installation as toolhive's github-mcp generator, scoped
+# down to what a coding session needs.
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: GithubAccessToken
+metadata:
+  name: claude-sandbox
+spec:
+  appID: "4042475"
+  installID: "139988296"
+  permissions:
+    contents: write
+    pull_requests: write
+  auth:
+    privateKey:
+      secretRef:
+        name: github-app
+        key: private-key

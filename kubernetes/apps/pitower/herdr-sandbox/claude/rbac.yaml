@@ -1,0 +1,34 @@
+---
+# The herdr agent-sandbox plugin runs inside the dev/herdr pod: it creates a
+# SandboxClaim per session, finds the claimed pod, execs the session script and
+# deletes the claim when the session ends.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: herdr-sandbox
+rules:
+  - apiGroups: ["extensions.agents.x-k8s.io"]
+    resources: ["sandboxclaims"]
+    verbs: ["create", "get", "list", "delete"]
+  - apiGroups: ["agents.x-k8s.io"]
+    resources: ["sandboxes"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["list"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create", "get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: herdr-sandbox
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: herdr-sandbox
+subjects:
+  - kind: ServiceAccount
+    name: herdr
+    namespace: dev

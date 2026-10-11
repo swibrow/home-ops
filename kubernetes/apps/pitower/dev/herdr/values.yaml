@@ -3,6 +3,9 @@ controllers:
     type: statefulset
     replicas: 1
     pod:
+      # The agent-sandbox herdr plugin uses this token for
+      # herdr-sandbox/claude/rbac.yaml.
+      automountServiceAccountToken: true
       securityContext:
         runAsUser: 1001
         runAsGroup: 1001
