@@ -90,3 +90,31 @@ route:
         backendRefs:
           - identifier: app
             port: 3900
+    # A second route makes the chart suffix this one "-app", which would detach
+    # the SecurityPolicy while the key filter keeps injecting.
+    forceRename: '{{ .Release.Name }}'
+  # The desktop app logs in with the API key and cannot follow the Kanidm
+  # redirect: this prefix skips the SecurityPolicy (which targets only the app
+  # route) and injects no key, so the backend's own key check guards it.
+  # /api is taken by the backend itself.
+  remote:
+    hostnames:
+      - voicestudio.wibrow.dev
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+    rules:
+      - matches:
+          - path:
+              type: PathPrefix
+              value: /remote
+        filters:
+          - type: URLRewrite
+            urlRewrite:
+              path:
+                type: ReplacePrefixMatch
+                replacePrefixMatch: /
+        backendRefs:
+          - identifier: app
+            port: 3900
