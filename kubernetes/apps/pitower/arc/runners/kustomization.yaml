@@ -89,10 +89,11 @@ helmCharts:
           serviceAccountName: cloudsnacks-runners
           # No memory limit: Go builds with -race and the custom golangci-lint
           # build OOM at the base 4Gi. The full container is repeated because
-          # valuesMerge replaces the list.
+          # valuesMerge replaces the list. cloudsnacks' actions-runner build
+          # bakes in make/just/task and the mise toolchain.
           containers:
             - name: runner
-              image: ghcr.io/actions/actions-runner:2.338.0
+              image: ghcr.io/cloudsnacks/actions-runner:2.336.0-6
               command: ["/home/runner/run.sh"]
               env:
                 - name: DOCKER_HOST
@@ -254,7 +255,7 @@ helmCharts:
                 sizeLimit: 2Gi
           containers:
             - name: runner
-              image: ghcr.io/cloudsnacks/actions-runner:2.336.0-3
+              image: ghcr.io/cloudsnacks/actions-runner:2.336.0-6
               command: ["/home/runner/run.sh"]
               env:
                 - name: DOCKER_HOST
@@ -392,7 +393,7 @@ helmCharts:
           # repeating them).
           containers:
             - name: runner
-              image: ghcr.io/cloudsnacks/actions-runner:2.336.0-5
+              image: ghcr.io/cloudsnacks/actions-runner:2.336.0-6
               command: ["/home/runner/run.sh"]
               env:
                 - name: DOCKER_HOST

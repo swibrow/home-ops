@@ -81,7 +81,7 @@ template:
             mountPath: /var/lib/docker
     containers:
       - name: runner
-        image: ghcr.io/cloudsnacks/actions-runner:2.336.0-5
+        image: ghcr.io/cloudsnacks/actions-runner:2.336.0-6
         command: ["/home/runner/run.sh"]
         env:
           - name: DOCKER_HOST
