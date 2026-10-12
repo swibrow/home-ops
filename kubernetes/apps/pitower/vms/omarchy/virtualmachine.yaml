@@ -70,6 +70,11 @@ spec:
             - name: gpu
               claimName: gpu
               requestName: gpu
+          hostDevices:
+            - name: keyboard
+              deviceName: kubevirt.io/usb-keyboard
+            - name: mouse
+              deviceName: kubevirt.io/usb-mouse
           inputs:
             - name: tablet
               type: tablet
