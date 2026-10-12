@@ -21,7 +21,7 @@ controllers:
       copy-herdr:
         image: &devDesktop
           repository: ghcr.io/cloudsnacks/dev-desktop
-          tag: 1.1.1
+          tag: 1.1.2
         command: ["cp", "/usr/local/bin/herdr", "/opt/herdr/herdr"]
         securityContext:
           allowPrivilegeEscalation: false
