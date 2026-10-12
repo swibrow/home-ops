@@ -62,7 +62,7 @@ spec:
         wibrow.dev/compute: "true"
       containers:
         - name: sandbox
-          image: ghcr.io/cloudsnacks/claude-code:2.1.289
+          image: ghcr.io/cloudsnacks/claude-code:2.1.296
           # args, not command: keeps the image entrypoint. GITHUB_TOKEN stays
           # unset so the entrypoint doesn't bake a token into the git config;
           # git and gh read the mounted one instead (configmap.yaml).
