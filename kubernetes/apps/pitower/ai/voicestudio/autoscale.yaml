@@ -1,0 +1,39 @@
+---
+# Scale-to-zero like comfyui and strata: frees the shared GPU while idle; a
+# request through the interceptor wakes the pod.
+apiVersion: http.keda.sh/v1beta1
+kind: InterceptorRoute
+metadata:
+  name: voicestudio
+spec:
+  target:
+    service: voicestudio
+    port: 3900
+  rules:
+    - hosts:
+        - voicestudio.wibrow.dev
+  scalingMetric:
+    concurrency:
+      targetValue: 1
+  timeouts:
+    # Pod schedule plus model load before /health answers.
+    readiness: 300s
+    request: 0s
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: voicestudio
+spec:
+  scaleTargetRef:
+    name: voicestudio
+    kind: Deployment
+    apiVersion: apps/v1
+  minReplicaCount: 0
+  maxReplicaCount: 1
+  cooldownPeriod: 900
+  triggers:
+    - type: external-push
+      metadata:
+        scalerAddress: keda-add-ons-http-external-scaler.system:9090
+        interceptorRoute: voicestudio

@@ -6,6 +6,7 @@ namespace: ai
 resources:
   - ./externalsecret.yaml
   - ./securitypolicy.yaml
+  - ./autoscale.yaml
 components:
   - ../../../../components/pvc
   - ../../../../components/kopiur

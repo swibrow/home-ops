@@ -2,6 +2,8 @@ controllers:
   voicestudio:
     annotations:
       reloader.stakater.com/auto: "true"
+    # KEDA owns the replica count; a rendered value would scale it up on every sync.
+    replicas: null
     strategy: Recreate
     containers:
       app:
@@ -74,6 +76,9 @@ persistence:
         subPath: voicestudio
 route:
   app:
+    annotations:
+      # Gatus probes would count as requests and keep the pod awake.
+      gatus.home-operations.com/enabled: "false"
     hostnames:
       - voicestudio.wibrow.dev
     parentRefs:
@@ -88,8 +93,9 @@ route:
               kind: HTTPRouteFilter
               name: voicestudio-api-key
         backendRefs:
-          - identifier: app
-            port: 3900
+          - name: keda-add-ons-http-interceptor-proxy
+            namespace: system
+            port: 8080
     # A second route makes the chart suffix this one "-app", which would detach
     # the SecurityPolicy while the key filter keeps injecting.
     forceRename: '{{ .Release.Name }}'
@@ -98,6 +104,8 @@ route:
   # route) and injects no key, so the backend's own key check guards it.
   # /api is taken by the backend itself.
   remote:
+    annotations:
+      gatus.home-operations.com/enabled: "false"
     hostnames:
       - voicestudio.wibrow.dev
     parentRefs:
@@ -116,5 +124,6 @@ route:
                 type: ReplacePrefixMatch
                 replacePrefixMatch: /
         backendRefs:
-          - identifier: app
-            port: 3900
+          - name: keda-add-ons-http-interceptor-proxy
+            namespace: system
+            port: 8080
