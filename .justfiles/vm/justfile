@@ -5,25 +5,69 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 # without touching the spec; on others KubeVirt rewrites runStrategy.
 ns := "vms"
 api := "/apis/subresources.kubevirt.io/v1/namespaces/" + ns + "/virtualmachines"
+# Marks the ScaledObjects `game` paused, so `game-stop` leaves ones paused by hand alone.
+pause_marker := "home-ops/paused-for-omarchy"
+self := just_executable() + " --justfile " + quote(source_file())
 
 # List VMs and their state
 status:
     @kubectl -n {{ ns }} get vm,vmi
+
+# Pods holding the RTX 3090 Ti outside the vms namespace, as namespace/claim
+_gpu-holders:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    devices=$(kubectl get resourceslices -o json \
+      | jq -c '[.items[].spec.devices[]? | select(.attributes.productName.string // "" | test("3090 Ti")) | .name]')
+    kubectl get resourceclaims -A -o json | jq -r --argjson d "$devices" '.items[]
+      | select(.metadata.namespace != "{{ ns }}" and (.status.reservedFor // [] | length) > 0)
+      | select(any(.status.allocation.devices.results[]?; .device as $x | $d | index($x)))
+      | "\(.metadata.namespace)/\(.metadata.name)"'
 
 # Start a VM; a GPU VM refuses while a pod holds the RTX 3090 Ti, since the DRA driver can hand the card to both
 start vm="omarchy":
     #!/usr/bin/env bash
     set -euo pipefail
     claims=$(kubectl -n {{ ns }} get vm {{ vm }} -o jsonpath='{.spec.template.spec.resourceClaims}')
-    holders=$(kubectl get resourceclaims -A -o json \
-      | jq -r '.items[] | select(.metadata.namespace != "{{ ns }}" and .status.allocation != null) | "\(.metadata.namespace)/\(.metadata.name)"')
+    holders=$({{ self }} _gpu-holders)
     if [ -n "$claims" ] && [ -n "$holders" ]; then
         echo "GPU is claimed by: $holders" >&2
-        echo "Stop or pause those workloads first." >&2
+        echo "Stop or pause those workloads first, or use: just vm game" >&2
         exit 1
     fi
     echo '{}' | kubectl replace --raw "{{ api }}/{{ vm }}/start" -f - >/dev/null
     echo "Starting {{ vm }}"
+
+# Pause the scale-to-zero GPU apps in ai, wait for the 3090 Ti to free up, then start omarchy
+game:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for so in $(kubectl -n ai get scaledobject -o json \
+      | jq -r '.items[] | select(.metadata.annotations["autoscaling.keda.sh/paused-replicas"] == null) | .metadata.name'); do
+        kubectl -n ai annotate scaledobject "$so" autoscaling.keda.sh/paused-replicas=0 {{ pause_marker }}=true >/dev/null
+        echo "Paused ai/$so"
+    done
+    for _ in $(seq 60); do
+        holders=$({{ self }} _gpu-holders)
+        [ -z "$holders" ] && break
+        sleep 5
+    done
+    if [ -n "$holders" ]; then
+        echo "GPU still claimed after 5m by: $holders" >&2
+        exit 1
+    fi
+    {{ self }} start omarchy
+
+# Stop omarchy and resume the GPU apps that `game` paused
+game-stop:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    {{ self }} stop omarchy
+    for so in $(kubectl -n ai get scaledobject -o json \
+      | jq -r '.items[] | select(.metadata.annotations["{{ pause_marker }}"] == "true") | .metadata.name'); do
+        kubectl -n ai annotate scaledobject "$so" autoscaling.keda.sh/paused-replicas- {{ pause_marker }}- >/dev/null
+        echo "Resumed ai/$so"
+    done
 
 # Stop a VM, releasing its GPU
 stop vm="omarchy":
