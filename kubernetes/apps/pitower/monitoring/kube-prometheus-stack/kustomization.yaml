@@ -17,3 +17,5 @@ helmCharts:
     includeCRDs: true
     namespace: monitoring
     valuesFile: values.yaml
+    additionalValuesFiles:
+      - alert-tiers.yaml

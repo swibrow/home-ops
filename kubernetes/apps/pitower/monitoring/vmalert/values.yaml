@@ -1,6 +1,7 @@
 ---
 # Log-based alerting: LogsQL rules evaluated against VictoriaLogs, sent to the
-# kube-prometheus-stack Alertmanager (same routing as the PrometheusRules).
+# kube-prometheus-stack Alertmanager (same routing as the PrometheusRules, and the
+# same tier relabeling from kube-prometheus-stack/alert-tiers.yaml).
 # Metric alerts stay in PrometheusRules; this is only for events that exist
 # nowhere but in logs.
 fullnameOverride: vmalert
@@ -10,15 +11,22 @@ server:
     wibrow.dev/compute: "true"
   datasource:
     url: http://victoria-logs.monitoring.svc.cluster.local:9428
-  notifier:
-    url: http://kube-prometheus-stack-alertmanager.monitoring.svc.cluster.local:9093
   extraArgs:
+    notifier.config: /notifier/notifier.yaml
+    configCheckInterval: 1m
     envflag.enable: true
     envflag.prefix: VM_
     loggerFormat: json
     rule:
       - /config/alert-rules.yaml
     rule.defaultRuleType: vlogs
+  extraVolumes:
+    - name: notifier
+      configMap:
+        name: vmalert-notifier
+  extraVolumeMounts:
+    - name: notifier
+      mountPath: /notifier
   resources:
     requests:
       cpu: 10m
@@ -41,6 +49,7 @@ server:
                 | stats by (kubernetes_pod_name) count() as rejected
               labels:
                 severity: warning
+                namespace: ai
               annotations:
                 summary: >-
                   {{ $labels.kubernetes_pod_name }} rejected {{ $value }} request(s)
@@ -54,11 +63,52 @@ server:
                 | stats by (kubernetes_pod_name) count() as truncated
               labels:
                 severity: warning
+                namespace: ai
               annotations:
                 summary: >-
                   {{ $labels.kubernetes_pod_name }} cut {{ $value }} reply(ies)
                   off at the context limit (finish_reason "length"); thinking
                   models may return an empty answer.
+        # Every app, judged against its own baseline: error lines in the last
+        # 15m against the 6h average, so steady chronic noise stays quiet and
+        # a fresh spike fires. Only structured levels (JSON level, logfmt
+        # level=) count; free-text "error" is too noisy to match on.
+        - name: app-error-logs
+          interval: 5m
+          rules:
+            - alert: AppErrorLogSpike
+              expr: >-
+                _time:6h (level:in(error,ERROR,err,fatal,FATAL,critical,CRITICAL,50,60)
+                or "level=error" or "level=fatal")
+                | stats by (kubernetes_namespace_name, kubernetes_labels.app.kubernetes.io/name, kubernetes_container_name)
+                count() if (_time:15m) as errors, count() as total
+                | math errors / max(total / 24, 1) as ratio
+                | filter errors:>=10 ratio:>=5
+                | rename kubernetes_namespace_name as namespace,
+                kubernetes_labels.app.kubernetes.io/name as app,
+                kubernetes_container_name as container
+                | fields namespace, app, container, errors
+              labels:
+                severity: warning
+              annotations:
+                summary: >-
+                  {{ $labels.namespace }}/{{ or $labels.app $labels.container }}
+                  ({{ $labels.container }}) logged {{ $value }} errors in 15m,
+                  at least 5x its 6h average.
+
+extraObjects:
+  - |
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: vmalert-notifier
+    data:
+      notifier.yaml: |
+        static_configs:
+          - targets:
+              - kube-prometheus-stack-alertmanager.monitoring.svc.cluster.local:9093
+        alert_relabel_configs:
+          {{- toYaml .Values.prometheus.prometheusSpec.additionalAlertRelabelConfigs | nindent 10 }}
 
 serviceMonitor:
   enabled: true

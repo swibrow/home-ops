@@ -265,11 +265,7 @@ prometheus:
               - 10.20.10.3:2381
             labels:
               cluster: pitower
-    additionalAlertRelabelConfigs:
-      - source_labels: [alertname]
-        regex: KubeNodeNotReady|KubeNodeUnreachable|KubeletDown
-        target_label: notify
-        replacement: ntfy
+    # additionalAlertRelabelConfigs: alert-tiers.yaml
     additionalArgs:
       - name: storage.tsdb.head-chunks-write-queue-size
         value: "10000"

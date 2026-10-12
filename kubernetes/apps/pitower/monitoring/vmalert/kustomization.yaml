@@ -10,3 +10,5 @@ helmCharts:
     releaseName: vmalert
     namespace: monitoring
     valuesFile: values.yaml
+    additionalValuesFiles:
+      - ../kube-prometheus-stack/alert-tiers.yaml

@@ -38,6 +38,7 @@ kubernetes/apps/{cluster}/{category}/{app}/
 - **App secrets** stored in Infisical at `/category/app/SECRET_NAME`
 - **kopiur** backups via reusable kustomize component at `kubernetes/components/kopiur`, configured per-app with a `kopiur-config` ConfigMap (`APP_NAME`, `CLAIM_NAME`); repository is the `garage` ClusterRepository
 - **App uid is 2000**: set `runAsUser`/`runAsGroup`/`fsGroup: 2000` (`fsGroupChangePolicy: OnRootMismatch`) on new apps. The kopiur mover defaults to 2000 and can only read 0600 files owned by its own uid, so an app writing as anything else gets `PermissionDenied` backups until its kustomization patches `spec.mover.securityContext` to match (see `dev/forgejo`). Images that must run as root need a root mover plus the namespace annotation `kopiur.home-operations.com/privileged-movers: "true"` (see `ai/voicestudio`).
+- **Alert tiers**: every alert gets a `tier` label (0 cluster critical, 1 platform, 2 household critical, 3 standard, 4 best effort, 5 sandbox/dropped) from `monitoring/kube-prometheus-stack/alert-tiers.yaml`, shared by Prometheus and vmalert. Namespaces set the default; a new app whose tier differs from its namespace needs an override there. Tiers 0-2 page via ntfy, everything else goes to Discord only
 - **Timezone**: `Europe/Zurich`
 - **Reloader** annotation `reloader.stakater.com/auto: "true"` on controllers that consume secrets
 

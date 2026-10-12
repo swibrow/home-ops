@@ -1,0 +1,67 @@
+---
+# Alert relabeling shared by Prometheus and vmalert (loaded as an extra values
+# file by both charts), so every alert carries a `tier` that Alertmanager routes on:
+#   0 cluster critical, 1 platform, 2 household critical, 3 standard,
+#   4 best effort, 5 sandbox (dropped).
+# Rules apply in order and the last match wins: a namespace default, then
+# per-app overrides. An override matches when any workload label (app, pod,
+# deployment, statefulset, ...) starts with the app name.
+prometheus:
+  prometheusSpec:
+    additionalAlertRelabelConfigs:
+      - source_labels: [alertname]
+        regex: KubeNodeNotReady|KubeNodeUnreachable|KubeletDown
+        target_label: notify
+        replacement: ntfy
+
+      # Unlisted namespaces, then cluster-scoped alerts (nodes, certificates).
+      - target_label: tier
+        replacement: "3"
+      - source_labels: [namespace]
+        regex: ""
+        target_label: tier
+        replacement: "1"
+
+      - source_labels: [namespace]
+        regex: kube-system|cilium-secrets|networking|cert-manager|rook-ceph|openebs|openebs-system|database|argocd
+        target_label: tier
+        replacement: "0"
+      - source_labels: [namespace]
+        regex: monitoring|kopiur-system|security|system|arc|arc-runners|renovate
+        target_label: tier
+        replacement: "1"
+      - source_labels: [namespace]
+        regex: home-automation|second-brain|banking
+        target_label: tier
+        replacement: "2"
+      - source_labels: [namespace]
+        regex: dev|herdr-sandbox|vcluster|vcluster-.+|tenant-.+|kontractor|trade-ops-dev
+        target_label: tier
+        replacement: "5"
+
+      - &override
+        source_labels: [namespace, app, pod, deployment, statefulset, daemonset, job_name, persistentvolumeclaim, policy, service, container]
+        regex: (system;(.*;)?(garage|keda|spegel|kubelet-csr-approver|snapshot-controller)|security;(.*;)?(external-secrets|kanidm))([-;].*)?
+        target_label: tier
+        replacement: "0"
+      - <<: *override
+        regex: (kube-system;(.*;)?metrics-server|networking;(.*;)?(operator|ts)|database;(.*;)?(barman-cloud|dragonfly-operator|clickhouse-operator))([-;].*)?
+        replacement: "1"
+      - <<: *override
+        regex: (media;(.*;)?immich|dev;(.*;)?forgejo|selfhosted;(.*;)?(mealie|n8n|atuin|miniflux))([-;].*)?
+        replacement: "2"
+      - <<: *override
+        regex: (monitoring;(.*;)?(grafana|tempo|opentelemetry|otel-collector|unpoller|dozzle)|system;(.*;)?(dcgm-exporter|dra-driver-nvidia-gpu|nvidia-power-limit|headlamp)|networking;(.*;)?(external-dns-unifi|netboot|kromgo)|banking;(.*;)?firefly-importer|dev;(.*;)?propagit)([-;].*)?
+        replacement: "3"
+      - <<: *override
+        regex: (ai;(.*;)?(comfyui|strata|voicestudio|browser-use|playwright|open-terminal)|selfhosted;(.*;)?(it-tools|rrda|echo-server|whoami)|networking;(.*;)?openspeedtest)([-;].*)?
+        replacement: "4"
+      - <<: *override
+        regex: (ai;(.*;)?ai-training|vms;(.*;)?virt-launcher-dev)([-;].*)?
+        replacement: "5"
+
+      # Ceph's own alerts carry no namespace.
+      - source_labels: [alertname]
+        regex: Ceph.+
+        target_label: tier
+        replacement: "0"
