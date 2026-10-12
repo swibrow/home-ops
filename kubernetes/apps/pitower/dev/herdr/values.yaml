@@ -14,11 +14,23 @@ controllers:
         fsGroupChangePolicy: OnRootMismatch
       imagePullSecrets:
         - name: ghcr-pull-secret
-    containers:
-      app:
-        image:
+    initContainers:
+      # webterm's own image bundles an older herdr, and a client that doesn't
+      # match the server refuses to attach. Copying the binary from the app
+      # image keeps both containers on one herdr version.
+      copy-herdr:
+        image: &devDesktop
           repository: ghcr.io/cloudsnacks/dev-desktop
           tag: 1.1.1
+        command: ["cp", "/usr/local/bin/herdr", "/opt/herdr/herdr"]
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+    containers:
+      app:
+        image: *devDesktop
         # dev-desktop's default CMD starts Hyprland/Sunshine for GUI streaming;
         # this pod reuses the same image purely for its CLI tooling (herdr,
         # Claude Code, kubectl, ...) and runs sshd instead, since herdr's
@@ -95,7 +107,7 @@ controllers:
           TZ: Europe/Zurich
           HOME: /home/dev
           WEBTERM_LISTEN: ":8080"
-          WEBTERM_CMD: herdr
+          WEBTERM_CMD: /opt/herdr/herdr
           WEBTERM_AUTH: oidc
           WEBTERM_PUBLIC_URL: https://term.wibrow.dev
           WEBTERM_OIDC_ISSUER: https://idm.wibrow.dev/oauth2/openid/webterm
@@ -187,6 +199,15 @@ persistence:
       herdr:
         app:
           - path: /authorized_keys.d
+            readOnly: true
+  herdr-bin:
+    type: emptyDir
+    advancedMounts:
+      herdr:
+        copy-herdr:
+          - path: /opt/herdr
+        webterm:
+          - path: /opt/herdr
             readOnly: true
   # /run is owned by root in the base image; sshd's privsep preauth chroot
   # needs a writable /run/sshd, and the pod runs entirely as non-root.
