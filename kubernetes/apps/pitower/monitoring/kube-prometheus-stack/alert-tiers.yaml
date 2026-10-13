@@ -59,6 +59,11 @@ prometheus:
       - <<: *override
         regex: (ai;(.*;)?ai-training|vms;(.*;)?virt-launcher-dev)([-;].*)?
         replacement: "5"
+      # CrowdSec runs unattended: its alerts stay visible in Alertmanager but never notify.
+      - source_labels: [alertname, namespace, pod]
+        regex: CrowdSec.+;.*|.*;security;crowdsec-.+
+        target_label: tier
+        replacement: "5"
 
       # Ceph's own alerts carry no namespace.
       - source_labels: [alertname]

@@ -1,5 +1,5 @@
 # One agent tails envoy-external access logs out of VictoriaLogs (no
-# DaemonSet, no hostPath) and LAPI pushes ban decisions to ntfy. The envoy
+# DaemonSet, no hostPath). The envoy
 # bouncer (bouncer-values.yaml) enforces them on envoy-external via ext_authz.
 container_runtime: containerd
 
@@ -130,27 +130,7 @@ config:
     decisions:
       - type: ban
         duration: 4h
-    notifications:
-      - ntfy
     on_success: break
-
-  notifications:
-    ntfy.yaml: |
-      type: http
-      name: ntfy
-      log_level: info
-      group_wait: 1m
-      format: |
-        {{ range . }}**{{ .Scenario }}** from `{{ .Source.Value }}` ({{ .Source.Cn }}, {{ .Source.AsName }}): {{ .EventsCount }} events
-        {{ end }}
-      url: http://ntfy.monitoring.svc.cluster.local/pitower-alerts
-      method: POST
-      headers:
-        Authorization: ${NTFY_AUTH}
-        Title: CrowdSec
-        Tags: shield
-        Priority: "4"
-        Markdown: "yes"
 
 lapi:
   deployAnnotations:
@@ -163,8 +143,6 @@ lapi:
     - name: CROWDSEC_BYPASS_DB_VOLUME_CHECK
       value: "true"
   envFrom:
-    - secretRef:
-        name: crowdsec-ntfy-secret
     - secretRef:
         name: crowdsec-db-secret
     - secretRef:
