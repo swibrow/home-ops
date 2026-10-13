@@ -1,0 +1,30 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: system
+helmCharts:
+  - name: dcgm-exporter
+    repo: https://nvidia.github.io/dcgm-exporter/helm-charts
+    version: 4.8.4
+    releaseName: dcgm-exporter-3090ti
+    valuesFile: values.yaml
+    namespace: system
+# The chart renders this ConfigMap and Role under fixed names, which the parent
+# release already owns; this release's RoleBinding uses the parent's Role. The
+# exporter only reads the ConfigMap when started with -m.
+patches:
+  - patch: |
+      $patch: delete
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: exporter-metrics-config-map
+        namespace: system
+  - patch: |
+      $patch: delete
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: Role
+      metadata:
+        name: dcgm-exporter-read-cm
+        namespace: system

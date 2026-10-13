@@ -17,24 +17,12 @@ tolerations:
 # card and starve inference. Device visibility comes from the nvidia runtime
 # class instead, which only injects when these are set.
 #
-# The bind/unbind watch (DCGM 4.5+, driver 590+) rebuilds the exporter's state
-# after the card comes back from vfio-pci, but it keeps /dev/nvidia0 open while
-# the card is on nvidia, which blocks the DRA driver's rebind. So the GPU switch
-# labels the node gpu.wibrow.dev/mode=vfio first and the DaemonSet controller
-# removes the exporter until the label is cleared.
-affinity:
-  nodeAffinity:
-    requiredDuringSchedulingIgnoredDuringExecution:
-      nodeSelectorTerms:
-        - matchExpressions:
-            - key: gpu.wibrow.dev/mode
-              operator: NotIn
-              values:
-                - vfio
-
+# This release watches only the RTX PRO 4000, so it keeps running while omarchy
+# has the 3090 Ti; 3090ti/ is the release for that card. Pinned by UUID because
+# the 4000 becomes nvidia index 0 while the 3090 Ti is on vfio-pci.
 extraEnv:
   - name: NVIDIA_VISIBLE_DEVICES
-    value: all
+    value: GPU-3c7bf2da-7458-d70a-d8fd-c96d12c8b4de
   - name: NVIDIA_DRIVER_CAPABILITIES
     value: compute,utility
   - name: DCGM_EXPORTER_ENABLE_GPU_BIND_UNBIND_WATCH

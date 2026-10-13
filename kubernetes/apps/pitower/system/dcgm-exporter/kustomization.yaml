@@ -3,6 +3,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: system
+resources:
+  - 3090ti
 helmCharts:
   - name: dcgm-exporter
     repo: https://nvidia.github.io/dcgm-exporter/helm-charts
