@@ -70,7 +70,6 @@ spec:
           for: 10m
           labels:
             severity: critical
-            notify: ntfy
 
         # Backup growth is steady rather than spiky, so a linear projection is
         # a fair model here and buys two weeks of notice instead of ten minutes.

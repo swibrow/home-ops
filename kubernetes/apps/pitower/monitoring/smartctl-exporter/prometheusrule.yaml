@@ -59,4 +59,3 @@ spec:
               or increase(smartctl_write_total_uncorrected_errors[1d]) > 0
           labels:
             severity: critical
-            notify: ntfy
