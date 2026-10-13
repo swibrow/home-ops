@@ -31,9 +31,13 @@ apiVersion: v1alpha1
 kind: KernelModuleConfig
 name: nvidia_uvm
 ---
+# fbdev=0: the nvidia-drm framebuffer console holds the GPU, so the DRA driver's
+# unbind to vfio-pci for omarchy hits "non-zero usage count" and wedges the node.
 apiVersion: v1alpha1
 kind: KernelModuleConfig
 name: nvidia_drm
+parameters:
+  - fbdev=0
 ---
 apiVersion: v1alpha1
 kind: KernelModuleConfig
