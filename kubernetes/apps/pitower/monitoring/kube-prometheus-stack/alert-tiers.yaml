@@ -5,7 +5,7 @@
 #   4 best effort, 5 sandbox (dropped).
 # Rules apply in order and the last match wins: a namespace default, then
 # per-app overrides. An override matches when any workload label (app, pod,
-# deployment, statefulset, ...) starts with the app name.
+# release, deployment, statefulset, ...) starts with the app name.
 prometheus:
   prometheusSpec:
     additionalAlertRelabelConfigs:
@@ -40,7 +40,7 @@ prometheus:
         replacement: "5"
 
       - &override
-        source_labels: [namespace, app, pod, deployment, statefulset, daemonset, job_name, persistentvolumeclaim, policy, service, container]
+        source_labels: [namespace, app, release, pod, deployment, statefulset, daemonset, job_name, persistentvolumeclaim, policy, service, container]
         regex: (system;(.*;)?(garage|keda|spegel|kubelet-csr-approver|snapshot-controller)|security;(.*;)?(external-secrets|kanidm))([-;].*)?
         target_label: tier
         replacement: "0"

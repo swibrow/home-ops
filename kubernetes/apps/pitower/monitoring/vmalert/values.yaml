@@ -80,19 +80,21 @@ server:
               expr: >-
                 _time:6h (level:in(error,ERROR,err,fatal,FATAL,critical,CRITICAL,50,60)
                 or "level=error" or "level=fatal")
-                | stats by (kubernetes_namespace_name, kubernetes_labels.app.kubernetes.io/name, kubernetes_container_name)
+                | stats by (kubernetes_namespace_name, kubernetes_labels.app.kubernetes.io/name,
+                kubernetes_labels.app.kubernetes.io/instance, kubernetes_container_name)
                 count() if (_time:15m) as errors, count() as total
                 | math errors / max(total / 24, 1) as ratio
                 | filter errors:>=10 ratio:>=5
                 | rename kubernetes_namespace_name as namespace,
                 kubernetes_labels.app.kubernetes.io/name as app,
+                kubernetes_labels.app.kubernetes.io/instance as release,
                 kubernetes_container_name as container
-                | fields namespace, app, container, errors
+                | fields namespace, app, release, container, errors
               labels:
                 severity: warning
               annotations:
                 summary: >-
-                  {{ $labels.namespace }}/{{ or $labels.app $labels.container }}
+                  {{ $labels.namespace }}/{{ or $labels.release $labels.app $labels.container }}
                   ({{ $labels.container }}) logged {{ $value }} errors in 15m,
                   at least 5x its 6h average.
 
