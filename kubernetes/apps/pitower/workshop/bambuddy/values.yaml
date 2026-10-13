@@ -17,6 +17,15 @@ controllers:
         env:
           TZ: Europe/Zurich
           PORT: &httpPort 8000
+          APP_URL: https://bambuddy.wibrow.dev
+          BAMBUDDY_OIDC_NAME: Kanidm
+          BAMBUDDY_OIDC_ISSUER_URL: https://idm.wibrow.dev/oauth2/openid/bambuddy
+          BAMBUDDY_OIDC_CLIENT_ID: bambuddy
+          BAMBUDDY_OIDC_AUTO_CREATE_USERS: "true"
+          BAMBUDDY_OIDC_AUTO_LINK_EXISTING: "true"
+        envFrom:
+          - secretRef:
+              name: bambuddy
         probes:
           liveness:
             enabled: true
