@@ -1,0 +1,38 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/monitoring.coreos.com/prometheusrule_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: unifi-gateway
+spec:
+  groups:
+    - name: unifi-gateway.rules
+      rules:
+        # Thresholds sit above 25 days of normal running (CPU median 8%, p99
+        # 33%; memory never above 84%). The Network app's JVM leaks into its
+        # 512M heap cap after a few weeks and then spends most of its time in
+        # full GC: CPU climbs while memory barely moves, and every API caller
+        # (external-dns-unifi, unpoller) starts timing out. A restart of the
+        # unifi service clears it.
+        - alert: UnifiGatewayHighCPU
+          annotations:
+            summary: >-
+              {{ $labels.name }} CPU has averaged {{ $value | humanizePercentage }}
+              over the last hour; if the unifi JVM is in full-GC thrash, restart
+              the unifi service on the gateway.
+          expr: |
+            avg_over_time(unpoller_device_cpu_utilization_ratio{type="udm"}[1h]) > 0.3
+          for: 15m
+          labels:
+            severity: warning
+
+        - alert: UnifiGatewayHighMemory
+          annotations:
+            summary: >-
+              {{ $labels.name }} memory has averaged {{ $value | humanizePercentage }}
+              over the last 30 minutes.
+          expr: |
+            avg_over_time(unpoller_device_memory_utilization_ratio{type="udm"}[30m]) > 0.88
+          for: 15m
+          labels:
+            severity: warning

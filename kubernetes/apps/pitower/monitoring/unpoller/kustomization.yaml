@@ -5,6 +5,7 @@ kind: Kustomization
 namespace: monitoring
 resources:
   - externalsecret.yaml
+  - prometheusrule.yaml
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm
