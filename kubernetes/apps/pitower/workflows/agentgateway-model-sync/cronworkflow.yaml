@@ -30,7 +30,7 @@ spec:
             configMap:
               name: agentgateway-model-sync-scripts
         script:
-          image: python:3.14-slim
+          image: python:3.15-slim
           command:
             - bash
           source: |
