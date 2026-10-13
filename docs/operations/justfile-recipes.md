@@ -20,7 +20,7 @@ Reference for the repo's [just](https://github.com/casey/just) recipes. The root
 | `talos` | `talos/justfile` → `talos/pitower/justfile` + `talos/talos.justfile` | Talos lifecycle (topf) and diagnostics, see below |
 | `ansible` | `ansible/justfile` | `deploy`, `check`, `deploy-ovh-vps`, `deploy-nut`, `deploy-homeassistant`, ... (see `ansible/README.md`) |
 | `k8s` | `.justfiles/k8s` | `delete-failed-pods`, `delete-succeeded-pods`, `delete-pending-pods`, `clear-restarts`, `clear-restarts-sequential`, `es-sync` |
-| `vm` | `.justfiles/vm` | `status`, `start`, `stop`, `restart` for KubeVirt VMs in `vms` (default `omarchy`); `game` pauses the `ai` scale-to-zero GPU apps, waits for the RTX 3090 Ti to free up and starts omarchy, `game-stop` reverses it |
+| `vm` | `.justfiles/vm` | `status`, `start`, `stop`, `restart` for KubeVirt VMs in `vms` (default `omarchy`); `game` pauses the `ai` scale-to-zero GPU apps, waits for the RTX 3090 Ti to free up, moves dcgm-exporter off worker-ai-01 (node label `gpu.wibrow.dev/mode=vfio`) and starts omarchy, `game-stop` reverses it |
 | `infisical` | `.justfiles/infisical` | `ls <path>`, `set <path> <name>` (value from stdin or prompt) |
 | `kanidm` | `.justfiles/kanidm` | `ls`, `oidc-client`, `oidc-secret` (copies a client secret into Infisical) |
 | `tf` | `.justfiles/terraform` | `init-unifi`, `plan-unifi`, `apply-unifi` (and older generic recipes) |

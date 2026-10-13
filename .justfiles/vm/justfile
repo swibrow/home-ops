@@ -8,6 +8,10 @@ api := "/apis/subresources.kubevirt.io/v1/namespaces/" + ns + "/virtualmachines"
 # Marks the ScaledObjects `game` paused, so `game-stop` leaves ones paused by hand alone.
 pause_marker := "home-ops/paused-for-omarchy"
 self := just_executable() + " --justfile " + quote(source_file())
+gpu_node := "worker-ai-01"
+# dcgm-exporter keeps the GPU open and the DRA driver can't unbind a busy card,
+# so this label makes its DaemonSet drop the pod while omarchy has the GPU.
+gpu_mode_label := "gpu.wibrow.dev/mode"
 
 # List VMs and their state
 status:
@@ -56,6 +60,10 @@ game:
         echo "GPU still claimed after 5m by: $holders" >&2
         exit 1
     fi
+    kubectl label node {{ gpu_node }} {{ gpu_mode_label }}=vfio --overwrite >/dev/null
+    echo "Waiting for dcgm-exporter to leave {{ gpu_node }}"
+    kubectl -n system wait pod --for=delete --timeout=2m \
+      -l app.kubernetes.io/name=dcgm-exporter --field-selector spec.nodeName={{ gpu_node }}
     {{ self }} start omarchy
 
 # Stop omarchy and resume the GPU apps that `game` paused
@@ -63,6 +71,9 @@ game-stop:
     #!/usr/bin/env bash
     set -euo pipefail
     {{ self }} stop omarchy
+    echo "Waiting for omarchy to shut down"
+    kubectl -n {{ ns }} wait vmi omarchy --for=delete --timeout=5m
+    kubectl label node {{ gpu_node }} {{ gpu_mode_label }}- >/dev/null
     for so in $(kubectl -n ai get scaledobject -o json \
       | jq -r '.items[] | select(.metadata.annotations["{{ pause_marker }}"] == "true") | .metadata.name'); do
         kubectl -n ai annotate scaledobject "$so" autoscaling.keda.sh/paused-replicas- {{ pause_marker }}- >/dev/null
