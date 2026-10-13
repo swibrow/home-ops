@@ -8,7 +8,7 @@ resources:
 helmCharts:
   - name: dra-driver-nvidia-gpu
     repo: oci://registry.k8s.io/dra-driver-nvidia/charts
-    version: 0.5.0
+    version: 0.5.1
     releaseName: dra-driver-nvidia-gpu
     valuesFile: values.yaml
     namespace: system
