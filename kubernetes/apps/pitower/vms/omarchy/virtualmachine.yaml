@@ -30,6 +30,9 @@ spec:
         source:
           blank: {}
         # worker-ai-01's Samsung 9100 PRO; the VM is pinned there by its GPU anyway.
+        # Hostpath PVCs can't expand, so disk.img was grown to 500Gi by hand
+        # (XFS project quota raised to 510G, then qemu-img resize); the PVC
+        # still reports the original size.
         storage:
           storageClassName: openebs-hostpath-models
           resources:
@@ -75,6 +78,8 @@ spec:
               deviceName: kubevirt.io/usb-keyboard
             - name: mouse
               deviceName: kubevirt.io/usb-mouse
+            - name: hdmi-audio
+              deviceName: nvidia.com/GA102_HDMI_AUDIO
           inputs:
             - name: tablet
               type: tablet

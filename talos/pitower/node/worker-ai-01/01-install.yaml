@@ -44,11 +44,15 @@ kind: KernelModuleConfig
 name: nvidia_modeset
 ---
 # For the DRA driver's PassthroughSupport, which rebinds the GPU from nvidia to
-# vfio-pci when a KubeVirt VM claims it. No ids= binding: the card stays on
-# nvidia until a vfio.gpu.nvidia.com claim asks for it.
+# vfio-pci when a KubeVirt VM claims it. The GPU function itself is not in ids=:
+# it stays on nvidia until a vfio.gpu.nvidia.com claim asks for it. Its HDMI
+# audio function (10de:1aef) has no host driver and the DRA driver leaves it
+# alone, so it is bound here for KubeVirt to pass to omarchy.
 apiVersion: v1alpha1
 kind: KernelModuleConfig
 name: vfio_pci
+parameters:
+  - ids=10de:1aef
 ---
 apiVersion: v1alpha1
 kind: KernelModuleConfig
