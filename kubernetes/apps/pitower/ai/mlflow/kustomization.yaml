@@ -25,7 +25,7 @@ configMapGenerator:
 helmCharts:
   - name: mlflow
     repo: oci://ghcr.io/mlflow/charts
-    version: 3.17.0
+    version: 3.17.1
     releaseName: mlflow
     namespace: ai
     valuesFile: values.yaml
