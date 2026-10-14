@@ -39,15 +39,16 @@ terminal:
   persistent_shell: true
 approvals:
   mode: smart
-  # Cron jobs read mail, feeds and alert payloads; anything flagged dangerous is
-  # denied there rather than auto-approved.
+  # Cron jobs read mail and feeds; anything flagged dangerous is denied there
+  # rather than auto-approved, so mail is only ever acted on from a chat.
   cron_mode: deny
-  # Unconditional, even under /yolo. Mail is read + draft only (no draft
-  # subcommand exists, so drafts go to chat), and infra changes go through git.
+  # Acting on mail is allowed, but only once approved in the chat.
+  smart_policy: >-
+    Always ESCALATE commands that send, reply to, forward, archive, label or
+    delete email (google_api.py gmail send/reply/modify, gws gmail), and that
+    create, change or delete calendar events or Drive files.
+  # Unconditional, even under /yolo. Infra changes go through git.
   deny:
-    - '*google_api.py gmail send*'
-    - '*google_api.py gmail reply*'
-    - '*gws gmail*send*'
     - 'kubectl delete*'
     - 'terraform apply*'
     - 'terraform destroy*'
@@ -81,30 +82,39 @@ platform_toolsets:
   cli:
     - hermes-cli
     - toolhive
+    - paperless
   telegram:
     - hermes-telegram
     - toolhive
+    - paperless
 mcp_servers:
   # Anonymous in-cluster vMCP (toolhive/toolhive-config/virtualmcpserver-direct.yaml).
   # The OAuth vMCP (vmcp-mcp-gateway, mcp.wibrow.dev) requires a browser OAuth flow
   # Hermes can't do, so it uses the anonymous sibling, netpol-locked to this pod.
   toolhive:
     url: http://vmcp-mcp-gateway-direct.ai:4483/mcp
-  # Same gateway restricted to read tools, for cron jobs that ingest untrusted
-  # text. Allowlisted by name because vMCP aggregation is not verified to keep
-  # readOnlyHint annotations (so `trust: untrusted` could block reads too).
-  # Names are the vMCP-prefixed originals, e.g. github_list_pull_requests.
-  toolhive_ro:
-    url: http://vmcp-mcp-gateway-direct.ai:4483/mcp
+  # GitHub read tools for cron jobs that ingest untrusted text. This has to be
+  # the backend proxy rather than the vMCP: the vMCP runs the optimizer, so it
+  # only advertises find_tool/call_tool and an include list cannot narrow what
+  # call_tool reaches. Names are github-mcp-server v2's own; ingress is granted
+  # in toolhive-config/networkpolicy.yaml.
+  github_ro:
+    url: http://mcp-github-proxy.ai.svc.cluster.local:8080/mcp
     tools:
       include:
-        - '*_get*'
-        - '*_list*'
-        - '*_search*'
-        - '*_query*'
-        - '*_find*'
-        - '*_describe*'
-        - '*_read*'
+        - get_me
+        - issue_read
+        - list_issues
+        - search_issues
+        - pull_request_read
+        - list_pull_requests
+        - search_pull_requests
+        - get_file_contents
+  # Outside the mcp-tools group, so not on the vMCPs (one of which has a no-auth
+  # route): its token can edit and delete documents. Ingress is the hermes pod
+  # only (toolhive-config/networkpolicy.yaml).
+  paperless:
+    url: http://mcp-paperless-proxy.ai.svc.cluster.local:8080/mcp
 auxiliary:
   vision:
     provider: claude-subscription-directsdk-experimental
