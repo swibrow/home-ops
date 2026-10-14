@@ -67,6 +67,9 @@ spec:
   resources:
     cpu: "2"
     memory: "8Gi"
+    # The operator always sets limits.memory (to memory unless memoryLimit is
+    # given); 8Gi OOM-killed it mid-generation at the full 64K context.
+    memoryLimit: "32Gi"
   contextSize: 65536
   parallelSlots: 1
   flashAttention: true
