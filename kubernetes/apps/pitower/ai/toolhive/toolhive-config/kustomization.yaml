@@ -30,6 +30,7 @@ resources:
   - mcpserver-database-toolbox.yaml
   - mcpserver-excalidraw.yaml
   - mcpserver-browser.yaml
+  - mcpserver-paperless.yaml
   - generator-github.yaml
   - cronjob-github-token.yaml
   - networkpolicy.yaml

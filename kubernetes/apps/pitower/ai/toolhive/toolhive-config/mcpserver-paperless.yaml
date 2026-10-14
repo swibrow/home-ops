@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=https://kube-schemas.pages.dev/toolhive.stacklok.dev/mcpserver_v1beta1.json
+# Paperless-ngx MCP backend for Hermes. No groupRef on purpose: the token can
+# edit and delete documents, so it stays out of the mcp-tools group and every
+# vMCP built on it (incl. the no-auth mcp-internal route). Ingress to the proxy
+# is the hermes pod only (networkpolicy.yaml).
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServer
+metadata:
+  name: paperless
+spec:
+  image: ghcr.io/cubinet-code/paperless-ngx-mcp:3.2.1@sha256:7a98e1a12e79257ddd5fba0a401394d389fdaa403ef9d1217d7bc2381031747a
+  transport: streamable-http
+  proxyPort: 8080
+  mcpPort: 3000
+  args:
+    - --http
+    - --port
+    - "3000"
+  env:
+    - name: PAPERLESS_URL
+      value: http://paperless.banking.svc.cluster.local:8000
+    - name: PAPERLESS_PUBLIC_URL
+      value: https://paperless.wibrow.dev
+  secrets:
+    - name: toolhive-paperless
+      key: PAPERLESS_API_KEY
+      targetEnvName: PAPERLESS_API_KEY
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      memory: 256Mi

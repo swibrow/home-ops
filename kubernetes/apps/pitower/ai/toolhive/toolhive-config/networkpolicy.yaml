@@ -78,6 +78,7 @@ spec:
           - victorialogs
           - excalidraw
           - browser
+          - paperless
   policyTypes:
     - Ingress
   ingress:
@@ -101,6 +102,7 @@ spec:
                   - victorialogs
                   - excalidraw
                   - browser
+                  - paperless
 ---
 # The anonymous vMCP (mcp-gateway-direct) has no auth of its own, so restrict its
 # ingress to the only legitimate callers: the Envoy proxy pods (which terminate the
@@ -150,6 +152,35 @@ spec:
       ports:
         - protocol: TCP
           port: 4483
+---
+# Hermes calls two backend proxies directly: paperless, which is kept out of the
+# mcp-tools group (mcpserver-paperless.yaml), and github for its read-only cron
+# view (the vMCP's optimizer leaves nothing for an allowlist to narrow).
+# Additive to mcp-backend-proxy-from-vmcp-only.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mcp-backend-proxy-from-hermes
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: mcpserver
+    matchExpressions:
+      - key: toolhive-name
+        operator: In
+        values:
+          - github
+          - paperless
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: hermes
+      ports:
+        - protocol: TCP
+          port: 8080
 ---
 # Garrison raid agents (runner sandboxes in ns garrison) may call the mcp-tools
 # backend proxies directly — per-repo selection and tool allowlists are enforced
