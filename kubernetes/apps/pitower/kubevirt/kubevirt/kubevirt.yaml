@@ -26,7 +26,7 @@ spec:
               product: "c08b"
       # The RTX 3090 Ti's HDMI audio function, bound to vfio-pci by the
       # worker-ai-01 Talos patch. The DRA claim only covers the GPU function.
-      pci:
+      pciHostDevices:
         - pciVendorSelector: "10DE:1AEF"
           resourceName: nvidia.com/GA102_HDMI_AUDIO
     # VM nodes have mismatched CPUs (Ryzen, N100, Xeon), so live migration
