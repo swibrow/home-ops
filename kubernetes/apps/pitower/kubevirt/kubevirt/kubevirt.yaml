@@ -10,7 +10,7 @@ spec:
     developerConfiguration:
       featureGates:
         - HostDevices
-    # Keyboard and Logitech mouse receiver on worker-ai-01, for the omarchy VM.
+    # Keyboard and Logitech G502 mouse on worker-ai-01, for the omarchy VM.
     # Only the USB devices: passing their whole controller (1022:15b8) through
     # hangs the host. KubeVirt attaches them by bus:devnum, so they must be
     # plugged in when the VM starts, and a replug drops them until it restarts.
@@ -23,7 +23,7 @@ spec:
         - resourceName: kubevirt.io/usb-mouse
           selectors:
             - vendor: "046d"
-              product: "c52b"
+              product: "c08b"
     # VM nodes have mismatched CPUs (Ryzen, N100, Xeon), so live migration
     # never finds a target; drains and upgrades restart VMs instead.
     evictionStrategy: None
