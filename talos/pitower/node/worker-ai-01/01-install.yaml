@@ -46,13 +46,14 @@ name: nvidia_modeset
 # For the DRA driver's PassthroughSupport, which rebinds the GPU from nvidia to
 # vfio-pci when a KubeVirt VM claims it. The GPU function itself is not in ids=:
 # it stays on nvidia until a vfio.gpu.nvidia.com claim asks for it. Its HDMI
-# audio function (10de:1aef) has no host driver and the DRA driver leaves it
-# alone, so it is bound here for KubeVirt to pass to omarchy.
+# audio function (10de:1aef) and the Exsys ASM2142 USB card (1b21:2142, the
+# omarchy keyboard and mouse) are bound here for KubeVirt to pass to omarchy.
+# xhci_pci also claims the USB card, so vfio_pci must win the module load race.
 apiVersion: v1alpha1
 kind: KernelModuleConfig
 name: vfio_pci
 parameters:
-  - ids=10de:1aef
+  - ids=10de:1aef,1b21:2142
 ---
 apiVersion: v1alpha1
 kind: KernelModuleConfig

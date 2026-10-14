@@ -10,23 +10,15 @@ spec:
     developerConfiguration:
       featureGates:
         - HostDevices
-    # Keyboard and Logitech G502 mouse on worker-ai-01, for the omarchy VM.
-    # Only the USB devices: passing their whole controller (1022:15b8) through
-    # hangs the host. KubeVirt attaches them by bus:devnum, so they must be
-    # plugged in when the VM starts, and a replug drops them until it restarts.
     permittedHostDevices:
-      usb:
-        - resourceName: kubevirt.io/usb-keyboard
-          selectors:
-            - vendor: "05af"
-              product: "1053"
-        - resourceName: kubevirt.io/usb-mouse
-          selectors:
-            - vendor: "046d"
-              product: "c08b"
-      # The RTX 3090 Ti's HDMI audio function, bound to vfio-pci by the
-      # worker-ai-01 Talos patch. The DRA claim only covers the GPU function.
+      # On worker-ai-01, both bound to vfio-pci by its Talos patch, for the
+      # omarchy VM. The Exsys ASM2142 USB card carries the keyboard and mouse;
+      # the board's own AMD controller (1022:15b8) hangs the host if passed.
+      # The 3090 Ti's HDMI audio function is separate: the DRA claim only
+      # covers the GPU function.
       pciHostDevices:
+        - pciVendorSelector: "1B21:2142"
+          resourceName: kubevirt.io/usb-controller
         - pciVendorSelector: "10DE:1AEF"
           resourceName: nvidia.com/GA102_HDMI_AUDIO
     # VM nodes have mismatched CPUs (Ryzen, N100, Xeon), so live migration

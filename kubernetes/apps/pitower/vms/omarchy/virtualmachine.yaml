@@ -74,10 +74,8 @@ spec:
               claimName: gpu
               requestName: gpu
           hostDevices:
-            - name: keyboard
-              deviceName: kubevirt.io/usb-keyboard
-            - name: mouse
-              deviceName: kubevirt.io/usb-mouse
+            - name: usb
+              deviceName: kubevirt.io/usb-controller
             - name: hdmi-audio
               deviceName: nvidia.com/GA102_HDMI_AUDIO
           inputs:
