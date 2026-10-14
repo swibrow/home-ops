@@ -80,8 +80,8 @@ controllers:
           tag: v2026.9.24@sha256:fca358f12efd65bfaaca05884166f15c0e2788375ca30d77061ac1ebc96452b7
         command:
           - /opt/hermes/.venv/bin/python
-          - /tmp/hermes-cron/sync.py
-          - /tmp/hermes-cron/jobs.yaml
+          - /opt/hermes-repo/current/cron/sync.py
+          - /opt/hermes-repo/current/cron/jobs.yaml
         workingDir: /opt/hermes
         env:
           HERMES_HOME: /opt/data
@@ -147,6 +147,24 @@ controllers:
           - containerPort: &port 8642
             name: http
             protocol: TCP
+      data-sync:
+        image: *image
+        command: ["/bin/sh", "/etc/git-sync/data-sync.sh"]
+        workingDir: /opt/hermes
+        env:
+          HOME: /opt/data
+          HERMES_HOME: /opt/data
+          PYTHONPATH: /opt/hermes
+          TZ: Europe/Zurich
+        securityContext:
+          runAsUser: 10000
+          runAsGroup: 10000
+        resources:
+          requests:
+            cpu: 5m
+            memory: 32Mi
+          limits:
+            memory: 256Mi
       dashboard:
         image: *image
         args: ["dashboard", "--host", "0.0.0.0", "--insecure"]
@@ -252,13 +270,6 @@ persistence:
     globalMounts:
       - path: /tmp/config.yaml
         subPath: config.yaml
-  cron:
-    type: configMap
-    name: hermes-cron
-    advancedMounts:
-      hermes:
-        cron-sync:
-          - path: /tmp/hermes-cron
   # OAuth client JSON read by the google-workspace skill from $HERMES_HOME.
   google-client-secret:
     type: secret
@@ -294,3 +305,18 @@ persistence:
             subPath: known_hosts
           - path: /etc/git-sync/exechook.sh
             subPath: exechook.sh
+        data-sync:
+          - path: /etc/git-sync/data-sync.sh
+            subPath: data-sync.sh
+          - path: /etc/git-sync/git-credential-github
+            subPath: git-credential-github
+  # Push token for data-sync only; the agent containers never see it.
+  github-token:
+    type: secret
+    name: hermes-github
+    defaultMode: 0440
+    advancedMounts:
+      hermes:
+        data-sync:
+          - path: /var/run/secrets/github
+            readOnly: true

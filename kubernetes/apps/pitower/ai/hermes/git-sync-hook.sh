@@ -7,3 +7,4 @@ touch /opt/data/config.yaml
 # synced scripts are copied there rather than linked.
 mkdir -p /opt/data/scripts
 cp -f scripts/* /opt/data/scripts/
+cp -f SOUL.md /opt/data/SOUL.md

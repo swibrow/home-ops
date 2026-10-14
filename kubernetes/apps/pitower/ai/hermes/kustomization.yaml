@@ -6,6 +6,7 @@ namespace: ai
 resources:
   - externalsecret.yaml
   - externalsecret-google.yaml
+  - generator-github.yaml
 components:
   - ../../../../components/pvc
   - ../../../../components/kopiur
@@ -15,18 +16,14 @@ configMapGenerator:
       disableNameSuffixHash: true
     files:
       - config.yaml=config.yaml
-  - name: hermes-cron
-    options:
-      disableNameSuffixHash: true
-    files:
-      - jobs.yaml=cron/jobs.yaml
-      - sync.py=cron/sync.py
   - name: hermes-git-sync
     options:
       disableNameSuffixHash: true
     files:
       - known_hosts=known_hosts
       - exechook.sh=git-sync-hook.sh
+      - data-sync.sh=data-sync.sh
+      - git-credential-github=git-credential-github
   - name: pvc-config
     options:
       disableNameSuffixHash: true

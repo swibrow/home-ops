@@ -1,0 +1,39 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/generators.external-secrets.io/githubaccesstoken_v1alpha1.json
+# Same GitHub App and installation as toolhive's github-mcp generator, scoped down to
+# pushing swibrow/hermes from the data-sync sidecar.
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: GithubAccessToken
+metadata:
+  name: hermes-data
+spec:
+  appID: "4042475"
+  installID: "139988296"
+  repositories:
+    - hermes
+  permissions:
+    contents: write
+  auth:
+    privateKey:
+      secretRef:
+        name: toolhive-github-app
+        key: private-key
+---
+# Installation token (key `token`, 60 min lifetime) refreshed every 20 min and mounted
+# as a file, so the sidecar always reads a live one.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/external-secrets.io/externalsecret_v1.json
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: hermes-github
+spec:
+  refreshInterval: 20m
+  target:
+    name: hermes-github
+    creationPolicy: Owner
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: GithubAccessToken
+          name: hermes-data
