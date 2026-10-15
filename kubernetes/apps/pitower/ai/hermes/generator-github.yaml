@@ -20,7 +20,8 @@ spec:
         key: private-key
 ---
 # Installation token (key `token`, 60 min lifetime) refreshed every 20 min and mounted
-# as a file, so the sidecar always reads a live one.
+# as a file, so the sidecar always reads a live one. Reloader must ignore it, or every
+# refresh restarts the whole pod.
 # yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/external-secrets.io/externalsecret_v1.json
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
@@ -31,6 +32,10 @@ spec:
   target:
     name: hermes-github
     creationPolicy: Owner
+    template:
+      metadata:
+        annotations:
+          reloader.stakater.com/ignore: "true"
   dataFrom:
     - sourceRef:
         generatorRef:
