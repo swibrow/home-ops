@@ -1,5 +1,6 @@
 mod docs '.justfiles/docs'
 mod gh '.justfiles/gh'
+mod hermes '.justfiles/hermes'
 mod infisical '.justfiles/infisical'
 mod kanidm '.justfiles/kanidm'
 mod k8s '.justfiles/k8s'

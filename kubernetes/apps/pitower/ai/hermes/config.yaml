@@ -37,6 +37,9 @@ terminal:
   cwd: /opt/data/workspace
   timeout: 180
   persistent_shell: true
+browser:
+  # The signed-in `browser` sidecar in this pod.
+  cdp_url: http://127.0.0.1:9222
 approvals:
   mode: smart
   # Cron jobs read mail and feeds; anything flagged dangerous is denied there

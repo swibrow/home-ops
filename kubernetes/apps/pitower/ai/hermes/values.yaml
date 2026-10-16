@@ -165,6 +165,38 @@ controllers:
             memory: 32Mi
           limits:
             memory: 256Mi
+      # Persistent signed-in browser for the agent (browser.cdp_url). Cookies are
+      # imported from the Mac with `just hermes::copy-cookies`. The debugging port is
+      # bound to localhost, so only containers in this pod can drive it.
+      browser:
+        image: *image
+        command:
+          - /bin/sh
+          - -c
+          - |
+            set -eu
+            profile=/opt/data/browser-profile
+            mkdir -p "$profile"
+            # Lock files left by the previous pod name another host, and Chrome then
+            # refuses the profile as in use.
+            rm -f "$profile"/Singleton*
+            exec /opt/hermes/.playwright/chromium_headless_shell-*/chrome-headless-shell-linux64/chrome-headless-shell \
+              --no-sandbox --disable-gpu --disable-dev-shm-usage \
+              --remote-debugging-address=127.0.0.1 --remote-debugging-port=9222 \
+              --user-data-dir="$profile" \
+              --user-agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36" \
+              about:blank
+        env:
+          TZ: Europe/Zurich
+        securityContext:
+          runAsUser: 10000
+          runAsGroup: 10000
+        resources:
+          requests:
+            cpu: 10m
+            memory: 128Mi
+          limits:
+            memory: 1Gi
       dashboard:
         image: *image
         args: ["dashboard", "--host", "0.0.0.0", "--insecure"]

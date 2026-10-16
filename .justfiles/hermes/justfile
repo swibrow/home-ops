@@ -1,0 +1,9 @@
+script := justfile_directory() / "scripts" / "hermes-cookies.py"
+
+# Copy Chrome cookies for the given sites (subdomains included) into hermes' signed-in browser
+copy-cookies +domains:
+    uv run --script {{ script }} {{ domains }}
+
+# List Chrome cookie hosts containing a word, to find the domains a site's login uses
+cookie-hosts +words:
+    uv run --script {{ script }} --hosts {{ words }}
