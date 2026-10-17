@@ -106,7 +106,7 @@ Pod subnets come from the Talos `KubeNetworkConfig` (`talos/pitower/all/03-netwo
 
 ## L2 Announcements
 
-The pool sits inside VLAN 20, so on-VLAN clients ARP for the VIPs. Every Linux node can hold the lease:
+The pool sits inside VLAN 20, so on-VLAN clients ARP for the VIPs. Every Linux node can hold the lease, except for omarchy's VIP: its Service uses `externalTrafficPolicy: Local`, so a second policy pins that lease to worker-ai-01, where the VM runs. Any other holder would drop the traffic:
 
 ```yaml title="kubernetes/apps/pitower/kube-system/cilium/config/cilium-l2.yaml"
 apiVersion: cilium.io/v2alpha1

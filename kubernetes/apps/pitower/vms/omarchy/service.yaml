@@ -3,12 +3,16 @@ apiVersion: v1
 kind: Service
 metadata:
   name: omarchy
+  labels:
+    app.kubernetes.io/name: omarchy
   annotations:
     lbipam.cilium.io/ips: "10.20.10.233"
     external-dns.kubernetes.io/hostname: omarchy.wibrow.dev
 spec:
   type: LoadBalancer
-  externalTrafficPolicy: Cluster
+  # Local skips the hop through whichever node held the VIP: BGP only advertises
+  # it from the node with the VM, and the omarchy L2 policy pins the lease there.
+  externalTrafficPolicy: Local
   selector:
     kubevirt.io/vm: omarchy
   # SSH, plus the Moonlight ports that omarchy-install-service-sunshine opens in
