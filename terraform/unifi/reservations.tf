@@ -34,9 +34,8 @@ locals {
     worker-10 = { mac = "dc:a6:32:46:b2:ba", fixed_ip = "10.20.10.10", network_id = unifi_network.servers.id }
     data      = { mac = "00:11:32:0c:91:0c", fixed_ip = "10.20.10.100", network_id = unifi_network.servers.id }
 
-    # Talos GPU worker, bare metal (ASUS ProArt B850 + RTX 3090 Ti), dual-booted
-    # with Bazzite. Talos DHCPs on its VLAN 20 subinterface, which inherits the
-    # NIC's MAC; Bazzite comes up on the untagged LAN.
+    # Talos GPU worker, bare metal (ASUS ProArt B850 + RTX 3090 Ti). Talos DHCPs
+    # on its VLAN 20 subinterface, which inherits the NIC's MAC.
     worker-ai-01 = { mac = "b0:82:e2:a2:df:33", fixed_ip = "10.20.10.11", network_id = unifi_network.servers.id, note = "Talos GPU worker, bare metal, VLAN 20 on the onboard NIC" }
 
     # Pinned at its existing dynamic address: nut-exporter and the blackbox

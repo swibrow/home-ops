@@ -12,8 +12,6 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
-  # Includes worker-ai-01 despite the L2 exclusion: when it boots into Bazzite
-  # its session drops and the gateway withdraws its routes within the hold time.
   bgpInstances:
     - name: pitower
       localASN: 64513
@@ -94,8 +92,7 @@ spec:
             values: [never-used-value]
 ---
 # Native routing leaves pod IPs unencapsulated, so a /24 route per node is all
-# the gateway needs to reach pods directly. worker-ai-01 does not peer, so its
-# pods stay unreachable from outside the cluster.
+# the gateway needs to reach pods directly.
 # yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/cilium.io/ciliumbgpadvertisement_v2.json
 apiVersion: cilium.io/v2
 kind: CiliumBGPAdvertisement

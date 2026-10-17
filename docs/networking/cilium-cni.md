@@ -106,7 +106,7 @@ Pod subnets come from the Talos `KubeNetworkConfig` (`talos/pitower/all/03-netwo
 
 ## L2 Announcements
 
-The pool sits inside VLAN 20, so on-VLAN clients ARP for the VIPs. Every Linux node except `worker-ai-01` (often booted into another OS) can hold the lease:
+The pool sits inside VLAN 20, so on-VLAN clients ARP for the VIPs. Every Linux node can hold the lease:
 
 ```yaml title="kubernetes/apps/pitower/kube-system/cilium/config/cilium-l2.yaml"
 apiVersion: cilium.io/v2alpha1
@@ -118,10 +118,6 @@ spec:
   nodeSelector:
     matchLabels:
       kubernetes.io/os: linux
-    matchExpressions:
-      - key: kubernetes.io/hostname
-        operator: NotIn
-        values: [worker-ai-01]
 ---
 apiVersion: cilium.io/v2
 kind: CiliumLoadBalancerIPPool
@@ -139,7 +135,7 @@ See [Load Balancers](load-balancers.md) for allocations.
 
 ## BGP
 
-Cilium peers with the UniFi Cloud Gateway (UCG Fiber) from every node, including `worker-ai-01`: unlike an L2 lease, its routes are withdrawn within the hold time when it boots into another OS.
+Cilium peers with the UniFi Cloud Gateway (UCG Fiber) from every node:
 
 | Setting | Value |
 |:--------|:------|

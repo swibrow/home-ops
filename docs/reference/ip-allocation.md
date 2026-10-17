@@ -49,7 +49,7 @@ On VLAN 20, everything below `10.20.200.0` is static: nodes, the API VIP, the Lo
 
 ## LoadBalancer IP Pool
 
-Cilium LB-IPAM allocates LoadBalancer IPs from `10.20.10.128` - `10.20.10.255` (and `2a02:16a:2a0a:3::/112` for IPv6). Addresses are pinned per Service with the `lbipam.cilium.io/ips` annotation and announced over L2 (ARP) and BGP to the gateway. worker-ai-01 takes part in BGP only, not L2.
+Cilium LB-IPAM allocates LoadBalancer IPs from `10.20.10.128` - `10.20.10.255` (and `2a02:16a:2a0a:3::/112` for IPv6). Addresses are pinned per Service with the `lbipam.cilium.io/ips` annotation and announced over L2 (ARP) and BGP to the gateway.
 
 | IP Address | Namespace | Service |
 |:-----------|:----------|:--------|
