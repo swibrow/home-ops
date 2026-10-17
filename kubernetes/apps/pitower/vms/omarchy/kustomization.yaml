@@ -8,3 +8,4 @@ resources:
   - resourceclaimtemplate.yaml
   - virtualmachine.yaml
   - service.yaml
+  - dnsendpoint.yaml
