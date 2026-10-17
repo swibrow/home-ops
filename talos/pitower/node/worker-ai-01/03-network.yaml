@@ -1,7 +1,7 @@
 ---
-# The board's second NIC (eno2) is cabled to the untagged LAN for Bazzite. Left
-# alone, Talos DHCPs on it and its default route shadows VLAN 20's (same metric),
-# so the node can't reach the image factory. Talos only uses eno1.20.
+# The board's second NIC (eno2) is unused. If it is cabled, Talos DHCPs on it and
+# its default route shadows VLAN 20's (same metric), so the node can't reach the
+# image factory. Talos only uses eno1.20.
 machine:
   network:
     interfaces:

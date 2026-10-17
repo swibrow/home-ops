@@ -156,7 +156,7 @@ Patches in `node/<host>/` apply to one node. Every node has an `UnattendedInstal
 | worker-05, worker-06 | `SAMSUNG` model | Label `intel-gpu` |
 | worker-07 | md RAID1 `boot` (two SSDs by WWID) | `raid1` and `zfs` modules (ARC capped at 64 GiB), `maxPods: 250`, X710 ring sizes |
 | worker-08..10 | Disk of 100 GB or more (the USB SSD, not the SD card) | None |
-| worker-ai-01 | 1 TB NVMe | Label `nvidia-gpu`, EPHEMERAL capped at 200 GiB, NVIDIA and VFIO modules, `models` user volume, taint `dedicated=gpu:NoSchedule`, ignores the Bazzite NIC |
+| worker-ai-01 | 1 TB NVMe | Label `nvidia-gpu`, EPHEMERAL capped at 200 GiB, NVIDIA and VFIO modules, `models` user volume, taint `dedicated=gpu:NoSchedule`, ignores the unused second NIC |
 
 ## Diagnostics
 

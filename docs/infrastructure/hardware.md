@@ -58,18 +58,18 @@ The OpenEBS classes `openebs-hostpath-fast`, `-runners`, and `-media` only provi
 
 ### worker-ai-01 (GPU)
 
-A bare-metal ASUS ProArt B850 board with an NVIDIA RTX 3090 Ti at `10.20.10.11`, dual-booted with Bazzite.
+A bare-metal ASUS ProArt B850 board with an NVIDIA RTX 3090 Ti at `10.20.10.11`, running only Talos.
 
 | Property | Value |
 |----------|-------|
 | CPU | AMD, 16 threads |
 | RAM | 64 GB |
-| System disk | 1 TB Kingston NV3 (shared with Bazzite; Talos EPHEMERAL capped at 200 GiB) |
+| System disk | 1 TB Kingston NV3 (Talos EPHEMERAL capped at 200 GiB) |
 | Models disk | 2 TB Samsung 9100 Pro, Talos user volume `models` at `/var/mnt/models` (`openebs-hostpath-models`) |
 | Schematic | `nvidia` (open GPU kernel modules + container toolkit) |
 | Taint | `dedicated=gpu:NoSchedule` |
 
-The GPU is shared through the NVIDIA DRA driver (`system/dra-driver-nvidia-gpu`) and can be passed through to a KubeVirt VM with `vfio-pci`. `system/nvidia-power-limit` caps it at 300 W. Because it is often booted into Bazzite, it is excluded from Cilium's L2 and BGP announcements.
+The GPU is shared through the NVIDIA DRA driver (`system/dra-driver-nvidia-gpu`) and can be passed through to a KubeVirt VM with `vfio-pci`. `system/nvidia-power-limit` caps it at 300 W.
 
 ### Raspberry Pi Workers
 

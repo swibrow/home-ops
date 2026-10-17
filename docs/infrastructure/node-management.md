@@ -120,7 +120,7 @@ talos/pitower/node/
   worker-10/01-install.yaml      # Raspberry Pi 4
   worker-ai-01/01-install.yaml   # GPU node: NVIDIA/VFIO modules, gpu taint
   worker-ai-01/02-models.yaml    # models user volume
-  worker-ai-01/03-network.yaml   # ignore the Bazzite NIC
+  worker-ai-01/03-network.yaml   # ignore the unused second NIC
 ```
 
 The hostname, MAC address, VLAN 20 interface, and VIP come from `topf.yaml` through the `all/*.tpl` templates, so node patches only hold what is unique to that machine. See [Talos Linux](talos-linux.md#per-node-patches) for what each one sets.
