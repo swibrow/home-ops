@@ -1,0 +1,18 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/externaldns.k8s.io/dnsendpoint_v1alpha1.json
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: omarchy
+spec:
+  # Public twin of the UniFi record from the Service annotation, as for
+  # internal.wibrow.dev: clients that skip the gateway's DNS (iCloud Private
+  # Relay) would otherwise hit the *.wibrow.dev wildcard and land on the tunnel.
+  # Unproxied since 10.20.10.233 is a private IP.
+  endpoints:
+    - dnsName: "omarchy.wibrow.dev"
+      recordType: A
+      targets: ["10.20.10.233"]
+      providerSpecific:
+        - name: cloudflare/proxied
+          value: "false"
