@@ -16,11 +16,12 @@ spec:
   selector:
     kubevirt.io/vm: omarchy
   # SSH, plus the Moonlight ports that omarchy-install-service-sunshine opens in
-  # the guest firewall. Pairing goes through the Sunshine admin UI on localhost.
+  # the guest firewall, plus the Sunshine admin UI (47990, opened by hand in ufw).
   ports:
     - { name: ssh, port: 22, targetPort: 22, protocol: TCP }
     - { name: https, port: 47984, targetPort: 47984, protocol: TCP }
     - { name: http, port: 47989, targetPort: 47989, protocol: TCP }
+    - { name: web-ui, port: 47990, targetPort: 47990, protocol: TCP }
     - { name: rtsp, port: 48010, targetPort: 48010, protocol: TCP }
     - { name: video, port: 47998, targetPort: 47998, protocol: UDP }
     - { name: control, port: 47999, targetPort: 47999, protocol: UDP }
