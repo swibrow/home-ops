@@ -15,9 +15,9 @@ flowchart TB
         V6["2a02:16a:2a0a:3::/112"]
     end
 
-    subgraph Cilium["Cilium agents (all nodes except worker-ai-01)"]
-        L2[L2 announcement<br/>ARP responder]
-        BGP[BGP speaker<br/>ASN 64513]
+    subgraph Cilium["Cilium agents"]
+        L2["L2 announcement<br/>ARP responder<br/>(all nodes except worker-ai-01)"]
+        BGP["BGP speaker<br/>ASN 64513<br/>(all nodes)"]
     end
 
     V4 --> L2 & BGP

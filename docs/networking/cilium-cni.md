@@ -87,7 +87,7 @@ All ClusterIP, NodePort and LoadBalancer handling is done in eBPF. Load balancin
 
 ## Native Routing and IPv6
 
-Pod traffic is routed without encapsulation. `autoDirectNodeRoutes` installs routes to other nodes' pod CIDRs, and each node's pod CIDR is also advertised to the gateway over BGP, so the LAN reaches pod IPs directly (except on `worker-ai-01`, which does not peer).
+Pod traffic is routed without encapsulation. `autoDirectNodeRoutes` installs routes to other nodes' pod CIDRs, and each node's pod CIDR is also advertised to the gateway over BGP, so the LAN reaches pod IPs directly.
 
 The cluster is dual-stack with IPv4 primary:
 
@@ -139,7 +139,7 @@ See [Load Balancers](load-balancers.md) for allocations.
 
 ## BGP
 
-Cilium peers with the UniFi Cloud Gateway (UCG Fiber) from every node except `worker-ai-01`:
+Cilium peers with the UniFi Cloud Gateway (UCG Fiber) from every node, including `worker-ai-01`: unlike an L2 lease, its routes are withdrawn within the hold time when it boots into another OS.
 
 | Setting | Value |
 |:--------|:------|

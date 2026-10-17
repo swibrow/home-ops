@@ -49,7 +49,7 @@ On VLAN 20, everything below `10.20.200.0` is static: nodes, the API VIP, the Lo
 
 ## LoadBalancer IP Pool
 
-Cilium LB-IPAM allocates LoadBalancer IPs from `10.20.10.128` - `10.20.10.255` (and `2a02:16a:2a0a:3::/112` for IPv6). Addresses are pinned per Service with the `lbipam.cilium.io/ips` annotation and announced over L2 (ARP) and BGP to the gateway. worker-ai-01 takes part in neither.
+Cilium LB-IPAM allocates LoadBalancer IPs from `10.20.10.128` - `10.20.10.255` (and `2a02:16a:2a0a:3::/112` for IPv6). Addresses are pinned per Service with the `lbipam.cilium.io/ips` annotation and announced over L2 (ARP) and BGP to the gateway. worker-ai-01 takes part in BGP only, not L2.
 
 | IP Address | Namespace | Service |
 |:-----------|:----------|:--------|
@@ -151,7 +151,7 @@ flowchart LR
 | 10.20.10.100 | Synology NAS |
 | 10.20.10.128 - 10.20.10.255 | Cilium LB-IPAM pool |
 | 10.20.200.1 - 10.20.255.254 | DHCP |
-| 10.244.0.0/16, fd10:244::/56 | Pod CIDRs (routable from the LAN via BGP, except on worker-ai-01) |
+| 10.244.0.0/16, fd10:244::/56 | Pod CIDRs (routable from the LAN via BGP) |
 | 10.96.0.0/12, fd10:96::/112 | Service CIDRs |
 
 > [!NOTE]
