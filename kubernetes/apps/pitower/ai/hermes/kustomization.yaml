@@ -37,18 +37,6 @@ configMapGenerator:
     literals:
       - APP_NAME=hermes-kopiur
       - CLAIM_NAME=hermes
-patches:
-  # hermes writes its data as uid 10000 (top-level dir is 0700); the kopiur mover must match to read it.
-  - target:
-      kind: SnapshotPolicy
-      name: hermes-kopiur
-    patch: |
-      - op: replace
-        path: /spec/mover/securityContext/runAsUser
-        value: 10000
-      - op: replace
-        path: /spec/mover/securityContext/runAsGroup
-        value: 10000
 helmCharts:
   - name: app-template
     repo: oci://ghcr.io/bjw-s-labs/helm

@@ -1,6 +1,6 @@
 defaultPodOptions:
   securityContext:
-    fsGroup: 10000
+    fsGroup: 2000
     fsGroupChangePolicy: OnRootMismatch
     seccompProfile:
       type: RuntimeDefault
@@ -32,8 +32,8 @@ controllers:
           GITSYNC_HTTP_BIND: :2020
           GITSYNC_EXECHOOK_COMMAND: /etc/git-sync/exechook.sh
         securityContext:
-          runAsUser: 10000
-          runAsGroup: 10000
+          runAsUser: 2000
+          runAsGroup: 2000
         probes:
           startup:
             enabled: true
@@ -72,7 +72,7 @@ controllers:
             plugin=/opt/data/plugins/memini
             if [ -d "$plugin" ] && [ ! -L "$plugin" ]; then rmdir "$plugin"; fi
             ln -sfn /opt/hermes-repo/current/plugins/memini "$plugin"
-            chown -R 10000:10000 /opt/data/config.yaml /opt/data/workspace
+            find /opt/data -xdev \( ! -user 2000 -o ! -group 2000 \) -exec chown -h 2000:2000 {} +
       cron-sync:
         dependsOn: init
         image: &image
@@ -88,8 +88,8 @@ controllers:
           PYTHONPATH: /opt/hermes
           TZ: Europe/Zurich
         securityContext:
-          runAsUser: 10000
-          runAsGroup: 10000
+          runAsUser: 2000
+          runAsGroup: 2000
       # The Claude subscription provider plugin drives the official Claude Code
       # CLI, which the hermes image does not ship. Both land on the PVC and are
       # only refetched when the pinned versions change.
@@ -100,6 +100,9 @@ controllers:
           HOME: /opt/data
           CLAUDE_CODE_VERSION: 2.1.285
           PLUGIN_REF: 31b591fd04737a7807183f3d7f3d389b19f94687
+        securityContext:
+          runAsUser: 2000
+          runAsGroup: 2000
         command:
           - /bin/sh
           - -c
@@ -120,6 +123,8 @@ controllers:
         image: *image
         args: ["gateway", "run"]
         env:
+          HERMES_UID: "2000"
+          HERMES_GID: "2000"
           MEMINI_BASE_URL: http://memini.ai:8080
           # Share this string across agents (e.g. this Claude Code session) to
           # share one memory namespace, or give hermes its own to keep its
@@ -157,8 +162,8 @@ controllers:
           PYTHONPATH: /opt/hermes
           TZ: Europe/Zurich
         securityContext:
-          runAsUser: 10000
-          runAsGroup: 10000
+          runAsUser: 2000
+          runAsGroup: 2000
         resources:
           requests:
             cpu: 5m
@@ -201,6 +206,8 @@ controllers:
         image: *image
         args: ["dashboard", "--host", "0.0.0.0", "--insecure"]
         env:
+          HERMES_UID: "2000"
+          HERMES_GID: "2000"
           TZ: Europe/Zurich
           GATEWAY_HEALTH_URL: http://localhost:8642
           HERMES_HOME: /opt/data
