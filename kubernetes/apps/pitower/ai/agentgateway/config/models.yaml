@@ -177,7 +177,7 @@ spec:
       name: agentgateway
       sectionName: http
   provider: OpenAI
-  baseURL: http://qwen38-27b-scaled.ai.svc.cluster.local:8080/v1
+  baseURL: http://llama-router.ai.svc.cluster.local:8080/v1
   policies:
     transformations:
       - field: model
@@ -194,7 +194,7 @@ spec:
       name: agentgateway
       sectionName: http
   provider: OpenAI
-  baseURL: http://qwen38-27b-abliterated.ai.svc.cluster.local:8080/v1
+  baseURL: http://llama-router.ai.svc.cluster.local:8080/v1
   policies:
     transformations:
       - field: model
@@ -211,7 +211,7 @@ spec:
       name: agentgateway
       sectionName: http
   provider: OpenAI
-  baseURL: http://qwen38-flash-next-scaled.ai.svc.cluster.local:8080/v1
+  baseURL: http://llama-router.ai.svc.cluster.local:8080/v1
   policies:
     transformations:
       - field: model
@@ -228,7 +228,7 @@ spec:
       name: agentgateway
       sectionName: http
   provider: OpenAI
-  baseURL: http://qwen38-flash-next-uncensored-scaled.ai.svc.cluster.local:8080/v1
+  baseURL: http://llama-router.ai.svc.cluster.local:8080/v1
   policies:
     transformations:
       - field: model
@@ -245,7 +245,7 @@ spec:
       name: agentgateway
       sectionName: http
   provider: OpenAI
-  baseURL: http://style-gemma4-scaled.ai.svc.cluster.local:8080/v1
+  baseURL: http://llama-router.ai.svc.cluster.local:8080/v1
   policies:
     transformations:
       - field: model
@@ -308,7 +308,7 @@ spec:
       name: agentgateway
       sectionName: http
   provider: OpenAI
-  baseURL: http://qwen38-flash-next-scaled.ai.svc.cluster.local:8080/v1
+  baseURL: http://llama-router.ai.svc.cluster.local:8080/v1
   policies:
     transformations:
       - field: model

@@ -4,8 +4,8 @@
 # untouched. The UD files are requantised from unsloth/Qwen3.8-27B-GGUF, the
 # same source as qwen38-27b.
 #
-# Dedicated to the RTX PRO 4000 Blackwell (24 GB) through llmkube-gpu-pro4000,
-# so it is always on: no KEDA, and nothing else contends for the card.
+# Served by llama-router.yaml, which loads it at startup and takes the RTX PRO
+# 4000 Blackwell (24 GB) through this Model's llmkube-gpu-pro4000 claim.
 #
 #   UD-Q4_K_XL weights   ~17.4 GB
 #   mmproj (BF16)        ~0.9  GB  vision projector - image/video input
@@ -40,39 +40,3 @@ spec:
   resources:
     cpu: "2"
     memory: "4Gi"
----
-apiVersion: inference.llmkube.dev/v1alpha1
-kind: InferenceService
-metadata:
-  name: qwen38-27b-abliterated
-spec:
-  modelRef: qwen38-27b-abliterated
-  runtime: llamacpp
-  # The build the PRO 4000 (sm_120) was benchmarked with; the operator default
-  # (b10068) is untested on Blackwell.
-  image: ghcr.io/ggml-org/llama.cpp:server-cuda-b11096
-  replicas: 1
-  endpoint:
-    port: 8080
-    type: ClusterIP
-  tolerations:
-    - key: dedicated
-      operator: Equal
-      value: gpu
-      effect: NoSchedule
-  nodeSelector:
-    feature.node.kubernetes.io/nvidia-gpu: "true"
-  # Fully offloaded, so the CPU only feeds the GPU. Kept small because this pod
-  # never scales down and qwen38-flash-next needs 8 of ai-01's 16 cores.
-  resources:
-    cpu: "2"
-    memory: "8Gi"
-    # The operator always sets limits.memory (to memory unless memoryLimit is
-    # given); 8Gi OOM-killed it mid-generation at the full 64K context.
-    memoryLimit: "32Gi"
-  contextSize: 131072
-  parallelSlots: 1
-  flashAttention: true
-  cacheTypeK: q8_0
-  cacheTypeV: q8_0
-  jinja: true

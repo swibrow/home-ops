@@ -13,15 +13,12 @@ resources:
   - resourceclaim-shared.yaml
   - externalsecret-huggingface.yaml
   - externalsecret-models.yaml
+  - llama-router.yaml
   - qwen38-27b.yaml
-  - qwen38-27b-autoscale.yaml
   - qwen38-27b-abliterated.yaml
   - qwen38-flash-next.yaml
-  - qwen38-flash-next-autoscale.yaml
   - qwen38-flash-next-uncensored.yaml
-  - qwen38-flash-next-uncensored-autoscale.yaml
   - qwen3-embedding.yaml
   - style-gemma4.yaml
-  - style-gemma4-autoscale.yaml
   - strands-decider.yaml
   - strands-decider-autoscale.yaml

@@ -30,7 +30,7 @@ flowchart LR
 |:------|:------|
 | WorkflowTemplate `train`, `train.py`, `export.py` | `kubernetes/apps/pitower/ai/ai-training/` |
 | MLflow (Postgres backend, artifacts in Garage) | `kubernetes/apps/pitower/ai/mlflow/` |
-| Served model `style-gemma4` | `kubernetes/apps/pitower/ai/llmkube/llmkube-models/style-gemma4*.yaml` |
+| Served model `style-gemma4` | `kubernetes/apps/pitower/ai/llmkube/llmkube-models/style-gemma4.yaml`, `llama-router.yaml` |
 | Gateway entry `style-gemma4-local` | `kubernetes/apps/pitower/ai/agentgateway/config/models.yaml` |
 | Bucket `models`, key `models` | [Garage](../storage/garage.md), key in Infisical `/ai/models/` |
 
@@ -87,16 +87,19 @@ argo -n ai submit --from workflowtemplate/train --entrypoint gguf -p version=v2
 
 ## Serving a version
 
-`style-gemma4.yaml` points the llmkube `Model` at one version's GGUF prefix:
+`style-gemma4.yaml` records which version's GGUF prefix is served:
 
 ```yaml
 spec:
   source: s3://models/style-gemma-4-12b-lora/v2/gguf
 ```
 
-To ship a new version, change `v2` to the new one and merge. llmkube re-stages
-the files from Garage on the next start. The service scales to zero after 15
-minutes idle (KEDA) and appears in Open WebUI as `style-gemma4-local`.
+The model is served by the llama.cpp router on the RTX PRO 4000
+(`llama-router.yaml`), which stages nothing. To ship a new version, copy the
+new prefix's files from Garage onto the `llmkube-model-cache` PVC, point the
+`style-gemma4` preset in `llama-router.yaml` at them, and bump `source` to
+match. The router swaps it in on the first request and it appears in Open
+WebUI as `style-gemma4-local`.
 
 ## Disk on the PVC
 

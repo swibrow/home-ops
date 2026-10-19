@@ -15,9 +15,8 @@
 # CPU side thrashes. The 4.1 GB MTP-draft.gguf is not pulled: llama.cpp does
 # not implement MTP for qwen4exp yet.
 #
-# Shares the single 3090 Ti with qwen38-flash-next, qwen38-27b and comfyui;
-# KEDA (qwen38-flash-next-uncensored-autoscale.yaml) keeps them mutually
-# exclusive via scale-to-zero.
+# Served by llama-router.yaml from router/qwen38-flash-next-uncensored/ on the
+# model cache PVC.
 apiVersion: inference.llmkube.dev/v1alpha1
 kind: Model
 metadata:
@@ -47,45 +46,3 @@ spec:
   resources:
     cpu: "2"
     memory: "4Gi"
----
-apiVersion: inference.llmkube.dev/v1alpha1
-kind: InferenceService
-metadata:
-  name: qwen38-flash-next-uncensored
-spec:
-  modelRef: qwen38-flash-next-uncensored
-  runtime: llamacpp
-  # Same pin as qwen38-flash-next: the operator default predates qwen4exp.
-  image: ghcr.io/ggml-org/llama.cpp:server-cuda-b11096
-  # replicas is deliberately unset: KEDA owns it (0..1).
-  endpoint:
-    port: 8080
-    type: ClusterIP
-  tolerations:
-    - key: dedicated
-      operator: Equal
-      value: gpu
-      effect: NoSchedule
-  nodeSelector:
-    feature.node.kubernetes.io/nvidia-gpu: "true"
-  resources:
-    cpu: "8"
-    hostMemory: "40Gi"
-    memoryLimit: "56Gi"
-  # Experts of layers 0-36 on the CPU, 37-47 on the GPU. 38 if VRAM OOMs.
-  moeCPULayers: 37
-  tensorOverrides:
-    - per_layer_token_embd=CPU
-  contextSize: 131072
-  parallelSlots: 1
-  flashAttention: true
-  cacheTypeK: q8_0
-  cacheTypeV: q8_0
-  jinja: true
-  extraArgs:
-    - --threads
-    - "12"
-    - --threads-batch
-    - "12"
-    - --fit
-    - "off"

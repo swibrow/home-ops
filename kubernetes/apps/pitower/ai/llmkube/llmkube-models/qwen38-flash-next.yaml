@@ -29,9 +29,9 @@
 # generation, ~410 tok/s prompt processing on a 2.9K-token prompt. IQ4_XS
 # trades ~7% generation and ~30% prompt processing for 4-bit quality.
 #
-# Three-shard GGUF: files[0] is what llama-server gets; the operator stages
-# every entry at its repo-relative path in the cache PVC, so the split loader
-# finds 00002/00003 next to 00001.
+# Three-shard GGUF: llama-router.yaml points at 00001 under
+# router/qwen38-flash-next/ on the model cache PVC, and the split loader finds
+# 00002/00003 next to it.
 apiVersion: inference.llmkube.dev/v1alpha1
 kind: Model
 metadata:
@@ -60,65 +60,3 @@ spec:
   resources:
     cpu: "2"
     memory: "4Gi"
----
-apiVersion: inference.llmkube.dev/v1alpha1
-kind: InferenceService
-metadata:
-  name: qwen38-flash-next
-spec:
-  modelRef: qwen38-flash-next
-  runtime: llamacpp
-  # The operator's built-in CUDA default (server-cuda-b10068) predates the
-  # qwen4exp architecture (llama.cpp PR #27742, b10660). CUDA 12 build like
-  # the default; server-cuda13-* is untested on this driver. Pinned here only,
-  # qwen38-27b keeps the operator default.
-  image: ghcr.io/ggml-org/llama.cpp:server-cuda-b11096
-  # replicas is deliberately unset: KEDA owns it via the ScaledObject in
-  # qwen38-flash-next-autoscale.yaml and drives it between 0 and 1.
-  endpoint:
-    port: 8080
-    type: ClusterIP
-  tolerations:
-    - key: dedicated
-      operator: Equal
-      value: gpu
-      effect: NoSchedule
-  nodeSelector:
-    feature.node.kubernetes.io/nvidia-gpu: "true"
-  resources:
-    # Request only (the operator sets no CPU limit), so the 12 llama.cpp
-    # threads are not throttled. Node has 16 threads; qwen3-embedding asks for 4.
-    cpu: "8"
-    # hostMemory is the request for hybrid offload; memoryLimit lets the page
-    # cache for the mmap'd experts grow to the ceiling without reserving it.
-    # Node allocatable is 60.9Gi with ~2.5Gi requested by everything else; a
-    # warm run sits around 17Gi, the rest is headroom for more experts cached.
-    hostMemory: "40Gi"
-    memoryLimit: "56Gi"
-  # Experts of layers 0-36 on the CPU, 37-47 on the GPU (--n-cpu-moe 37).
-  # At 38 the card had 2.9 GB free, enough for one more ~1.24 GB IQ4_XS layer.
-  # Go back to 38 if a load runs out of VRAM.
-  moeCPULayers: 37
-  # Keep the 28.8 GB n-gram table in the mmap'd CPU buffer regardless of
-  # --n-gpu-layers 99.
-  tensorOverrides:
-    - per_layer_token_embd=CPU
-  # 128K in a single slot; KV is cheap on this hybrid-attention model, the
-  # cost is mostly compute buffers. Concurrent requests queue server-side.
-  contextSize: 131072
-  parallelSlots: 1
-  # Flash attention (fine on Ampere) is required for the quantized V cache.
-  flashAttention: true
-  cacheTypeK: q8_0
-  cacheTypeV: q8_0
-  # Jinja chat template rendering - required for OpenAI-style tool calling.
-  jinja: true
-  # No CRD fields for threads. --fit defaults to on in current llama.cpp and
-  # would second-guess the explicit expert placement above.
-  extraArgs:
-    - --threads
-    - "12"
-    - --threads-batch
-    - "12"
-    - --fit
-    - "off"

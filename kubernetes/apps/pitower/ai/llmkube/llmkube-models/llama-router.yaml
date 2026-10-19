@@ -1,0 +1,124 @@
+---
+# Every llama.cpp chat model on the RTX PRO 4000 Blackwell (24 GB), served by
+# one llama-server in router mode: the request's `model` field picks a preset
+# below, and with --models-max 1 the router unloads the resident model before
+# loading the next. A switch costs one load (2-9s for the dense models from
+# page cache) instead of a pod reschedule plus the GPU claim hand-off.
+#
+# Router mode stages nothing. Every model/mmproj path must already exist on the
+# llmkube-model-cache PVC (mounted read-only at /model-cache); new files go
+# under its router/<preset>/ directory. Paths under a hash directory were staged
+# by the operator for the single-model services these presets replace.
+#
+# The ConfigMap is a projected volume, so an edit lands in the pod within a
+# minute; `GET /models?reload=1` then picks it up without a restart.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: llama-router-presets
+data:
+  presets.ini: |
+    version = 1
+
+    [*]
+    n-gpu-layers = 99
+    parallel = 1
+    flash-attn = on
+    cache-type-k = q8_0
+    cache-type-v = q8_0
+    jinja = true
+
+    [qwen38-27b-abliterated]
+    model = /model-cache/ff79ec44c1fadd89/Huihui-Qwen3.8-27B-abliterated-UD-Q4_K_XL.gguf
+    mmproj = /model-cache/ff79ec44c1fadd89/mmproj-model-bf16.gguf
+    ctx-size = 131072
+    load-on-startup = true
+
+    [qwen38-27b]
+    model = /model-cache/router/qwen38-27b/Qwen3.8-27B-UD-Q4_K_M.gguf
+    mmproj = /model-cache/router/qwen38-27b/mmproj-F16.gguf
+    ctx-size = 65536
+
+    [style-gemma4]
+    model = /model-cache/f83a43ce94c68f4b/gemma-4-12B-it.Q4_K_M.gguf
+    mmproj = /model-cache/f83a43ce94c68f4b/gemma-4-12B-it.BF16-mmproj.gguf
+    ctx-size = 32768
+
+    ; Hybrid GPU/CPU split, layout in qwen38-flash-next.yaml. --fit defaults to
+    ; on and would second-guess the explicit expert placement.
+    [qwen38-flash-next]
+    model = /model-cache/router/qwen38-flash-next/UD-IQ4_XS/Qwen3.8-Flash-Next-UD-IQ4_XS-00001-of-00003.gguf
+    mmproj = /model-cache/router/qwen38-flash-next/mmproj-F16.gguf
+    ctx-size = 131072
+    n-cpu-moe = 37
+    override-tensor = per_layer_token_embd=CPU
+    threads = 12
+    threads-batch = 12
+    fit = off
+
+    [qwen38-flash-next-uncensored]
+    model = /model-cache/router/qwen38-flash-next-uncensored/Qwen3.8-Flash-Next-Uncensored-IQ4_XS-00001-of-00003.gguf
+    mmproj = /model-cache/router/qwen38-flash-next-uncensored/mmproj-Qwen3.8-Flash-Next-Uncensored-F16.gguf
+    ctx-size = 131072
+    n-cpu-moe = 37
+    override-tensor = per_layer_token_embd=CPU
+    threads = 12
+    threads-batch = 12
+    fit = off
+---
+apiVersion: inference.llmkube.dev/v1alpha1
+kind: InferenceService
+metadata:
+  name: llama-router
+spec:
+  # Router mode ignores the Model's weights; the reference is only for its
+  # llmkube-gpu-pro4000 resource claim.
+  modelRef: qwen38-27b-abliterated
+  runtime: llamacpp-router
+  # qwen4exp (flash-next) needs >= b10660, and this is the build the PRO 4000
+  # (sm_120) was benchmarked with.
+  image: ghcr.io/ggml-org/llama.cpp:server-cuda-b11096
+  replicas: 1
+  endpoint:
+    port: 8080
+    type: ClusterIP
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: gpu
+      effect: NoSchedule
+  nodeSelector:
+    feature.node.kubernetes.io/nvidia-gpu: "true"
+  resources:
+    # flash-next runs 12 llama.cpp threads.
+    cpu: "8"
+    memory: "8Gi"
+    # The operator always sets limits.memory, so the ceiling is the node:
+    # flash-next's mmap'd experts grow the page cache to whatever is free.
+    memoryLimit: "60Gi"
+  extraArgs:
+    - --models-preset
+    - /config/presets.ini
+    - --models-max
+    - "1"
+  # An empty --models-dir (hardcoded to /models by the runtime) keeps the
+  # cache's hash directories, comfyui and strata out of /v1/models.
+  extraVolumes:
+    - name: models-dir
+      emptyDir: {}
+    - name: model-cache
+      persistentVolumeClaim:
+        claimName: llmkube-model-cache
+        readOnly: true
+    - name: presets
+      configMap:
+        name: llama-router-presets
+  extraVolumeMounts:
+    - name: models-dir
+      mountPath: /models
+    - name: model-cache
+      mountPath: /model-cache
+      readOnly: true
+    - name: presets
+      mountPath: /config
+      readOnly: true
