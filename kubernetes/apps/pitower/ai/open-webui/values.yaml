@@ -50,6 +50,14 @@ controllers:
           # the admin API rather than env.
           PGVECTOR_INITIALIZE_MAX_VECTOR_LENGTH: "1024"
           PGVECTOR_INDEX_METHOD: hnsw
+          # Summarise older turns once a chat passes the threshold, also between
+          # tool calls, so long agentic runs don't overflow llama.cpp's window
+          # (a tool call cut off at n_ctx is a 500 that breaks the chat for good).
+          # 96K = 75% of the 128K local models. Persisted config: these only seed
+          # an empty `config` table; the live values are chat.context_compaction.*
+          # (Admin Settings > Chats, or POST /api/v1/chats/config).
+          ENABLE_CONTEXT_COMPACTION: "true"
+          CONTEXT_COMPACTION_TOKEN_THRESHOLD: "96000"
           # Web search, page loading and the browser tool. Persisted config wins
           # over env: these only apply while the matching rows (web.search.enable,
           # web.search.engine, web.search.searxng_query_url, web.loader.engine,
