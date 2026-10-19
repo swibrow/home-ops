@@ -22,3 +22,12 @@ resources:
   - style-gemma4.yaml
   - strands-decider.yaml
   - strands-decider-autoscale.yaml
+
+# The router's volume references the ConfigMap by name, which kustomize does
+# not rewrite inside the InferenceService.
+configMapGenerator:
+  - name: llama-router-templates
+    files:
+      - templates/qwen38-27b-abliterated.jinja
+    options:
+      disableNameSuffixHash: true

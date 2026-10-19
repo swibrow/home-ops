@@ -33,6 +33,9 @@ data:
     mmproj = /model-cache/ff79ec44c1fadd89/mmproj-model-bf16.gguf
     ctx-size = 131072
     load-on-startup = true
+    ; The GGUF's template rejects system messages after the first turn, which
+    ; Claude Code sends.
+    chat-template-file = /templates/qwen38-27b-abliterated.jinja
 
     [qwen38-27b]
     model = /model-cache/router/qwen38-27b/Qwen3.8-27B-UD-Q4_K_M.gguf
@@ -113,6 +116,9 @@ spec:
     - name: presets
       configMap:
         name: llama-router-presets
+    - name: templates
+      configMap:
+        name: llama-router-templates
   extraVolumeMounts:
     - name: models-dir
       mountPath: /models
@@ -121,4 +127,7 @@ spec:
       readOnly: true
     - name: presets
       mountPath: /config
+      readOnly: true
+    - name: templates
+      mountPath: /templates
       readOnly: true
