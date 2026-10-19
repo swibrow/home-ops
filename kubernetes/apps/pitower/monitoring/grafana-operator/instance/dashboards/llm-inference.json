@@ -51,6 +51,29 @@
         },
         "refresh": 2,
         "sort": 1
+      },
+      {
+        "name": "gpu",
+        "label": "GPU",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": {
+          "query": "query_result(label_join(max by (UUID, hostname, gpu, modelName) (DCGM_FI_DEV_GPU_UTIL), \"display\", \" / \", \"hostname\", \"gpu\", \"modelName\"))",
+          "refId": "gpu"
+        },
+        "definition": "query_result(label_join(max by (UUID, hostname, gpu, modelName) (DCGM_FI_DEV_GPU_UTIL), \"display\", \" / \", \"hostname\", \"gpu\", \"modelName\"))",
+        "regex": "/(?=.*UUID=\"(?<value>[^\"]+)\")(?=.*display=\"(?<text>[^\"]+)\")/",
+        "includeAll": true,
+        "multi": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "refresh": 2,
+        "sort": 1
       }
     ]
   },
@@ -289,7 +312,7 @@
     },
     {
       "type": "row",
-      "title": "GPU",
+      "title": "GPU: ${gpu:text}",
       "id": 3,
       "collapsed": false,
       "gridPos": {
@@ -298,7 +321,8 @@
         "x": 0,
         "y": 8
       },
-      "panels": []
+      "panels": [],
+      "repeat": "gpu"
     },
     {
       "type": "stat",
@@ -308,7 +332,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Name of the card on the inference node.",
+      "description": "Name of the card.",
       "gridPos": {
         "h": 4,
         "w": 4,
@@ -321,7 +345,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "DCGM_FI_DEV_GPU_UTIL{hostname=\"worker-ai-01\"}",
+          "expr": "DCGM_FI_DEV_GPU_UTIL{UUID=\"$gpu\"}",
           "refId": "A",
           "legendFormat": "{{modelName}}"
         }
@@ -380,7 +404,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "avg(DCGM_FI_DEV_GPU_UTIL{hostname=\"worker-ai-01\"})",
+          "expr": "avg(DCGM_FI_DEV_GPU_UTIL{UUID=\"$gpu\"})",
           "refId": "A",
           "legendFormat": ""
         }
@@ -446,7 +470,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(DCGM_FI_DEV_FB_USED{hostname=\"worker-ai-01\"}) / (sum(DCGM_FI_DEV_FB_USED{hostname=\"worker-ai-01\"}) + sum(DCGM_FI_DEV_FB_FREE{hostname=\"worker-ai-01\"})) * 100",
+          "expr": "sum(DCGM_FI_DEV_FB_USED{UUID=\"$gpu\"}) / (sum(DCGM_FI_DEV_FB_USED{UUID=\"$gpu\"}) + sum(DCGM_FI_DEV_FB_FREE{UUID=\"$gpu\"})) * 100",
           "refId": "A",
           "legendFormat": ""
         }
@@ -512,7 +536,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "max(DCGM_FI_DEV_GPU_TEMP{hostname=\"worker-ai-01\"})",
+          "expr": "max(DCGM_FI_DEV_GPU_TEMP{UUID=\"$gpu\"})",
           "refId": "A",
           "legendFormat": ""
         }
@@ -579,7 +603,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(DCGM_FI_DEV_POWER_USAGE{hostname=\"worker-ai-01\"})",
+          "expr": "sum(DCGM_FI_DEV_POWER_USAGE{UUID=\"$gpu\"})",
           "refId": "A",
           "legendFormat": ""
         }
@@ -646,7 +670,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(increase(DCGM_FI_DEV_TOTAL_ENERGY_CONSUMPTION{hostname=\"worker-ai-01\"}[$__range])) / 3.6e9",
+          "expr": "sum(increase(DCGM_FI_DEV_TOTAL_ENERGY_CONSUMPTION{UUID=\"$gpu\"}[$__range])) / 3.6e9",
           "refId": "A",
           "legendFormat": ""
         }
@@ -706,7 +730,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "avg(DCGM_FI_DEV_GPU_UTIL{hostname=\"worker-ai-01\"})",
+          "expr": "avg(DCGM_FI_DEV_GPU_UTIL{UUID=\"$gpu\"})",
           "refId": "A",
           "legendFormat": "GPU"
         },
@@ -715,7 +739,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "avg(DCGM_FI_DEV_MEM_COPY_UTIL{hostname=\"worker-ai-01\"})",
+          "expr": "avg(DCGM_FI_DEV_MEM_COPY_UTIL{UUID=\"$gpu\"})",
           "refId": "B",
           "legendFormat": "Memory copy"
         }
@@ -776,7 +800,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(DCGM_FI_DEV_FB_USED{hostname=\"worker-ai-01\"}) * 1048576",
+          "expr": "sum(DCGM_FI_DEV_FB_USED{UUID=\"$gpu\"}) * 1048576",
           "refId": "A",
           "legendFormat": "Used"
         },
@@ -785,7 +809,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "(sum(DCGM_FI_DEV_FB_USED{hostname=\"worker-ai-01\"}) + sum(DCGM_FI_DEV_FB_FREE{hostname=\"worker-ai-01\"})) * 1048576",
+          "expr": "(sum(DCGM_FI_DEV_FB_USED{UUID=\"$gpu\"}) + sum(DCGM_FI_DEV_FB_FREE{UUID=\"$gpu\"})) * 1048576",
           "refId": "B",
           "legendFormat": "Total"
         }
@@ -869,7 +893,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(DCGM_FI_DEV_POWER_USAGE{hostname=\"worker-ai-01\"})",
+          "expr": "sum(DCGM_FI_DEV_POWER_USAGE{UUID=\"$gpu\"})",
           "refId": "A",
           "legendFormat": "Power"
         },
@@ -878,7 +902,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "max(DCGM_FI_DEV_GPU_TEMP{hostname=\"worker-ai-01\"})",
+          "expr": "max(DCGM_FI_DEV_GPU_TEMP{UUID=\"$gpu\"})",
           "refId": "B",
           "legendFormat": "GPU temp"
         },
@@ -887,7 +911,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "max(DCGM_FI_DEV_MEMORY_TEMP{hostname=\"worker-ai-01\"})",
+          "expr": "max(DCGM_FI_DEV_MEMORY_TEMP{UUID=\"$gpu\"})",
           "refId": "C",
           "legendFormat": "Memory temp"
         }
