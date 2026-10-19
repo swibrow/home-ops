@@ -13,6 +13,16 @@ controllers:
           tag: 0.14.1
         env:
           TZ: Europe/Zurich
+          # Appended to the run_command tool description. Every byte of output
+          # stays in the chat context, and the local models only have 32-128K.
+          OPEN_TERMINAL_EXECUTE_DESCRIPTION: >-
+            Keep output small: command output goes straight into your limited
+            context window. Redirect anything that may exceed a few KB (HTTP
+            responses, page HTML, logs, build output, JSON) to a file, e.g.
+            `cmd > /tmp/out.txt 2>&1; wc -c /tmp/out.txt; head -c 2000 /tmp/out.txt`,
+            then inspect it with grep_search or read_file with start_line/end_line.
+            Use `curl -sS -o file` rather than printing response bodies, and
+            add `| head -n 50` or `| tail -n 50` to commands that list or log.
         envFrom:
           - secretRef:
               name: open-terminal
