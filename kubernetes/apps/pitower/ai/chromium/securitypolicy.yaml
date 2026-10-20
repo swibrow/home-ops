@@ -1,0 +1,24 @@
+---
+# The desktop is signed in to personal accounts and ships a passwordless sudo
+# terminal, so only app_access members get through.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/gateway.envoyproxy.io/securitypolicy_v1alpha1.json
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: chromium
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: chromium
+  oidc:
+    provider:
+      issuer: https://idm.wibrow.dev/oauth2/openid/chromium
+    clientID: chromium
+    clientSecret:
+      name: chromium-oidc
+    redirectURL: https://chromium.wibrow.dev/oauth2/callback
+    scopes:
+      - openid
+      - profile
+      - email

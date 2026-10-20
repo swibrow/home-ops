@@ -1,0 +1,100 @@
+# A full Chromium desktop, signed in to the sites the agents use. You log in
+# through the desktop at chromium.wibrow.dev (Kanidm in front); hermes drives the
+# same browser through the Playwright MCP sidecar.
+defaultPodOptions:
+  # Chromium's profile lock records the hostname. A fixed one lets a new pod
+  # reclaim the lock left by the last one instead of refusing the profile.
+  hostname: chromium
+  securityContext:
+    fsGroup: 2000
+    fsGroupChangePolicy: OnRootMismatch
+
+controllers:
+  chromium:
+    strategy: Recreate
+    containers:
+      app:
+        image:
+          repository: lscr.io/linuxserver/chromium
+          tag: bf0d07d2-ls59@sha256:9761e4dce2375165ab85566d5a58920525d49c49469ed7a08a6d874dcdb1cedc
+        env:
+          PUID: "2000"
+          PGID: "2000"
+          TZ: Europe/Zurich
+          TITLE: Chromium
+          # Chromium refuses remote debugging on its default profile directory.
+          # The port listens on localhost only, for the mcp container.
+          CHROME_CLI: --user-data-dir=/config/profile --remote-debugging-port=9222
+        ports:
+          - containerPort: 3000
+            name: http
+        resources:
+          requests:
+            cpu: 100m
+            memory: 1Gi
+          limits:
+            memory: 4Gi
+      mcp:
+        image:
+          repository: mcr.microsoft.com/playwright/mcp
+          tag: v0.0.83@sha256:690763cbb437ee7233f538a953bb5390bf03791eb5c965b471e59d17a6132fcb
+        # --allowed-hosts '*' because clients use the Service name; ingress is
+        # limited to hermes by networkpolicy.yaml.
+        args:
+          - --cdp-endpoint
+          - http://127.0.0.1:9222
+          - --port
+          - "8931"
+          - --host
+          - 0.0.0.0
+          - --allowed-hosts
+          - "*"
+          - --output-dir
+          - /tmp/playwright-output
+        ports:
+          - containerPort: 8931
+            name: mcp
+        resources:
+          requests:
+            cpu: 10m
+            memory: 128Mi
+          limits:
+            memory: 512Mi
+
+service:
+  app:
+    controller: chromium
+    ports:
+      http:
+        port: 3000
+      mcp:
+        port: 8931
+
+route:
+  app:
+    hostnames:
+      - chromium.wibrow.dev
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+    rules:
+      - backendRefs:
+          - identifier: app
+            port: 3000
+
+persistence:
+  config:
+    existingClaim: chromium
+    advancedMounts:
+      chromium:
+        app:
+          - path: /config
+  shm:
+    type: emptyDir
+    medium: Memory
+    sizeLimit: 1Gi
+    advancedMounts:
+      chromium:
+        app:
+          - path: /dev/shm

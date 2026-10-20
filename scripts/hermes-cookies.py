@@ -3,12 +3,12 @@
 # requires-python = ">=3.12"
 # dependencies = ["cryptography", "websockets"]
 # ///
-"""Copy Chrome cookies for chosen sites from this Mac into hermes' signed-in browser.
+"""Copy Chrome cookies for chosen sites from this Mac into the signed-in Chromium pod.
 
 Reads the active Chrome profile's cookie store, decrypts the cookies with the
 "Chrome Safe Storage" Keychain key (macOS asks for permission), and loads them into
-the `browser` sidecar of the hermes pod over a kubectl port-forward. The sidecar
-keeps them in its profile on the hermes PVC. Cookie values are never printed.
+the ai/chromium pod's browser over a kubectl port-forward. It keeps them in its
+profile on the chromium PVC. Cookie values are never printed.
 
 Usage:
     just hermes::copy-cookies autoscout24.ch digitec.ch
@@ -121,7 +121,7 @@ async def load(ws_url, cookies):
 def push(cookies, context, namespace):
     port = free_port()
     forward = subprocess.Popen(
-        ["kubectl", "--context", context, "-n", namespace, "port-forward", "deploy/hermes", f"{port}:9222"],
+        ["kubectl", "--context", context, "-n", namespace, "port-forward", "deploy/chromium", f"{port}:9222"],
         stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
     )
     try:
@@ -134,7 +134,7 @@ def push(cookies, context, namespace):
                     sys.exit(f"kubectl port-forward failed: {forward.stderr.read().decode().strip()}")
                 time.sleep(1)
         else:
-            sys.exit("hermes browser sidecar did not answer on port 9222")
+            sys.exit("chromium did not answer on port 9222")
         ws_url = version["webSocketDebuggerUrl"].replace("127.0.0.1:9222", f"127.0.0.1:{port}")
         asyncio.run(load(ws_url, cookies))
     finally:
@@ -168,7 +168,7 @@ def main():
     for domain in domains:
         count = sum(1 for host, _ in cookies if matches(host, [domain]))
         print(f"{domain}: {count} cookies copied")
-    print(f"from Chrome profile {profile!r} into hermes")
+    print(f"from Chrome profile {profile!r} into ai/chromium")
 
 
 if __name__ == "__main__":

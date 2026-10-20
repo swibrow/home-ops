@@ -1,6 +1,6 @@
 script := justfile_directory() / "scripts" / "hermes-cookies.py"
 
-# Copy Chrome cookies for the given sites (subdomains included) into hermes' signed-in browser
+# Copy Chrome cookies for the given sites (subdomains included) into the signed-in Chromium pod hermes drives
 copy-cookies +domains:
     uv run --script {{ script }} {{ domains }}
 

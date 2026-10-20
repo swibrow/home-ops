@@ -37,9 +37,6 @@ terminal:
   cwd: /opt/data/workspace
   timeout: 180
   persistent_shell: true
-browser:
-  # The signed-in `browser` sidecar in this pod.
-  cdp_url: http://127.0.0.1:9222
 approvals:
   mode: smart
   # Cron jobs read mail and feeds; anything flagged dangerous is denied there
@@ -86,10 +83,12 @@ platform_toolsets:
     - hermes-cli
     - toolhive
     - paperless
+    - chromium
   telegram:
     - hermes-telegram
     - toolhive
     - paperless
+    - chromium
 mcp_servers:
   # Anonymous in-cluster vMCP (toolhive/toolhive-config/virtualmcpserver-direct.yaml).
   # The OAuth vMCP (vmcp-mcp-gateway, mcp.wibrow.dev) requires a browser OAuth flow
@@ -118,6 +117,10 @@ mcp_servers:
   # only (toolhive-config/networkpolicy.yaml).
   paperless:
     url: http://mcp-paperless-proxy.ai.svc.cluster.local:8080/mcp
+  # The signed-in Chromium desktop (apps/pitower/ai/chromium), outside ToolHive
+  # so only this pod can drive it.
+  chromium:
+    url: http://chromium.ai.svc.cluster.local:8931/mcp
 auxiliary:
   vision:
     provider: claude-subscription-directsdk-experimental
