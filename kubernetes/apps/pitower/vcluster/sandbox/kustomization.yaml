@@ -6,7 +6,7 @@ namespace: vcluster
 helmCharts:
   - name: vcluster
     repo: https://charts.loft.sh
-    version: 0.37.3
+    version: 0.37.4
     releaseName: sandbox
     namespace: vcluster
     valuesFile: values.yaml
