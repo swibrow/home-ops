@@ -11,10 +11,11 @@
 # same drift would have flipped ipv6_ra_enable true -> null and dropped router
 # advertisements. Pin them to the live values instead.
 #
-# "iot" and "servers" are the deliberate exceptions to adopt-only: their PD
-# blocks are desired state, not adopted state. Matter/Thread needs routable
-# IPv6 on VLAN 101; the pitower nodes take their IPv6 addresses (SLAAC) from
-# VLAN 20.
+# Every network except "Default" is a deliberate exception to adopt-only:
+# their PD blocks are desired state, not adopted state. Matter/Thread needs
+# routable IPv6 on VLAN 101, the pitower nodes take their IPv6 addresses
+# (SLAAC) from VLAN 20, and home/management clients reach the cluster's
+# LoadBalancer AAAA records over it.
 
 resource "unifi_network" "default" {
   name    = "Default"
@@ -26,7 +27,7 @@ resource "unifi_network" "default" {
   dhcp_stop    = "192.168.0.190"
   domain_name  = "internal"
 
-  # Prefix Delegation from the ISP WAN - the only network with IPv6 enabled.
+  # Prefix Delegation from the ISP WAN, first slice (no prefixid).
   ipv6_interface_type    = "pd"
   ipv6_ra_enable         = true
   ipv6_ra_valid_lifetime = 0
@@ -44,10 +45,19 @@ resource "unifi_network" "home" {
   dhcp_start   = "10.10.0.46"
   dhcp_stop    = "10.10.255.254"
 
+  # PD slice 4 (2a02:16a:2a0a:4::/64); slice 3 is the Cilium LoadBalancer pool.
+  # Same pd/ra requirements as iot below.
+  ipv6_interface_type    = "pd"
+  ipv6_pd_interface      = "wan"
+  ipv6_pd_prefixid       = "4"
+  ipv6_pd_start          = "::2"
+  ipv6_pd_stop           = "::7d1"
+  ipv6_ra_enable         = true
+  ipv6_ra_valid_lifetime = 0
+
   dhcp_v6_dns_auto           = false
   dhcp_v6_lease              = 0
   ipv6_ra_preferred_lifetime = 0
-  ipv6_ra_valid_lifetime     = 0
 
   multicast_dns = true
 }
@@ -131,10 +141,18 @@ resource "unifi_network" "management" {
   dhcp_start   = "10.50.0.6"
   dhcp_stop    = "10.50.0.254"
 
+  # PD slice 5 (2a02:16a:2a0a:5::/64). Same pd/ra requirements as iot above.
+  ipv6_interface_type    = "pd"
+  ipv6_pd_interface      = "wan"
+  ipv6_pd_prefixid       = "5"
+  ipv6_pd_start          = "::2"
+  ipv6_pd_stop           = "::7d1"
+  ipv6_ra_enable         = true
+  ipv6_ra_valid_lifetime = 0
+
   dhcp_v6_dns_auto           = false
   dhcp_v6_lease              = 0
   ipv6_ra_preferred_lifetime = 0
-  ipv6_ra_valid_lifetime     = 0
 
   multicast_dns = true
 }
