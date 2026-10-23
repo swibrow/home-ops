@@ -6,7 +6,7 @@ controllers:
       app:
         image:
           repository: fireflyiii/data-importer
-          tag: version-2.1.1
+          tag: version-2.3.5
         resources:
           requests:
             cpu: 15m
