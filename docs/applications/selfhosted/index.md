@@ -14,8 +14,9 @@ The `selfhosted` namespace contains productivity tools, dashboards, and utility 
 | **Cryptgeon** | Encrypted, view-once notes and files | `secrets.wibrow.dev` | Dragonfly |
 | **Echo Server** | HTTP request debugging | `echo.wibrow.dev` | -- |
 | **Excalidraw** | Collaborative whiteboard | `draw.wibrow.dev` | -- |
+| **Family home** | Family start page: today's meals, lights, media, photos, budget and every app by category, behind Kanidm. `/kitchen` is a login-free wall display limited to the home network. Source in `docker/family-home`, links in its `config.yaml` | `home.wibrow.dev` | -- |
 | **Glance** | Dashboard with feeds and widgets | `glance.wibrow.dev` | -- |
-| **Homepage** | Kubernetes-aware application dashboard | `home.wibrow.dev` | -- |
+| **Homepage** | Kubernetes-aware application dashboard | `ops.wibrow.dev` | -- |
 | **House Hunter** | Property search aggregator | `house-hunter.wibrow.dev` | PostgreSQL (`shared`) |
 | **IT Tools** | Developer utilities in the browser | `tools.wibrow.dev` | -- |
 | **Mealie** | Recipe management and meal planning | `recipes.wibrow.dev` | PVC, kopiur backups |

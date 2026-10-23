@@ -1,0 +1,56 @@
+---
+# Family members sign in with Kanidm; the ID token is forwarded so the page can
+# greet whoever is signed in.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/gateway.envoyproxy.io/securitypolicy_v1alpha1.json
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: family-home
+spec:
+  # Keep the gateway-level CrowdSec bouncer (networking/envoy-gateway).
+  mergeType: StrategicMerge
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: family-home
+  oidc:
+    provider:
+      issuer: https://idm.wibrow.dev/oauth2/openid/family-home
+    clientID: family-home
+    clientSecret:
+      name: family-home-oidc
+    redirectURL: https://home.wibrow.dev/oauth2/callback
+    logoutPath: /logout
+    forwardIDToken:
+      header: x-id-token
+    refreshToken: true
+    scopes:
+      - openid
+      - profile
+---
+# The kitchen view has no login, so only the home network may reach it. LAN
+# clients reach envoy-external via the LoadBalancer and arrive SNATed to a node
+# address in 10.20.0.0/16; internet clients arrive through towonel with their
+# real address in the PROXY header. The pod range stays out: tunnel traffic
+# missing that header would come from the towonel pod.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/gateway.envoyproxy.io/securitypolicy_v1alpha1.json
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: family-home-kitchen
+spec:
+  mergeType: StrategicMerge
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: family-home-kitchen
+  authorization:
+    defaultAction: Deny
+    rules:
+      - name: home-network
+        action: Allow
+        principal:
+          clientCIDRs:
+            - 10.10.0.0/16
+            - 10.20.0.0/16
+            - 192.168.0.0/24

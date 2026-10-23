@@ -276,8 +276,9 @@ Catalog of every application in `kubernetes/apps/pitower/`, organized by categor
 | cryptgeon | app-template | external | `secrets.wibrow.dev` | Encrypted secret sharing |
 | echo-server | app-template | external | `echo.wibrow.dev` | HTTP echo server for testing |
 | excalidraw | app-template | external | `draw.wibrow.dev` | Collaborative whiteboard |
+| family-home | app-template | external | `home.wibrow.dev` | Family start page (Kanidm SSO) |
 | glance | app-template | external | `glance.wibrow.dev` | Dashboard / start page |
-| homepage | app-template | external | `home.wibrow.dev` | Application dashboard |
+| homepage | app-template | external | `ops.wibrow.dev` | Application dashboard |
 | house-hunter | app-template | external | `house-hunter.wibrow.dev` | Property search aggregator |
 | it-tools | app-template | external | `tools.wibrow.dev` | Developer utilities |
 | mealie | app-template | external | `recipes.wibrow.dev` | Recipe manager |

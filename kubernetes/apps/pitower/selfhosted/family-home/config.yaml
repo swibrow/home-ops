@@ -1,0 +1,131 @@
+# Read by the family-home app at startup. Categories follow the cluster
+# namespaces; `status` is the Gatus endpoint name (gatus_results_endpoint_success).
+household: Wibrow
+timezone: Europe/Zurich
+currency: CHF
+# Rybbit public site token for home.wibrow.dev
+analyticsSiteId: c643754b9477
+
+homeAssistant:
+  weather: weather.forecast_home
+  sun: sun.sun
+  people:
+    - person.sam
+  shoppingList: todo.shopping_list
+  doorbell:
+    sensor: binary_sensor.doorbell_person_occupancy
+    camera: camera.doorbell
+  actions:
+    - id: kitchen
+      label: Kitchen lights
+      entity: light.kitchen_island_lights
+      kind: toggle
+    - id: living-room
+      label: Living room
+      entity: light.0x2c1165fffee6ec80
+      kind: toggle
+    - id: stairs
+      label: Stairs
+      entity: light.0x54ef4410010f08d5
+      kind: toggle
+    - id: evening
+      label: Evening glow
+      entity: script.floor_strip_evening
+      kind: run
+    - id: night
+      label: Night light
+      entity: script.floor_strip_night
+      kind: run
+
+jellyfin:
+  url: https://jellyfin.wibrow.dev
+  userId: 38051195171d4b8286b9594b732de4e4
+
+immich:
+  url: https://photos.wibrow.dev
+
+mealie:
+  url: https://recipes.wibrow.dev
+  group: home
+
+categories:
+  - name: Watch and photos
+    namespace: media
+    apps:
+      - name: Jellyfin
+        description: Films and shows on the TV, phone or laptop
+        url: https://jellyfin.wibrow.dev
+        icon: jellyfin
+        status: jellyfin
+      - name: Photos
+        description: Every photo and video from our phones
+        url: https://photos.wibrow.dev
+        icon: immich
+        status: immich
+  - name: Home
+    namespace: home-automation
+    apps:
+      - name: Home Assistant
+        description: Lights, heating and everything in the house
+        url: https://ha.wibrow.dev
+        icon: home-assistant
+        status: home-assistant
+      - name: Cameras
+        description: Doorbell and camera recordings
+        url: https://frigate.wibrow.dev
+        icon: frigate
+        status: frigate
+  - name: Everyday
+    namespace: selfhosted
+    apps:
+      - name: Recipes
+        description: Our recipes, the week's meal plan and the shopping list
+        url: https://recipes.wibrow.dev
+        icon: mealie
+        status: mealie
+      - name: Whiteboard
+        description: Sketch a floor plan or an idea
+        url: https://draw.wibrow.dev
+        icon: excalidraw
+        status: excalidraw
+  - name: Money and paperwork
+    namespace: banking
+    apps:
+      - name: Budget
+        description: Where the money goes each month
+        url: https://actual.wibrow.dev
+        icon: actual-budget
+        status: actual
+      - name: Documents
+        description: Scanned letters, bills and contracts, searchable
+        url: https://paperless.wibrow.dev
+        icon: paperless-ngx
+        status: paperless
+      - name: Investments
+        description: Savings and investment accounts
+        url: https://portfolio.wibrow.dev
+        icon: ghostfolio
+        status: ghostfolio
+  - name: Notes and ideas
+    namespace: second-brain
+    apps:
+      - name: Notes
+        description: Shared notes, lists and planning boards
+        url: https://affine.wibrow.dev
+        icon: affine
+        status: affine
+  - name: Assistant
+    namespace: ai
+    apps:
+      - name: Ask the AI
+        description: Chat with the private assistant that runs at home
+        url: https://chat.wibrow.dev
+        icon: open-webui
+        status: open-webui
+  - name: Workshop
+    namespace: workshop
+    apps:
+      - name: 3D printer
+        description: Print jobs and the printer camera
+        url: https://bambuddy.wibrow.dev
+        status: bambuddy

@@ -1,0 +1,83 @@
+:root {
+  --paper: #edf1ef;
+  --panel: #e1e8e6;
+  --ink: #1c2a2f;
+  --muted: #56666b;
+  --lake: #2e6e78;
+  --moss: #5d7b4f;
+  --alert: #b4492f;
+  --rule: #c9d3d1;
+  --display: "Bricolage Grotesque Variable", system-ui, sans-serif;
+  --body: "Atkinson Hyperlegible Next Variable", system-ui, sans-serif;
+  --gutter: clamp(1rem, 4vw, 3rem);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #121b20;
+    --panel: #1a262c;
+    --ink: #e2ebe9;
+    --muted: #93a4a8;
+    --lake: #74b4bd;
+    --moss: #93b383;
+    --alert: #e3876c;
+    --rule: #2a3a41;
+    color-scheme: dark;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 1.0625rem/1.55 var(--body);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--display);
+  line-height: 1.05;
+  margin: 0;
+}
+
+a {
+  color: inherit;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+:focus-visible {
+  outline: 3px solid var(--lake);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

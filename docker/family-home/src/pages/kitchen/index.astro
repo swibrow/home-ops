@@ -1,0 +1,563 @@
+---
+import "@fontsource-variable/bricolage-grotesque/standard.css";
+import "@fontsource-variable/atkinson-hyperlegible-next/index.css";
+import favicon from "../../../public/favicon.svg?raw";
+import "../../styles/global.css";
+import Horizon from "../../components/Horizon.astro";
+import Switches from "../../components/Switches.astro";
+import { loadUpcoming } from "../../integrations/arr";
+import { loadHome, loadShopping } from "../../integrations/homeassistant";
+import { loadMeals } from "../../integrations/mealie";
+import { settle } from "../../lib/cache";
+import { config } from "../../lib/config";
+import { sky } from "../../lib/sky";
+import { format, isoDay } from "../../lib/time";
+
+const [home, meals, upcoming, shopping] = await Promise.all([
+  settle("homeassistant", loadHome()),
+  settle("mealie", loadMeals()),
+  settle("arr", loadUpcoming()),
+  settle("shopping", loadShopping()),
+]);
+
+const now = new Date();
+const today = isoDay(now);
+const colours = sky(home?.sunElevation);
+const tonight = meals?.find((m) => m.date === today && m.type === "dinner") ?? meals?.find((m) => m.date === today);
+const laterMeals = meals?.filter((m) => m !== tonight && m.type === "dinner" && m.date !== today).slice(0, 4) ?? [];
+const weekday = (iso: string) => format(new Date(`${iso}T12:00:00Z`), { weekday: "long" });
+const dayLabel = (date: Date) => (isoDay(date) === today ? "Today" : format(date, { weekday: "long" }));
+const days = Object.entries(Object.groupBy(upcoming ?? [], (u) => dayLabel(u.date))).slice(0, 4);
+const time = format(now, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+
+Astro.response.headers.set("Cache-Control", "no-store");
+---
+
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content={colours.top} />
+    <title>Kitchen</title>
+    <link rel="icon" href={`data:image/svg+xml,${encodeURIComponent(favicon)}`} type="image/svg+xml" />
+  </head>
+  <body>
+    <div id="live">
+      <header class="sky" data-ink={colours.ink} style={`--sky-top:${colours.top};--sky-bottom:${colours.bottom}`}>
+        <div class="sky-inner">
+          <time class="clock" data-timezone={config.timezone}>{time}</time>
+          <div class="day">
+            <p class="date">{format(now, { weekday: "long", day: "numeric", month: "long" })}</p>
+            {
+              home?.weather && (
+                <p class="weather">
+                  <span class="temp">{home.weather.temperature}°</span>
+                  {home.weather.condition}
+                  {home.weather.high !== undefined && `, up to ${home.weather.high}°`}
+                  {!!home.weather.rain && `, ${home.weather.rain} mm rain`}
+                </p>
+              )
+            }
+          </div>
+        </div>
+        <Horizon />
+      </header>
+
+      <main>
+        <section class="panel dinner" aria-labelledby="dinner-heading">
+          <h2 id="dinner-heading">{tonight && tonight.type !== "dinner" ? `Today's ${tonight.type}` : "Dinner tonight"}</h2>
+          {
+            tonight ? (
+              <div class="tonight">
+                {tonight.image && <img src={tonight.image} alt="" />}
+                <p class="dish">{tonight.name}</p>
+              </div>
+            ) : (
+              <p class="dish quiet">Nothing planned yet</p>
+            )
+          }
+          {
+            laterMeals.length > 0 && (
+              <ul class="week">
+                {laterMeals.map((m) => (
+                  <li>
+                    <span>{weekday(m.date)}</span>
+                    {m.name}
+                  </li>
+                ))}
+              </ul>
+            )
+          }
+        </section>
+
+        {
+          shopping && (
+            <section class="panel shopping" aria-labelledby="shopping-heading">
+              <h2 id="shopping-heading">Shopping list</h2>
+              {shopping.length ? (
+                <ul class="items">
+                  {shopping.map((item) => (
+                    <li>
+                      <button type="button" class="item" data-done={item.uid}>
+                        <span class="box" aria-hidden="true" />
+                        {item.summary}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p class="quiet">The list is empty.</p>
+              )}
+              <form class="add" data-shopping>
+                <label class="visually-hidden" for="add-item">
+                  Add to the shopping list
+                </label>
+                <input id="add-item" name="add" autocomplete="off" placeholder="Add something…" maxlength="100" />
+                <button type="submit">Add</button>
+              </form>
+            </section>
+          )
+        }
+
+        {
+          !!home?.actions.length && (
+            <section class="panel lights" aria-labelledby="lights-heading">
+              <h2 id="lights-heading">Lights</h2>
+              <Switches actions={home.actions} endpoint="/kitchen/api/action" />
+            </section>
+          )
+        }
+
+        {
+          days.length > 0 && (
+            <section class="panel coming" aria-labelledby="coming-heading">
+              <h2 id="coming-heading">Coming this week</h2>
+              <div class="days">
+                {days.map(([day, items]) => (
+                  <div>
+                    <h3>{day}</h3>
+                    <ul>
+                      {items!.slice(0, 3).map((u) => (
+                        <li>
+                          {u.image ? <img src={u.image} alt="" /> : <span class="thumb" />}
+                          <span>
+                            <strong>{u.title}</strong>
+                            <small>{u.detail}</small>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )
+        }
+      </main>
+    </div>
+
+    <dialog class="doorbell" aria-labelledby="doorbell-heading">
+      <h2 id="doorbell-heading">Someone is at the door</h2>
+      <img alt="Doorbell camera" />
+      <form method="dialog"><button>Close</button></form>
+    </dialog>
+
+    <script>
+      const clock = () => {
+        const el = document.querySelector<HTMLTimeElement>(".clock");
+        if (!el) return;
+        el.textContent = new Intl.DateTimeFormat("en-GB", {
+          timeZone: el.dataset.timezone,
+          hour: "2-digit",
+          minute: "2-digit",
+          hourCycle: "h23",
+        }).format(new Date());
+      };
+      setInterval(clock, 10_000);
+
+      const refresh = async () => {
+        if (document.querySelector("#live input:focus")) return;
+        try {
+          const res = await fetch(location.pathname, { cache: "no-store" });
+          if (!res.ok) return;
+          const next = new DOMParser().parseFromString(await res.text(), "text/html");
+          document.querySelector("#live")!.replaceWith(next.querySelector("#live")!);
+          clock();
+        } catch {}
+      };
+      setInterval(refresh, 60_000);
+
+      const shopping = async (body: object) => {
+        const res = await fetch("/kitchen/api/shopping", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (res.ok) await refresh();
+        return res.ok;
+      };
+
+      document.addEventListener("click", (event) => {
+        const item = (event.target as Element).closest<HTMLButtonElement>("button[data-done]");
+        if (!item) return;
+        item.classList.add("done");
+        item.disabled = true;
+        shopping({ done: item.dataset.done }).then((ok) => {
+          if (!ok) {
+            item.classList.remove("done");
+            item.disabled = false;
+          }
+        });
+      });
+
+      document.addEventListener("submit", async (event) => {
+        const form = (event.target as Element).closest<HTMLFormElement>("form[data-shopping]");
+        if (!form) return;
+        event.preventDefault();
+        const input = form.querySelector("input")!;
+        if (!input.value.trim()) return;
+        input.disabled = true;
+        const ok = await shopping({ add: input.value });
+        input.disabled = false;
+        if (ok) input.value = "";
+        else input.setCustomValidity("Couldn't add that, try again");
+      });
+
+      const dialog = document.querySelector<HTMLDialogElement>(".doorbell")!;
+      const camera = dialog.querySelector("img")!;
+      let lastRing = 0;
+      setInterval(async () => {
+        try {
+          const { active } = await (await fetch("/kitchen/api/doorbell", { cache: "no-store" })).json();
+          if (active) {
+            lastRing = Date.now();
+            camera.src = `/kitchen/api/doorbell.jpg?t=${lastRing}`;
+            if (!dialog.open && !dialog.dataset.dismissed) dialog.showModal();
+          } else if (Date.now() - lastRing > 60_000) {
+            delete dialog.dataset.dismissed;
+            if (dialog.open) dialog.close();
+          }
+        } catch {}
+      }, 4_000);
+      dialog.addEventListener("close", () => {
+        if (Date.now() - lastRing < 60_000) dialog.dataset.dismissed = "true";
+      });
+    </script>
+  </body>
+</html>
+
+<style>
+  :global(body) {
+    font-size: 1.25rem;
+  }
+
+  #live {
+    min-height: 100dvh;
+    display: grid;
+    grid-template-rows: auto 1fr;
+  }
+
+  .sky {
+    --sky-ink: #f4f7f8;
+    position: relative;
+    background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 92%);
+    color: var(--sky-ink);
+  }
+
+  .sky[data-ink="dark"] {
+    --sky-ink: #16242a;
+  }
+
+  .sky-inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.5rem 3rem;
+    padding: clamp(1rem, 3vh, 2rem) var(--gutter) clamp(3rem, 9vh, 6rem);
+  }
+
+  .clock {
+    font-family: var(--display);
+    font-size: clamp(4.5rem, min(14vw, 17vh), 11rem);
+    font-weight: 750;
+    font-stretch: 80%;
+    letter-spacing: -0.04em;
+    line-height: 0.8;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .date,
+  .weather {
+    margin: 0;
+  }
+
+  .date {
+    font-size: 1.375rem;
+    opacity: 0.85;
+  }
+
+  .weather {
+    font-size: clamp(1.375rem, 2.6vw, 1.875rem);
+    max-width: 30ch;
+  }
+
+  .temp {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 1.6em;
+    margin-right: 0.35rem;
+  }
+
+  main {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: auto auto;
+    align-content: start;
+    gap: clamp(1rem, 2vw, 1.75rem);
+    padding: 0 var(--gutter) var(--gutter);
+  }
+
+  .panel h2 {
+    font-size: 1.125rem;
+    font-family: var(--body);
+    font-weight: 700;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
+  }
+
+  .quiet {
+    color: var(--muted);
+    margin: 0;
+  }
+
+  .tonight {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .tonight img {
+    width: 6.5rem;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  .dish {
+    margin: 0;
+    font-family: var(--display);
+    font-size: clamp(1.75rem, 3vw, 2.5rem);
+    font-weight: 650;
+    font-stretch: 88%;
+    line-height: 1.05;
+  }
+
+  .dish.quiet {
+    color: var(--muted);
+  }
+
+  .week {
+    list-style: none;
+    margin: 1.25rem 0 0;
+    padding: 0;
+  }
+
+  .week li {
+    display: grid;
+    grid-template-columns: 7.5rem 1fr;
+    padding: 0.45rem 0;
+    border-top: 1px solid var(--rule);
+  }
+
+  .week span {
+    color: var(--muted);
+  }
+
+  .items {
+    list-style: none;
+    margin: 0 0 0.75rem;
+    padding: 0;
+    columns: 2 10rem;
+    column-gap: 1rem;
+  }
+
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.5rem 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    break-inside: avoid;
+  }
+
+  .box {
+    flex: none;
+    width: 1.4rem;
+    height: 1.4rem;
+    border-radius: 6px;
+    box-shadow: inset 0 0 0 2px var(--muted);
+  }
+
+  .item.done {
+    color: var(--muted);
+    text-decoration: line-through;
+  }
+
+  .item.done .box {
+    background: var(--moss);
+    box-shadow: none;
+  }
+
+  .add {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .add input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.7rem 0.9rem;
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    background: var(--paper);
+    color: var(--ink);
+    font: inherit;
+  }
+
+  .add button,
+  .doorbell button {
+    padding: 0.7rem 1.2rem;
+    border: 0;
+    border-radius: 12px;
+    background: var(--lake);
+    color: var(--paper);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .lights {
+    --switch-min: 10rem;
+    --switch-pad: clamp(0.7rem, 1.6vh, 1.1rem) 1rem;
+  }
+
+  .coming {
+    grid-column: 1 / -1;
+  }
+
+  .days {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1.5rem;
+  }
+
+  .days h3 {
+    font-size: 1.125rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 0.6rem;
+  }
+
+  .days ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  .days li {
+    display: grid;
+    grid-template-columns: 2.75rem 1fr;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .days img,
+  .days .thumb {
+    width: 2.75rem;
+    aspect-ratio: 2 / 3;
+    object-fit: cover;
+    border-radius: 4px;
+    background: var(--panel);
+  }
+
+  .days strong,
+  .days small {
+    display: block;
+    line-height: 1.25;
+  }
+
+  .days small {
+    color: var(--muted);
+    font-size: 0.875em;
+  }
+
+  .doorbell {
+    width: min(92vw, 1100px);
+    padding: 1.5rem;
+    border: 0;
+    border-radius: 20px;
+    background: var(--paper);
+    color: var(--ink);
+  }
+
+  .doorbell::backdrop {
+    background: rgb(0 0 0 / 0.6);
+  }
+
+  .doorbell h2 {
+    font-size: clamp(1.75rem, 4vw, 3rem);
+    margin-bottom: 1rem;
+  }
+
+  .doorbell img {
+    width: 100%;
+    border-radius: 12px;
+    background: var(--panel);
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+  }
+
+  .doorbell form {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1rem;
+  }
+
+  @media (min-width: 1001px) {
+    #live {
+      height: 100dvh;
+      overflow: hidden;
+    }
+
+    main {
+      grid-template-rows: auto minmax(0, 1fr);
+    }
+
+    .coming {
+      overflow: hidden;
+    }
+  }
+
+  @media (max-width: 1000px) {
+    main {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+
+    .days {
+      grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+    }
+  }
+</style>

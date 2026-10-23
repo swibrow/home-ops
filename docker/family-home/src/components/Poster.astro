@@ -1,0 +1,88 @@
+---
+import type { Tile } from "../integrations/jellyfin";
+
+type Props = Tile;
+const { title, detail, image, href, progress } = Astro.props;
+---
+
+<li>
+  <a href={href}>
+    {image ? <img src={image} alt="" loading="lazy" /> : <span class="blank">{title}</span>}
+    {progress !== undefined && (
+      <span class="progress" aria-label={`${Math.round(progress)}% watched`}>
+        <span style={`width:${progress}%`} />
+      </span>
+    )}
+    <strong>{title}</strong>
+    {detail && <small>{detail}</small>}
+  </a>
+</li>
+
+<style>
+  li {
+    scroll-snap-align: start;
+  }
+
+  a {
+    display: grid;
+    gap: 0.4rem;
+    text-decoration: none;
+  }
+
+  img,
+  .blank {
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    object-fit: cover;
+    border-radius: 10px;
+    background: var(--panel);
+  }
+
+  .blank {
+    display: grid;
+    place-items: end start;
+    padding: 0.75rem;
+    font-family: var(--display);
+    font-weight: 650;
+    font-size: 1.125rem;
+    line-height: 1.1;
+    color: var(--muted);
+  }
+
+  a:hover img {
+    outline: 3px solid var(--lake);
+    outline-offset: -3px;
+  }
+
+  .progress {
+    height: 4px;
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--ink) 12%, transparent);
+    overflow: hidden;
+  }
+
+  .progress span {
+    display: block;
+    height: 100%;
+    background: var(--lake);
+  }
+
+  strong,
+  small {
+    line-height: 1.25;
+  }
+
+  strong {
+    font-size: 0.95rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  small {
+    color: var(--muted);
+    font-size: 0.8125rem;
+    margin-top: -0.25rem;
+  }
+</style>

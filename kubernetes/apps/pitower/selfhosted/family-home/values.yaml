@@ -1,0 +1,104 @@
+controllers:
+  family-home:
+    annotations:
+      reloader.stakater.com/auto: "true"
+    pod:
+      securityContext:
+        runAsUser: 2000
+        runAsGroup: 2000
+        runAsNonRoot: true
+        fsGroup: 2000
+        fsGroupChangePolicy: OnRootMismatch
+    containers:
+      app:
+        image:
+          repository: ghcr.io/swibrow/family-home
+          tag: 0.1.0
+        env:
+          TZ: Europe/Zurich
+          PORT: &port 8080
+          HASS_URL: https://ha.wibrow.dev
+          JELLYFIN_URL: http://jellyfin.media.svc.cluster.local:8096
+          SONARR_URL: http://sonarr.media.svc.cluster.local:8989
+          RADARR_URL: http://radarr.media.svc.cluster.local:7878
+          IMMICH_URL: http://immich-server.media.svc.cluster.local:2283
+          MEALIE_URL: http://mealie.selfhosted.svc.cluster.local:9000
+          ACTUAL_URL: http://actual.banking.svc.cluster.local:5006
+          PROMETHEUS_URL: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+        envFrom:
+          - secretRef:
+              name: family-home-secret
+          - secretRef:
+              name: family-home-integrations
+              optional: true
+        probes:
+          liveness: &probes
+            enabled: true
+            custom: true
+            spec:
+              httpGet:
+                port: *port
+                path: /healthz
+          readiness: *probes
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+        resources:
+          requests:
+            cpu: 10m
+            memory: 128Mi
+          limits:
+            memory: 512Mi
+service:
+  app:
+    controller: family-home
+    ports:
+      http:
+        port: *port
+
+route:
+  app:
+    enabled: true
+    forceRename: family-home
+    hostnames:
+      - home.wibrow.dev
+    parentRefs:
+      - name: envoy-external
+        namespace: networking
+        sectionName: https
+  # The kitchen wall display skips the Kanidm login; securitypolicy.yaml limits
+  # it to the home network instead. /_astro holds the shared CSS and fonts.
+  kitchen:
+    enabled: true
+    annotations:
+      gatus.home-operations.com/enabled: "false"
+    hostnames:
+      - home.wibrow.dev
+    parentRefs:
+      - name: envoy-external
+        namespace: networking
+        sectionName: https
+    rules:
+      - backendRefs:
+          - identifier: app
+            port: *port
+        matches:
+          - path:
+              type: PathPrefix
+              value: /kitchen
+          - path:
+              type: PathPrefix
+              value: /_astro
+
+persistence:
+  config:
+    type: configMap
+    name: family-home-config
+    globalMounts:
+      - path: /config
+  tmp:
+    type: emptyDir
+    globalMounts:
+      - path: /tmp

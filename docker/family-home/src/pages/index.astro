@@ -1,0 +1,760 @@
+---
+import "@fontsource-variable/bricolage-grotesque/standard.css";
+import "@fontsource-variable/atkinson-hyperlegible-next/index.css";
+import "../styles/global.css";
+import Horizon from "../components/Horizon.astro";
+import Poster from "../components/Poster.astro";
+import Switches from "../components/Switches.astro";
+import { loadBudget } from "../integrations/actual";
+import { loadUpcoming } from "../integrations/arr";
+import { loadHome } from "../integrations/homeassistant";
+import { loadMemory } from "../integrations/immich";
+import { loadJellyfin } from "../integrations/jellyfin";
+import { loadMeals } from "../integrations/mealie";
+import { loadStatus } from "../integrations/status";
+import { settle } from "../lib/cache";
+import { config, env } from "../lib/config";
+import { sky } from "../lib/sky";
+import { format, hour, isoDay, money } from "../lib/time";
+
+const [home, media, upcoming, memory, meals, budget, down] = await Promise.all([
+  settle("homeassistant", loadHome()),
+  settle("jellyfin", loadJellyfin()),
+  settle("arr", loadUpcoming()),
+  settle("immich", loadMemory()),
+  settle("mealie", loadMeals()),
+  settle("actual", loadBudget()),
+  settle("status", loadStatus()),
+]);
+
+function viewer() {
+  const token = Astro.request.headers.get("x-id-token");
+  if (!token) return env("DEV_NAME");
+  try {
+    const claims = JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString());
+    return String(claims.name ?? claims.preferred_username).split(" ")[0];
+  } catch {
+    return undefined;
+  }
+}
+
+const now = new Date();
+const h = hour(now);
+const part = h < 5 ? "Hello" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : h < 23 ? "Good evening" : "Hello";
+const name = viewer();
+const colours = sky(home?.sunElevation);
+const today = isoDay(now);
+const tonight = meals?.find((m) => m.date === today && m.type === "dinner") ?? meals?.find((m) => m.date === today);
+const laterMeals = meals?.filter((m) => m !== tonight && m.type === "dinner" && m.date !== today) ?? [];
+const weekday = (iso: string) => format(new Date(`${iso}T12:00:00Z`), { weekday: "long" });
+const dayLabel = (date: Date) =>
+  isoDay(date) === today ? "Today" : format(date, { weekday: "long" });
+const upcomingByDay = Object.entries(
+  Object.groupBy(upcoming?.slice(0, 12) ?? [], (u) => dayLabel(u.date)),
+);
+const thisMonth = format(now, { month: "long" });
+const apps = config.categories.flatMap((c) => c.apps);
+const iconUrl = (icon: string) => `https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/${icon}.svg`;
+const list = (items: string[]) => new Intl.ListFormat("en-GB").format(items);
+
+Astro.response.headers.set("Cache-Control", "no-store");
+---
+
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content={colours.top} />
+    <title>{config.household} home</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    {config.analyticsSiteId && <script is:inline src="https://insights.wibrow.dev/api/script.js" data-site-id={config.analyticsSiteId} defer />}
+  </head>
+  <body>
+    <header class="sky" data-ink={colours.ink} style={`--sky-top:${colours.top};--sky-bottom:${colours.bottom}`}>
+      <div class="sky-inner">
+        <p class="date">{format(now, { weekday: "long", day: "numeric", month: "long" })}</p>
+        <h1>{name ? `${part}, ${name}` : part}</h1>
+        {
+          home?.weather && (
+            <p class="weather">
+              {home.weather.temperature}° and {home.weather.condition.toLowerCase()} outside.
+              {home.weather.high !== undefined && ` Up to ${home.weather.high}° today`}
+              {home.weather.low !== undefined && `, ${home.weather.low}° tonight`}
+              {home.weather.high !== undefined && "."}
+              {!!home.weather.rain && ` ${home.weather.rain} mm of rain expected.`}
+            </p>
+          )
+        }
+        {
+          !!home?.people.length && (
+            <p class="people">
+              {home.people.map((p) => (
+                <span class:list={["person", { away: !p.home }]}>
+                  {p.name[0].toUpperCase() + p.name.slice(1)} is {p.home ? "home" : "out"}
+                </span>
+              ))}
+            </p>
+          )
+        }
+      </div>
+      <Horizon />
+    </header>
+
+    <main>
+      {
+        !!down?.length && (
+          <p class="outage" role="status">
+            <strong>{list(down.map((a) => a.name))} {down.length === 1 ? "is" : "are"} not responding right now.</strong>
+            {" "}Try again in a little while. If it is still down this evening, tell Sam.
+          </p>
+        )
+      }
+
+      <section class="today" aria-labelledby="today-heading">
+        <h2 id="today-heading" class="visually-hidden">Today</h2>
+
+        {
+          meals && (
+            <article class="dinner">
+              {tonight ? (
+                <>
+                  {tonight.image && <img src={tonight.image} alt="" loading="lazy" />}
+                  <div class="dinner-text">
+                    <h3>{tonight.type === "dinner" ? "Dinner tonight" : `Today's ${tonight.type}`}</h3>
+                    {tonight.href ? (
+                      <a class="dish" href={tonight.href}>
+                        {tonight.name}
+                      </a>
+                    ) : (
+                      <p class="dish">{tonight.name}</p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div class="dinner-text">
+                  <h3>Dinner tonight</h3>
+                  <p class="dish">Nothing planned yet.</p>
+                  <a href={config.mealie.url}>Plan this week's meals</a>
+                </div>
+              )}
+              {laterMeals.length > 0 && (
+                <ul class="week">
+                  {laterMeals.map((m) => (
+                    <li>
+                      <span>{weekday(m.date)}</span>
+                      {m.href ? <a href={m.href}>{m.name}</a> : m.name}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </article>
+          )
+        }
+
+        {
+          !!home?.actions.length && (
+            <article class="lights">
+              <h3>Around the house</h3>
+              <Switches actions={home.actions} endpoint="/api/action" />
+            </article>
+          )
+        }
+      </section>
+
+      {
+        !!media?.resume.length && (
+          <section class="shelf" aria-labelledby="resume-heading">
+            <h2 id="resume-heading">Keep watching</h2>
+            <ul class="posters">
+              {media.resume.map((t) => (
+                <Poster {...t} />
+              ))}
+            </ul>
+          </section>
+        )
+      }
+
+      {
+        !!media?.latest.length && (
+          <section class="shelf" aria-labelledby="latest-heading">
+            <h2 id="latest-heading">New to watch</h2>
+            <ul class="posters">
+              {media.latest.map((t) => (
+                <Poster {...t} />
+              ))}
+            </ul>
+          </section>
+        )
+      }
+
+      {
+        upcomingByDay.length > 0 && (
+          <section class="coming" aria-labelledby="coming-heading">
+            <h2 id="coming-heading">Coming this week</h2>
+            <div class="days">
+              {upcomingByDay.map(([day, items]) => (
+                <div class="day">
+                  <h3>{day}</h3>
+                  <ul>
+                    {items!.map((u) => (
+                      <li>
+                        {u.image ? <img src={u.image} alt="" loading="lazy" /> : <span class="thumb" />}
+                        <span>
+                          <strong>{u.title}</strong>
+                          <small>
+                            {u.detail}
+                            {u.ready && ", ready to watch"}
+                          </small>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </section>
+        )
+      }
+
+      {
+        (memory || budget) && (
+          <section class="pair">
+            {memory && (
+              <article class="memory" aria-labelledby="memory-heading">
+                <h2 id="memory-heading">
+                  {now.getFullYear() - memory.year === 1 ? "A year ago today" : `${now.getFullYear() - memory.year} years ago today`}
+                </h2>
+                <div class="photos" data-count={memory.photos.length}>
+                  {memory.photos.map((id, i) => (
+                    <a href={`${config.immich.url}/photos/${id}`}>
+                      <img src={`/api/photo/${id}`} alt={`Photo ${i + 1} from ${memory.year}`} loading="lazy" />
+                    </a>
+                  ))}
+                </div>
+              </article>
+            )}
+            {budget && (
+              <article class="budget" aria-labelledby="budget-heading">
+                <h2 id="budget-heading">Money in {thisMonth}</h2>
+                <p class="spent">
+                  <span class="amount">{money(budget.spent)}</span> spent of {money(budget.budgeted)} planned
+                </p>
+                <div
+                  class="meter"
+                  role="meter"
+                  aria-label="Share of the monthly budget spent"
+                  aria-valuemin="0"
+                  aria-valuemax={budget.budgeted}
+                  aria-valuenow={budget.spent}
+                >
+                  <span style={`width:${Math.min(100, (budget.spent / Math.max(budget.budgeted, 1)) * 100)}%`} />
+                </div>
+                {budget.top.length > 0 && (
+                  <ul class="categories">
+                    {budget.top.map((c) => (
+                      <li>
+                        <span>{c.name}</span>
+                        <span>{money(c.spent)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {budget.over.length > 0 && (
+                  <p class="over">Over budget: {list(budget.over.map((c) => `${c.name} (${money(-c.balance)})`))}</p>
+                )}
+              </article>
+            )}
+          </section>
+        )
+      }
+
+      <section class="places" aria-labelledby="places-heading">
+        <h2 id="places-heading">Everything at home</h2>
+        <div class="groups">
+          {
+            config.categories.map((c) => (
+              <div class="group">
+                <h3>{c.name}</h3>
+                <ul>
+                  {c.apps.map((a) => {
+                    const isDown = down?.includes(a);
+                    return (
+                      <li>
+                        <a href={a.url} class:list={["app", { down: isDown }]}>
+                          {a.icon ? (
+                            <img src={iconUrl(a.icon)} alt="" width="40" height="40" loading="lazy" />
+                          ) : (
+                            <span class="monogram" aria-hidden="true">
+                              {a.name[0]}
+                            </span>
+                          )}
+                          <span>
+                            <strong>{a.name}</strong>
+                            <small>{isDown ? "Not responding right now" : a.description}</small>
+                          </span>
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))
+          }
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        {
+          down === undefined
+            ? "Service status is unavailable."
+            : down.length === 0
+              ? `All ${apps.length} services are working.`
+              : `${apps.length - down.length} of ${apps.length} services are working.`
+        }
+      </p>
+      <a href="https://ops.wibrow.dev">Sam's admin dashboard</a>
+    </footer>
+
+    <script>
+      const loaded = Date.now();
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible" && Date.now() - loaded > 5 * 60_000) location.reload();
+      });
+    </script>
+  </body>
+</html>
+
+<style>
+  .sky {
+    --sky-ink: #f4f7f8;
+    position: relative;
+    min-height: min(56vh, 520px);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 92%);
+    color: var(--sky-ink);
+  }
+
+  .sky[data-ink="dark"] {
+    --sky-ink: #16242a;
+  }
+
+  .sky-inner {
+    position: relative;
+    z-index: 1;
+    width: min(100%, 1180px);
+    margin: 0 auto;
+    padding: 3rem var(--gutter) clamp(4.5rem, 12vw, 8.5rem);
+  }
+
+  .date {
+    margin: 0 0 0.5rem;
+    font-size: 1.125rem;
+    opacity: 0.85;
+  }
+
+  h1 {
+    font-size: clamp(2.75rem, 9vw, 6.5rem);
+    font-weight: 750;
+    font-stretch: 82%;
+    letter-spacing: -0.035em;
+    line-height: 0.95;
+    max-width: 14ch;
+    text-wrap: balance;
+  }
+
+  .weather {
+    margin: 1.25rem 0 0;
+    max-width: 46ch;
+    font-size: clamp(1.125rem, 2.2vw, 1.375rem);
+  }
+
+  .people {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 1rem 0 0;
+  }
+
+  .person {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.95rem;
+  }
+
+  .person::before {
+    content: "";
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .person.away::before {
+    background: transparent;
+    box-shadow: inset 0 0 0 1.5px currentColor;
+  }
+
+  main {
+    width: min(100%, 1180px);
+    margin: 0 auto;
+    padding: 0 var(--gutter) 4rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(2.5rem, 5vw, 4rem);
+  }
+
+  section > h2,
+  article > h2 {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-weight: 650;
+    font-stretch: 90%;
+    letter-spacing: -0.02em;
+    margin-bottom: 1rem;
+  }
+
+  .outage {
+    margin: 0;
+    padding: 1rem 1.25rem;
+    border-left: 4px solid var(--alert);
+    background: color-mix(in srgb, var(--alert) 10%, var(--paper));
+    max-width: 70ch;
+  }
+
+  .today {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: clamp(1.5rem, 3vw, 2.5rem);
+  }
+
+  .today > :only-of-type {
+    grid-column: 1 / -1;
+  }
+
+  .today h3 {
+    font-size: 1rem;
+    font-family: var(--body);
+    font-weight: 700;
+    color: var(--muted);
+    margin-bottom: 0.4rem;
+  }
+
+  .dinner {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 0 1.25rem;
+  }
+
+  .dinner > img {
+    width: clamp(6rem, 14vw, 9rem);
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  .dinner-text {
+    grid-column: span 1;
+  }
+
+  .dinner:not(:has(> img)) .dinner-text {
+    grid-column: 1 / -1;
+  }
+
+  .dish {
+    display: block;
+    margin: 0;
+    font-family: var(--display);
+    font-size: clamp(1.5rem, 3vw, 2.25rem);
+    font-weight: 650;
+    font-stretch: 88%;
+    line-height: 1.1;
+    text-decoration: none;
+  }
+
+  a.dish:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
+  }
+
+  .week {
+    grid-column: 1 / -1;
+    list-style: none;
+    margin: 1.25rem 0 0;
+    padding: 0;
+    display: grid;
+    gap: 0.25rem;
+  }
+
+  .week li {
+    display: grid;
+    grid-template-columns: 7rem 1fr;
+    padding: 0.35rem 0;
+    border-top: 1px solid var(--rule);
+  }
+
+  .week span {
+    color: var(--muted);
+  }
+
+  .week a {
+    text-decoration: none;
+  }
+
+  .posters {
+    list-style: none;
+    margin: 0 calc(var(--gutter) * -1);
+    padding: 0 var(--gutter) 0.5rem;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: clamp(7.5rem, 16vw, 10rem);
+    gap: 1rem;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: var(--gutter);
+    scrollbar-width: thin;
+  }
+
+  .days {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    gap: 1.5rem 2rem;
+  }
+
+  .day h3 {
+    font-size: 1.125rem;
+    font-weight: 650;
+    padding-bottom: 0.4rem;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 0.6rem;
+  }
+
+  .day ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  .day li {
+    display: grid;
+    grid-template-columns: 2.5rem 1fr;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .day img,
+  .day .thumb {
+    width: 2.5rem;
+    aspect-ratio: 2 / 3;
+    object-fit: cover;
+    border-radius: 4px;
+    background: var(--panel);
+  }
+
+  .day strong,
+  .day small {
+    display: block;
+    line-height: 1.3;
+  }
+
+  .day small {
+    color: var(--muted);
+    font-size: 0.875rem;
+  }
+
+  .pair {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+    gap: clamp(2rem, 4vw, 3rem);
+    align-items: start;
+  }
+
+  .photos {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-auto-rows: 7rem;
+    gap: 6px;
+    border-radius: 18px;
+    overflow: hidden;
+  }
+
+  .photos a {
+    grid-column: span 2;
+  }
+
+  .photos a:first-child {
+    grid-column: span 4;
+    grid-row: span 2;
+  }
+
+  .photos[data-count="1"] a:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .photos[data-count="2"] a {
+    grid-column: span 3;
+    grid-row: span 2;
+  }
+
+  .photos img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .budget {
+    padding: 1.5rem;
+    background: var(--panel);
+    border-radius: 18px;
+  }
+
+  .spent {
+    margin: 0 0 0.75rem;
+    color: var(--muted);
+  }
+
+  .amount {
+    display: block;
+    font-family: var(--display);
+    font-size: clamp(2.25rem, 5vw, 3.25rem);
+    font-weight: 700;
+    font-stretch: 85%;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .meter {
+    height: 10px;
+    border-radius: 5px;
+    background: color-mix(in srgb, var(--ink) 12%, transparent);
+    overflow: hidden;
+  }
+
+  .meter span {
+    display: block;
+    height: 100%;
+    background: var(--lake);
+    border-radius: inherit;
+  }
+
+  .categories {
+    list-style: none;
+    margin: 1.25rem 0 0;
+    padding: 0;
+  }
+
+  .categories li {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.4rem 0;
+    border-top: 1px solid var(--rule);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .over {
+    margin: 1rem 0 0;
+    color: var(--alert);
+    font-weight: 700;
+  }
+
+  .groups {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+    gap: 2rem clamp(1.5rem, 3vw, 2.5rem);
+  }
+
+  .group h3 {
+    font-size: 1.125rem;
+    font-weight: 650;
+    padding-bottom: 0.4rem;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 0.25rem;
+  }
+
+  .group ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .app {
+    display: grid;
+    grid-template-columns: 2.5rem 1fr;
+    gap: 0.9rem;
+    align-items: center;
+    padding: 0.75rem 0.5rem;
+    margin: 0 -0.5rem;
+    border-radius: 10px;
+    text-decoration: none;
+  }
+
+  .app:hover {
+    background: var(--panel);
+  }
+
+  .app img,
+  .monogram {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .monogram {
+    display: grid;
+    place-items: center;
+    border-radius: 10px;
+    background: var(--lake);
+    color: var(--paper);
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 1.25rem;
+  }
+
+  .app strong,
+  .app small {
+    display: block;
+    line-height: 1.3;
+  }
+
+  .app small {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  .app.down small {
+    color: var(--alert);
+    font-weight: 700;
+  }
+
+  footer {
+    width: min(100%, 1180px);
+    margin: 0 auto;
+    padding: 1.5rem var(--gutter) 3rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.5rem 2rem;
+    color: var(--muted);
+    font-size: 0.9375rem;
+    border-top: 1px solid var(--rule);
+  }
+
+  footer p {
+    margin: 0;
+  }
+
+  @media (max-width: 760px) {
+    .today {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
