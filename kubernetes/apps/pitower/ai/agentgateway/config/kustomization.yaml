@@ -9,6 +9,7 @@ commonAnnotations:
 
 resources:
   - externalsecret.yaml
+  - anthropic-wif.yaml
   - parameters.yaml
   - gateway.yaml
   - policy.yaml

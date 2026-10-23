@@ -1,0 +1,126 @@
+---
+# Anthropic Workload Identity Federation for the claude-*-api models.
+# agentgateway's oauthTokenExchange reads its assertion from the incoming
+# request, so it cannot present the gateway's own identity. Instead this job
+# exchanges a projected service account token (iss = the cluster's public
+# IRSA issuer, see pitower/kubernetes/.well-known) at /v1/oauth/token and writes
+# the short-lived access token into anthropic-wif-token. Anthropic's rule
+# pitower-agentgateway (Console: Settings > Workload identity, Cloudsnacks org,
+# home-ops workspace) matches sub system:serviceaccount:ai:anthropic-wif and
+# mints 60 min tokens, capped by the JWT's own expiry; refreshing every 20 min
+# leaves two retries before expiry. Each run is
+# a new pod with a fresh token, which the jti replay check requires.
+# git owns only the Secret's metadata; ArgoCD's server-side apply leaves the
+# data field to the job's field manager.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: anthropic-wif-token
+type: Opaque
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: anthropic-wif
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: anthropic-wif
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["anthropic-wif-token"]
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: anthropic-wif
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: anthropic-wif
+subjects:
+  - kind: ServiceAccount
+    name: anthropic-wif
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: anthropic-wif
+spec:
+  schedule: "*/20 * * * *"
+  timeZone: Europe/Zurich
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 120
+      ttlSecondsAfterFinished: 3600
+      template:
+        spec:
+          serviceAccountName: anthropic-wif
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: exchange
+              image: docker.io/curlimages/curl:8.23.0
+              env:
+                - name: ANTHROPIC_ORGANIZATION_ID
+                  value: 1e717341-7ab2-443c-9b09-a8ba22fa4376
+                - name: ANTHROPIC_SERVICE_ACCOUNT_ID
+                  value: svac_01HGZWobBWwWxY1b74VnCuwM
+                - name: ANTHROPIC_FEDERATION_RULE_ID
+                  value: fdrl_01RpFVJ7UzKUrVex9YgFNkT6
+                - name: ANTHROPIC_WORKSPACE_ID
+                  value: wrkspc_01Ya4HUTcALiszS5oc3qQ2N5
+              command: ["sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  SA=/var/run/secrets/kubernetes.io/serviceaccount
+                  response=$(curl -sS --fail-with-body https://api.anthropic.com/v1/oauth/token \
+                    -H "content-type: application/json" \
+                    -d "{\"grant_type\":\"urn:ietf:params:oauth:grant-type:jwt-bearer\",\"assertion\":\"$(cat /var/run/secrets/anthropic.com/token)\",\"federation_rule_id\":\"$ANTHROPIC_FEDERATION_RULE_ID\",\"organization_id\":\"$ANTHROPIC_ORGANIZATION_ID\",\"service_account_id\":\"$ANTHROPIC_SERVICE_ACCOUNT_ID\",\"workspace_id\":\"$ANTHROPIC_WORKSPACE_ID\"}") \
+                    || { echo "exchange failed: $response" >&2; exit 1; }
+                  token=$(printf '%s' "$response" | sed -n 's/.*"access_token" *: *"\([^"]*\)".*/\1/p')
+                  [ -n "$token" ] || { echo "no access_token in response" >&2; exit 1; }
+                  curl -fsS --cacert "$SA/ca.crt" \
+                    -H "Authorization: Bearer $(cat "$SA/token")" \
+                    -H "Content-Type: application/apply-patch+yaml" \
+                    -X PATCH \
+                    "https://kubernetes.default.svc/api/v1/namespaces/$(cat "$SA/namespace")/secrets/anthropic-wif-token?fieldManager=anthropic-wif&force=true" \
+                    -d "{\"apiVersion\":\"v1\",\"kind\":\"Secret\",\"metadata\":{\"name\":\"anthropic-wif-token\"},\"data\":{\"token\":\"$(printf '%s' "$token" | base64 | tr -d '\n')\"}}" \
+                    -o /dev/null
+                  echo "refreshed anthropic-wif-token"
+              volumeMounts:
+                - name: anthropic-token
+                  mountPath: /var/run/secrets/anthropic.com
+                  readOnly: true
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  memory: 64Mi
+          volumes:
+            - name: anthropic-token
+              projected:
+                sources:
+                  - serviceAccountToken:
+                      audience: https://api.anthropic.com
+                      expirationSeconds: 3600
+                      path: token
