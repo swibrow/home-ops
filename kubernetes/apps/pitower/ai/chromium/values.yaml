@@ -32,8 +32,6 @@ controllers:
           requests:
             cpu: 100m
             memory: 2Gi
-          limits:
-            memory: 8Gi
       mcp:
         image:
           repository: mcr.microsoft.com/playwright/mcp
@@ -51,10 +49,6 @@ controllers:
           - "*"
           - --output-dir
           - /tmp/playwright-output
-        env:
-          # Node sizes its heap to about half the container limit by default, and
-          # page snapshots of listing sites fill it.
-          NODE_OPTIONS: --max-old-space-size=768
         ports:
           - containerPort: 8931
             name: mcp
@@ -62,8 +56,6 @@ controllers:
           requests:
             cpu: 10m
             memory: 128Mi
-          limits:
-            memory: 1Gi
 
 service:
   app:
