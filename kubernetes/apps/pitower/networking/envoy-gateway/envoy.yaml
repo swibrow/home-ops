@@ -4,6 +4,9 @@ kind: EnvoyProxy
 metadata:
   name: envoy
 spec:
+  # Makes the proxy Services RequireDualStack, so external-dns-unifi publishes
+  # AAAA records next to the A records for internal/external.wibrow.dev.
+  ipFamily: DualStack
   logging:
     level:
       default: info
