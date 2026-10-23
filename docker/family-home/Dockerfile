@@ -2,7 +2,7 @@
 # Source lives next to this file; bump the version to publish a new tag.
 ARG FAMILY_HOME_VERSION=0.1.0
 
-FROM node:24.21.0-slim AS build
+FROM node:24.22.1-slim AS build
 WORKDIR /app
 RUN npm install --global bun@1.3.14
 COPY package.json bun.lock ./
@@ -14,7 +14,7 @@ RUN bun run build \
     && bun install --production --frozen-lockfile --ignore-scripts \
     && npm rebuild better-sqlite3
 
-FROM node:24.21.0-slim
+FROM node:24.22.1-slim
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=8080 CONFIG_PATH=/config/config.yaml ACTUAL_DATA_DIR=/tmp/actual
 WORKDIR /app
 COPY --from=build /app/package.json ./
