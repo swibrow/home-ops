@@ -16,7 +16,7 @@ jobs:
     runs-on: home-ops
     steps:
       - name: Drydock render, test and diff
-        uses: sholdee/drydock/pr-action@26093fdef30a7c4e40cd113475dfe0c83246b7da # v0.3.6
+        uses: sholdee/drydock/pr-action@b2d463c6ef80d5e228327b53b1331038ac3c93f5 # v0.3.7
         with:
           # Must track the pr-action tag above — the wrapper passes flags the
           # pinned binary must understand (v0.2.0 added --render-cache-dir).
