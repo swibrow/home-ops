@@ -12,10 +12,17 @@
 # advertisements. Pin them to the live values instead.
 #
 # Every network except "Default" is a deliberate exception to adopt-only:
-# their PD blocks are desired state, not adopted state. Matter/Thread needs
+# their IPv6 blocks are desired state, not adopted state. Matter/Thread needs
 # routable IPv6 on VLAN 101, the pitower nodes take their IPv6 addresses
 # (SLAAC) from VLAN 20, and home/management clients reach the cluster's
 # LoadBalancer AAAA records over it.
+#
+# Those four use static /64s carved from the Init7 /56, not PD: the gateway
+# ignores ipv6_pd_prefixid and reshuffles PD slices whenever the WAN
+# reconnects (2026-10-23, servers moved :2:: -> :3:: and the IPv6 BGP session
+# to Cilium died with it). "Default" stays on PD because the /56 is only
+# routed to us while the gateway holds a delegation lease; it takes slice 0,
+# which none of the static networks use.
 
 resource "unifi_network" "default" {
   name    = "Default"
@@ -45,16 +52,8 @@ resource "unifi_network" "home" {
   dhcp_start   = "10.10.0.46"
   dhcp_stop    = "10.10.255.254"
 
-  # The gateway handed this 2a02:16a:2a0a:3::/64 and management :4::/64, one
-  # below their prefixids: prefixid is a request, not a guarantee, so read the
-  # live slice from stat/device network_table before relying on it. The Cilium
-  # LoadBalancer pool sits at slice ff to stay clear of whatever gets handed
-  # out. Same pd/ra requirements as iot below.
-  ipv6_interface_type    = "pd"
-  ipv6_pd_interface      = "wan"
-  ipv6_pd_prefixid       = "4"
-  ipv6_pd_start          = "::2"
-  ipv6_pd_stop           = "::7d1"
+  ipv6_interface_type    = "static"
+  ipv6_static_subnet     = "2a02:16a:2a0a:3::1/64"
   ipv6_ra_enable         = true
   ipv6_ra_valid_lifetime = 0
 
@@ -76,25 +75,9 @@ resource "unifi_network" "iot" {
   dhcp_stop    = "10.101.255.254"
   domain_name  = "iot"
 
-  # PD sub-prefix from the same ISP delegation as Default - needed for the
-  # Thread border router behind HA's Matter integration.
-  #
-  # pd_interface and pd_prefixid are what make this actually apply. Without
-  # pd_interface the controller has no WAN to slice and rejects the whole PUT
-  # with api.err.PdRequiresAssignedDhcpv6Wan, which is why this block silently
-  # never took effect between 2026-08-25 and 2026-09-10. prefixid picks *which*
-  # /64 out of the delegation: Default holds the first slice, so iot must not
-  # also claim it or the two networks collide.
-  #
-  # pd_start/pd_stop are the host range inside that /64. Default only has one
-  # because it was adopted from the controller; enabling PD fresh without it
-  # is rejected with api.err.InvalidIpv6Addr (2026-09-13 and 2026-09-14 applies).
-  # Same range as Default.
-  ipv6_interface_type    = "pd"
-  ipv6_pd_interface      = "wan"
-  ipv6_pd_prefixid       = "1"
-  ipv6_pd_start          = "::2"
-  ipv6_pd_stop           = "::7d1"
+  # Needed for the Thread border router behind HA's Matter integration.
+  ipv6_interface_type    = "static"
+  ipv6_static_subnet     = "2a02:16a:2a0a:1::1/64"
   ipv6_ra_enable         = true
   ipv6_ra_valid_lifetime = 0
 
@@ -115,14 +98,10 @@ resource "unifi_network" "servers" {
   dhcp_stop   = "10.20.255.254"
   domain_name = "servers.internal"
 
-  # PD slice 2 (2a02:16a:2a0a:2::/64). Talos (kubelet nodeIP.validSubnets) and
-  # the gateway's BGP listen range in frr-bgp.conf both name this /64. Same
-  # pd/ra requirements as iot above.
-  ipv6_interface_type    = "pd"
-  ipv6_pd_interface      = "wan"
-  ipv6_pd_prefixid       = "2"
-  ipv6_pd_start          = "::2"
-  ipv6_pd_stop           = "::7d1"
+  # Talos (kubelet nodeIP.validSubnets), kubelet-csr-approver, the Cilium
+  # ucg-v6 peer and the BGP listen range in frr-bgp.conf all name this /64.
+  ipv6_interface_type    = "static"
+  ipv6_static_subnet     = "2a02:16a:2a0a:2::1/64"
   ipv6_ra_enable         = true
   ipv6_ra_valid_lifetime = 0
 
@@ -143,12 +122,8 @@ resource "unifi_network" "management" {
   dhcp_start   = "10.50.0.6"
   dhcp_stop    = "10.50.0.254"
 
-  # Gets 2a02:16a:2a0a:4::/64 (see home). Same pd/ra requirements as iot above.
-  ipv6_interface_type    = "pd"
-  ipv6_pd_interface      = "wan"
-  ipv6_pd_prefixid       = "5"
-  ipv6_pd_start          = "::2"
-  ipv6_pd_stop           = "::7d1"
+  ipv6_interface_type    = "static"
+  ipv6_static_subnet     = "2a02:16a:2a0a:4::1/64"
   ipv6_ra_enable         = true
   ipv6_ra_valid_lifetime = 0
 
