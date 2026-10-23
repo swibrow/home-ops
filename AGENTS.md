@@ -60,6 +60,10 @@ To track a site, embed the snippet in the page `<head>` (get `data-site-id` from
 - ArgoCD + ApplicationSets at `kubernetes/bootstrap/`
 - CNPG operator + clusters at `kubernetes/apps/pitower/database/`
 
+## Home Assistant dashboards
+
+Storage-mode only (no Lovelace YAML): edit them through the UI/API, then run `scripts/ha-dashboards-export.py` and commit the refreshed `iot/homeassistant/dashboards/` snapshots so every change is reviewable in git.
+
 ## Docs
 
 - Markdown in `docs/`, rendered by the Astro project in `site/` (bun) to `swibrow.github.io/home-ops` by `deploy-docs.yml`. `cd site && bun run build` builds, indexes with Pagefind and fails on broken internal links or anchors.

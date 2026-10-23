@@ -5,7 +5,6 @@ views:
     icon: mdi:home
     type: sections
     sections:
-      # Quick Actions
       - type: grid
         cards:
           - type: heading
@@ -42,8 +41,6 @@ views:
               perform_action: light.turn_off
               target:
                 entity_id: all
-
-      # Weather
       - type: grid
         cards:
           - type: weather-forecast
@@ -51,8 +48,6 @@ views:
             forecast_type: daily
             show_current: true
             show_forecast: true
-
-      # Camera
       - type: grid
         cards:
           - type: picture-entity
@@ -60,8 +55,6 @@ views:
             camera_view: live
             show_state: false
             show_name: false
-
-      # Rooms
       - type: grid
         cards:
           - type: heading
@@ -76,7 +69,7 @@ views:
             entity: light.kitchen_island
             tap_action:
               action: navigate
-              navigation_path: "#kitchen"
+              navigation_path: '#kitchen'
           - type: custom:bubble-card
             card_type: button
             button_type: state
@@ -85,7 +78,7 @@ views:
             entity: light.dining_table
             tap_action:
               action: navigate
-              navigation_path: "#dining"
+              navigation_path: '#dining'
           - type: custom:bubble-card
             card_type: button
             button_type: state
@@ -94,7 +87,7 @@ views:
             entity: light.corner_couch
             tap_action:
               action: navigate
-              navigation_path: "#living_room"
+              navigation_path: '#living_room'
           - type: custom:bubble-card
             card_type: button
             button_type: state
@@ -103,7 +96,7 @@ views:
             entity: switch.0x54ef441001292786_left
             tap_action:
               action: navigate
-              navigation_path: "#entry"
+              navigation_path: '#entry'
           - type: custom:bubble-card
             card_type: button
             button_type: state
@@ -112,7 +105,7 @@ views:
             entity: light.0x54ef4410011ca5fa
             tap_action:
               action: navigate
-              navigation_path: "#bedroom_master"
+              navigation_path: '#bedroom_master'
           - type: custom:bubble-card
             card_type: button
             button_type: state
@@ -121,7 +114,7 @@ views:
             entity: light.0x54ef4410011c8d28
             tap_action:
               action: navigate
-              navigation_path: "#bedroom_juno"
+              navigation_path: '#bedroom_juno'
           - type: custom:bubble-card
             card_type: button
             button_type: state
@@ -130,7 +123,7 @@ views:
             entity: switch.0x54ef441000eec232_up
             tap_action:
               action: navigate
-              navigation_path: "#hallway"
+              navigation_path: '#hallway'
           - type: custom:bubble-card
             card_type: button
             button_type: state
@@ -139,7 +132,7 @@ views:
             entity: switch.0xbc8d7efffe0178c2
             tap_action:
               action: navigate
-              navigation_path: "#bathroom"
+              navigation_path: '#bathroom'
           - type: custom:bubble-card
             card_type: button
             button_type: state
@@ -148,7 +141,7 @@ views:
             entity: switch.0x54ef4410012907b6_up
             tap_action:
               action: navigate
-              navigation_path: "#guest_room"
+              navigation_path: '#guest_room'
           - type: custom:bubble-card
             card_type: button
             button_type: state
@@ -157,7 +150,7 @@ views:
             entity: switch.0x54ef441001294417_left
             tap_action:
               action: navigate
-              navigation_path: "#attic_stairs"
+              navigation_path: '#attic_stairs'
           - type: custom:bubble-card
             card_type: button
             button_type: state
@@ -166,7 +159,7 @@ views:
             entity: switch.shelly1pmminig4_7c2c67687db8
             tap_action:
               action: navigate
-              navigation_path: "#basement_office"
+              navigation_path: '#basement_office'
           - type: custom:bubble-card
             card_type: button
             button_type: state
@@ -175,9 +168,7 @@ views:
             entity: binary_sensor.0x00124b0024542f06_occupancy
             tap_action:
               action: navigate
-              navigation_path: "#basement_stairs"
-
-      # Room Stats
+              navigation_path: '#basement_stairs'
       - type: grid
         column_span: 2
         cards:
@@ -254,8 +245,6 @@ views:
           - type: tile
             entity: binary_sensor.office_motion_sensor_occupancy
             name: Motion
-
-      # Heating summary
       - type: grid
         column_span: 2
         cards:
@@ -304,7 +293,13 @@ views:
             card_type: climate
             entity: climate.0xb43522fffefbc559_3
             name: Zone 3
-
+      - type: grid
+        cards:
+          - type: tile
+            entity: switch.0x6083dafffef53165_auto_close_when_water_shortage
+          - type: tile
+            entity: switch.0x6083dafffef53165
+        title: Outside Garden Tap
   - title: Ground
     path: ground
     icon: mdi:home-floor-g
@@ -324,7 +319,7 @@ views:
             entity: light.kitchen_island
             tap_action:
               action: navigate
-              navigation_path: "#kitchen"
+              navigation_path: '#kitchen'
           - type: custom:bubble-card
             card_type: button
             button_type: state
@@ -333,7 +328,7 @@ views:
             entity: light.dining_table
             tap_action:
               action: navigate
-              navigation_path: "#dining"
+              navigation_path: '#dining'
           - type: custom:bubble-card
             card_type: button
             button_type: state
@@ -342,7 +337,7 @@ views:
             entity: light.corner_couch
             tap_action:
               action: navigate
-              navigation_path: "#living_room"
+              navigation_path: '#living_room'
           - type: custom:bubble-card
             card_type: button
             button_type: state
@@ -351,8 +346,7 @@ views:
             entity: switch.0x54ef441001292786_left
             tap_action:
               action: navigate
-              navigation_path: "#entry"
-
+              navigation_path: '#entry'
   - title: First
     path: first
     icon: mdi:home-floor-1
@@ -372,7 +366,7 @@ views:
             entity: light.0x54ef4410011ca5fa
             tap_action:
               action: navigate
-              navigation_path: "#bedroom_master"
+              navigation_path: '#bedroom_master'
           - type: custom:bubble-card
             card_type: button
             button_type: state
@@ -381,7 +375,7 @@ views:
             entity: light.0x54ef4410011c8d28
             tap_action:
               action: navigate
-              navigation_path: "#bedroom_juno"
+              navigation_path: '#bedroom_juno'
           - type: custom:bubble-card
             card_type: button
             button_type: state
@@ -390,7 +384,7 @@ views:
             entity: switch.0x54ef441000eec232_up
             tap_action:
               action: navigate
-              navigation_path: "#hallway"
+              navigation_path: '#hallway'
           - type: custom:bubble-card
             card_type: button
             button_type: state
@@ -399,8 +393,7 @@ views:
             entity: switch.0xbc8d7efffe0178c2
             tap_action:
               action: navigate
-              navigation_path: "#bathroom"
-
+              navigation_path: '#bathroom'
   - title: Basement
     path: basement
     icon: mdi:home-floor-b
@@ -420,7 +413,7 @@ views:
             entity: switch.shelly1pmminig4_7c2c67687db8
             tap_action:
               action: navigate
-              navigation_path: "#basement_office"
+              navigation_path: '#basement_office'
           - type: custom:bubble-card
             card_type: button
             button_type: state
@@ -429,8 +422,7 @@ views:
             entity: binary_sensor.0x00124b0024542f06_occupancy
             tap_action:
               action: navigate
-              navigation_path: "#basement_stairs"
-
+              navigation_path: '#basement_stairs'
   - title: Attic
     path: attic
     icon: mdi:home-roof
@@ -450,7 +442,7 @@ views:
             entity: switch.0x54ef4410012907b6_up
             tap_action:
               action: navigate
-              navigation_path: "#guest_room"
+              navigation_path: '#guest_room'
           - type: custom:bubble-card
             card_type: button
             button_type: state
@@ -459,14 +451,19 @@ views:
             entity: switch.0x54ef441001294417_left
             tap_action:
               action: navigate
-              navigation_path: "#attic_stairs"
+              navigation_path: '#attic_stairs'
+      - type: grid
+        cards:
+          - type: tile
+            entity: media_player.cinema_room_lg_tv
+        title: LG TV
   - title: Popups
     path: popups
     subview: true
     cards:
       - type: custom:bubble-card
         card_type: pop-up
-        hash: "#kitchen"
+        hash: '#kitchen'
         name: Kitchen
         icon: mdi:silverware-fork-knife
         cards:
@@ -508,10 +505,9 @@ views:
           - type: tile
             entity: sensor.0x54ef4410013118d8_device_temperature
             name: Temperature
-
       - type: custom:bubble-card
         card_type: pop-up
-        hash: "#dining"
+        hash: '#dining'
         name: Dining
         icon: mdi:food-fork-drink
         cards:
@@ -520,10 +516,9 @@ views:
             entity: light.dining_table
             button_type: switch
             name: Table
-
       - type: custom:bubble-card
         card_type: pop-up
-        hash: "#living_room"
+        hash: '#living_room'
         name: Living Room
         icon: mdi:sofa
         cards:
@@ -541,10 +536,9 @@ views:
             entity: light.corner_door
             button_type: switch
             name: Corner Door
-
       - type: custom:bubble-card
         card_type: pop-up
-        hash: "#entry"
+        hash: '#entry'
         name: Entry
         icon: mdi:door
         cards:
@@ -577,10 +571,9 @@ views:
           - type: tile
             entity: sensor.0x54ef44100144f89f_device_temperature
             name: Temperature
-
       - type: custom:bubble-card
         card_type: pop-up
-        hash: "#bedroom_master"
+        hash: '#bedroom_master'
         name: Bedroom Master
         icon: mdi:bed-king
         cards:
@@ -624,10 +617,9 @@ views:
           - type: tile
             entity: sensor.0x54ef44100129438e_device_temperature
             name: Temperature
-
       - type: custom:bubble-card
         card_type: pop-up
-        hash: "#bedroom_juno"
+        hash: '#bedroom_juno'
         name: Bedroom Juno
         icon: mdi:bed
         cards:
@@ -641,12 +633,6 @@ views:
             button_type: slider
             name: Dimmer
             icon: mdi:ceiling-light
-          - type: custom:bubble-card
-            card_type: button
-            entity: light.bedroom_juno_strip
-            button_type: slider
-            name: LED Strip
-            icon: mdi:led-strip-variant
           - type: custom:bubble-card
             card_type: separator
             name: Climate
@@ -665,10 +651,9 @@ views:
           - type: tile
             entity: sensor.0x54ef4410011c8d28_device_temperature
             name: Temperature
-
       - type: custom:bubble-card
         card_type: pop-up
-        hash: "#hallway"
+        hash: '#hallway'
         name: Hallway
         icon: mdi:stairs
         cards:
@@ -682,10 +667,9 @@ views:
             button_type: switch
             name: Stairs Light
             icon: mdi:stairs-up
-
       - type: custom:bubble-card
         card_type: pop-up
-        hash: "#bathroom"
+        hash: '#bathroom'
         name: Bathroom
         icon: mdi:shower
         cards:
@@ -709,10 +693,9 @@ views:
           - type: tile
             entity: sensor.0xbc8d7efffe0178c2_energy
             name: Energy
-
       - type: custom:bubble-card
         card_type: pop-up
-        hash: "#guest_room"
+        hash: '#guest_room'
         name: Guest Room
         icon: mdi:bed-outline
         cards:
@@ -749,10 +732,9 @@ views:
           - type: tile
             entity: sensor.0xb43522fffefbc559_humidity_1
             name: Humidity
-
       - type: custom:bubble-card
         card_type: pop-up
-        hash: "#attic_stairs"
+        hash: '#attic_stairs'
         name: Attic Stairs
         icon: mdi:stairs-up
         cards:
@@ -772,10 +754,9 @@ views:
             button_type: switch
             name: Right
             icon: mdi:lightbulb
-
       - type: custom:bubble-card
         card_type: pop-up
-        hash: "#basement_office"
+        hash: '#basement_office'
         name: Basement Office
         icon: mdi:desk
         cards:
@@ -824,10 +805,9 @@ views:
           - type: tile
             entity: sensor.0xbc8d7efffe014501_power
             name: Printer Power
-
       - type: custom:bubble-card
         card_type: pop-up
-        hash: "#basement_stairs"
+        hash: '#basement_stairs'
         name: Basement Stairs
         icon: mdi:stairs-down
         cards:

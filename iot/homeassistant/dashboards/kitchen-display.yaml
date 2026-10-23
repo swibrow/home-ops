@@ -1,0 +1,193 @@
+title: Kitchen
+views:
+  - title: Kitchen
+    path: kitchen
+    icon: mdi:silverware-fork-knife
+    type: sections
+    max_columns: 3
+    sections:
+      - type: grid
+        column_span: 3
+        visibility:
+          - condition: or
+            conditions:
+              - condition: state
+                entity: binary_sensor.doorbell_person_occupancy
+                state: 'on'
+              - condition: state
+                entity: binary_sensor.0x54ef441001111f74_smoke
+                state: 'on'
+              - condition: state
+                entity: binary_sensor.0x54ef4410011a84b7_water_leak
+                state: 'on'
+        cards:
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: binary_sensor.0x54ef441001111f74_smoke
+                state: 'on'
+            card:
+              type: tile
+              entity: binary_sensor.0x54ef441001111f74_smoke
+              name: Smoke in the basement
+              color: red
+              grid_options:
+                columns: full
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: binary_sensor.0x54ef4410011a84b7_water_leak
+                state: 'on'
+            card:
+              type: tile
+              entity: binary_sensor.0x54ef4410011a84b7_water_leak
+              name: Water leak in the basement
+              color: blue
+              grid_options:
+                columns: full
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: binary_sensor.doorbell_person_occupancy
+                state: 'on'
+            card:
+              type: picture-entity
+              entity: camera.doorbell
+              name: Someone at the door
+              camera_view: live
+              show_state: false
+              grid_options:
+                columns: full
+      - type: grid
+        cards:
+          - type: clock
+            clock_size: large
+            time_format: '24'
+            show_seconds: false
+            date_format:
+              - weekday-long
+              - day-numeric
+              - month-long
+            grid_options:
+              columns: full
+          - type: weather-forecast
+            entity: weather.forecast_home
+            forecast_type: hourly
+            show_current: true
+            show_forecast: true
+            grid_options:
+              columns: full
+          - type: weather-forecast
+            entity: weather.forecast_home
+            forecast_type: daily
+            show_current: false
+            show_forecast: true
+            grid_options:
+              columns: full
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: sensor.kitchen_echo_next_timer
+                state_not: unavailable
+              - condition: state
+                entity: sensor.kitchen_echo_next_timer
+                state_not: unknown
+            card:
+              type: tile
+              entity: sensor.kitchen_echo_next_timer
+              name: Timer
+              icon: mdi:timer-sand
+              color: amber
+              grid_options:
+                columns: full
+      - type: grid
+        cards:
+          - type: heading
+            heading: Shopping
+            heading_style: title
+            icon: mdi:cart
+          - type: todo-list
+            entity: todo.sam_wibrow_gmail_com_shopping_list
+            hide_completed: true
+            grid_options:
+              columns: full
+          - type: heading
+            heading: Music
+            heading_style: title
+            icon: mdi:music
+          - type: media-control
+            entity: media_player.kitchen_kitchen_echo
+            grid_options:
+              columns: full
+          - type: heading
+            heading: Heating
+            heading_style: title
+            icon: mdi:radiator
+          - type: tile
+            entity: climate.ground_floor_heating_controller_1
+            name: Zone 1
+          - type: tile
+            entity: climate.ground_floor_heating_controller_2
+            name: Zone 2
+      - type: grid
+        cards:
+          - type: heading
+            heading: Lights
+            heading_style: title
+            icon: mdi:lightbulb-group
+          - type: custom:bubble-card
+            card_type: button
+            button_type: slider
+            entity: light.kitchen_island
+            name: Island
+            icon: mdi:lightbulb
+          - type: custom:bubble-card
+            card_type: button
+            button_type: slider
+            entity: light.0xb43a31fffece1e75
+            name: Shelf
+            icon: mdi:lightbulb
+          - type: custom:bubble-card
+            card_type: button
+            button_type: switch
+            entity: light.dining_table
+            name: Dining Table
+            icon: mdi:food-fork-drink
+          - type: custom:bubble-card
+            card_type: button
+            button_type: switch
+            entity: light.corner_couch
+            name: Corner Couch
+            icon: mdi:sofa
+          - type: custom:bubble-card
+            card_type: button
+            button_type: switch
+            entity: light.corner_door
+            name: Corner Door
+            icon: mdi:floor-lamp
+          - type: custom:bubble-card
+            card_type: button
+            button_type: name
+            name: Ground Floor Off
+            icon: mdi:lightbulb-group-off
+            tap_action:
+              action: perform-action
+              perform_action: light.turn_off
+              target:
+                entity_id:
+                  - light.kitchen_island
+                  - light.0xb43a31fffece1e75
+                  - light.dining_table
+                  - light.corner_couch
+                  - light.corner_door
+          - type: heading
+            heading: Front Door
+            heading_style: title
+            icon: mdi:doorbell-video
+          - type: picture-entity
+            entity: camera.doorbell
+            camera_view: auto
+            show_state: false
+            show_name: false
+            grid_options:
+              columns: full

@@ -74,8 +74,18 @@ Automations and device configs that are kept in Git live under `iot/`:
 | Path | Contents |
 |:-----|:---------|
 | `iot/homeassistant/blueprints/` | Automation blueprints (e.g. Aqara H2 rocker switches) |
-| `iot/homeassistant/dashboards/`, `packages/` | Dashboards and HA packages |
+| `iot/homeassistant/dashboards/` | Snapshots of the UI/API-managed dashboards, for review |
+| `iot/homeassistant/packages/` | HA packages |
 | `iot/esphome/devices/` | ESPHome device configs |
 | `iot/button-plus/` | Button+ device config |
+
+Dashboards are storage-mode only: HA is the source of truth and they are edited in the UI or through the API (e.g. the Home Assistant tools on the ToolHive MCP gateway). After changing one, refresh the snapshots and commit them so the change can be reviewed:
+
+```sh
+export HA_TOKEN=$(kubectl -n ai get secret toolhive-secret -o jsonpath='{.data.HA_TOKEN}' | base64 -d)
+./scripts/ha-dashboards-export.py
+```
+
+The snapshots are not applied back to HA; to roll one back, use the dashboard's raw configuration editor or the API.
 
 The HAOS host itself (PoE fan thresholds, the move onto VLAN 101) is managed with Ansible; see the `homeassistant` runbook in `ansible/README.md`.
