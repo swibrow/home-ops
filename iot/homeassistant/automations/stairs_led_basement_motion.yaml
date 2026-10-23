@@ -1,0 +1,32 @@
+id: stairs_led_basement_motion
+alias: Stairs LED - Basement Motion
+description: |
+  Light the basement section while there is motion on the basement stairs. Skips when the section is already lit so the clear does not blank a section it did not turn on.
+mode: single
+max_exceeded: silent
+triggers:
+  - trigger: state
+    entity_id: binary_sensor.0x00124b0024542f06_occupancy
+    from: 'off'
+    to: 'on'
+conditions:
+  - condition: template
+    value_template: '{{ is_state(''light.0x54ef4410010f08d5'', ''off'') or is_state(''input_boolean.stairs_led_basement'',
+      ''off'') }}'
+actions:
+  - action: script.stairs_led_section
+    data:
+      section: basement
+      to: 'on'
+  - wait_for_trigger:
+      - trigger: state
+        entity_id: binary_sensor.0x00124b0024542f06_occupancy
+        to: 'off'
+        for:
+          seconds: 120
+    timeout:
+      minutes: 30
+  - action: script.stairs_led_section
+    data:
+      section: basement
+      to: 'off'

@@ -5,10 +5,12 @@ name: Checks
 # forever on a check that never runs. Everything it does is fast and universal
 # (yaml/workflow lint, whitespace hygiene, terraform fmt) — stack-specific
 # validation (terraform plan, talos diff, argocd diff) lives in its own
-# path-scoped workflow.
+# path-scoped workflow. workflow_dispatch lets ha-pull.yaml report it on the
+# ha-sync PR, which GITHUB_TOKEN-created PRs never trigger on their own.
 on:
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   checks:

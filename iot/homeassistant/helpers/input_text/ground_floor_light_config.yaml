@@ -1,0 +1,5 @@
+id: ground_floor_light_config
+name: Ground Floor Light Config
+min: 0
+mode: text
+max: 100

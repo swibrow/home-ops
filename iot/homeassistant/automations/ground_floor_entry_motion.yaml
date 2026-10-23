@@ -1,0 +1,19 @@
+id: '1773032881083'
+alias: Ground Floor Entry Motion
+description: ''
+use_blueprint:
+  path: swibrow/motion_activated_light.yaml
+  input:
+    motion_entities:
+      - binary_sensor.0x54ef44100144f89f_occupancy
+    motion_detected_action:
+      - type: turn_on
+        device_id: fbd27cff8cf750282d351d0177f020ee
+        entity_id: 2f02c3196e896aa701eee82f85800d4d
+        domain: switch
+    no_motion_wait: 180
+    motion_cleared_action:
+      - type: turn_off
+        device_id: fbd27cff8cf750282d351d0177f020ee
+        entity_id: 2f02c3196e896aa701eee82f85800d4d
+        domain: switch

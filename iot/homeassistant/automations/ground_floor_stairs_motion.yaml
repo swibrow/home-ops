@@ -1,0 +1,32 @@
+id: '1780676034937'
+alias: Ground Floor Stairs Motion
+description: Light the first floor section while there is motion on the ground floor stairway. Skips when the section is already
+  lit so the clear does not blank a section it did not turn on.
+triggers:
+  - trigger: state
+    entity_id: binary_sensor.0x54ef44100143e472_occupancy
+    from: 'off'
+    to: 'on'
+conditions:
+  - condition: template
+    value_template: '{{ is_state(''light.0x54ef4410010f08d5'', ''off'') or is_state(''input_boolean.stairs_led_first_floor'',
+      ''off'') }}'
+actions:
+  - action: script.stairs_led_section
+    data:
+      section: first_floor
+      to: 'on'
+  - wait_for_trigger:
+      - trigger: state
+        entity_id: binary_sensor.0x54ef44100143e472_occupancy
+        to: 'off'
+        for:
+          seconds: 120
+    timeout:
+      minutes: 30
+  - action: script.stairs_led_section
+    data:
+      section: first_floor
+      to: 'off'
+mode: single
+max_exceeded: silent

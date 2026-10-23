@@ -1,0 +1,43 @@
+id: '1773289619324'
+alias: Ground Floor Stairs Switch Left
+description: ''
+use_blueprint:
+  path: swibrow/aqara_h2_double_rocker.yaml
+  input:
+    switch_device: 4168449c6454e6b14c5b145f6685de9f
+    single_left:
+      - type: toggle
+        device_id: f2d354c6421438101f94a3985c8f7cae
+        entity_id: 59396a9a953267f2f6f956b6f1f31295
+        domain: switch
+    single_left_down:
+      - type: toggle
+        device_id: e5e5cfec01fe9fee0dcc554b31b41ce6
+        entity_id: 8a69e681775e19c75d209667528f3064
+        domain: switch
+    single_right:
+      - type: toggle
+        device_id: cc98b0c2b7605948bd9509e2610d4c61
+        entity_id: ee490cc2269d31bf99c6c9fd30d7ea55
+        domain: switch
+    single_right_down:
+      - type: toggle
+        device_id: e5e5cfec01fe9fee0dcc554b31b41ce6
+        entity_id: 64c7baafb2780065b30858914ec44b2e
+        domain: switch
+    hold_right_down:
+      - action: switch.turn_off
+        metadata: {}
+        target:
+          label_id:
+            - basement_light_switch
+            - ground_floor_light_switch
+        data: {}
+      - action: light.turn_off
+        metadata: {}
+        target:
+          label_id: smart_light_only
+        data: {}
+    release_right_down: []
+    double_right_down:
+      - action: script.stairs_led_toggle_all

@@ -1,0 +1,9 @@
+id: floor_strip_off_08_00
+alias: Floor Strip - Off (08:00)
+triggers:
+  - trigger: time
+    at: 08:00:00
+actions:
+  - action: light.turn_off
+    target:
+      entity_id: light.0x54ef4410010f08d5

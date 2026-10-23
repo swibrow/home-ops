@@ -1,0 +1,19 @@
+id: '1773056556980'
+alias: Kitchen Island Switch Left
+description: ''
+use_blueprint:
+  path: swibrow/aqara_h2_double_rocker.yaml
+  input:
+    switch_device: f2d354c6421438101f94a3985c8f7cae
+    single_right_down:
+      - type: toggle
+        device_id: 2fe795bfeaff5ed9215cfed061550a0e
+        entity_id: faf839341ea88a736e16fb509536b17c
+        domain: light
+    release_left_down: []
+    single_left_down:
+      - action: switch.toggle
+        metadata: {}
+        target:
+          entity_id: switch.0x54ef441001292786_right
+        data: {}

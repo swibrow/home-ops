@@ -1,0 +1,17 @@
+id: '1783437105899'
+alias: Zigbee Radio - Restart Did Not Help
+description: Bridge still disconnected 15 minutes in, well past the automatic restart above - it didn't recover on its own,
+  so escalate.
+triggers:
+  - trigger: state
+    entity_id: binary_sensor.zigbee2mqtt_bridge_connection_state
+    to: 'off'
+    for:
+      minutes: 15
+actions:
+  - action: notify.mobile_app_sammi_iphone
+    data:
+      title: ⚠️ Zigbee radio still down
+      message: SLZB-06 Zigbee radio has been disconnected for 15+ minutes and the automatic restart didn't fix it. A full
+        Core restart may be needed.
+mode: single

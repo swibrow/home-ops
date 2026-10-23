@@ -23,11 +23,35 @@ home-automation/
 │   ├── devices/          # Device-specific ESPHome configs
 │   └── common/           # Shared configs (wifi, sensors, etc.)
 ├── homeassistant/
-│   ├── blueprints/       # Home Assistant automation blueprints
-│   └── packages/         # HA packages
+│   ├── automations/      # synced with HA by scripts/ha.py
+│   ├── scripts/          # synced
+│   ├── helpers/<domain>/ # synced (input_*, counter, timer, schedule)
+│   ├── dashboards/       # synced (storage-mode dashboard configs)
+│   ├── blueprints/       # pushed by scripts/ha.py, never pulled
+│   ├── packages/         # YAML-only config (influxdb, template lights), copied to the host by hand
+│   └── .ha-state.json    # last-synced hash per item, commit it with the files
 ├── zigbee2mqtt/
 │   └── config/           # zigbee2mqtt configuration files
 ```
+
+## Changing Home Assistant config
+
+HA's own storage is live and stays editable in the UI; `iot/homeassistant/` mirrors it. Never change
+automations, scripts, helpers or dashboards through the API or UI without going through these files, and
+don't add new ones to `packages/` (only things the UI cannot hold go there).
+
+1. `git pull`, then `./scripts/ha.py pull` to pick up UI edits not yet on main.
+2. Edit or add files. Automations need an `id` and are named after their entity (`alias` slug); scripts
+   are keyed by filename; helpers by `id` under their domain directory. Deleting a file deletes the item.
+3. `./scripts/ha.py diff`, then `./scripts/ha.py push` (optionally with paths). Push refuses an item edited
+   in HA since the last sync; pull first rather than `--force`. It rewrites each file with HA's
+   normalized version, so re-read a file after pushing it.
+4. Commit the files together with `.ha-state.json`.
+
+Auth: `HA_TOKEN`, or `HOME_ASSISTANT_TOKEN` locally. `HA_URL` defaults to `http://homeassistant.iot:8123`
+(`ha.wibrow.dev` resolves to an address Python cannot reach from the laptop). Blueprints reload their
+automations or scripts on push. UI edits reach git through `.github/workflows/ha-pull.yaml`: hourly it
+pulls and opens or updates a `ha-sync` PR set to auto-merge.
 
 ## Blueprints
 
@@ -69,6 +93,7 @@ Run custom actions when motion is detected. Supports multiple motion sensors and
 - Motion Detected Action - custom action(s) to run when any sensor detects motion
 - Motion Cleared Action - custom action(s) to run after all sensors are clear and wait time elapses
 - Wait time - seconds to wait after last motion before running cleared action (default: 120)
+- Ignore stuck sensors after - minutes a sensor may stay on without reporting before it counts as clear (default: 60, 0 disables)
 
 **Behavior:**
 - Triggers when any sensor detects motion

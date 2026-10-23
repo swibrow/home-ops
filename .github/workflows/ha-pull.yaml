@@ -1,0 +1,61 @@
+name: HA Pull
+
+# Home Assistant config is editable in the UI as well as from git (scripts/ha.py). This snapshots
+# HA into iot/homeassistant/ so UI edits reach git. main requires the "checks" status, so changes
+# land through a rolling ha-sync PR with auto-merge; a PR opened with GITHUB_TOKEN does not trigger
+# pull_request workflows, so checks is dispatched on the branch explicitly.
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+concurrency:
+  group: ha-pull
+  cancel-in-progress: false
+
+jobs:
+  pull:
+    runs-on: home-ops
+    env:
+      MISE_IGNORED_CONFIG_PATHS: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+
+      - name: Pull from Home Assistant
+        env:
+          HA_TOKEN: ${{ secrets.HA_TOKEN }}
+          HA_URL: https://ha.wibrow.dev
+        run: ./scripts/ha.py pull
+
+      - name: Open or update the ha-sync PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git add -A iot/homeassistant
+          if git diff --cached --quiet; then
+            echo "HA matches main"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -C ha-sync
+          git commit -s -m "chore(homeassistant): sync UI changes"
+          if git fetch -q origin ha-sync && git diff --quiet origin/ha-sync HEAD; then
+            echo "ha-sync already has these changes"
+            exit 0
+          fi
+          git push -f origin ha-sync
+          if [ "$(gh pr view ha-sync --json state -q .state 2>/dev/null || true)" != "OPEN" ]; then
+            gh pr create --head ha-sync --base main --title "chore(homeassistant): sync UI changes" \
+              --body "Snapshot of Home Assistant config edited in the UI, from \`scripts/ha.py pull\`."
+          fi
+          gh pr merge ha-sync --auto --squash
+          gh workflow run checks.yaml --ref ha-sync

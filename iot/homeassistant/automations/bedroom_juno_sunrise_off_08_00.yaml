@@ -1,0 +1,14 @@
+id: bedroom_juno_sunrise_off
+alias: Bedroom Juno - Sunrise Off (08:00)
+triggers:
+  - trigger: time
+    at: 08:00:00
+conditions:
+  - condition: state
+    entity_id: input_boolean.bedroom_juno_sunrise
+    state: 'on'
+actions:
+  - action: light.turn_off
+    target:
+      entity_id: light.bedroom_juno_strip
+mode: single

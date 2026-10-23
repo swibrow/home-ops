@@ -1,0 +1,27 @@
+id: '1773292292399'
+alias: First Floor Stairs Switch Right
+description: ''
+use_blueprint:
+  path: swibrow/aqara_h2_single_rocker.yaml
+  input:
+    switch_device: cc98b0c2b7605948bd9509e2610d4c61
+    single_down:
+      - action: script.stairs_led_section
+        data:
+          section: first_floor
+          to: toggle
+    hold_down:
+      - action: switch.turn_off
+        metadata: {}
+        target:
+          label_id:
+            - basement_light_switch
+            - ground_floor_light_switch
+        data: {}
+      - action: light.turn_off
+        metadata: {}
+        target:
+          label_id:
+            - basement_light_switch
+            - ground_floor_light_switch
+        data: {}

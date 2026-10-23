@@ -1,0 +1,11 @@
+id: '1782296623264'
+alias: Water Schedule (Sonoff Smart Water Valve)
+description: ''
+use_blueprint:
+  path: swibrow/water_schedule.yaml
+  input:
+    valve_entity: switch.0x6083dafffef53165
+    watering_duration:
+      hours: 0
+      minutes: 30
+      seconds: 0

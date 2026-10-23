@@ -1,0 +1,17 @@
+alias: Floor Strip - Night (Middle)
+use_blueprint:
+  path: swibrow/aqara_t1_strip_floor_scene.yaml
+  input:
+    target_lights:
+      entity_id: light.0x54ef4410010f08d5
+    strip_length_entity: number.0x54ef4410010f08d5_length
+    basement_count: 0
+    first_floor_start: 14
+    first_floor_count: 13
+    first_floor_color:
+      - 255
+      - 167
+      - 87
+    attic_start: 27
+    attic_count: 0
+    global_brightness: 100

@@ -1,0 +1,22 @@
+id: '1773032567770'
+alias: Basement Office Light Motion
+description: ''
+use_blueprint:
+  path: swibrow/motion_activated_light.yaml
+  input:
+    motion_entities:
+      - binary_sensor.myggspray_wrlss_mtn_sensor_occupancy
+      - binary_sensor.0x54ef4410015f9554_presence
+    motion_detected_action:
+      - type: turn_on
+        device_id: 92d342591f528f72fa6412ab3043e1ae
+        entity_id: ad33835d6a6cba50840e62ba46534d53
+        domain: light
+        brightness_pct: 100
+        flash: short
+    no_motion_wait: 300
+    motion_cleared_action:
+      - type: turn_off
+        device_id: 92d342591f528f72fa6412ab3043e1ae
+        entity_id: ad33835d6a6cba50840e62ba46534d53
+        domain: light

@@ -1,0 +1,20 @@
+id: floor_strip_evening_on_17_00
+alias: Floor Strip - Evening On (17:00)
+triggers:
+  - trigger: time
+    at: '17:00:00'
+actions:
+  - action: light.turn_on
+    target:
+      entity_id: light.0x54ef4410010f08d5
+    data:
+      brightness: 255
+  - action: script.floor_strip_evening
+  - action: input_boolean.turn_on
+    target:
+      entity_id:
+        - input_boolean.stairs_led_first_floor
+        - input_boolean.stairs_led_attic
+  - action: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.stairs_led_basement

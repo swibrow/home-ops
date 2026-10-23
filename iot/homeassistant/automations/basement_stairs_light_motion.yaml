@@ -1,0 +1,18 @@
+id: '1773033004912'
+alias: Basement Stairs Light Motion
+description: ''
+use_blueprint:
+  path: swibrow/motion_activated_light.yaml
+  input:
+    motion_entities:
+      - binary_sensor.0x00124b0024542f06_occupancy
+    motion_detected_action:
+      - type: turn_on
+        device_id: ba55d9545e619ad22c454f39b6d0b581
+        entity_id: 6153cc22d2c9926da910449e3509fae9
+        domain: switch
+    motion_cleared_action:
+      - type: turn_off
+        device_id: ba55d9545e619ad22c454f39b6d0b581
+        entity_id: 6153cc22d2c9926da910449e3509fae9
+        domain: switch

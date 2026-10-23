@@ -43,6 +43,18 @@ blueprint:
           min: 0
           max: 3600
           unit_of_measurement: seconds
+    stale_after:
+      name: Ignore stuck sensors after
+      description: >
+        Treat a sensor as clear once it has stayed on for this long without
+        reporting, so a sensor that dropped off the network cannot keep the
+        cleared action from ever running. 0 disables.
+      default: 60
+      selector:
+        number:
+          min: 0
+          max: 1440
+          unit_of_measurement: minutes
 
 mode: restart
 max_exceeded: silent
@@ -55,6 +67,7 @@ triggers:
 
 variables:
   motion_sensors: !input motion_entities
+  stale_after: !input stale_after
 
 actions:
   - alias: "Run motion detected action"
@@ -62,7 +75,14 @@ actions:
       - conditions: "{{ true }}"
         sequence: !input motion_detected_action
   - alias: "Wait until all motion sensors are clear"
-    wait_template: "{{ expand(motion_sensors) | selectattr('state', 'eq', 'on') | list | count == 0 }}"
+    wait_template: >-
+      {% set ns = namespace(active=0) %}
+      {% for s in expand(motion_sensors) if s.state == 'on' %}
+        {% if stale_after | int == 0 or (now() - s.last_reported).total_seconds() < stale_after | int * 60 %}
+          {% set ns.active = ns.active + 1 %}
+        {% endif %}
+      {% endfor %}
+      {{ ns.active == 0 }}
   - alias: "Wait the number of seconds that has been set"
     delay: !input no_motion_wait
   - alias: "Run motion cleared action"

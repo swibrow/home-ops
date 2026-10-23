@@ -1,0 +1,29 @@
+id: '1777432830991'
+alias: Attic Stairs Switch
+description: ''
+use_blueprint:
+  path: swibrow/aqara_h2_double_rocker.yaml
+  input:
+    switch_device: 299b543b7dc306a6825b8823f5ab1232
+    single_left_down:
+      - type: toggle
+        device_id: cc98b0c2b7605948bd9509e2610d4c61
+        entity_id: ee490cc2269d31bf99c6c9fd30d7ea55
+        domain: switch
+    hold_right_down:
+      - action: switch.turn_off
+        metadata: {}
+        target:
+          label_id:
+            - basement_light_switch
+            - first_floor_light_switch
+            - ground_floor_light_switch
+        data: {}
+      - action: light.turn_off
+        metadata: {}
+        target:
+          label_id:
+            - basement_light_switch
+            - first_floor_light_switch
+            - ground_floor_light_switch
+        data: {}

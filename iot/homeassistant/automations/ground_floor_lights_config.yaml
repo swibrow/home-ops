@@ -1,0 +1,9 @@
+id: '1773033447654'
+alias: Ground Floor Lights Config
+description: ''
+use_blueprint:
+  path: swibrow/ikea_styrbar_light_selector.yaml
+  input:
+    controller_device: d69cd5eb19874ea56f332bb76bd82ba4
+    current_light_helper: input_text.ground_floor_light_config
+    light_label: ground_floor_lights_config

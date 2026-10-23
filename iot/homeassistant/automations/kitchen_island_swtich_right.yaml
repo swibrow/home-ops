@@ -1,0 +1,7 @@
+id: '1773288447542'
+alias: Kitchen Island Swtich Right
+description: ''
+use_blueprint:
+  path: swibrow/aqara_h2_double_rocker.yaml
+  input:
+    switch_device: e5e5cfec01fe9fee0dcc554b31b41ce6

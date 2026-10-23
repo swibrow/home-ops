@@ -1,0 +1,18 @@
+id: '1773289242732'
+alias: Basement Stairs Switch
+description: ''
+use_blueprint:
+  path: swibrow/aqara_h2_single_rocker.yaml
+  input:
+    switch_device: 30990c18d11b4f88c43838e245ecba9f
+    single_up:
+      - type: toggle
+        device_id: ba55d9545e619ad22c454f39b6d0b581
+        entity_id: 6153cc22d2c9926da910449e3509fae9
+        domain: switch
+    single_down:
+      - action: switch.toggle
+        metadata: {}
+        target:
+          device_id: abc8ddca6aca5b456521da6731db2164
+        data: {}

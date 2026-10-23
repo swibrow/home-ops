@@ -1,0 +1,19 @@
+id: '1783437104848'
+alias: Zigbee Radio - Connection Lost
+description: The SLZB-06's zigbee radio occasionally hangs, dropping the Zigbee2MQTT bridge connection until it's restarted.
+  Auto-trigger a zigbee-only restart (leaves ethernet/core untouched) after a sustained outage and notify either way.
+triggers:
+  - trigger: state
+    entity_id: binary_sensor.zigbee2mqtt_bridge_connection_state
+    to: 'off'
+    for:
+      minutes: 5
+actions:
+  - action: button.press
+    target:
+      entity_id: button.slzb_06_zigbee_restart
+  - action: notify.mobile_app_sammi_iphone
+    data:
+      title: Zigbee radio restarted
+      message: Zigbee2MQTT lost connection to the SLZB-06 for 5+ minutes. Triggered an automatic Zigbee-only restart.
+mode: single

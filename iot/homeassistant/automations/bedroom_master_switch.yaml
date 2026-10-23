@@ -1,0 +1,19 @@
+id: '1773053711316'
+alias: Bedroom Master Switch
+description: ''
+use_blueprint:
+  path: swibrow/aqara_h2_double_rocker.yaml
+  input:
+    switch_device: 90ee96cd6ee9c75175dd7d3f63555c78
+    single_left_down:
+      - action: light.toggle
+        metadata: {}
+        target:
+          entity_id: light.0xa49e69fffe29ab6e
+        data: {}
+    single_right_down:
+      - action: light.toggle
+        metadata: {}
+        target:
+          entity_id: light.0x943469fffebbcc41
+        data: {}

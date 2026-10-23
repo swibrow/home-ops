@@ -1,0 +1,12 @@
+id: '1773289146198'
+alias: Ground Floor Stairs Switch Right
+description: ''
+use_blueprint:
+  path: swibrow/aqara_h2_single_rocker.yaml
+  input:
+    switch_device: ba55d9545e619ad22c454f39b6d0b581
+    single_down:
+      - type: toggle
+        device_id: f2d354c6421438101f94a3985c8f7cae
+        entity_id: 29079bdb89341f31d9b86a445f638259
+        domain: switch

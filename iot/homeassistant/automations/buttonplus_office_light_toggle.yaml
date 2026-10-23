@@ -1,0 +1,11 @@
+id: bp_office_light
+alias: ButtonPlus Office light toggle
+triggers:
+  - trigger: mqtt
+    topic: buttonplus/office/light/click
+    payload: click
+actions:
+  - action: switch.toggle
+    target:
+      entity_id: switch.0x7c2c67fffe687db8
+mode: single

@@ -1,0 +1,30 @@
+id: '1773288991573'
+alias: Ground Floor Entry Switch
+description: ''
+use_blueprint:
+  path: swibrow/aqara_h2_double_rocker.yaml
+  input:
+    switch_device: fbd27cff8cf750282d351d0177f020ee
+    single_right_down:
+      - type: toggle
+        device_id: f2d354c6421438101f94a3985c8f7cae
+        entity_id: 29079bdb89341f31d9b86a445f638259
+        domain: switch
+    single_left_down:
+      - type: toggle
+        device_id: 2fe795bfeaff5ed9215cfed061550a0e
+        entity_id: faf839341ea88a736e16fb509536b17c
+        domain: light
+    hold_left_down:
+      - action: switch.turn_off
+        metadata: {}
+        target:
+          label_id: light_switch
+        data: {}
+    double_right_down:
+      - action: automation.trigger
+        metadata: {}
+        target:
+          entity_id: automation.water_schedule_sonoff_smart_water_valve
+        data:
+          skip_condition: true

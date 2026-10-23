@@ -1,0 +1,22 @@
+alias: Stairs LED - Toggle All
+mode: queued
+sequence:
+  - if: '{{ not is_state(''light.0x54ef4410010f08d5'', ''off'') }}'
+    then:
+      - action: light.turn_off
+        target:
+          entity_id: light.0x54ef4410010f08d5
+    else:
+      - action: script.stairs_led_section
+        data:
+          section: attic
+          to: 'on'
+      - action: script.stairs_led_section
+        data:
+          section: first_floor
+          to: 'on'
+      - action: light.turn_on
+        target:
+          entity_id: light.0x54ef4410010f08d5
+        data:
+          brightness_pct: 100

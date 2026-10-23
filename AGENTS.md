@@ -60,9 +60,9 @@ To track a site, embed the snippet in the page `<head>` (get `data-site-id` from
 - ArgoCD + ApplicationSets at `kubernetes/bootstrap/`
 - CNPG operator + clusters at `kubernetes/apps/pitower/database/`
 
-## Home Assistant dashboards
+## Home Assistant config
 
-Storage-mode only (no Lovelace YAML): edit them through the UI/API, then run `scripts/ha-dashboards-export.py` and commit the refreshed `iot/homeassistant/dashboards/` snapshots so every change is reviewable in git.
+Automations, scripts, helpers and dashboards live in HA's storage (editable in the UI) and are mirrored in `iot/homeassistant/` by `scripts/ha.py pull|diff|push`; dashboards are storage-mode only (no Lovelace YAML). Workflow in `iot/CLAUDE.md`.
 
 ## Docs
 

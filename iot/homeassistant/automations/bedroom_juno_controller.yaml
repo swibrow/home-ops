@@ -1,0 +1,161 @@
+id: '1773689006163'
+alias: Bedroom Juno Controller
+description: IKEA STYRBAR in Bedroom (juno). Up/down drive the Aqara H2 ceiling dimmer, left/right drive the Govee H612A LED
+  strip. Double presses set whole-room scenes.
+use_blueprint:
+  path: EPMatt/ikea_e2001_e2002.yaml
+  input:
+    integration: Zigbee2MQTT
+    controller_device: 1451c75a0f6a7e2a434ee3b17a63e99f
+    helper_last_controller_event: input_text.bedroom_juno_controller
+    button_up_long_loop: true
+    button_down_long_loop: true
+    button_left_long_loop: true
+    button_right_long_loop: true
+    button_up_double_press: true
+    button_down_double_press: true
+    button_left_double_press: true
+    button_right_double_press: true
+    action_button_up_short:
+      - action: light.toggle
+        target:
+          entity_id: light.0x54ef4410011c8d28
+    action_button_up_long:
+      - action: light.turn_on
+        target:
+          entity_id: light.0x54ef4410011c8d28
+        data:
+          brightness_step_pct: 10
+      - delay:
+          milliseconds: 350
+    action_button_up_double:
+      - action: light.turn_on
+        target:
+          entity_id: light.0x54ef4410011c8d28
+        data:
+          brightness_pct: 100
+      - action: light.turn_on
+        target:
+          entity_id: light.bedroom_juno_strip
+        data:
+          brightness_pct: 80
+          color_temp_kelvin: 2700
+    action_button_down_short:
+      - action: light.turn_off
+        target:
+          entity_id: light.0x54ef4410011c8d28
+    action_button_down_long:
+      - action: light.turn_on
+        target:
+          entity_id: light.0x54ef4410011c8d28
+        data:
+          brightness_step_pct: -10
+      - delay:
+          milliseconds: 350
+    action_button_down_double:
+      - action: light.turn_off
+        target:
+          entity_id: light.0x54ef4410011c8d28
+      - action: light.turn_on
+        target:
+          entity_id: light.bedroom_juno_strip
+        data:
+          brightness_pct: 1
+          rgb_color:
+            - 255
+            - 120
+            - 20
+    action_button_left_short:
+      - action: light.toggle
+        target:
+          entity_id: light.bedroom_juno_strip
+    action_button_left_long:
+      - action: light.turn_on
+        target:
+          entity_id: light.bedroom_juno_strip
+        data:
+          brightness_step_pct: -15
+      - delay:
+          milliseconds: 600
+    action_button_left_double:
+      - action: light.turn_on
+        target:
+          entity_id: light.bedroom_juno_strip
+        data:
+          brightness_pct: 1
+          rgb_color:
+            - 255
+            - 90
+            - 0
+    action_button_right_short:
+      - variables:
+          presets:
+            - - 255
+              - 147
+              - 41
+            - - 255
+              - 90
+              - 0
+            - - 255
+              - 40
+              - 90
+            - - 120
+              - 60
+              - 255
+            - - 0
+              - 140
+              - 255
+            - - 0
+              - 220
+              - 120
+      - variables:
+          idx: '{% set c = state_attr(''light.bedroom_juno_strip'', ''rgb_color'') %} {% set c = (c | list) if c is not none
+            else none %} {{ (presets.index(c) + 1) % (presets | count) if c in presets else 0 }}'
+      - if:
+          - condition: state
+            entity_id: light.bedroom_juno_strip
+            state: 'off'
+        then:
+          - action: light.turn_on
+            target:
+              entity_id: light.bedroom_juno_strip
+            data:
+              brightness_pct: 60
+      - action: light.turn_on
+        target:
+          entity_id: light.bedroom_juno_strip
+        data:
+          rgb_color: '{{ presets[idx | int] }}'
+    action_button_right_long:
+      - action: light.turn_on
+        target:
+          entity_id: light.bedroom_juno_strip
+        data:
+          brightness_step_pct: 15
+      - delay:
+          milliseconds: 600
+    action_button_right_double:
+      - variables:
+          effects:
+            - Rainbow
+            - Sunset
+            - Aurora
+            - Sleep
+      - variables:
+          nxt: '{% set e = state_attr(''light.bedroom_juno_strip'', ''effect'') %} {{ effects[(effects.index(e) + 1) % (effects
+            | count)] if e in effects else effects[0] }}'
+      - if:
+          - condition: state
+            entity_id: light.bedroom_juno_strip
+            state: 'off'
+        then:
+          - action: light.turn_on
+            target:
+              entity_id: light.bedroom_juno_strip
+            data:
+              brightness_pct: 70
+      - action: light.turn_on
+        target:
+          entity_id: light.bedroom_juno_strip
+        data:
+          effect: '{{ nxt }}'
