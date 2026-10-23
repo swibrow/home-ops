@@ -12,7 +12,7 @@ LoadBalancer Services get their IPs from Cilium's LoadBalancer IP Address Manage
 flowchart TB
     subgraph Pool["CiliumLoadBalancerIPPool 'pool'"]
         V4["10.20.10.128 - 10.20.10.255"]
-        V6["2a02:16a:2a0a:3::/112"]
+        V6["2a02:16a:2a0a:ff::/112"]
     end
 
     subgraph Cilium["Cilium agents"]
@@ -30,7 +30,7 @@ flowchart TB
 
 - **L2**: needed because the IPv4 pool is inside VLAN 20 (`10.20.0.0/16`), so clients on that VLAN ARP for the VIP directly. One node holds a lease per IP.
 - **BGP**: every peering node advertises every LoadBalancer IP, so clients on other VLANs get ECMP routes via the gateway, and a failed node is withdrawn within the 9s hold time instead of waiting out an L2 lease.
-- **IPv6**: the `2a02:16a:2a0a:3::/112` block is assigned to no network, so it is reachable only through the BGP `/128`s. Only Services that request dual-stack with `ipFamilyPolicy` get an address from it.
+- **IPv6**: the `2a02:16a:2a0a:ff::/112` block is assigned to no network, so it is reachable only through the BGP `/128`s. Only Services that request dual-stack with `ipFamilyPolicy` get an address from it.
 
 See [Cilium CNI](cilium-cni.md#bgp) for the BGP configuration.
 

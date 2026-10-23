@@ -21,7 +21,7 @@ Quick-reference tables and catalogs for the cluster.
 - **Kubernetes API VIP**: `10.20.10.0:6443`
 - **Nodes**: `10.20.10.1` - `10.20.10.11` (VLAN 20, `10.20.0.0/16`)
 - **Control Plane Nodes**: `10.20.10.1` - `10.20.10.3`
-- **LoadBalancer Pool**: `10.20.10.128` - `10.20.10.255` and `2a02:16a:2a0a:3::/112` (Cilium LB-IPAM, L2 + BGP)
+- **LoadBalancer Pool**: `10.20.10.128` - `10.20.10.255` and `2a02:16a:2a0a:ff::/112` (Cilium LB-IPAM, L2 + BGP)
 - **Pod CIDRs**: `10.244.0.0/16`, `fd10:244::/56`
 - **Service CIDRs**: `10.96.0.0/12`, `fd10:96::/112`
 

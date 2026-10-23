@@ -45,8 +45,11 @@ resource "unifi_network" "home" {
   dhcp_start   = "10.10.0.46"
   dhcp_stop    = "10.10.255.254"
 
-  # PD slice 4 (2a02:16a:2a0a:4::/64); slice 3 is the Cilium LoadBalancer pool.
-  # Same pd/ra requirements as iot below.
+  # The gateway handed this 2a02:16a:2a0a:3::/64 and management :4::/64, one
+  # below their prefixids: prefixid is a request, not a guarantee, so read the
+  # live slice from stat/device network_table before relying on it. The Cilium
+  # LoadBalancer pool sits at slice ff to stay clear of whatever gets handed
+  # out. Same pd/ra requirements as iot below.
   ipv6_interface_type    = "pd"
   ipv6_pd_interface      = "wan"
   ipv6_pd_prefixid       = "4"
@@ -113,9 +116,8 @@ resource "unifi_network" "servers" {
   domain_name = "servers.internal"
 
   # PD slice 2 (2a02:16a:2a0a:2::/64). Talos (kubelet nodeIP.validSubnets) and
-  # the gateway's BGP listen range in frr-bgp.conf both name this /64, and
-  # slice 3 is kept free for the Cilium LoadBalancer pool. Same pd/ra
-  # requirements as iot above.
+  # the gateway's BGP listen range in frr-bgp.conf both name this /64. Same
+  # pd/ra requirements as iot above.
   ipv6_interface_type    = "pd"
   ipv6_pd_interface      = "wan"
   ipv6_pd_prefixid       = "2"
@@ -141,7 +143,7 @@ resource "unifi_network" "management" {
   dhcp_start   = "10.50.0.6"
   dhcp_stop    = "10.50.0.254"
 
-  # PD slice 5 (2a02:16a:2a0a:5::/64). Same pd/ra requirements as iot above.
+  # Gets 2a02:16a:2a0a:4::/64 (see home). Same pd/ra requirements as iot above.
   ipv6_interface_type    = "pd"
   ipv6_pd_interface      = "wan"
   ipv6_pd_prefixid       = "5"

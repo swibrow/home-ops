@@ -62,7 +62,7 @@ flowchart TB
 |:------|:----|
 | `10.20.0.0/16` (VLAN 20, `servers`) | Nodes (`10.20.10.1`-`11`), API VIP `10.20.10.0`; static up to `10.20.199.255`, DHCP `10.20.200.1`-`10.20.255.254` |
 | `10.20.10.128`-`255` | Cilium LB-IPAM pool (IPv4) |
-| `2a02:16a:2a0a:3::/112` | Cilium LB-IPAM pool (IPv6, BGP only) |
+| `2a02:16a:2a0a:ff::/112` | Cilium LB-IPAM pool (IPv6, BGP only) |
 | `10.244.0.0/16`, `fd10:244::/56` | Pod CIDRs (routable from the LAN via BGP) |
 | `10.96.0.0/12`, `fd10:96::/112` | Service CIDRs |
 | `192.168.0.0/24` | Untagged default LAN |

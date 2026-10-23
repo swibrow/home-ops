@@ -14,7 +14,7 @@ IP address allocation and DNS record tables for the cluster. Networks and DHCP r
 | management | 50 | `10.50.0.0/24` | `10.50.0.6` - `10.50.0.254` |
 | iot | 101 | `10.101.0.0/16` | `10.101.0.46` - `10.101.255.254` |
 
-On VLAN 20, everything below `10.20.200.0` is static: nodes, the API VIP, the LoadBalancer pool, Multus pod IPs, and reservations. IPv6 comes from the Init7 delegated prefix `2a02:16a:2a0a::/56`: VLAN 20 is slice 2 (`2a02:16a:2a0a:2::/64`, nodes use SLAAC) and the LoadBalancer pool uses slice 3.
+On VLAN 20, everything below `10.20.200.0` is static: nodes, the API VIP, the LoadBalancer pool, Multus pod IPs, and reservations. IPv6 comes from the Init7 delegated prefix `2a02:16a:2a0a::/56`: VLAN 20 is slice 2 (`2a02:16a:2a0a:2::/64`, nodes use SLAAC) and the LoadBalancer pool uses slice ff.
 
 ---
 
@@ -49,7 +49,7 @@ On VLAN 20, everything below `10.20.200.0` is static: nodes, the API VIP, the Lo
 
 ## LoadBalancer IP Pool
 
-Cilium LB-IPAM allocates LoadBalancer IPs from `10.20.10.128` - `10.20.10.255` (and `2a02:16a:2a0a:3::/112` for IPv6). Addresses are pinned per Service with the `lbipam.cilium.io/ips` annotation and announced over L2 (ARP) and BGP to the gateway.
+Cilium LB-IPAM allocates LoadBalancer IPs from `10.20.10.128` - `10.20.10.255` (and `2a02:16a:2a0a:ff::/112` for IPv6). Addresses are pinned per Service with the `lbipam.cilium.io/ips` annotation and announced over L2 (ARP) and BGP to the gateway.
 
 | IP Address | Namespace | Service |
 |:-----------|:----------|:--------|

@@ -95,7 +95,7 @@ The cluster is dual-stack with IPv4 primary:
 |:--|:-----|:-----|
 | Pods | `10.244.0.0/16` (a `/24` per node) | `fd10:244::/56` ULA (a `/64` per node) |
 | Services | `10.96.0.0/12` | `fd10:96::/112` |
-| LoadBalancer pool | `10.20.10.128`-`255` | `2a02:16a:2a0a:3::/112` |
+| LoadBalancer pool | `10.20.10.128`-`255` | `2a02:16a:2a0a:ff::/112` |
 
 Pod subnets come from the Talos `KubeNetworkConfig` (`talos/pitower/all/03-network.yaml.tpl`). Pod egress to anything outside the native routing CIDRs is masqueraded to the node address with BPF masquerade; ULA is not routable upstream. Services stay IPv4-only unless they set `ipFamilyPolicy`.
 
@@ -128,7 +128,7 @@ spec:
   blocks:
     - start: 10.20.10.128
       stop: 10.20.10.255
-    - cidr: 2a02:16a:2a0a:3::/112
+    - cidr: 2a02:16a:2a0a:ff::/112
 ```
 
 See [Load Balancers](load-balancers.md) for allocations.
