@@ -1,0 +1,103 @@
+controllers:
+  esphome:
+    strategy: Recreate
+    annotations:
+      reloader.stakater.com/auto: "true"
+    pod:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - worker-05
+                      - worker-06
+      # A leg on the iot VLAN so mDNS discovery and OTA reach the devices directly.
+      annotations:
+        k8s.v1.cni.cncf.io/networks: '[{"name":"iot","ips":["10.101.0.10/16"]}]'
+    containers:
+      app:
+        image:
+          repository: ghcr.io/esphome/esphome
+          tag: 2026.9.1
+        env:
+          TZ: Europe/Zurich
+        resources:
+          requests:
+            cpu: 100m
+            memory: 512Mi
+          limits:
+            memory: 4Gi
+      # Device configs are owned by git (iot/esphome/devices), so edits made in
+      # the dashboard are overwritten on the next sync. They are copied rather
+      # than linked because !secret only looks for secrets.yaml next to the
+      # main config file.
+      sync:
+        image:
+          repository: ghcr.io/esphome/esphome
+          tag: 2026.9.1
+        command:
+          - /bin/bash
+          - -c
+          - |
+            repo=/tmp/home-ops
+            src=$repo/iot/esphome/devices
+            while true; do
+              if [ -d $repo/.git ]; then
+                git -C $repo fetch -q --depth 1 origin main && git -C $repo reset -q --hard FETCH_HEAD
+              else
+                git clone -q --depth 1 --filter=blob:none --sparse https://github.com/swibrow/home-ops $repo \
+                  && git -C $repo sparse-checkout set iot/esphome/devices
+              fi
+              if [ -d $src ]; then
+                for f in /config/*.yaml; do
+                  b=$(basename "$f")
+                  [ "$b" = secrets.yaml ] || [ -e "$src/$b" ] || rm -f "$f"
+                done
+                cp $src/*.yaml /config/
+              fi
+              sleep 300
+            done
+        resources:
+          requests:
+            cpu: 5m
+            memory: 32Mi
+          limits:
+            memory: 256Mi
+
+service:
+  app:
+    controller: esphome
+    ports:
+      http:
+        port: 6052
+
+route:
+  app:
+    hostnames:
+      - esphome.wibrow.dev
+    parentRefs:
+      - name: envoy-internal
+        namespace: networking
+        sectionName: https
+    rules:
+      - backendRefs:
+          - identifier: app
+            port: 6052
+
+persistence:
+  config:
+    existingClaim: esphome
+    globalMounts:
+      - path: /config
+  secrets:
+    type: secret
+    name: esphome-secrets
+    advancedMounts:
+      esphome:
+        app:
+          - path: /config/secrets.yaml
+            subPath: secrets.yaml
+            readOnly: true

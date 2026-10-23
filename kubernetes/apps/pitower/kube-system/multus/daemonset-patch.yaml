@@ -10,13 +10,13 @@ spec:
       priorityClassName: system-node-critical
       initContainers:
         # Talos only ships bridge/host-local/loopback/portmap/firewall in
-        # /opt/cni/bin; macvlan and static come from Sidero's plugin bundle.
+        # /opt/cni/bin; macvlan, static and vlan come from Sidero's plugin bundle.
         - name: install-cni-plugins
           image: ghcr.io/siderolabs/install-cni:v1.9.0
           command:
             - /bin/sh
             - -c
-            - cp /opt/cni/bin/macvlan /opt/cni/bin/static /host/opt/cni/bin/
+            - cp /opt/cni/bin/macvlan /opt/cni/bin/static /opt/cni/bin/vlan /host/opt/cni/bin/
           securityContext:
             privileged: true
           volumeMounts:

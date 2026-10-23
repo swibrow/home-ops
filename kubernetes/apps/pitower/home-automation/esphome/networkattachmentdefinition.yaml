@@ -1,0 +1,20 @@
+---
+# Tagged VLAN 101 (iot, 10.101.0.0/16) on enp0s25, which is why the pod is
+# pinned to worker-05/06: their gateway port trunks every VLAN. The vlan plugin
+# moves the subinterface into the pod, so only one pod per node can use this.
+# Pods pick an address outside the DHCP scope (10.101.0.46+).
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  name: iot
+spec:
+  config: |
+    {
+      "cniVersion": "1.0.0",
+      "name": "iot",
+      "type": "vlan",
+      "master": "enp0s25",
+      "vlanId": 101,
+      "capabilities": { "ips": true },
+      "ipam": { "type": "static" }
+    }
