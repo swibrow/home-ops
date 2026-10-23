@@ -16,3 +16,27 @@ jq --rawfile conf frr-bgp.conf '.frr_bgpd_config = $conf | .uploaded_file_name =
   | curl -skf "${auth[@]}" -H "Content-Type: application/json" -X POST --data-binary @- "$api" >/dev/null
 curl -skf "${auth[@]}" "$api/all" | jq -e '.[] | select(.description == "pitower") | {enabled, error, uploaded_file_name}'
 '''
+
+[tasks."unifi:vpn-upload"]
+description = "Push terraform/unifi/vpn-server.json to the WireGuard VPN server network (the provider has no remote-user-vpn support); CHECK=1 only prints drift"
+dir = "{{config_root}}/unifi"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+api="$UNIFI_API/proxy/network/api/s/default/rest/networkconf"
+auth=(-H "X-API-KEY: $UNIFI_API_KEY")
+live=$(curl -skf "${auth[@]}" "$api" | jq -e '[.data[] | select(.purpose == "remote-user-vpn")] | if length == 1 then .[0] else error("expected exactly one remote-user-vpn network") end')
+drift=$(jq --argjson live "$live" 'with_entries(select(.value != $live[.key]) | .value = {live: $live[.key], want: .value})' vpn-server.json)
+if [[ "$drift" == "{}" ]]; then
+  echo "in sync"
+  exit 0
+fi
+jq . <<<"$drift"
+if [[ -n "${CHECK:-}" ]]; then
+  exit 1
+fi
+# PUT merges, so only the pinned keys change and the server keeps its private key.
+id=$(jq -r ._id <<<"$live")
+curl -skf "${auth[@]}" -H "Content-Type: application/json" -X PUT --data-binary @vpn-server.json "$api/$id" | jq -e '.meta.rc == "ok"' >/dev/null
+echo "updated $id"
+'''
