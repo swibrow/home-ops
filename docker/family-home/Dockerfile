@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Source lives next to this file; bump the version to publish a new tag.
-ARG FAMILY_HOME_VERSION=0.2.0
+ARG FAMILY_HOME_VERSION=0.2.1
 
 FROM node:24.22.1-slim AS build
 WORKDIR /app
