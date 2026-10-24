@@ -29,9 +29,9 @@ keep:
   # Model ids the wartable's pickers offer, served on GET /healthz. These are
   # agentgateway's aliases (ai/agentgateway/config/models.yaml), not Anthropic
   # ids — the picker's built-in list would offer models the gateway 400s on. The
-  # openrouter-backed aliases (claude-opus/sonnet/haiku/fable, no -max) stay
-  # available through the picker's "Custom…" field; they bill OpenRouter
-  # rather than the Max subscription, which is why they are not listed here.
+  # API-credit aliases (claude-opus/sonnet/haiku/fable, no -max) stay
+  # available through the picker's "Custom…" field; they bill Anthropic API
+  # credits rather than the Max subscription, which is why they are not listed here.
   models:
     - claude-opus-max
     - claude-sonnet-max

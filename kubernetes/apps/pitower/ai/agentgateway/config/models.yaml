@@ -1,4 +1,5 @@
 ---
+# Anthropic API credits via workload identity federation (anthropic-wif.yaml).
 apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayModel
 metadata:
@@ -9,15 +10,19 @@ spec:
       kind: Gateway
       name: agentgateway
       sectionName: http
-  provider: Openrouter
+  provider: Anthropic
   policies:
     auth:
       secretRef:
-        name: agentgateway-providers
-        key: OPENROUTER_API_KEY
+        name: anthropic-wif-token
+        key: token
+      location:
+        header:
+          name: Authorization
+          prefix: "Bearer "
     transformations:
       - field: model
-        expression: '"anthropic/claude-opus-4.8"'
+        expression: '"claude-opus-5-5"'
 ---
 apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayModel
@@ -29,15 +34,19 @@ spec:
       kind: Gateway
       name: agentgateway
       sectionName: http
-  provider: Openrouter
+  provider: Anthropic
   policies:
     auth:
       secretRef:
-        name: agentgateway-providers
-        key: OPENROUTER_API_KEY
+        name: anthropic-wif-token
+        key: token
+      location:
+        header:
+          name: Authorization
+          prefix: "Bearer "
     transformations:
       - field: model
-        expression: '"anthropic/claude-sonnet-4.6"'
+        expression: '"claude-sonnet-5-5"'
 ---
 apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayModel
@@ -49,15 +58,19 @@ spec:
       kind: Gateway
       name: agentgateway
       sectionName: http
-  provider: Openrouter
+  provider: Anthropic
   policies:
     auth:
       secretRef:
-        name: agentgateway-providers
-        key: OPENROUTER_API_KEY
+        name: anthropic-wif-token
+        key: token
+      location:
+        header:
+          name: Authorization
+          prefix: "Bearer "
     transformations:
       - field: model
-        expression: '"anthropic/claude-haiku-4.5"'
+        expression: '"claude-haiku-5-5"'
 ---
 apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayModel
@@ -69,18 +82,22 @@ spec:
       kind: Gateway
       name: agentgateway
       sectionName: http
-  provider: Openrouter
+  provider: Anthropic
   policies:
     auth:
       secretRef:
-        name: agentgateway-providers
-        key: OPENROUTER_API_KEY
+        name: anthropic-wif-token
+        key: token
+      location:
+        header:
+          name: Authorization
+          prefix: "Bearer "
     transformations:
       - field: model
-        expression: '"anthropic/claude-fable-5"'
+        expression: '"claude-fable-5-1"'
 ---
-# Anthropic API credits, billed per token on the API key (the *-max models
-# below use the Claude Max subscription instead and need the client's token).
+# Same Anthropic API credits as the aliases above, under explicit names (the
+# *-max models below use the Claude Max subscription and need the client's token).
 apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayModel
 metadata:
