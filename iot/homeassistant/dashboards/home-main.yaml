@@ -243,7 +243,7 @@ views:
             entity: sensor.0x00124b0024cc7d16_humidity
             name: Humidity
           - type: tile
-            entity: binary_sensor.office_motion_sensor_occupancy
+            entity: binary_sensor.myggspray_wrlss_mtn_sensor_occupancy
             name: Motion
       - type: grid
         column_span: 2
@@ -791,11 +791,8 @@ views:
             entity: sensor.0x00124b0024cc7d16_humidity
             name: Humidity
           - type: tile
-            entity: binary_sensor.office_motion_sensor_occupancy
-            name: Motion 1
-          - type: tile
             entity: binary_sensor.myggspray_wrlss_mtn_sensor_occupancy
-            name: Motion 2
+            name: Motion
           - type: tile
             entity: sensor.myggspray_wrlss_mtn_sensor_illuminance
             name: Illuminance
