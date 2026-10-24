@@ -24,14 +24,11 @@ spec:
               mountPath: /host/opt/cni/bin
       containers:
         - name: kube-multus
-          # Upstream 50Mi OOMs on pod churn (Talos Multus guide). Upstream's
-          # 100m CPU limit throttles it under churn, which stalls CNI ADD/DEL
-          # for every pod on the node. The limit leaves headroom for the
-          # backlog of ADDs replayed at startup: at 150Mi, worker-07's ~80
-          # pending pods OOMKilled it within a second of every restart.
+          # Upstream limits break it under pod churn: the CPU limit stalls
+          # CNI ADD/DEL, and the delegate cilium-cni processes are charged to
+          # this cgroup, so a burst of sandboxes OOMs it and every restart
+          # replays the burst.
           resources:
             requests:
               memory: 150Mi
-            limits:
-              cpu: null
-              memory: 512Mi
+            limits: null
