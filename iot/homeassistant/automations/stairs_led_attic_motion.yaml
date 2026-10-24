@@ -4,7 +4,7 @@ description: Light the attic section while there is motion on the top stairs. Sk
   clear does not blank a section it did not turn on.
 triggers:
   - trigger: state
-    entity_id: binary_sensor.office_motion_sensor_occupancy
+    entity_id: binary_sensor.attic_stairs_motion_sensor_occupancy
     from: 'off'
     to: 'on'
 conditions:
@@ -18,7 +18,7 @@ actions:
       to: 'on'
   - wait_for_trigger:
       - trigger: state
-        entity_id: binary_sensor.office_motion_sensor_occupancy
+        entity_id: binary_sensor.attic_stairs_motion_sensor_occupancy
         to: 'off'
         for:
           seconds: 120
