@@ -51,6 +51,9 @@ persistence:
 route:
   main:
     enabled: true
+    annotations:
+      gatus.home-operations.com/endpoint: |
+        path: /readyz
     hostnames: ["memini-api.wibrow.dev"]
     parentRefs:
       - name: envoy-internal

@@ -52,6 +52,10 @@ service:
 route:
   app:
     enabled: true
+    annotations:
+      gatus.home-operations.com/endpoint: |
+        conditions:
+          - "[STATUS] == 403"
     hostnames:
       - s3.wibrow.dev
     parentRefs:

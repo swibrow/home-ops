@@ -149,6 +149,9 @@ service:
 route:
   app:
     enabled: true
+    annotations:
+      gatus.home-operations.com/endpoint: |
+        path: /health/discovery
     hostnames:
       - rackrat-comps.wibrow.dev
     # Internal only. This API has no authentication and exposes the whole

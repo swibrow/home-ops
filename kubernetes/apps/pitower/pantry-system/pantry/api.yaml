@@ -98,6 +98,8 @@ metadata:
     # tunnel.wibrow.dev); without the opt-out, external-dns would fight it
     # with a CNAME to external.wibrow.dev.
     external-dns.kubernetes.io/controller: none
+    gatus.home-operations.com/endpoint: |
+      path: /healthz
 spec:
   parentRefs:
     - name: envoy-external

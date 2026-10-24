@@ -16,3 +16,12 @@ helmCharts:
     version: 1.1.1
     releaseName: goat
     valuesFile: values.yaml
+patches:
+  - patch: |
+      apiVersion: gateway.networking.k8s.io/v1
+      kind: HTTPRoute
+      metadata:
+        name: goat-hooks
+        namespace: goat
+        annotations:
+          gatus.home-operations.com/enabled: "false"

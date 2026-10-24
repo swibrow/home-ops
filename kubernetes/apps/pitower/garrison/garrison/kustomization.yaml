@@ -18,3 +18,20 @@ helmCharts:
     version: 0.60.2
     releaseName: garrison
     valuesFile: values.yaml
+patches:
+  - patch: |
+      apiVersion: gateway.networking.k8s.io/v1
+      kind: HTTPRoute
+      metadata:
+        name: garrison-crier
+        namespace: garrison
+        annotations:
+          gatus.home-operations.com/enabled: "false"
+  - patch: |
+      apiVersion: gateway.networking.k8s.io/v1
+      kind: HTTPRoute
+      metadata:
+        name: garrison-keep-webhook
+        namespace: garrison
+        annotations:
+          gatus.home-operations.com/enabled: "false"

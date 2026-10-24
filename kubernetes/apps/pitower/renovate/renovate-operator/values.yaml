@@ -53,6 +53,8 @@ webhook:
   enabled: true
   route:
     enabled: true
+    annotations:
+      gatus.home-operations.com/enabled: "false"
     hostnames:
       - renovate-webhook.wibrow.dev
     parentRefs:
