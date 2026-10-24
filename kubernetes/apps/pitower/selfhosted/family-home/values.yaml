@@ -31,6 +31,9 @@ controllers:
           - secretRef:
               name: family-home-integrations
               optional: true
+          - secretRef:
+              name: family-home-actual
+              optional: true
         probes:
           liveness: &probes
             enabled: true
