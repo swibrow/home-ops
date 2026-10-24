@@ -98,6 +98,12 @@ metadata:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
+  name: homb-arm64-runners
+  namespace: arc-runners
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
   name: homb-runners
   namespace: arc-runners
 ---

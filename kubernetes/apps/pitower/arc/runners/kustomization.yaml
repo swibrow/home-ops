@@ -324,6 +324,19 @@ helmCharts:
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.15.1
+    releaseName: homb-arm64-runners
+    namespace: arc-runners
+    valuesFile: values-arm64.yaml
+    valuesMerge: override
+    valuesInline:
+      githubConfigUrl: https://github.com/swibrow/homb
+      runnerScaleSetName: homb-arm64
+      template:
+        spec:
+          serviceAccountName: homb-arm64-runners
+  - name: gha-runner-scale-set
+    repo: oci://ghcr.io/actions/actions-runner-controller-charts
+    version: 0.15.1
     releaseName: homb-runners
     namespace: arc-runners
     valuesFile: values.yaml
@@ -338,12 +351,22 @@ helmCharts:
             - name: runner
               image: ghcr.io/actions/actions-runner:2.338.1
               command: ["/home/runner/run.sh"]
+              env:
+                - name: DOCKER_HOST
+                  value: unix:///var/run/docker.sock
+                - name: RUNNER_WAIT_FOR_DOCKER_IN_SECONDS
+                  value: "120"
               resources:
                 requests:
                   cpu: 500m
                   memory: 2Gi
                 limits:
                   memory: 8Gi
+              volumeMounts:
+                - name: work
+                  mountPath: /home/runner/_work
+                - name: dind-sock
+                  mountPath: /var/run
   - name: gha-runner-scale-set
     repo: oci://ghcr.io/actions/actions-runner-controller-charts
     version: 0.15.1
