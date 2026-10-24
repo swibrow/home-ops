@@ -1,0 +1,749 @@
+---
+import "@fontsource-variable/bricolage-grotesque/standard.css";
+import "@fontsource-variable/atkinson-hyperlegible-next/index.css";
+import favicon from "../../../public/favicon.svg?raw";
+import "../../styles/global.css";
+import { loadShopping } from "../../integrations/homeassistant";
+import { loadRecipes, loadWeek, mealTypes, weekDays, weekShopping } from "../../integrations/mealie";
+import { settle } from "../../lib/cache";
+import { format, isoDay } from "../../lib/time";
+
+const offset = Astro.url.searchParams.get("week") === "next" ? 1 : 0;
+const days = weekDays(offset);
+const [meals, recipes, shopping] = await Promise.all([settle("mealie", loadWeek(offset)), settle("mealie", loadRecipes()), settle("shopping", loadShopping())]);
+const today = isoDay();
+const onList = new Set(shopping?.map((item) => item.summary.toLowerCase()) ?? []);
+const ingredients = meals ? await weekShopping(meals).catch(() => []) : [];
+const toBuy = ingredients.filter((item) => !onList.has(item.toLowerCase()));
+
+const noon = (iso: string) => new Date(`${iso}T12:00:00Z`);
+const range = `${format(noon(days[0]), { day: "numeric", month: "short" })} – ${format(noon(days[6]), { day: "numeric", month: "short" })}`;
+
+Astro.response.headers.set("Cache-Control", "no-store");
+---
+
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Meals</title>
+    <link rel="icon" href={`data:image/svg+xml,${encodeURIComponent(favicon)}`} type="image/svg+xml" />
+  </head>
+  <body>
+    <div id="live">
+      <header class="bar">
+        <a class="back" href="/kitchen">Kitchen</a>
+        <h1>Meals</h1>
+        <nav class="weeks" aria-label="Week">
+          <a href="/kitchen/week" aria-current={offset === 0 ? "page" : undefined}>This week</a>
+          <a href="/kitchen/week?week=next" aria-current={offset === 1 ? "page" : undefined}>Next week</a>
+        </nav>
+        <p class="range">{range}</p>
+        {meals && <button type="button" class="primary" data-open="shop">Shop for the week</button>}
+      </header>
+
+      {
+        meals ? (
+          <main class="board">
+            {days.map((date) => {
+              const entries = meals.filter((m) => m.date === date);
+              const dinner = entries.find((m) => m.type === "dinner");
+              const others = entries.filter((m) => m !== dinner);
+              const past = date < today;
+              return (
+                <section class="day" data-today={date === today ? "" : undefined} data-past={past ? "" : undefined} aria-label={format(noon(date), { weekday: "long", day: "numeric", month: "long" })}>
+                  <h2>
+                    {date === today ? "Today" : format(noon(date), { weekday: "short" })}
+                    <span>{format(noon(date), { day: "numeric", month: "short" })}</span>
+                  </h2>
+                  {dinner ? (
+                    <button type="button" class="dinner" data-entry={dinner.id} data-name={dinner.name} data-date={date} data-type="dinner">
+                      {dinner.image ? <img src={dinner.image} alt="" loading="lazy" /> : <span class="plate" aria-hidden="true" />}
+                      <span class="dish">{dinner.name}</span>
+                    </button>
+                  ) : past ? (
+                    <p class="empty">Nothing planned</p>
+                  ) : (
+                    <button type="button" class="slot" data-plan={date} data-type="dinner">
+                      Plan dinner
+                    </button>
+                  )}
+                  {others.length > 0 && (
+                    <ul class="others">
+                      {others.map((m) => (
+                        <li>
+                          <button type="button" data-entry={m.id} data-name={m.name} data-date={date} data-type={m.type}>
+                            <span>{m.type}</span>
+                            {m.name}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {!past && (
+                    <button type="button" class="more" data-plan={date} data-type="lunch">
+                      Add a meal
+                    </button>
+                  )}
+                </section>
+              );
+            })}
+          </main>
+        ) : (
+          <main class="down">
+            <p>The recipe book isn't answering right now. Meals will show up here once it's back.</p>
+          </main>
+        )
+      }
+
+      <dialog class="sheet picker" aria-labelledby="picker-heading">
+        <h2 id="picker-heading">Plan a meal</h2>
+        <fieldset class="types">
+          <legend class="visually-hidden">Meal</legend>
+          {
+            mealTypes.map((type) => (
+              <label>
+                <input type="radio" name="type" value={type} />
+                {type}
+              </label>
+            ))
+          }
+        </fieldset>
+        <div class="find">
+          <label class="visually-hidden" for="recipe-search">Search recipes</label>
+          <input id="recipe-search" type="search" placeholder="Search recipes…" autocomplete="off" />
+          {!!recipes?.length && <button type="button" class="secondary" data-random>Surprise me</button>}
+        </div>
+        <ul class="recipes">
+          {
+            recipes?.map((r) => (
+              <li data-name={r.name.toLowerCase()}>
+                <button type="button" data-recipe={r.id}>
+                  <img src={r.image} alt="" loading="lazy" />
+                  {r.name}
+                </button>
+              </li>
+            ))
+          }
+        </ul>
+        <form class="own" data-own>
+          <label for="own-title">Or write something</label>
+          <div>
+            <input id="own-title" name="title" placeholder="Leftovers, pizza out…" maxlength="60" autocomplete="off" />
+            <button type="submit" class="primary">Add to the plan</button>
+          </div>
+        </form>
+        <form method="dialog" class="close"><button class="secondary">Close</button></form>
+      </dialog>
+
+      <dialog class="sheet entry" aria-labelledby="entry-heading">
+        <p class="when"></p>
+        <h2 id="entry-heading"></h2>
+        <div class="choices">
+          <button type="button" class="primary" data-swap>Swap for something else</button>
+          <button type="button" class="secondary" data-remove>Remove from the plan</button>
+          <form method="dialog"><button class="secondary">Close</button></form>
+        </div>
+      </dialog>
+
+      <dialog class="sheet shop" aria-labelledby="shop-heading">
+        <h2 id="shop-heading">Shopping for {offset === 0 ? "this week" : "next week"}</h2>
+        {
+          ingredients.length ? (
+            <form data-shop>
+              <p class="hint">Untick anything already in the cupboard.</p>
+              <ul class="ingredients">
+                {ingredients.map((item) => {
+                  const listed = onList.has(item.toLowerCase());
+                  return (
+                    <li>
+                      <label data-listed={listed ? "" : undefined}>
+                        <input type="checkbox" name="item" value={item} checked={!listed} disabled={listed} />
+                        {item}
+                        {listed && <small>on the list</small>}
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+              <div class="choices">
+                {toBuy.length > 0 && (
+                  <button type="submit" class="primary">
+                    Add <span data-count>{toBuy.length}</span> to the shopping list
+                  </button>
+                )}
+                <button type="button" class="secondary" data-close>
+                  Close
+                </button>
+              </div>
+            </form>
+          ) : (
+            <>
+              <p class="hint">Plan some recipes for {offset === 0 ? "this week" : "next week"} and their ingredients show up here.</p>
+              <form method="dialog" class="choices">
+                <button class="secondary">Close</button>
+              </form>
+            </>
+          )
+        }
+      </dialog>
+    </div>
+
+    <script>
+      const live = () => document.querySelector("#live")!;
+      const dialog = (name: string) => document.querySelector<HTMLDialogElement>(`dialog.${name}`)!;
+      let target: { date: string; type: string; replace?: string } | undefined;
+
+      const refresh = async () => {
+        try {
+          const res = await fetch(location.href, { cache: "no-store" });
+          if (!res.ok) return;
+          const next = new DOMParser().parseFromString(await res.text(), "text/html");
+          live().replaceWith(next.querySelector("#live")!);
+        } catch {}
+      };
+
+      const post = async (url: string, body: object) => {
+        const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => undefined);
+        return !!res?.ok;
+      };
+
+      const busy = async (button: HTMLButtonElement | null, work: () => Promise<boolean>) => {
+        if (button) button.disabled = true;
+        const ok = await work();
+        if (button) button.disabled = false;
+        return ok;
+      };
+
+      const dayName = (date: string) =>
+        new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`));
+
+      const openPicker = (date: string, type: string, replace?: string) => {
+        target = { date, type, replace };
+        const picker = dialog("picker");
+        picker.querySelector("h2")!.textContent = replace ? `Swap ${dayName(date)}` : `Plan ${dayName(date)}`;
+        picker.querySelector<HTMLInputElement>(`input[name="type"][value="${type}"]`)!.checked = true;
+        picker.querySelector<HTMLInputElement>("#recipe-search")!.value = "";
+        picker.querySelectorAll<HTMLElement>(".recipes li").forEach((li) => (li.hidden = false));
+        picker.showModal();
+      };
+
+      const plan = async (button: HTMLButtonElement | null, change: { recipeId?: string; title?: string; random?: true }) => {
+        if (!target) return;
+        const type = dialog("picker").querySelector<HTMLInputElement>('input[name="type"]:checked')?.value ?? target.type;
+        const { date, replace } = target;
+        const ok = await busy(button, async () => {
+          const added = change.random
+            ? await post("/kitchen/api/meals", { random: { date, type } })
+            : await post("/kitchen/api/meals", { add: { date, type, recipeId: change.recipeId, title: change.title } });
+          return added && (!replace || (await post("/kitchen/api/meals", { remove: Number(replace) })));
+        });
+        if (!ok) return;
+        dialog("picker").close();
+        await refresh();
+      };
+
+      document.addEventListener("click", async (event) => {
+        const el = event.target as Element;
+        const slot = el.closest<HTMLButtonElement>("button[data-plan]");
+        if (slot) return openPicker(slot.dataset.plan!, slot.dataset.type!);
+
+        const entry = el.closest<HTMLButtonElement>("button[data-entry]");
+        if (entry) {
+          const sheet = dialog("entry");
+          sheet.dataset.entry = entry.dataset.entry;
+          sheet.dataset.date = entry.dataset.date;
+          sheet.dataset.type = entry.dataset.type;
+          sheet.querySelector("h2")!.textContent = entry.dataset.name!;
+          const type = entry.dataset.type!;
+          sheet.querySelector(".when")!.textContent = `${type.charAt(0).toUpperCase()}${type.slice(1)} on ${dayName(entry.dataset.date!)}`;
+          return sheet.showModal();
+        }
+
+        const recipe = el.closest<HTMLButtonElement>("button[data-recipe]");
+        if (recipe) return plan(recipe, { recipeId: recipe.dataset.recipe });
+
+        const random = el.closest<HTMLButtonElement>("button[data-random]");
+        if (random) return plan(random, { random: true });
+
+        const sheet = dialog("entry");
+        if (el.closest("button[data-swap]")) {
+          sheet.close();
+          return openPicker(sheet.dataset.date!, sheet.dataset.type!, sheet.dataset.entry);
+        }
+        const remove = el.closest<HTMLButtonElement>("button[data-remove]");
+        if (remove) {
+          if (!(await busy(remove, () => post("/kitchen/api/meals", { remove: Number(sheet.dataset.entry) })))) return;
+          sheet.close();
+          return refresh();
+        }
+
+        if (el.closest("button[data-open='shop']")) return dialog("shop").showModal();
+        if (el.closest("button[data-close]")) return (el.closest("dialog") as HTMLDialogElement).close();
+      });
+
+      document.addEventListener("input", (event) => {
+        const el = event.target as HTMLInputElement;
+        if (el.id === "recipe-search") {
+          const query = el.value.trim().toLowerCase();
+          document.querySelectorAll<HTMLElement>(".recipes li").forEach((li) => (li.hidden = !li.dataset.name!.includes(query)));
+        }
+        if (el.name === "item") {
+          const count = document.querySelectorAll('.shop input[name="item"]:checked').length;
+          const button = document.querySelector<HTMLButtonElement>(".shop button[type='submit']");
+          if (button) {
+            button.querySelector("[data-count]")!.textContent = String(count);
+            button.disabled = count === 0;
+          }
+        }
+      });
+
+      document.addEventListener("submit", async (event) => {
+        const form = event.target as HTMLFormElement;
+        if (form.matches("[data-own]")) {
+          event.preventDefault();
+          const title = (form.elements.namedItem("title") as HTMLInputElement).value.trim();
+          if (title) await plan(form.querySelector("button"), { title });
+        }
+        if (form.matches("[data-shop]")) {
+          event.preventDefault();
+          const items = [...form.querySelectorAll<HTMLInputElement>('input[name="item"]:checked')].map((input) => input.value);
+          const button = form.querySelector<HTMLButtonElement>("button[type='submit']");
+          if (!items.length || !(await busy(button, () => post("/kitchen/api/shopping", { add: items })))) return;
+          dialog("shop").close();
+          await refresh();
+        }
+      });
+
+      let lastTouch = Date.now();
+      for (const name of ["pointerdown", "keydown"]) addEventListener(name, () => (lastTouch = Date.now()));
+      setInterval(() => {
+        if (document.querySelector("dialog[open]") || document.querySelector("#live input:focus")) return;
+        if (Date.now() - lastTouch > 180_000) location.href = "/kitchen";
+        else refresh();
+      }, 60_000);
+    </script>
+  </body>
+</html>
+
+<style>
+  :global(body) {
+    font-size: 1.25rem;
+  }
+
+  #live {
+    min-height: 100dvh;
+    display: grid;
+    grid-template-rows: auto 1fr;
+  }
+
+  .bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.5rem;
+    padding: clamp(1rem, 2.5vh, 1.75rem) var(--gutter);
+  }
+
+  .back {
+    padding: 0.6rem 1rem 0.6rem 0.8rem;
+    border-radius: 12px;
+    background: var(--panel);
+    text-decoration: none;
+    font-weight: 700;
+  }
+
+  .back::before {
+    content: "‹ ";
+  }
+
+  h1 {
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 750;
+    font-stretch: 85%;
+  }
+
+  .weeks {
+    display: flex;
+    padding: 0.25rem;
+    border-radius: 14px;
+    background: var(--panel);
+  }
+
+  .weeks a {
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    text-decoration: none;
+    color: var(--muted);
+    font-weight: 700;
+  }
+
+  .weeks a[aria-current] {
+    background: var(--paper);
+    color: var(--ink);
+  }
+
+  .range {
+    margin: 0;
+    color: var(--muted);
+  }
+
+  .bar .primary {
+    margin-left: auto;
+  }
+
+  .primary,
+  .secondary {
+    padding: 0.7rem 1.2rem;
+    border: 0;
+    border-radius: 12px;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .primary {
+    background: var(--lake);
+    color: var(--paper);
+  }
+
+  .secondary {
+    background: var(--panel);
+    color: var(--ink);
+  }
+
+  button:disabled {
+    opacity: 0.5;
+    cursor: progress;
+  }
+
+  .board {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: clamp(0.5rem, 1vw, 1rem);
+    padding: 0 var(--gutter) var(--gutter);
+    align-items: start;
+  }
+
+  .day {
+    display: grid;
+    gap: 0.6rem;
+    padding: 0.85rem;
+    border-radius: 18px;
+    background: var(--panel);
+  }
+
+  .day[data-today] {
+    background: var(--paper);
+    box-shadow: inset 0 0 0 3px var(--moss);
+  }
+
+  .day[data-past] {
+    opacity: 0.55;
+  }
+
+  .day h2 {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+
+  .day h2 span {
+    font-family: var(--body);
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: var(--muted);
+  }
+
+  .day button {
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  .dinner {
+    display: grid;
+    gap: 0.5rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    text-align: left;
+  }
+
+  .dinner img,
+  .plate {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 12px;
+    background: var(--rule);
+  }
+
+  .plate {
+    display: block;
+    background: radial-gradient(circle at 50% 50%, var(--paper) 0 34%, var(--rule) 35% 37%, var(--paper) 38% 46%, var(--rule) 47%);
+  }
+
+  .dish {
+    font-family: var(--display);
+    font-size: clamp(1.05rem, 1.5vw, 1.4rem);
+    font-weight: 650;
+    font-stretch: 90%;
+    line-height: 1.1;
+  }
+
+  .day .slot {
+    aspect-ratio: 4 / 3;
+    border: 2px dashed var(--muted);
+    border-radius: 12px;
+    background: none;
+    font-weight: 700;
+    color: var(--muted);
+  }
+
+  .empty {
+    margin: 0;
+    color: var(--muted);
+  }
+
+  .others {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.25rem;
+  }
+
+  .others button {
+    width: 100%;
+    padding: 0.35rem 0;
+    border: 0;
+    border-top: 1px solid var(--rule);
+    background: none;
+    text-align: left;
+    line-height: 1.25;
+  }
+
+  .others span {
+    display: block;
+    font-size: 0.8em;
+    color: var(--muted);
+    text-transform: capitalize;
+  }
+
+  .day .more {
+    justify-self: start;
+    padding: 0.3rem 0;
+    border: 0;
+    background: none;
+    font-size: 0.95rem;
+    color: var(--lake);
+    font-weight: 700;
+  }
+
+  .more::before {
+    content: "+ ";
+  }
+
+  .down {
+    padding: 0 var(--gutter);
+    color: var(--muted);
+  }
+
+  .sheet {
+    width: min(94vw, 900px);
+    max-height: 90dvh;
+    padding: clamp(1.25rem, 3vw, 2rem);
+    border: 0;
+    border-radius: 22px;
+    background: var(--paper);
+    color: var(--ink);
+  }
+
+  .sheet::backdrop {
+    background: rgb(0 0 0 / 0.55);
+  }
+
+  .sheet h2 {
+    font-size: clamp(1.6rem, 3vw, 2.25rem);
+    margin-bottom: 1rem;
+  }
+
+  .types {
+    display: flex;
+    gap: 0.5rem;
+    margin: 0 0 1rem;
+    padding: 0;
+    border: 0;
+  }
+
+  .types label {
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    background: var(--panel);
+    text-transform: capitalize;
+    cursor: pointer;
+  }
+
+  .types input {
+    position: absolute;
+    opacity: 0;
+  }
+
+  .types label:has(:checked) {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .types label:has(:focus-visible) {
+    outline: 3px solid var(--lake);
+    outline-offset: 3px;
+  }
+
+  .find,
+  .own div {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .sheet input:not([type]),
+  .sheet input[type="search"] {
+    flex: 1;
+    min-width: 0;
+    padding: 0.7rem 0.9rem;
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    background: var(--paper);
+    color: var(--ink);
+    font: inherit;
+  }
+
+  .recipes {
+    list-style: none;
+    margin: 1rem 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+    gap: 0.75rem;
+    max-height: 40dvh;
+    overflow-y: auto;
+  }
+
+  .recipes button {
+    display: grid;
+    gap: 0.4rem;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-size: 1rem;
+    line-height: 1.2;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .recipes img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 10px;
+    background: var(--panel);
+  }
+
+  .own label {
+    display: block;
+    margin-bottom: 0.4rem;
+    color: var(--muted);
+  }
+
+  .close,
+  .choices {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+  }
+
+  .when {
+    margin: 0 0 0.25rem;
+    color: var(--muted);
+  }
+
+  .hint {
+    margin: 0 0 1rem;
+    color: var(--muted);
+  }
+
+  .ingredients {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+    column-gap: 1.5rem;
+    max-height: 50dvh;
+    overflow-y: auto;
+  }
+
+  .ingredients label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.45rem 0;
+    cursor: pointer;
+  }
+
+  .ingredients input {
+    flex: none;
+    width: 1.4rem;
+    height: 1.4rem;
+    accent-color: var(--moss);
+  }
+
+  .ingredients label[data-listed] {
+    color: var(--muted);
+  }
+
+  .ingredients small {
+    margin-left: auto;
+    font-size: 0.8em;
+  }
+
+  @media (max-width: 1000px) {
+    .board {
+      grid-template-columns: 1fr;
+    }
+
+    .day {
+      grid-template-columns: 6rem 1fr;
+      align-items: center;
+    }
+
+    .day h2 {
+      display: grid;
+      grid-row: span 3;
+      align-self: start;
+    }
+
+    .dinner {
+      grid-template-columns: 5rem 1fr;
+      align-items: center;
+    }
+
+    .day .slot {
+      aspect-ratio: auto;
+      padding: 1rem;
+    }
+
+    .bar .primary {
+      margin-left: 0;
+    }
+  }
+</style>

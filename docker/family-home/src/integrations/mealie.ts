@@ -1,35 +1,105 @@
-import { cached, getJson } from "../lib/cache";
+import { cached, forget, getJson } from "../lib/cache";
 import { config, env } from "../lib/config";
 import { addDays, isoDay } from "../lib/time";
 
-type Entry = { date: string; entryType: string; title: string; text: string; recipe?: { id: string; name: string; slug: string } | null };
+type Entry = { id: number; date: string; entryType: string; title: string; text: string; recipe?: { id: string; name: string; slug: string } | null };
+type Ingredient = { display?: string; note?: string; food?: { name: string; householdsWithIngredientFood?: string[] } | null };
 
 const api = env("MEALIE_URL");
 const token = env("MEALIE_TOKEN");
+const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 const order = ["breakfast", "lunch", "dinner", "side", "dessert", "snack", "drink"];
+export const mealTypes = ["breakfast", "lunch", "dinner"] as const;
 
-export type Meal = { date: string; type: string; name: string; href?: string; image?: string };
+export type Meal = { id: number; date: string; type: string; name: string; slug?: string; href?: string; image?: string };
+export type Recipe = { id: string; name: string; image: string };
 
-export const loadMeals = () =>
+const image = (recipeId: string) => `${config.mealie.url}/api/media/recipes/${recipeId}/images/min-original.webp`;
+
+const plan = (start: string, end: string) =>
+  cached(`mealie:plan:${start}`, 300, async () => {
+    const res = await getJson<{ items: Entry[] }>(`${api}/api/households/mealplans?start_date=${start}&end_date=${end}&perPage=100`, { headers });
+    const { url, group } = config.mealie;
+    return res.items
+      .map(
+        (e): Meal => ({
+          id: e.id,
+          date: e.date,
+          type: e.entryType,
+          name: e.recipe?.name ?? e.title,
+          slug: e.recipe?.slug,
+          href: e.recipe ? `${url}/g/${group}/r/${e.recipe.slug}` : undefined,
+          image: e.recipe ? image(e.recipe.id) : undefined,
+        }),
+      )
+      .sort((a, b) => a.date.localeCompare(b.date) || order.indexOf(a.type) - order.indexOf(b.type));
+  });
+
+export const loadMeals = () => (api && token ? plan(isoDay(), isoDay(addDays(new Date(), 6))) : undefined);
+
+export const weekDays = (offset: number) => {
+  const today = new Date(`${isoDay()}T12:00:00Z`);
+  const monday = addDays(today, 7 * offset - ((today.getUTCDay() + 6) % 7));
+  return Array.from({ length: 7 }, (_, i) => addDays(monday, i).toISOString().slice(0, 10));
+};
+
+export const loadWeek = (offset: number) => {
+  if (!api || !token) return undefined;
+  const days = weekDays(offset);
+  return plan(days[0], days[6]);
+};
+
+export const loadRecipes = () =>
   api && token
-    ? cached("mealie", 300, async () => {
-        const start = isoDay();
-        const end = isoDay(addDays(new Date(), 6));
-        const res = await getJson<{ items: Entry[] }>(
-          `${api}/api/households/mealplans?start_date=${start}&end_date=${end}&perPage=100`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        const { url, group } = config.mealie;
-        return res.items
-          .map(
-            (e): Meal => ({
-              date: e.date,
-              type: e.entryType,
-              name: e.recipe?.name ?? e.title,
-              href: e.recipe ? `${url}/g/${group}/r/${e.recipe.slug}` : undefined,
-              image: e.recipe ? `${url}/api/media/recipes/${e.recipe.id}/images/min-original.webp` : undefined,
-            }),
-          )
-          .sort((a, b) => a.date.localeCompare(b.date) || order.indexOf(a.type) - order.indexOf(b.type));
+    ? cached("mealie:recipes", 300, async () => {
+        const res = await getJson<{ items: { id: string; name: string }[] }>(`${api}/api/recipes?perPage=500&orderBy=name&orderDirection=asc`, { headers });
+        return res.items.map((r): Recipe => ({ id: r.id, name: r.name, image: image(r.id) }));
       })
     : undefined;
+
+const forgetPlans = () => {
+  forget(`mealie:plan:${isoDay()}`);
+  for (const offset of [0, 1]) forget(`mealie:plan:${weekDays(offset)[0]}`);
+};
+
+export async function changeMeal(change: { add: { date: string; type: string; recipeId?: string; title?: string } } | { random: { date: string; type: string } } | { remove: number }) {
+  if (!api || !token) return false;
+  const res =
+    "add" in change
+      ? await fetch(`${api}/api/households/mealplans`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ date: change.add.date, entryType: change.add.type, recipeId: change.add.recipeId, title: change.add.title ?? "" }),
+          signal: AbortSignal.timeout(5000),
+        })
+      : "random" in change
+        ? await fetch(`${api}/api/households/mealplans/random`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ date: change.random.date, entryType: change.random.type }),
+            signal: AbortSignal.timeout(5000),
+          })
+        : await fetch(`${api}/api/households/mealplans/${change.remove}`, { method: "DELETE", headers, signal: AbortSignal.timeout(5000) });
+  forgetPlans();
+  return res.ok;
+}
+
+const ingredients = (slug: string) =>
+  cached(`mealie:recipe:${slug}`, 900, async () => {
+    const recipe = await getJson<{ recipeIngredient: Ingredient[] }>(`${api}/api/recipes/${slug}`, { headers });
+    return recipe.recipeIngredient;
+  });
+
+// Parsed ingredients collapse to the food name so two recipes needing onions add one item;
+// unparsed ones keep their text. Foods marked as on hand in Mealie are left out.
+export async function weekShopping(meals: Meal[]) {
+  const slugs = [...new Set(meals.flatMap((m) => (m.slug ? [m.slug] : [])))];
+  const lists = await Promise.all(slugs.map((slug) => ingredients(slug).catch(() => [])));
+  const items = new Map<string, string>();
+  for (const ingredient of lists.flat()) {
+    if (ingredient.food?.householdsWithIngredientFood?.length) continue;
+    const text = (ingredient.food?.name ?? ingredient.display ?? ingredient.note ?? "").trim();
+    if (text) items.set(text.toLowerCase(), text.charAt(0).toUpperCase() + text.slice(1));
+  }
+  return [...items.values()];
+}
