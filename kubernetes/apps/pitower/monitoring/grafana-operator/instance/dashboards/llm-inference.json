@@ -1368,9 +1368,9 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (service) (rate(llamacpp:tokens_predicted_total{service=~\"$service\"}[$__rate_interval])) / sum by (service) (rate(llamacpp:tokens_predicted_seconds_total{service=~\"$service\"}[$__rate_interval]))",
+          "expr": "sum by (service, model) (rate(llamacpp:tokens_predicted_total{service=~\"$service\"}[$__rate_interval])) / sum by (service, model) (rate(llamacpp:tokens_predicted_seconds_total{service=~\"$service\"}[$__rate_interval]))",
           "refId": "A",
-          "legendFormat": "{{service}}"
+          "legendFormat": "{{model}}"
         }
       ],
       "fieldConfig": {
@@ -1429,9 +1429,9 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (service) (rate(llamacpp:prompt_tokens_total{service=~\"$service\"}[$__rate_interval])) / sum by (service) (rate(llamacpp:prompt_seconds_total{service=~\"$service\"}[$__rate_interval]))",
+          "expr": "sum by (service, model) (rate(llamacpp:prompt_tokens_total{service=~\"$service\"}[$__rate_interval])) / sum by (service, model) (rate(llamacpp:prompt_seconds_total{service=~\"$service\"}[$__rate_interval]))",
           "refId": "A",
-          "legendFormat": "{{service}}"
+          "legendFormat": "{{model}}"
         }
       ],
       "fieldConfig": {
@@ -1490,18 +1490,18 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (service) (rate(llamacpp:tokens_predicted_total{service=~\"$service\"}[$__rate_interval]))",
+          "expr": "sum by (service, model) (rate(llamacpp:tokens_predicted_total{service=~\"$service\"}[$__rate_interval]))",
           "refId": "A",
-          "legendFormat": "{{service}} generated"
+          "legendFormat": "{{model}} generated"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (service) (rate(llamacpp:prompt_tokens_total{service=~\"$service\"}[$__rate_interval]))",
+          "expr": "sum by (service, model) (rate(llamacpp:prompt_tokens_total{service=~\"$service\"}[$__rate_interval]))",
           "refId": "B",
-          "legendFormat": "{{service}} prompt"
+          "legendFormat": "{{model}} prompt"
         }
       ],
       "fieldConfig": {
@@ -1560,18 +1560,18 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (service) (llamacpp:requests_processing{service=~\"$service\"})",
+          "expr": "sum by (service, model) (llamacpp:requests_processing{service=~\"$service\"})",
           "refId": "A",
-          "legendFormat": "{{service}} processing"
+          "legendFormat": "{{model}} processing"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (service) (llamacpp:requests_deferred{service=~\"$service\"})",
+          "expr": "sum by (service, model) (llamacpp:requests_deferred{service=~\"$service\"})",
           "refId": "B",
-          "legendFormat": "{{service}} queued"
+          "legendFormat": "{{model}} queued"
         }
       ],
       "fieldConfig": {
@@ -1630,9 +1630,9 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "max by (service) (llamacpp:n_tokens_max{service=~\"$service\"}) / on (service) group_left () max by (service) (label_replace(llmkube_inferenceservice_context_size, \"service\", \"$1\", \"name\", \"(.*)\"))",
+          "expr": "max by (service, model) (llamacpp:n_tokens_max{service=~\"$service\"}) / on (service) group_left () max by (service) (label_replace(llmkube_inferenceservice_context_size, \"service\", \"$1\", \"name\", \"(.*)\"))",
           "refId": "A",
-          "legendFormat": "{{service}}"
+          "legendFormat": "{{model}}"
         }
       ],
       "fieldConfig": {
@@ -1693,9 +1693,9 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (service) (rate(llamacpp:tokens_predicted_total{service=~\"$service\"}[$__rate_interval])) / sum by (service) (rate(llamacpp:n_decode_total{service=~\"$service\"}[$__rate_interval]))",
+          "expr": "sum by (service, model) (rate(llamacpp:tokens_predicted_total{service=~\"$service\"}[$__rate_interval])) / sum by (service, model) (rate(llamacpp:n_decode_total{service=~\"$service\"}[$__rate_interval]))",
           "refId": "A",
-          "legendFormat": "{{service}}"
+          "legendFormat": "{{model}}"
         }
       ],
       "fieldConfig": {

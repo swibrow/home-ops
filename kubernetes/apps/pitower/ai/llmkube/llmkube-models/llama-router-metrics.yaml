@@ -1,0 +1,76 @@
+# The router answers /metrics only per model (?model=<id>) and only usefully
+# for the resident one, so the operator's PodMonitor cannot scrape it. This
+# exporter re-serves the loaded model's llama.cpp metrics with a `model` label,
+# under the same job/service labels the llm-inference dashboard reads.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llama-router-metrics
+  labels:
+    app.kubernetes.io/name: llama-router-metrics
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: llama-router-metrics
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: llama-router-metrics
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 2000
+        runAsGroup: 2000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: exporter
+          image: docker.io/library/python:3.15-slim
+          command: ["python", "/app/exporter.py"]
+          env:
+            - name: ROUTER_URL
+              value: http://llama-router.ai.svc.cluster.local:8080
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          ports:
+            - name: metrics
+              containerPort: 9090
+          resources:
+            requests:
+              cpu: 5m
+              memory: 32Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: script
+              mountPath: /app
+              readOnly: true
+      volumes:
+        - name: script
+          configMap:
+            name: llama-router-metrics
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: llama-router-metrics
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: llama-router-metrics
+  podMetricsEndpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      relabelings:
+        - targetLabel: job
+          replacement: llmkube-inference
+        - targetLabel: service
+          replacement: llama-router
+        - targetLabel: runtime
+          replacement: llamacpp-router

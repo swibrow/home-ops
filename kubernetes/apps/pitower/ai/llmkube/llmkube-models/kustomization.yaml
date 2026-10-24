@@ -14,6 +14,7 @@ resources:
   - externalsecret-huggingface.yaml
   - externalsecret-models.yaml
   - llama-router.yaml
+  - llama-router-metrics.yaml
   - qwen38-27b.yaml
   - qwen38-27b-abliterated.yaml
   - qwen38-flash-next.yaml
@@ -31,3 +32,6 @@ configMapGenerator:
       - templates/qwen38-27b-abliterated.jinja
     options:
       disableNameSuffixHash: true
+  - name: llama-router-metrics
+    files:
+      - llama-router-metrics/exporter.py

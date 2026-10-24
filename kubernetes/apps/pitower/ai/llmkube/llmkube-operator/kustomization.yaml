@@ -16,3 +16,18 @@ helmCharts:
     releaseName: llmkube
     namespace: ai
     valuesFile: values.yaml
+
+# The router's /metrics needs ?model=, so scraping it here only 400s and fires
+# TargetDown; llmkube-models/llama-router-metrics.yaml scrapes it instead. The
+# chart has no selector value.
+patches:
+  - target:
+      kind: PodMonitor
+      name: llmkube-inference
+    patch: |-
+      - op: add
+        path: /spec/selector/matchExpressions/-
+        value:
+          key: inference.llmkube.dev/runtime
+          operator: NotIn
+          values: [llamacpp-router]
