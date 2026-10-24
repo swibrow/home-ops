@@ -1,15 +1,17 @@
 {
-  "name": "Cloud Gateway Fiber",
+  "name": "WireGuard",
   "purpose": "remote-user-vpn",
   "enabled": true,
   "vpn_type": "wireguard-server",
   "wireguard_interface": "wan",
   "wireguard_local_wan_ip": "any",
-  "local_port": 51820,
-  "ip_subnet": "192.168.4.1/24",
-  "dhcpd_start": "192.168.4.2",
-  "dhcpd_stop": "192.168.4.254",
+  "local_port": 51821,
+  "ip_subnet": "192.168.1.1/24",
+  "ipv6_subnet": "fd71:964:a606:566c::1/64",
+  "dhcpd_start": "192.168.1.2",
+  "dhcpd_stop": "192.168.1.254",
   "dhcpd_dns_enabled": false,
+  "setting_preference": "auto",
   "vpn_client_configuration_remote_ip_override_enabled": true,
   "vpn_client_configuration_remote_ip_override": "ip.wibrow.dev"
 }
