@@ -84,7 +84,7 @@ jobs:
       - name: Install topf
         env:
           # renovate: datasource=github-releases depName=postfinance/topf
-          TOPF_VERSION: v0.6.1
+          TOPF_VERSION: v0.6.2
         run: |
           set -euo pipefail
           install -d "$HOME/.local/bin"
