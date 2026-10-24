@@ -1,5 +1,11 @@
 defaultPodOptions:
   automountServiceAccountToken: true
+  # With the default ndots:5, propagit.dev expands to the dev/propagit Service
+  # (propagit.dev.svc.cluster.local) before the public name and times out.
+  dnsConfig:
+    options:
+      - name: ndots
+        value: "1"
 
 # ClusterRole + binding so the sidecar can watch HTTPRoutes/Gateways cluster-wide.
 rbac:
