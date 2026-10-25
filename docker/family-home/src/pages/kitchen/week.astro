@@ -26,7 +26,13 @@ Astro.response.headers.set("Cache-Control", "no-store");
 <html lang="en-GB">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Kitchen" />
+    <link rel="manifest" href="/kitchen/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/kitchen/icon-180.png" />
     <title>Meals</title>
     <link rel="icon" href={`data:image/svg+xml,${encodeURIComponent(favicon)}`} type="image/svg+xml" />
   </head>
@@ -343,7 +349,7 @@ Astro.response.headers.set("Cache-Control", "no-store");
     flex-wrap: wrap;
     align-items: center;
     gap: 0.75rem 1.5rem;
-    padding: clamp(1rem, 2.5vh, 1.75rem) var(--gutter);
+    padding: calc(clamp(1rem, 2.5vh, 1.75rem) + env(safe-area-inset-top)) var(--gutter) clamp(1rem, 2.5vh, 1.75rem);
   }
 
   .back {

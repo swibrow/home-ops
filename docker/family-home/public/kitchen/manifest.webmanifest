@@ -1,0 +1,13 @@
+{
+  "name": "Kitchen",
+  "short_name": "Kitchen",
+  "start_url": "/kitchen",
+  "scope": "/kitchen",
+  "display": "standalone",
+  "background_color": "#edf1ef",
+  "theme_color": "#2e6e78",
+  "icons": [
+    { "src": "/kitchen/icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/kitchen/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
