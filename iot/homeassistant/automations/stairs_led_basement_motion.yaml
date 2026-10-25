@@ -18,6 +18,8 @@ actions:
     data:
       section: basement
       to: 'on'
+      brightness: '{{ 1 if states(''sensor.0x54ef44100143e472_illuminance'') | float(100) < 30 and (is_state(''light.0x54ef4410010f08d5'',
+        ''off'') or state_attr(''light.0x54ef4410010f08d5'', ''brightness'') | int(0) <= 3) else 100 }}'
   - wait_for_trigger:
       - trigger: state
         entity_id: binary_sensor.0x00124b0024542f06_occupancy
