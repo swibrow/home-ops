@@ -41,6 +41,12 @@ spec:
       value: "true"
     - name: AWS_API_MCP_TRANSPORT
       value: streamable-http
+    # Stateful mode leaks: the mcp SDK (1.29) registers a session for every POST
+    # without Mcp-Session-Id before validating it, and FastMCP 3.4 exposes no
+    # session_idle_timeout, so the proxy's 10s health probes (400s, never
+    # DELETEd) piled up ~250Mi/day. The tools keep no per-session state.
+    - name: AWS_API_MCP_STATELESS_HTTP
+      value: "true"
     # Bind on all interfaces + accept any Host header — see mcpserver-aws-api.yaml
     # for the full rationale (default 127.0.0.1 bind 502s the toolhive proxy).
     - name: AWS_API_MCP_HOST
