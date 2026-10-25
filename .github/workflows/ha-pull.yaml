@@ -2,17 +2,15 @@ name: HA Pull
 
 # Home Assistant config is editable in the UI as well as from git (scripts/ha.py). This snapshots
 # HA into iot/homeassistant/ so UI edits reach git. main requires the "checks" status, so changes
-# land through a rolling ha-sync PR with auto-merge; a PR opened with GITHUB_TOKEN does not trigger
-# pull_request workflows, so checks is dispatched on the branch explicitly.
+# land through a rolling ha-sync PR with auto-merge. The branch and PR are made with the Renovate
+# GitHub App's token: a GITHUB_TOKEN PR needs approval before its checks run, so it never merges.
 on:
   schedule:
     - cron: "17 * * * *"
   workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: write
-  actions: write
+  contents: read
 
 concurrency:
   group: ha-pull
@@ -24,7 +22,15 @@ jobs:
     env:
       MISE_IGNORED_CONFIG_PATHS: ${{ github.workspace }}
     steps:
+      - id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: Iv23liivKjIffkIYhVlr
+          private-key: ${{ secrets.HA_SYNC_APP_PRIVATE_KEY }}
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          token: ${{ steps.app-token.outputs.token }}
 
       - uses: astral-sh/setup-uv@18d369b23da25a81e9458561248e1aafff6a70fa # v10.3.1
 
@@ -36,7 +42,7 @@ jobs:
 
       - name: Open or update the ha-sync PR
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           set -euo pipefail
           git add -A iot/homeassistant
@@ -58,4 +64,3 @@ jobs:
               --body "Snapshot of Home Assistant config edited in the UI, from \`scripts/ha.py pull\`."
           fi
           gh pr merge ha-sync --auto --squash
-          gh workflow run checks.yaml --ref ha-sync
