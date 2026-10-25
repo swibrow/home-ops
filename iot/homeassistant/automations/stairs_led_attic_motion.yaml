@@ -1,7 +1,7 @@
 id: stairs_led_attic_motion
 alias: Stairs LED - Attic Motion
 description: Light the attic section while there is motion on the top stairs. Skips when the section is already lit so the
-  clear does not blank a section it did not turn on. (sync test)
+  clear does not blank a section it did not turn on.
 triggers:
   - trigger: state
     entity_id: binary_sensor.attic_stairs_motion_sensor_occupancy

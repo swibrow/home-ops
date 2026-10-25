@@ -25,7 +25,7 @@
   "automations/floor_strip_evening_on_17_00": "1f5c71b6b7ca1fa6",
   "automations/floor_strip_night_mode_21_00": "4ff70f4a6d72d96a",
   "automations/floor_strip_off_08_00": "8aff3533458b1143",
-  "automations/stairs_led_attic_motion": "0c7b62f45a030e78",
+  "automations/stairs_led_attic_motion": "d76e093542ae937f",
   "automations/stairs_led_basement_motion": "acac392b56e43fc9",
   "blueprints/aqara_h2_double_rocker.yaml": "18aeff4c6867f967",
   "blueprints/aqara_h2_single_rocker.yaml": "015b9fc03b1d42f2",
