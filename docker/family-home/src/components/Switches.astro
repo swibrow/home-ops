@@ -1,7 +1,7 @@
 ---
-import type { Action } from "../lib/config";
+import type { Button } from "../integrations/homeassistant";
 
-type Props = { actions: (Action & { on: boolean; available: boolean })[]; endpoint: string };
+type Props = { actions: Button[]; endpoint: string };
 const { actions, endpoint } = Astro.props;
 ---
 

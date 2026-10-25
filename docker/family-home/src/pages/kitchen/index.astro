@@ -66,18 +66,14 @@ Astro.response.headers.set("Cache-Control", "no-store");
               )
             }
           </div>
-          {
-            !!home?.timers.length && (
-              <ul class="timers" aria-label="Alexa timers">
-                {home.timers.map((t) => (
-                  <li>
-                    <time class="left" datetime={t.ends} />
-                    <span>{t.name}</span>
-                  </li>
-                ))}
-              </ul>
-            )
-          }
+          <ul class="timers" aria-label="Alexa timers">
+            {home?.timers.map((t) => (
+              <li>
+                <time class="left" datetime={t.ends} />
+                <span>{t.name}</span>
+              </li>
+            ))}
+          </ul>
         </div>
         <Horizon />
       </header>
@@ -271,6 +267,24 @@ Astro.response.headers.set("Cache-Control", "no-store");
       };
       timers();
       setInterval(timers, 1_000);
+
+      setInterval(async () => {
+        try {
+          const res = await fetch("/kitchen/api/timers", { cache: "no-store" });
+          const list = document.querySelector(".timers");
+          if (!res.ok || !list) return;
+          const items: { name: string; ends: string }[] = await res.json();
+          list.replaceChildren(
+            ...items.map((t) => {
+              const li = document.createElement("li");
+              const left = Object.assign(document.createElement("time"), { className: "left", dateTime: t.ends });
+              li.append(left, Object.assign(document.createElement("span"), { textContent: t.name }));
+              return li;
+            }),
+          );
+          timers();
+        } catch {}
+      }, 10_000);
 
       const refresh = async () => {
         if (document.querySelector("#live input:focus, #live dialog[open]")) return;
@@ -532,7 +546,11 @@ Astro.response.headers.set("Cache-Control", "no-store");
     list-style: none;
   }
 
-  .timers li {
+  .timers:empty {
+    display: none;
+  }
+
+  .timers :global(li) {
     display: grid;
     padding: 0.6rem 1.1rem 0.7rem;
     border-radius: 16px;
@@ -540,7 +558,7 @@ Astro.response.headers.set("Cache-Control", "no-store");
     font-size: 1.125rem;
   }
 
-  .timers .left {
+  .timers :global(.left) {
     font-family: var(--display);
     font-size: clamp(2.25rem, 5vw, 3.5rem);
     font-weight: 700;
@@ -549,7 +567,7 @@ Astro.response.headers.set("Cache-Control", "no-store");
     font-variant-numeric: tabular-nums;
   }
 
-  .timers .ringing {
+  .timers :global(.ringing) {
     background: var(--alert);
     color: #fff;
     animation: ring 1s steps(2) infinite;
@@ -562,7 +580,7 @@ Astro.response.headers.set("Cache-Control", "no-store");
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .timers .ringing {
+    .timers :global(.ringing) {
       animation: none;
     }
   }

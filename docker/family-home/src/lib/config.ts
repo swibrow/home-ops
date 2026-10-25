@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs";
 import { parse } from "yaml";
 
-export type Action = { id: string; label: string; entity: string; kind: "toggle" | "run" };
 export type App = { name: string; description: string; url: string; icon?: string; status?: string };
 export type Category = { name: string; namespace: string; apps: App[] };
 
@@ -14,7 +13,7 @@ export type Config = {
     weather: string;
     sun: string;
     people: string[];
-    actions: Action[];
+    buttons?: string;
     shoppingList?: string;
     doorbell?: { sensor: string; camera: string };
   };

@@ -27,6 +27,85 @@ const conditions: Record<string, string> = {
   "windy-variant": "Windy",
 };
 
+export type Button = { id: string; label: string; kind: "toggle" | "run"; on: boolean; available: boolean };
+
+const services: Record<string, string> = { script: "turn_on", scene: "turn_on", button: "press", input_button: "press" };
+
+const websocket = <T>(message: object) =>
+  new Promise<T>((resolve, reject) => {
+    const ws = new WebSocket(`${url!.replace(/^http/, "ws")}/api/websocket`);
+    const fail = (error: Error) => {
+      clearTimeout(timer);
+      ws.close();
+      reject(error);
+    };
+    const timer = setTimeout(() => fail(new Error("websocket timed out")), 5000);
+    ws.onerror = () => fail(new Error("websocket failed"));
+    ws.onmessage = ({ data }) => {
+      const msg = JSON.parse(String(data));
+      if (msg.type === "auth_required") ws.send(JSON.stringify({ type: "auth", access_token: token }));
+      else if (msg.type === "auth_ok") ws.send(JSON.stringify({ id: 1, ...message }));
+      else if (msg.type === "auth_invalid") fail(new Error("websocket auth rejected"));
+      else if (msg.id === 1) {
+        clearTimeout(timer);
+        ws.close();
+        if (msg.success) resolve(msg.result);
+        else reject(new Error(msg.error?.message));
+      }
+    };
+  });
+
+const buttonEntities = () =>
+  url && token && ha.buttons
+    ? cached("ha:buttons", 60, async () => {
+        const res = await fetch(`${url}/api/template`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ template: `{{ label_entities(${JSON.stringify(ha.buttons)}) | tojson }}` }),
+          signal: AbortSignal.timeout(4000),
+        });
+        if (!res.ok) throw new Error(`template returned ${res.status}`);
+        const ids = (await res.json()) as string[];
+        const entries = ids.length
+          ? await websocket<Record<string, { aliases: (string | null)[] }>>({ type: "config/entity_registry/get_entries", entity_ids: ids })
+          : {};
+        return ids.map((id) => ({ id, alias: entries[id]?.aliases.find((a) => !!a) ?? undefined }));
+      })
+    : Promise.resolve([]);
+
+const guesses = new Map<string, { name: string; heard: number; ends: number }>();
+const units: Record<string, number> = { hour: 3600, minute: 60, second: 1 };
+const echoName = (s: State, suffix: string) => String(s.attributes.friendly_name).replace(new RegExp(`( echo)? ${suffix}$`, "i"), "");
+
+// The Alexa integration polls Amazon every few minutes but voice events arrive at once, so a
+// timer set by voice counts down from Alexa's reply until the next_timer sensor catches up.
+function timers(states: State[]) {
+  const now = Date.now();
+  for (const s of states) {
+    const command = String(s.attributes.voice_command ?? "");
+    if (!/^event\..+_voice_event$/.test(s.entity_id) || !/timer/i.test(command)) continue;
+    const name = echoName(s, "voice event");
+    const heard = Date.parse(s.state);
+    if (/cancel|stop|delete|remove/i.test(command)) {
+      for (const [key, g] of guesses) if (g.name === name && g.heard < heard) guesses.delete(key);
+      continue;
+    }
+    const seconds = [...String(s.attributes.voice_reply ?? "").matchAll(/(\d+)\s*(hour|minute|second)/gi)].reduce(
+      (sum, [, n, unit]) => sum + Number(n) * units[unit.toLowerCase()],
+      0,
+    );
+    if (seconds) guesses.set(s.entity_id + s.state, { name, heard, ends: heard + seconds * 1000 });
+  }
+  const known = states
+    .filter((s) => /^sensor\..+_next_timer$/.test(s.entity_id) && Date.parse(s.state) > now - 60_000)
+    .map((s) => ({ name: echoName(s, "next timer"), ends: Date.parse(s.state) }));
+  for (const [key, g] of guesses) {
+    if (g.ends < now - 60_000) guesses.delete(key);
+    else if (!known.some((t) => t.name === g.name && Math.abs(t.ends - g.ends) < 15_000)) known.push(g);
+  }
+  return known.sort((a, b) => a.ends - b.ends).map((t) => ({ name: t.name, ends: new Date(t.ends).toISOString() }));
+}
+
 const callService = (domain: string, service: string, body: object, response = false) =>
   fetch(`${url}/api/services/${domain}/${service}${response ? "?return_response" : ""}`, {
     method: "POST",
@@ -56,10 +135,14 @@ const summary = (day: Forecast) => ({
 export const loadHome = () =>
   url && token
     ? cached("ha:states", 20, async () => {
-        const [states, daily, hourly] = await Promise.all([
+        const [states, daily, hourly, buttons] = await Promise.all([
           getJson<State[]>(`${url}/api/states`, { headers }),
           forecast("daily").catch(() => []),
           forecast("hourly").catch(() => []),
+          buttonEntities().catch((error) => {
+            console.error("[homeassistant] buttons:", error.message);
+            return [];
+          }),
         ]);
         const byId = new Map(states.map((s) => [s.entity_id, s]));
         const weather = byId.get(ha.weather);
@@ -95,26 +178,27 @@ export const loadHome = () =>
             const p = byId.get(id);
             return p ? [{ name: p.attributes.friendly_name as string, home: p.state === "home" }] : [];
           }),
-          actions: ha.actions.map((a) => {
-            const s = byId.get(a.entity);
-            return { ...a, on: s?.state === "on", available: !!s && s.state !== "unavailable" };
-          }),
-          timers: states
-            .filter((s) => /^sensor\..+_next_timer$/.test(s.entity_id) && Date.parse(s.state) > Date.now() - 60_000)
-            .map((s) => ({
-              name: String(s.attributes.friendly_name).replace(/( echo)? next timer$/i, ""),
-              ends: new Date(s.state).toISOString(),
-            }))
-            .sort((a, b) => a.ends.localeCompare(b.ends)),
+          actions: buttons
+            .map(({ id, alias }): Button => {
+              const s = byId.get(id);
+              return {
+                id,
+                label: alias ?? s?.attributes.friendly_name ?? id,
+                kind: id.split(".")[0] in services ? "run" : "toggle",
+                on: s?.state === "on",
+                available: !!s && s.state !== "unavailable",
+              };
+            })
+            .sort((a, b) => b.kind.localeCompare(a.kind) || a.label.localeCompare(b.label)),
+          timers: timers(states),
         };
       })
     : undefined;
 
 export async function runAction(id: string) {
-  const action = ha.actions.find((a) => a.id === id);
-  if (!action || !url || !token) return undefined;
-  const [domain] = action.entity.split(".");
-  const res = await callService(domain, action.kind === "toggle" ? "toggle" : "turn_on", { entity_id: action.entity });
+  if (!url || !token || !(await buttonEntities()).some((b) => b.id === id)) return undefined;
+  const [domain] = id.split(".");
+  const res = await callService(domain, services[domain] ?? "toggle", { entity_id: id });
   forget("ha:states");
   return res.ok;
 }
