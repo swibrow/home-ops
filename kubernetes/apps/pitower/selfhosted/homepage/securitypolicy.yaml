@@ -1,0 +1,26 @@
+---
+# The ops dashboard links to every admin UI, so it sits behind Kanidm. The
+# Kanidm client `homepage` is scoped to the admins group.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/gateway.envoyproxy.io/securitypolicy_v1alpha1.json
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: homepage
+spec:
+  # Keep the gateway-level CrowdSec bouncer (networking/envoy-gateway).
+  mergeType: StrategicMerge
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: homepage
+  oidc:
+    provider:
+      issuer: https://idm.wibrow.dev/oauth2/openid/homepage
+    clientID: homepage
+    clientSecret:
+      name: homepage-oidc
+    redirectURL: https://ops.wibrow.dev/oauth2/callback
+    logoutPath: /logout
+    refreshToken: true
+    scopes:
+      - openid

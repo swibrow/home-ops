@@ -20,7 +20,19 @@ homeAssistant:
 
 jellyfin:
   url: https://jellyfin.wibrow.dev
+  # Whose library feeds "New to watch"; "Keep watching" needs the viewer's own user below.
   userId: 38051195171d4b8286b9594b732de4e4
+
+# Keyed by Kanidm username. Apps and the admin link with `groups` show only to
+# members of one of those Kanidm groups.
+people:
+  sam:
+    entity: person.sam
+    jellyfinUserId: 38051195171d4b8286b9594b732de4e4
+
+admin:
+  url: https://ops.wibrow.dev
+  groups: [admins]
 
 immich:
   url: https://photos.wibrow.dev

@@ -176,7 +176,7 @@ export const loadHome = () =>
           sunElevation: sun ? Number(sun.attributes.elevation) : undefined,
           people: ha.people.flatMap((id) => {
             const p = byId.get(id);
-            return p ? [{ name: p.attributes.friendly_name as string, home: p.state === "home" }] : [];
+            return p ? [{ id, name: p.attributes.friendly_name as string, home: p.state === "home" }] : [];
           }),
           actions: buttons
             .map(({ id, alias }): Button => {

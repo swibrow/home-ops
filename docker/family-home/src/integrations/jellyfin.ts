@@ -19,7 +19,7 @@ export type Tile = { id: string; title: string; detail?: string; image?: string;
 
 const api = env("JELLYFIN_URL");
 const token = env("JELLYFIN_TOKEN");
-const { url, userId } = config.jellyfin;
+const { url } = config.jellyfin;
 const headers = { Authorization: `MediaBrowser Token="${token}"` };
 
 const tile = (item: Item): Tile => {
@@ -35,9 +35,9 @@ const tile = (item: Item): Tile => {
   };
 };
 
-export const loadJellyfin = () =>
+export const loadJellyfin = (userId = config.jellyfin.userId) =>
   api && token
-    ? cached("jellyfin", 120, async () => {
+    ? cached(`jellyfin:${userId}`, 120, async () => {
         const [resume, latest] = await Promise.all([
           getJson<{ Items: Item[] }>(`${api}/UserItems/Resume?userId=${userId}&limit=8&mediaTypes=Video`, { headers }),
           getJson<Item[]>(`${api}/Items/Latest?userId=${userId}&limit=12`, { headers }),

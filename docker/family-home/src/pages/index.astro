@@ -13,35 +13,35 @@ import { loadJellyfin } from "../integrations/jellyfin";
 import { loadMeals } from "../integrations/mealie";
 import { loadStatus } from "../integrations/status";
 import { settle } from "../lib/cache";
-import { config, env } from "../lib/config";
+import { config } from "../lib/config";
 import { sky } from "../lib/sky";
 import { format, hour, isoDay, money } from "../lib/time";
+import { canSee, personFor, viewer } from "../lib/viewer";
+
+const me = viewer(Astro.request.headers);
+const mine = personFor(me);
+const categories = config.categories
+  .map((c) => ({ ...c, apps: c.apps.filter((a) => canSee(me, a)) }))
+  .filter((c) => c.apps.length);
+const apps = categories.flatMap((c) => c.apps);
+const sees = (status: string) => apps.some((a) => a.status === status);
 
 const [home, media, upcoming, memory, meals, budget, down] = await Promise.all([
   settle("homeassistant", loadHome()),
-  settle("jellyfin", loadJellyfin()),
+  settle("jellyfin", loadJellyfin(mine?.jellyfinUserId)),
   settle("arr", loadUpcoming()),
   settle("immich", loadMemory()),
   settle("mealie", loadMeals()),
-  settle("actual", loadBudget()),
+  settle("actual", sees("actual") ? loadBudget() : undefined),
   settle("status", loadStatus()),
 ]);
-
-function viewer() {
-  const token = Astro.request.headers.get("x-id-token");
-  if (!token) return env("DEV_NAME");
-  try {
-    const claims = JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString());
-    return String(claims.name ?? claims.preferred_username).split(" ")[0];
-  } catch {
-    return undefined;
-  }
-}
 
 const now = new Date();
 const h = hour(now);
 const part = h < 5 ? "Hello" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : h < 23 ? "Good evening" : "Hello";
-const name = viewer();
+const name = me.name;
+const people = [...(home?.people ?? [])].sort((a, b) => Number(b.id === mine?.entity) - Number(a.id === mine?.entity));
+const outages = down?.filter((a) => apps.includes(a));
 const colours = sky(home?.sunElevation);
 const today = isoDay(now);
 const tonight = meals?.find((m) => m.date === today && m.type === "dinner") ?? meals?.find((m) => m.date === today);
@@ -53,7 +53,6 @@ const upcomingByDay = Object.entries(
   Object.groupBy(upcoming?.slice(0, 12) ?? [], (u) => dayLabel(u.date)),
 );
 const thisMonth = format(now, { month: "long" });
-const apps = config.categories.flatMap((c) => c.apps);
 const iconUrl = (icon: string) => `https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/${icon}.svg`;
 const list = (items: string[]) => new Intl.ListFormat("en-GB").format(items);
 
@@ -87,11 +86,11 @@ Astro.response.headers.set("Cache-Control", "no-store");
           )
         }
         {
-          !!home?.people.length && (
+          !!people.length && (
             <p class="people">
-              {home.people.map((p) => (
+              {people.map((p) => (
                 <span class:list={["person", { away: !p.home }]}>
-                  {p.name[0].toUpperCase() + p.name.slice(1)} is {p.home ? "home" : "out"}
+                  {p.id === mine?.entity ? "You are" : `${p.name[0].toUpperCase() + p.name.slice(1)} is`} {p.home ? "home" : "out"}
                 </span>
               ))}
             </p>
@@ -103,9 +102,9 @@ Astro.response.headers.set("Cache-Control", "no-store");
 
     <main>
       {
-        !!down?.length && (
+        !!outages?.length && (
           <p class="outage" role="status">
-            <strong>{list(down.map((a) => a.name))} {down.length === 1 ? "is" : "are"} not responding right now.</strong>
+            <strong>{list(outages.map((a) => a.name))} {outages.length === 1 ? "is" : "are"} not responding right now.</strong>
             {" "}Try again in a little while. If it is still down this evening, tell Sam.
           </p>
         )
@@ -163,7 +162,7 @@ Astro.response.headers.set("Cache-Control", "no-store");
       </section>
 
       {
-        !!media?.resume.length && (
+        !!mine?.jellyfinUserId && !!media?.resume.length && (
           <section class="shelf" aria-labelledby="resume-heading">
             <h2 id="resume-heading">Keep watching</h2>
             <ul class="posters">
@@ -273,12 +272,12 @@ Astro.response.headers.set("Cache-Control", "no-store");
         <h2 id="places-heading">Everything at home</h2>
         <div class="groups">
           {
-            config.categories.map((c) => (
+            categories.map((c) => (
               <div class="group">
                 <h3>{c.name}</h3>
                 <ul>
                   {c.apps.map((a) => {
-                    const isDown = down?.includes(a);
+                    const isDown = outages?.includes(a);
                     return (
                       <li>
                         <a href={a.url} class:list={["app", { down: isDown }]}>
@@ -308,14 +307,14 @@ Astro.response.headers.set("Cache-Control", "no-store");
     <footer>
       <p>
         {
-          down === undefined
+          outages === undefined
             ? "Service status is unavailable."
-            : down.length === 0
+            : outages.length === 0
               ? `All ${apps.length} services are working.`
-              : `${apps.length - down.length} of ${apps.length} services are working.`
+              : `${apps.length - outages.length} of ${apps.length} services are working.`
         }
       </p>
-      <a href="https://ops.wibrow.dev">Sam's admin dashboard</a>
+      {config.admin && canSee(me, config.admin) && <a href={config.admin.url}>Admin dashboard</a>}
     </footer>
 
     <script>

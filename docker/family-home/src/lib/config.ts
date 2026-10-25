@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { parse } from "yaml";
 
-export type App = { name: string; description: string; url: string; icon?: string; status?: string };
+export type App = { name: string; description: string; url: string; icon?: string; status?: string; groups?: string[] };
+export type Person = { entity?: string; jellyfinUserId?: string };
 export type Category = { name: string; namespace: string; apps: App[] };
 
 export type Config = {
@@ -20,6 +21,8 @@ export type Config = {
   jellyfin: { url: string; userId: string };
   immich: { url: string };
   mealie: { url: string; group: string };
+  people?: Record<string, Person>;
+  admin?: { url: string; groups?: string[] };
   categories: Category[];
 };
 

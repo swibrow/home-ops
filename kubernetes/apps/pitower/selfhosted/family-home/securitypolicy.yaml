@@ -1,6 +1,6 @@
 ---
 # Family members sign in with Kanidm; the ID token is forwarded so the page can
-# greet whoever is signed in.
+# greet whoever is signed in and show only the apps their groups may see.
 # yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/gateway.envoyproxy.io/securitypolicy_v1alpha1.json
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: SecurityPolicy
@@ -27,6 +27,7 @@ spec:
     scopes:
       - openid
       - profile
+      - groups
 ---
 # The kitchen view has no login, so only the home network may reach it. LAN
 # clients reach envoy-external via the LoadBalancer and arrive SNATed to a node
