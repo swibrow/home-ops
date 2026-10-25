@@ -15,27 +15,8 @@ homeAssistant:
   doorbell:
     sensor: binary_sensor.doorbell_person_occupancy
     camera: camera.doorbell
-  actions:
-    - id: kitchen
-      label: Kitchen lights
-      entity: light.kitchen_island_lights
-      kind: toggle
-    - id: living-room
-      label: Living room
-      entity: light.0x2c1165fffee6ec80
-      kind: toggle
-    - id: stairs
-      label: Stairs
-      entity: light.0x54ef4410010f08d5
-      kind: toggle
-    - id: evening
-      label: Evening glow
-      entity: script.floor_strip_evening
-      kind: run
-    - id: night
-      label: Night light
-      entity: script.floor_strip_night
-      kind: run
+  # Entities with this Home Assistant label become buttons; the first alias names each one.
+  buttons: kitchen_display
 
 jellyfin:
   url: https://jellyfin.wibrow.dev
