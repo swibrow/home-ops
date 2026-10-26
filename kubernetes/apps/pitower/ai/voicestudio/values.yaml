@@ -9,7 +9,7 @@ controllers:
       app:
         image:
           repository: ghcr.io/debpalash/voicestudio
-          tag: 0.5.6
+          tag: 0.5.7
         env:
           TZ: Europe/Zurich
           OMNIVOICE_DATA_DIR: /app/omnivoice_data
