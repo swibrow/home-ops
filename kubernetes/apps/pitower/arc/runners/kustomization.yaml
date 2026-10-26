@@ -349,7 +349,7 @@ helmCharts:
           serviceAccountName: homb-runners
           containers:
             - name: runner
-              image: ghcr.io/actions/actions-runner:2.338.1
+              image: ghcr.io/actions/actions-runner:2.338.2
               command: ["/home/runner/run.sh"]
               env:
                 - name: DOCKER_HOST
