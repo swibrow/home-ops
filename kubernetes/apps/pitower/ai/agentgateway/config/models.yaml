@@ -403,7 +403,7 @@ spec:
   policies:
     transformations:
       - field: model
-        expression: '"qwen38-flash-next"'
+        expression: '"qwen38-27b-abliterated"'
 ---
 apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayModel
