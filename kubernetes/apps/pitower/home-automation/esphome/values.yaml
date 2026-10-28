@@ -21,7 +21,7 @@ controllers:
       app:
         image:
           repository: ghcr.io/esphome/esphome
-          tag: 2026.10.0
+          tag: 2026.10.1
         env:
           TZ: Europe/Zurich
         resources:
@@ -37,7 +37,7 @@ controllers:
       sync:
         image:
           repository: ghcr.io/esphome/esphome
-          tag: 2026.10.0
+          tag: 2026.10.1
         command:
           - /bin/bash
           - -c
