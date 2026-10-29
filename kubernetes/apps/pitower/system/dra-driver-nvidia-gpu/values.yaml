@@ -14,12 +14,13 @@ gpuResourcesEnabledOverride: true
 # for under the /usr/local driver root, so it kept its handle on the card (now
 # disabled through the host root); and each driver switch also unbound the
 # card's HDMI audio function, which omarchy passes through on vfio-pci (now
-# the audio function follows the GPU to vfio, and when the GPU returns to
-# nvidia the kernel re-probes it, so vfio_pci ids= claims it again).
+# a function the host bound itself, as vfio_pci ids= does for the audio, is
+# left alone, and one the driver moved to vfio is re-probed when the GPU
+# returns to nvidia).
 # Drop this once upstream releases all three.
 image:
   repository: ghcr.io/swibrow/dra-driver-nvidia-gpu
-  tag: v0.5.1-talos.3
+  tag: v0.5.1-talos.4
 
 resources:
   gpus:
