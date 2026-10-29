@@ -10,7 +10,7 @@ controllers:
       app:
         image:
           repository: ghcr.io/open-webui/open-terminal
-          tag: 0.14.5
+          tag: 0.14.6
         env:
           TZ: Europe/Zurich
           # Appended to the run_command tool description. Every byte of output
