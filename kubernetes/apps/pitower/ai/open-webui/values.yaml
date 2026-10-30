@@ -6,7 +6,7 @@ controllers:
       app:
         image:
           repository: ghcr.io/open-webui/open-webui
-          tag: v0.12.4
+          tag: v0.12.5
         env:
           # Application
           WEBUI_URL: "https://chat.wibrow.dev"
