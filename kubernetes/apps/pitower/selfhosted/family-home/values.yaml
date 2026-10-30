@@ -13,7 +13,7 @@ controllers:
       app:
         image:
           repository: ghcr.io/swibrow/family-home
-          tag: 0.2.4
+          tag: 0.2.5
         env:
           TZ: Europe/Zurich
           PORT: &port 8080
