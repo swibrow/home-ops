@@ -51,7 +51,8 @@ config:
       valueExpr: string(result) + "%"
     - id: diskavailable
       title: disk available
-      query: round(sum(node_filesystem_avail_bytes{mountpoint="/",fstype!="tmpfs"}) / sum(node_filesystem_size_bytes{mountpoint="/",fstype!="tmpfs"}) * 100, 0.1)
+      # Talos reports no `/` filesystem; each node's EPHEMERAL disk is /var.
+      query: round(sum(node_filesystem_avail_bytes{mountpoint="/var"}) / sum(node_filesystem_size_bytes{mountpoint="/var"}) * 100, 0.1)
       valueExpr: string(result) + "%"
     - id: uptime
       title: uptime
