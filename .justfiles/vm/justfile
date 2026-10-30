@@ -5,7 +5,7 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 # without touching the spec; on others KubeVirt rewrites runStrategy.
 ns := "vms"
 api := "/apis/subresources.kubevirt.io/v1/namespaces/" + ns + "/virtualmachines"
-# Marks the ScaledObjects `game` paused, so `game-stop` leaves ones paused by hand alone.
+# Marks the ScaledObjects `game-on` paused, so `game-off` leaves ones paused by hand alone.
 pause_marker := "home-ops/paused-for-omarchy"
 self := just_executable() + " --justfile " + quote(source_file())
 gpu_node := "worker-ai-01"
@@ -36,14 +36,14 @@ start vm="omarchy":
     holders=$({{ self }} _gpu-holders)
     if [ -n "$claims" ] && [ -n "$holders" ]; then
         echo "GPU is claimed by: $holders" >&2
-        echo "Stop or pause those workloads first, or use: just vm game" >&2
+        echo "Stop or pause those workloads first, or use: just game-on" >&2
         exit 1
     fi
     echo '{}' | kubectl replace --raw "{{ api }}/{{ vm }}/start" -f - >/dev/null
     echo "Starting {{ vm }}"
 
 # Pause the scale-to-zero GPU apps in ai, wait for the 3090 Ti to free up, then start omarchy
-game:
+game-on:
     #!/usr/bin/env bash
     set -euo pipefail
     for so in $(kubectl -n ai get scaledobject -o json \
@@ -66,8 +66,8 @@ game:
       -l app.kubernetes.io/instance=dcgm-exporter-3090ti --field-selector spec.nodeName={{ gpu_node }}
     {{ self }} start omarchy
 
-# Stop omarchy and resume the GPU apps that `game` paused
-game-stop:
+# Stop omarchy and resume the GPU apps that `game-on` paused
+game-off:
     #!/usr/bin/env bash
     set -euo pipefail
     {{ self }} stop omarchy

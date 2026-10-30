@@ -10,6 +10,9 @@ mod vm '.justfiles/vm'
 mod talos 'talos'
 mod ansible 'ansible'
 
+alias game-on := vm::game-on
+alias game-off := vm::game-off
+
 export TERRAFORM_WORKING_DIR := "terraform"
 export ENVIRONMENT := "dev"
 export SOPS_AGE_KEY_FILE := env("SOPS_AGE_KEY_FILE", justfile_directory() / "age.key")
