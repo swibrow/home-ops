@@ -4,7 +4,7 @@ import "@fontsource-variable/atkinson-hyperlegible-next/index.css";
 import favicon from "../../../public/favicon.svg?raw";
 import "../../styles/global.css";
 import { loadShopping } from "../../integrations/homeassistant";
-import { loadRecipes, loadWeek, mealTypes, weekDays, weekShopping } from "../../integrations/mealie";
+import { loadRecipes, loadWeek, mealTypes, suits, weekDays, weekShopping } from "../../integrations/mealie";
 import { settle } from "../../lib/cache";
 import { format, isoDay } from "../../lib/time";
 
@@ -124,7 +124,7 @@ Astro.response.headers.set("Cache-Control", "no-store");
         <ul class="recipes">
           {
             recipes?.map((r) => (
-              <li data-name={r.name.toLowerCase()}>
+              <li data-name={r.name.toLowerCase()} data-meals={mealTypes.filter((type) => suits(r, type)).join(" ")} data-seasons={r.seasons.join(" ")}>
                 <button type="button" data-recipe={r.id}>
                   <img src={r.image} alt="" loading="lazy" />
                   {r.name}
@@ -225,13 +225,28 @@ Astro.response.headers.set("Cache-Control", "no-store");
       const dayName = (date: string) =>
         new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`));
 
+      // Matches the season tags in integrations/mealie.ts. A search looks through every season.
+      const season = (date: string) => ["winter", "spring", "summer", "autumn"][Math.floor((Number(date.slice(5, 7)) % 12) / 3)];
+
+      const filterRecipes = () => {
+        const picker = dialog("picker");
+        const type = picker.querySelector<HTMLInputElement>('input[name="type"]:checked')?.value ?? "";
+        const query = picker.querySelector<HTMLInputElement>("#recipe-search")!.value.trim().toLowerCase();
+        const now = target ? season(target.date) : "";
+        picker.querySelectorAll<HTMLElement>(".recipes li").forEach((li) => {
+          const seasons = li.dataset.seasons ? li.dataset.seasons.split(" ") : [];
+          const fits = query ? li.dataset.name!.includes(query) : !seasons.length || seasons.includes(now);
+          li.hidden = !li.dataset.meals!.split(" ").includes(type) || !fits;
+        });
+      };
+
       const openPicker = (date: string, type: string, replace?: string) => {
         target = { date, type, replace };
         const picker = dialog("picker");
         picker.querySelector("h2")!.textContent = replace ? `Swap ${dayName(date)}` : `Plan ${dayName(date)}`;
         picker.querySelector<HTMLInputElement>(`input[name="type"][value="${type}"]`)!.checked = true;
         picker.querySelector<HTMLInputElement>("#recipe-search")!.value = "";
-        picker.querySelectorAll<HTMLElement>(".recipes li").forEach((li) => (li.hidden = false));
+        filterRecipes();
         picker.showModal();
       };
 
@@ -291,10 +306,7 @@ Astro.response.headers.set("Cache-Control", "no-store");
 
       document.addEventListener("input", (event) => {
         const el = event.target as HTMLInputElement;
-        if (el.id === "recipe-search") {
-          const query = el.value.trim().toLowerCase();
-          document.querySelectorAll<HTMLElement>(".recipes li").forEach((li) => (li.hidden = !li.dataset.name!.includes(query)));
-        }
+        if (el.id === "recipe-search" || el.name === "type") filterRecipes();
         if (el.name === "item") {
           const count = document.querySelectorAll('.shop input[name="item"]:checked').length;
           const button = document.querySelector<HTMLButtonElement>(".shop button[type='submit']");

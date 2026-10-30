@@ -11,8 +11,17 @@ const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application
 const order = ["breakfast", "lunch", "dinner", "side", "dessert", "snack", "drink"];
 export const mealTypes = ["breakfast", "lunch", "dinner"] as const;
 
+// Category slugs offered for each meal. Recipes without a category show for every meal.
+const courses: Record<string, string[]> = { breakfast: ["breakfast"], lunch: ["main", "side", "snack"], dinner: ["main"] };
+
 export type Meal = { id: number; date: string; type: string; name: string; slug?: string; href?: string; image?: string };
-export type Recipe = { id: string; name: string; image: string };
+// Season tag slugs by month, January first. Recipes without a season tag suit the whole year.
+const seasons = ["winter", "winter", "spring", "spring", "spring", "summer", "summer", "summer", "autumn", "autumn", "autumn", "winter"];
+
+export type Recipe = { id: string; name: string; image: string; courses: string[]; seasons: string[] };
+
+export const suits = (recipe: Recipe, type: string) => !recipe.courses.length || recipe.courses.some((c) => courses[type]?.includes(c));
+export const inSeason = (recipe: Recipe, date: string) => !recipe.seasons.length || recipe.seasons.includes(seasons[Number(date.slice(5, 7)) - 1]);
 
 const image = (recipeId: string) => `${config.mealie.url}/api/media/recipes/${recipeId}/images/min-original.webp`;
 
@@ -52,8 +61,19 @@ export const loadWeek = (offset: number) => {
 export const loadRecipes = () =>
   api && token
     ? cached("mealie:recipes", 300, async () => {
-        const res = await getJson<{ items: { id: string; name: string }[] }>(`${api}/api/recipes?perPage=500&orderBy=name&orderDirection=asc`, { headers });
-        return res.items.map((r): Recipe => ({ id: r.id, name: r.name, image: image(r.id) }));
+        const res = await getJson<{ items: { id: string; name: string; recipeCategory: { slug: string }[]; tags: { slug: string }[] }[] }>(
+          `${api}/api/recipes?perPage=-1&orderBy=name&orderDirection=asc`,
+          { headers },
+        );
+        return res.items.map(
+          (r): Recipe => ({
+            id: r.id,
+            name: r.name,
+            image: image(r.id),
+            courses: r.recipeCategory.map((c) => c.slug),
+            seasons: r.tags.map((t) => t.slug).filter((t) => seasons.includes(t)),
+          }),
+        );
       })
     : undefined;
 
@@ -64,6 +84,12 @@ const forgetPlans = () => {
 
 export async function changeMeal(change: { add: { date: string; type: string; recipeId?: string; title?: string } } | { random: { date: string; type: string } } | { remove: number }) {
   if (!api || !token) return false;
+  if ("random" in change) {
+    const { date, type } = change.random;
+    const choices = (await loadRecipes()!).filter((r) => suits(r, type) && inSeason(r, date));
+    if (!choices.length) return false;
+    change = { add: { date, type, recipeId: choices[Math.floor(Math.random() * choices.length)].id } };
+  }
   const res =
     "add" in change
       ? await fetch(`${api}/api/households/mealplans`, {
@@ -72,14 +98,7 @@ export async function changeMeal(change: { add: { date: string; type: string; re
           body: JSON.stringify({ date: change.add.date, entryType: change.add.type, recipeId: change.add.recipeId, title: change.add.title ?? "" }),
           signal: AbortSignal.timeout(5000),
         })
-      : "random" in change
-        ? await fetch(`${api}/api/households/mealplans/random`, {
-            method: "POST",
-            headers,
-            body: JSON.stringify({ date: change.random.date, entryType: change.random.type }),
-            signal: AbortSignal.timeout(5000),
-          })
-        : await fetch(`${api}/api/households/mealplans/${change.remove}`, { method: "DELETE", headers, signal: AbortSignal.timeout(5000) });
+      : await fetch(`${api}/api/households/mealplans/${change.remove}`, { method: "DELETE", headers, signal: AbortSignal.timeout(5000) });
   forgetPlans();
   return res.ok;
 }
