@@ -6,15 +6,12 @@ metadata:
   namespace: selfhosted
 spec:
   replicas: 1
-  # Dragonfly reserves ~256Mi per io thread and refuses to start unless the memory
-  # limit exceeds threads*256Mi. 1 thread under a 512Mi limit leaves comfortable
-  # headroom for cryptgeon's small, ephemeral one-time-secret store (in-memory by
-  # design; secrets are viewable once then evicted, so no persistence/snapshot).
+  # maxmemory instead of a pod limit; Dragonfly needs more than 256Mi per io thread.
+  # Cryptgeon's secrets are viewable once then evicted, so no persistence/snapshot.
   args:
     - "--proactor_threads=1"
+    - "--maxmemory=512mb"
   resources:
     requests:
       cpu: 50m
       memory: 256Mi
-    limits:
-      memory: 512Mi

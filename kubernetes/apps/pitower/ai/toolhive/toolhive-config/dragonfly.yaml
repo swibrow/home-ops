@@ -16,10 +16,10 @@ spec:
     passwordFromSecret:
       name: toolhive-authserver-secret
       key: redis-password
-  # Dragonfly reserves ~256Mi per io thread and refuses to start unless the memory
-  # limit exceeds threads*256Mi. One thread is plenty for OAuth session state.
+  # maxmemory instead of a pod limit; Dragonfly needs more than 256Mi per io thread.
   args:
     - "--proactor_threads=1"
+    - "--maxmemory=512mb"
     # ToolHive's auth-server storage runs Lua scripts that touch keys not declared
     # in KEYS[] (e.g. thv:auth:{ns:server}:user:upstream:<uuid>). Standard Redis
     # permits this; Dragonfly rejects undeclared-key access by default and the OAuth
@@ -29,8 +29,6 @@ spec:
     requests:
       cpu: 50m
       memory: 256Mi
-    limits:
-      memory: 512Mi
   # Without a snapshot PVC, Dragonfly is purely in-memory: a pod restart wipes every
   # DCR client registration and refresh token, and connected clients fail their next
   # OAuth refresh with invalid_client ("the client does not exist"). The operator

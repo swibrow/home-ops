@@ -11,14 +11,11 @@ spec:
   # correct-arch image still dies on SIGILL there. Keep it on amd64.
   nodeSelector:
     kubernetes.io/arch: amd64
-  # Dragonfly reserves ~256Mi per io thread and refuses to start unless the memory
-  # limit exceeds threads*256Mi. 1 thread (needs 256Mi) under a 512Mi limit leaves
-  # comfortable headroom for AFFiNE's cache/queue/sync workload.
+  # maxmemory instead of a pod limit; Dragonfly needs more than 256Mi per io thread.
   args:
     - "--proactor_threads=1"
+    - "--maxmemory=512mb"
   resources:
     requests:
       cpu: 16m
       memory: 14Mi
-    limits:
-      memory: 512Mi

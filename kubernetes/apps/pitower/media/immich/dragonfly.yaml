@@ -10,10 +10,9 @@ spec:
     kubernetes.io/arch: amd64
   args:
     - "--proactor_threads=1"
+    - "--maxmemory=512mb"
     - "--default_lua_flags=allow-undeclared-keys"
   resources:
     requests:
       cpu: 16m
       memory: 14Mi
-    limits:
-      memory: 512Mi
