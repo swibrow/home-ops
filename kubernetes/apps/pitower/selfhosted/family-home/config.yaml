@@ -15,6 +15,7 @@ homeAssistant:
   doorbell:
     sensor: binary_sensor.doorbell_person_occupancy
     camera: camera.doorbell
+    unlock: lock.aqara_smart_lock_u200
   # Entities with this Home Assistant label become buttons; the first alias names each one.
   buttons: kitchen_display
   # Events from these show on the start and kitchen pages; the kitchen adds new ones to the first.
