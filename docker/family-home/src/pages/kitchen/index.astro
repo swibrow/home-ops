@@ -5,6 +5,7 @@ import favicon from "../../../public/favicon.svg?raw";
 import "../../styles/global.css";
 import Horizon from "../../components/Horizon.astro";
 import Switches from "../../components/Switches.astro";
+import Weather from "../../components/Weather.astro";
 import { loadUpcoming } from "../../integrations/arr";
 import { loadHome, loadShopping } from "../../integrations/homeassistant";
 import { loadMeals } from "../../integrations/mealie";
@@ -173,68 +174,7 @@ Astro.response.headers.set("Cache-Control", "no-store");
         }
       </main>
 
-      {
-        home?.weather && (
-          <dialog class="weather-details" id="weather-details" aria-labelledby="weather-heading">
-            <div class="sheet-head">
-              <h2 id="weather-heading">Weather today</h2>
-              <form method="dialog">
-                <button>Close</button>
-              </form>
-            </div>
-            <p class="now">
-              <span class="temp">{home.weather.temperature}°</span>
-              {home.weather.condition}
-              {home.weather.low !== undefined && home.weather.high !== undefined && `, ${home.weather.low}° to ${home.weather.high}°`}
-              {!!home.weather.rain && `, ${home.weather.rain} mm rain`}
-            </p>
-            <dl class="facts">
-              <div>
-                <dt>Wind</dt>
-                <dd>
-                  {home.weather.wind} km/h from the {home.weather.windFrom}
-                </dd>
-              </div>
-              <div>
-                <dt>Humidity</dt>
-                <dd>{home.weather.humidity}%</dd>
-              </div>
-              <div>
-                <dt>UV index</dt>
-                <dd>{home.weather.uv}</dd>
-              </div>
-              {home.weather.sun?.map((s) => (
-                <div>
-                  <dt>{s.label}</dt>
-                  <dd>{format(s.at, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" })}</dd>
-                </div>
-              ))}
-            </dl>
-            {home.weather.hours.length > 0 && (
-              <>
-                <h3>Next 12 hours</h3>
-                <ol class="hours">
-                  {home.weather.hours.map((h) => (
-                    <li>
-                      <span class="hour">{format(h.at, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" })}</span>
-                      <strong>{h.temperature}°</strong>
-                      <span class="rain" style={`--share:${h.share}`} aria-hidden="true" />
-                      <small>{h.rain > 0 ? `${h.rain} mm` : "Dry"}</small>
-                    </li>
-                  ))}
-                </ol>
-              </>
-            )}
-            {home.weather.tomorrow && (
-              <p class="tomorrow">
-                <strong>Tomorrow</strong> {home.weather.tomorrow.condition}
-                {home.weather.tomorrow.low !== undefined && `, ${home.weather.tomorrow.low}° to ${home.weather.tomorrow.high}°`}
-                {!!home.weather.tomorrow.rain && `, ${home.weather.tomorrow.rain} mm rain`}
-              </p>
-            )}
-          </dialog>
-        )
-      }
+      {home?.weather && <Weather id="weather-details" weather={home.weather} />}
     </div>
 
     <dialog class="doorbell" aria-labelledby="doorbell-heading">
@@ -429,105 +369,6 @@ Astro.response.headers.set("Cache-Control", "no-store");
     font-family: inherit;
     text-align: left;
     cursor: pointer;
-  }
-
-  .weather-details {
-    width: min(92vw, 900px);
-    padding: 1.5rem;
-    border: 0;
-    border-radius: 20px;
-    background: var(--paper);
-    color: var(--ink);
-  }
-
-  .weather-details::backdrop {
-    background: rgb(0 0 0 / 0.6);
-  }
-
-  .sheet-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-  }
-
-  .sheet-head h2 {
-    font-size: 1.125rem;
-    font-family: var(--body);
-    color: var(--muted);
-  }
-
-  .weather-details .now {
-    margin: 0.5rem 0 1.25rem;
-    font-size: clamp(1.5rem, 3vw, 2rem);
-  }
-
-  .facts {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
-    gap: 1rem 1.5rem;
-    margin: 0 0 1.5rem;
-  }
-
-  .facts dt {
-    color: var(--muted);
-    font-size: 1rem;
-  }
-
-  .facts dd {
-    margin: 0;
-    font-weight: 700;
-  }
-
-  .weather-details h3 {
-    font-size: 1.125rem;
-    font-family: var(--body);
-    color: var(--muted);
-    margin-bottom: 0.5rem;
-  }
-
-  .hours {
-    display: grid;
-    grid-template-columns: repeat(12, minmax(3.25rem, 1fr));
-    gap: 0;
-    margin: 0;
-    padding: 0 0 0.25rem;
-    list-style: none;
-    overflow-x: auto;
-    text-align: center;
-  }
-
-  .hours li {
-    display: grid;
-    grid-template-rows: auto auto 3.5rem auto;
-    justify-items: center;
-    gap: 0.3rem;
-  }
-
-  .hours .hour,
-  .hours small {
-    color: var(--muted);
-    font-size: 0.8rem;
-    white-space: nowrap;
-  }
-
-  .hours strong {
-    font-family: var(--display);
-    font-size: 1.5rem;
-  }
-
-  .hours .rain {
-    align-self: end;
-    width: 1.25rem;
-    height: max(3px, calc(var(--share) * 100%));
-    border-radius: 4px 4px 0 0;
-    background: var(--lake);
-  }
-
-  .tomorrow {
-    margin: 1.25rem 0 0;
-    padding-top: 1rem;
-    border-top: 1px solid var(--rule);
   }
 
   .temp {
@@ -730,8 +571,7 @@ Astro.response.headers.set("Cache-Control", "no-store");
   }
 
   .add button,
-  .doorbell button,
-  .sheet-head button {
+  .doorbell button {
     padding: 0.7rem 1.2rem;
     border: 0;
     border-radius: 12px;

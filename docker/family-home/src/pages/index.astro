@@ -5,6 +5,7 @@ import "../styles/global.css";
 import Horizon from "../components/Horizon.astro";
 import Poster from "../components/Poster.astro";
 import Switches from "../components/Switches.astro";
+import Weather from "../components/Weather.astro";
 import { loadBudget } from "../integrations/actual";
 import { loadUpcoming } from "../integrations/arr";
 import { loadHome } from "../integrations/homeassistant";
@@ -76,13 +77,13 @@ Astro.response.headers.set("Cache-Control", "no-store");
         <h1>{name ? `${part}, ${name}` : part}</h1>
         {
           home?.weather && (
-            <p class="weather">
+            <button type="button" class="weather" data-open="weather-details">
               {home.weather.temperature}° and {home.weather.condition.toLowerCase()} outside.
               {home.weather.high !== undefined && ` Up to ${home.weather.high}° today`}
               {home.weather.low !== undefined && `, ${home.weather.low}° tonight`}
               {home.weather.high !== undefined && "."}
               {!!home.weather.rain && ` ${home.weather.rain} mm of rain expected.`}
-            </p>
+            </button>
           )
         }
         {
@@ -317,7 +318,15 @@ Astro.response.headers.set("Cache-Control", "no-store");
       {config.admin && canSee(me, config.admin) && <a href={config.admin.url}>Admin dashboard</a>}
     </footer>
 
+    {home?.weather && <Weather id="weather-details" weather={home.weather} />}
+
     <script>
+      document.addEventListener("click", (event) => {
+        const opener = (event.target as Element).closest<HTMLElement>("[data-open]");
+        const sheet = opener && document.getElementById(opener.dataset.open!);
+        if (sheet instanceof HTMLDialogElement) sheet.showModal();
+      });
+
       const loaded = Date.now();
       document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "visible" && Date.now() - loaded > 5 * 60_000) location.reload();
@@ -367,9 +376,19 @@ Astro.response.headers.set("Cache-Control", "no-store");
   }
 
   .weather {
+    display: block;
     margin: 1.25rem 0 0;
+    padding: 0;
     max-width: 46ch;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
     font-size: clamp(1.125rem, 2.2vw, 1.375rem);
+    text-align: left;
+    text-decoration: underline dotted 1px;
+    text-underline-offset: 0.3em;
+    cursor: pointer;
   }
 
   .people {

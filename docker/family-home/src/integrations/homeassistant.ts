@@ -147,7 +147,7 @@ export const loadHome = () =>
         const byId = new Map(states.map((s) => [s.entity_id, s]));
         const weather = byId.get(ha.weather);
         const sun = byId.get(ha.sun);
-        const [today, tomorrow] = daily;
+        const [today, ...ahead] = daily;
         const hours = hourly.filter((h) => Date.parse(h.datetime) > Date.now() - 3_600_000).slice(0, 12);
         const wettest = Math.max(2, ...hours.map((h) => h.precipitation ?? 0));
         return {
@@ -171,7 +171,7 @@ export const loadHome = () =>
               rain: h.precipitation ?? 0,
               share: (h.precipitation ?? 0) / wettest,
             })),
-            tomorrow: tomorrow && summary(tomorrow),
+            days: ahead.slice(0, 3).map((d) => ({ at: new Date(d.datetime), ...summary(d) })),
           },
           sunElevation: sun ? Number(sun.attributes.elevation) : undefined,
           people: ha.people.flatMap((id) => {
