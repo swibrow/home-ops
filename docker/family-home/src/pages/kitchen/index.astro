@@ -394,7 +394,11 @@ Astro.response.headers.set("Cache-Control", "no-store");
       unlock?.addEventListener("click", async () => {
         unlock.disabled = true;
         unlock.textContent = "Unlocking…";
-        const ok = await fetch("/kitchen/api/unlock", { method: "POST" }).then((res) => res.ok, () => false);
+        // Astro rejects a POST without a JSON content type as a cross-site form submission.
+        const ok = await fetch("/kitchen/api/unlock", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).then(
+          (res) => res.ok,
+          () => false,
+        );
         unlock.textContent = ok ? "Door unlocked" : "Couldn't unlock, try again";
         setTimeout(() => {
           unlock.disabled = false;
