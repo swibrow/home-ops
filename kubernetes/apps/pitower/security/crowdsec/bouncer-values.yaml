@@ -9,7 +9,7 @@ resources:
     memory: 32Mi
   limits:
     cpu: null
-    memory: 128Mi
+    memory: null
 config:
   bouncer:
     lapiURL: http://crowdsec-service.security.svc.cluster.local:8080

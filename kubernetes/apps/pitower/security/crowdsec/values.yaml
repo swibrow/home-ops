@@ -24,7 +24,7 @@ config:
       envoy-logs.yaml: |
         name: pitower/envoy-logs
         description: Envoy Gateway JSON access logs (networking/envoy-gateway/envoy.yaml format)
-        filter: evt.Parsed.program == 'envoy' && UnmarshalJSON(evt.Parsed.message, evt.Unmarshaled, 'envoy') in ['', nil]
+        filter: evt.Parsed.program == 'envoy' && evt.Parsed.message startsWith '{' && UnmarshalJSON(evt.Parsed.message, evt.Unmarshaled, 'envoy') in ['', nil]
         onsuccess: next_stage
         statics:
           - parsed: remote_addr
@@ -158,7 +158,7 @@ lapi:
       memory: 128Mi
     limits:
       cpu: null
-      memory: 256Mi
+      memory: null
   metrics:
     serviceMonitor:
       enabled: true
@@ -184,7 +184,7 @@ agent:
       memory: 128Mi
     limits:
       cpu: null
-      memory: 256Mi
+      memory: null
   metrics:
     serviceMonitor:
       enabled: true
