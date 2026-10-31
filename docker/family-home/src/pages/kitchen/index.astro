@@ -5,6 +5,7 @@ import favicon from "../../../public/favicon.svg?raw";
 import "../../styles/global.css";
 import Horizon from "../../components/Horizon.astro";
 import Reload from "../../components/Reload.astro";
+import ReloadButton from "../../components/ReloadButton.astro";
 import Switches from "../../components/Switches.astro";
 import Weather from "../../components/Weather.astro";
 import { loadUpcoming } from "../../integrations/arr";
@@ -54,6 +55,7 @@ Astro.response.headers.set("Cache-Control", "no-store");
   <body>
     <div id="live">
       <header class="sky" data-ink={colours.ink} style={`--sky-top:${colours.top};--sky-bottom:${colours.bottom}`}>
+        <ReloadButton />
         <div class="sky-inner">
           <time class="clock" data-timezone={config.timezone}>{time}</time>
           <div class="day">
@@ -338,6 +340,13 @@ Astro.response.headers.set("Cache-Control", "no-store");
     position: relative;
     background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 92%);
     color: var(--sky-ink);
+  }
+
+  .sky :global(.reload) {
+    position: absolute;
+    top: calc(0.75rem + env(safe-area-inset-top));
+    right: calc(0.75rem + env(safe-area-inset-right));
+    z-index: 2;
   }
 
   .sky[data-ink="dark"] {

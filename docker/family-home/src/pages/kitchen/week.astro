@@ -4,6 +4,7 @@ import "@fontsource-variable/atkinson-hyperlegible-next/index.css";
 import favicon from "../../../public/favicon.svg?raw";
 import "../../styles/global.css";
 import Reload from "../../components/Reload.astro";
+import ReloadButton from "../../components/ReloadButton.astro";
 import { loadShopping } from "../../integrations/homeassistant";
 import { loadRecipes, loadWeek, mealTypes, suits, weekDays, weekShopping } from "../../integrations/mealie";
 import { settle } from "../../lib/cache";
@@ -49,6 +50,7 @@ Astro.response.headers.set("Cache-Control", "no-store");
         </nav>
         <p class="range">{range}</p>
         {meals && <button type="button" class="primary" data-open="shop">Shop for the week</button>}
+        <ReloadButton />
       </header>
 
       {
@@ -405,12 +407,8 @@ Astro.response.headers.set("Cache-Control", "no-store");
   }
 
   .range {
-    margin: 0;
+    margin: 0 auto 0 0;
     color: var(--muted);
-  }
-
-  .bar .primary {
-    margin-left: auto;
   }
 
   .primary,
@@ -760,10 +758,6 @@ Astro.response.headers.set("Cache-Control", "no-store");
     .day .slot {
       aspect-ratio: auto;
       padding: 1rem;
-    }
-
-    .bar .primary {
-      margin-left: 0;
     }
   }
 </style>
