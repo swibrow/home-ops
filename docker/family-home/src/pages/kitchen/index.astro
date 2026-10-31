@@ -9,18 +9,19 @@ import ReloadButton from "../../components/ReloadButton.astro";
 import Switches from "../../components/Switches.astro";
 import Weather from "../../components/Weather.astro";
 import { loadUpcoming } from "../../integrations/arr";
-import { loadHome, loadShopping } from "../../integrations/homeassistant";
+import { loadEvents, loadHome, loadShopping } from "../../integrations/homeassistant";
 import { loadMeals } from "../../integrations/mealie";
 import { settle } from "../../lib/cache";
 import { config } from "../../lib/config";
 import { sky } from "../../lib/sky";
-import { format, isoDay } from "../../lib/time";
+import { addDays, format, isoDay } from "../../lib/time";
 
-const [home, meals, upcoming, shopping] = await Promise.all([
+const [home, meals, upcoming, shopping, events] = await Promise.all([
   settle("homeassistant", loadHome()),
   settle("mealie", loadMeals()),
   settle("arr", loadUpcoming()),
   settle("shopping", loadShopping()),
+  settle("calendar", loadEvents()),
 ]);
 
 const now = new Date();
@@ -29,6 +30,8 @@ const colours = sky(home?.sunElevation);
 const tonight = meals?.find((m) => m.date === today && m.type === "dinner") ?? meals?.find((m) => m.date === today);
 const laterMeals = meals?.filter((m) => m !== tonight && m.type === "dinner" && m.date !== today).slice(0, 4) ?? [];
 const weekday = (iso: string) => format(new Date(`${iso}T12:00:00Z`), { weekday: "long" });
+const tomorrow = isoDay(addDays(now, 1));
+const dayName = (iso: string) => (iso === today ? "Today" : iso === tomorrow ? "Tomorrow" : weekday(iso));
 const dayLabel = (date: Date) => (isoDay(date) === today ? "Today" : format(date, { weekday: "long" }));
 const days = Object.entries(Object.groupBy(upcoming ?? [], (u) => dayLabel(u.date))).slice(0, 4);
 const time = format(now, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
@@ -152,6 +155,33 @@ Astro.response.headers.set("Cache-Control", "no-store");
         }
 
         {
+          events && (
+            <section class="panel calendar" aria-labelledby="calendar-heading">
+              <div class="panel-head">
+                <h2 id="calendar-heading">This week</h2>
+                <button type="button" class="plan" data-open="add-event">
+                  Add
+                </button>
+              </div>
+              {events.length ? (
+                <ul class="week">
+                  {events.slice(0, 8).map((e) => (
+                    <li>
+                      <span>{dayName(e.day)}</span>
+                      <p>
+                        {e.time && <strong>{e.time}</strong>} {e.summary}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p class="quiet">Nothing on the calendar this week.</p>
+              )}
+            </section>
+          )
+        }
+
+        {
           days.length > 0 && (
             <section class="panel coming" aria-labelledby="coming-heading">
               <h2 id="coming-heading">Coming this week</h2>
@@ -179,6 +209,36 @@ Astro.response.headers.set("Cache-Control", "no-store");
       </main>
 
       {home?.weather && <Weather id="weather-details" weather={home.weather} />}
+
+      {
+        events && (
+          <dialog class="sheet" id="add-event" aria-labelledby="add-event-heading">
+            <form data-event>
+              <h2 id="add-event-heading">Add to the calendar</h2>
+              <label>
+                What
+                <input name="summary" required maxlength="100" autocomplete="off" />
+              </label>
+              <div class="when">
+                <label>
+                  Day
+                  <input name="date" type="date" required value={today} />
+                </label>
+                <label>
+                  Time, or leave empty for all day
+                  <input name="time" type="time" />
+                </label>
+              </div>
+              <div class="actions">
+                <button type="button" class="secondary" data-close>
+                  Cancel
+                </button>
+                <button type="submit">Add</button>
+              </div>
+            </form>
+          </dialog>
+        )
+      }
     </div>
 
     <dialog class="doorbell" aria-labelledby="doorbell-heading">
@@ -264,6 +324,11 @@ Astro.response.headers.set("Cache-Control", "no-store");
           setTimeout(() => sheet.close(), 120_000);
           return;
         }
+        const close = (event.target as Element).closest("[data-close]");
+        if (close) {
+          close.closest("dialog")!.close();
+          return;
+        }
         const item = (event.target as Element).closest<HTMLButtonElement>("button[data-done]");
         if (!item) return;
         item.classList.add("done");
@@ -277,6 +342,26 @@ Astro.response.headers.set("Cache-Control", "no-store");
       });
 
       document.addEventListener("submit", async (event) => {
+        const add = (event.target as Element).closest<HTMLFormElement>("form[data-event]");
+        if (add) {
+          event.preventDefault();
+          const submit = add.querySelector<HTMLButtonElement>("button[type='submit']")!;
+          submit.disabled = true;
+          submit.textContent = "Adding…";
+          const res = await fetch("/kitchen/api/calendar", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(Object.fromEntries(new FormData(add))),
+          }).catch(() => undefined);
+          submit.disabled = false;
+          if (!res?.ok) {
+            submit.textContent = "Couldn't add, try again";
+            return;
+          }
+          add.closest("dialog")!.close();
+          await refresh();
+          return;
+        }
         const form = (event.target as Element).closest<HTMLFormElement>("form[data-shopping]");
         if (!form) return;
         event.preventDefault();
@@ -534,6 +619,14 @@ Astro.response.headers.set("Cache-Control", "no-store");
     margin-bottom: 0;
   }
 
+  .calendar .week {
+    margin-top: 0;
+  }
+
+  .calendar p {
+    margin: 0;
+  }
+
   .plan {
     padding: 0.4rem 0.9rem;
     border-radius: 10px;
@@ -541,6 +634,80 @@ Astro.response.headers.set("Cache-Control", "no-store");
     font-size: 1rem;
     font-weight: 700;
     text-decoration: none;
+  }
+
+  button.plan {
+    border: 0;
+    color: inherit;
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  .sheet {
+    width: min(92vw, 640px);
+    padding: 1.5rem;
+    border: 0;
+    border-radius: 20px;
+    background: var(--paper);
+    color: var(--ink);
+  }
+
+  .sheet::backdrop {
+    background: rgb(0 0 0 / 0.6);
+  }
+
+  .sheet form {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .sheet h2 {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+  }
+
+  .sheet label {
+    display: grid;
+    gap: 0.35rem;
+    color: var(--muted);
+    font-size: 1rem;
+  }
+
+  .sheet input {
+    padding: 0.7rem 0.9rem;
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    background: var(--paper);
+    color: var(--ink);
+    font: inherit;
+    font-size: 1.25rem;
+  }
+
+  .when {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: 1rem;
+  }
+
+  .actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+  }
+
+  .actions button {
+    padding: 0.7rem 1.2rem;
+    border: 0;
+    border-radius: 12px;
+    background: var(--lake);
+    color: var(--paper);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .actions .secondary {
+    background: var(--panel);
+    color: var(--ink);
   }
 
   .items {

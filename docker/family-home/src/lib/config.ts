@@ -16,6 +16,7 @@ export type Config = {
     people: string[];
     buttons?: string;
     shoppingList?: string;
+    calendars?: string[];
     doorbell?: { sensor: string; camera: string; unlock?: string };
   };
   jellyfin: { url: string; userId: string };

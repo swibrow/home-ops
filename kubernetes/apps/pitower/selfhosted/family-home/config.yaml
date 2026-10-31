@@ -17,6 +17,9 @@ homeAssistant:
     camera: camera.doorbell
   # Entities with this Home Assistant label become buttons; the first alias names each one.
   buttons: kitchen_display
+  # Events from these show on the start and kitchen pages; the kitchen adds new ones to the first.
+  calendars:
+    - calendar.home
 
 jellyfin:
   url: https://jellyfin.wibrow.dev

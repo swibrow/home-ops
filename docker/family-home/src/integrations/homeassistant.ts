@@ -1,5 +1,6 @@
 import { cached, forget, getJson } from "../lib/cache";
 import { config, env } from "../lib/config";
+import { addDays, format, isoDay } from "../lib/time";
 
 type State = { entity_id: string; state: string; attributes: Record<string, any> };
 type Forecast = { datetime: string; condition: string; temperature: number; templow?: number; precipitation?: number };
@@ -245,5 +246,46 @@ export async function unlockDoor() {
   if (person.state !== "on" && Date.now() - Date.parse(person.last_changed) > 120_000) return false;
   const [domain] = entity.split(".");
   const res = await callService(domain, domain === "lock" ? "unlock" : (services[domain] ?? "turn_on"), { entity_id: entity });
+  return res.ok;
+}
+
+type When = { date?: string; dateTime?: string };
+type CalendarEvent = { summary: string; start: When; end: When };
+export type Happening = { summary: string; day: string; time?: string };
+
+export const loadEvents = () =>
+  url && token && ha.calendars?.length
+    ? cached("ha:events", 60, async () => {
+        const start = new Date();
+        const range = `start=${start.toISOString()}&end=${addDays(start, 7).toISOString()}`;
+        const lists = await Promise.all(
+          ha.calendars!.map((id) => getJson<CalendarEvent[]>(`${url}/api/calendars/${id}?${range}`, { headers })),
+        );
+        const today = isoDay(start);
+        return lists
+          .flat()
+          .map((e): Happening => {
+            const at = e.start.dateTime ? new Date(e.start.dateTime) : undefined;
+            const day = e.start.date ?? isoDay(at);
+            return {
+              summary: e.summary,
+              day: day < today ? today : day,
+              time: at && format(at, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }),
+            };
+          })
+          .sort((a, b) => (a.day + (a.time ?? "")).localeCompare(b.day + (b.time ?? "")));
+      })
+    : undefined;
+
+// Timed events last an hour; Home Assistant reads the naive times in its own timezone.
+export async function addEvent({ summary, date, time }: { summary: string; date: string; time?: string }) {
+  if (!url || !token || !ha.calendars?.length) return false;
+  const naive = (d: Date) => d.toISOString().slice(0, 19).replace("T", " ");
+  const start = new Date(`${date}T${time ?? "00:00"}:00Z`);
+  const body = time
+    ? { start_date_time: naive(start), end_date_time: naive(addDays(start, 1 / 24)) }
+    : { start_date: date, end_date: isoDay(addDays(start, 1)) };
+  const res = await callService("calendar", "create_event", { entity_id: ha.calendars[0], summary, ...body });
+  forget("ha:events");
   return res.ok;
 }

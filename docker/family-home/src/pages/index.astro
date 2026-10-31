@@ -9,7 +9,7 @@ import Switches from "../components/Switches.astro";
 import Weather from "../components/Weather.astro";
 import { loadBudget } from "../integrations/actual";
 import { loadUpcoming } from "../integrations/arr";
-import { loadHome } from "../integrations/homeassistant";
+import { loadEvents, loadHome } from "../integrations/homeassistant";
 import { loadMemory } from "../integrations/immich";
 import { loadJellyfin } from "../integrations/jellyfin";
 import { loadMeals } from "../integrations/mealie";
@@ -17,7 +17,7 @@ import { loadStatus } from "../integrations/status";
 import { settle } from "../lib/cache";
 import { config } from "../lib/config";
 import { sky } from "../lib/sky";
-import { format, hour, isoDay, money } from "../lib/time";
+import { addDays, format, hour, isoDay, money } from "../lib/time";
 import { canSee, personFor, viewer } from "../lib/viewer";
 
 const me = viewer(Astro.request.headers);
@@ -28,7 +28,7 @@ const categories = config.categories
 const apps = categories.flatMap((c) => c.apps);
 const sees = (status: string) => apps.some((a) => a.status === status);
 
-const [home, media, upcoming, memory, meals, budget, down] = await Promise.all([
+const [home, media, upcoming, memory, meals, budget, down, events] = await Promise.all([
   settle("homeassistant", loadHome()),
   settle("jellyfin", loadJellyfin(mine?.jellyfinUserId)),
   settle("arr", loadUpcoming()),
@@ -36,6 +36,7 @@ const [home, media, upcoming, memory, meals, budget, down] = await Promise.all([
   settle("mealie", loadMeals()),
   settle("actual", sees("actual") ? loadBudget() : undefined),
   settle("status", loadStatus()),
+  settle("calendar", loadEvents()),
 ]);
 
 const now = new Date();
@@ -49,6 +50,8 @@ const today = isoDay(now);
 const tonight = meals?.find((m) => m.date === today && m.type === "dinner") ?? meals?.find((m) => m.date === today);
 const laterMeals = meals?.filter((m) => m !== tonight && m.type === "dinner" && m.date !== today) ?? [];
 const weekday = (iso: string) => format(new Date(`${iso}T12:00:00Z`), { weekday: "long" });
+const tomorrow = isoDay(addDays(now, 1));
+const dayName = (iso: string) => (iso === today ? "Today" : iso === tomorrow ? "Tomorrow" : weekday(iso));
 const dayLabel = (date: Date) =>
   isoDay(date) === today ? "Today" : format(date, { weekday: "long" });
 const upcomingByDay = Object.entries(
@@ -150,6 +153,24 @@ Astro.response.headers.set("Cache-Control", "no-store");
                   ))}
                 </ul>
               )}
+            </article>
+          )
+        }
+
+        {
+          !!events?.length && (
+            <article class="calendar">
+              <h3>Coming up</h3>
+              <ul class="week">
+                {events.slice(0, 6).map((e) => (
+                  <li>
+                    <span>{dayName(e.day)}</span>
+                    <p>
+                      {e.time && <strong>{e.time}</strong>} {e.summary}
+                    </p>
+                  </li>
+                ))}
+              </ul>
             </article>
           )
         }
@@ -526,6 +547,14 @@ Astro.response.headers.set("Cache-Control", "no-store");
 
   .week a {
     text-decoration: none;
+  }
+
+  .calendar .week {
+    margin-top: 0;
+  }
+
+  .calendar p {
+    margin: 0;
   }
 
   .posters {
