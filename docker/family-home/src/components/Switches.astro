@@ -98,12 +98,15 @@ const { actions, endpoint } = Astro.props;
   }
 
   .switch[aria-pressed="true"] {
+    background: rgb(242 196 109 / 0.22);
     background: color-mix(in srgb, #f2c46d 22%, var(--paper));
+    border-color: #d9a441;
     border-color: color-mix(in srgb, #d9a441 60%, var(--rule));
   }
 
   .switch[aria-pressed="true"] .lamp {
     background: #f2c46d;
+    box-shadow: 0 0 0 4px rgb(242 196 109 / 0.35);
     box-shadow: 0 0 0 4px color-mix(in srgb, #f2c46d 35%, transparent);
   }
 

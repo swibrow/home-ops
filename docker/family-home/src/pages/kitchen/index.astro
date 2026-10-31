@@ -334,6 +334,7 @@ Astro.response.headers.set("Cache-Control", "no-store");
 
   .sky {
     --sky-ink: #f4f7f8;
+    --sky-ink-rgb: 244 247 248;
     position: relative;
     background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 92%);
     color: var(--sky-ink);
@@ -341,6 +342,7 @@ Astro.response.headers.set("Cache-Control", "no-store");
 
   .sky[data-ink="dark"] {
     --sky-ink: #16242a;
+    --sky-ink-rgb: 22 36 42;
   }
 
   .sky-inner {
@@ -380,6 +382,8 @@ Astro.response.headers.set("Cache-Control", "no-store");
     padding: 0.15rem 0.6rem 0.25rem;
     border: 0;
     border-radius: 14px;
+    /* Fallback first: Safari before 16.2 drops color-mix and paints its default black button. */
+    background: rgb(var(--sky-ink-rgb) / 0.1);
     background: color-mix(in srgb, currentColor 10%, transparent);
     color: inherit;
     font-family: inherit;
@@ -411,6 +415,7 @@ Astro.response.headers.set("Cache-Control", "no-store");
     display: grid;
     padding: 0.6rem 1.1rem 0.7rem;
     border-radius: 16px;
+    background: rgb(var(--sky-ink-rgb) / 0.14);
     background: color-mix(in srgb, currentColor 14%, transparent);
     font-size: 1.125rem;
   }
