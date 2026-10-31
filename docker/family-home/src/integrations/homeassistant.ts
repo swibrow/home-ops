@@ -245,7 +245,8 @@ export async function unlockDoor() {
   const person = await getJson<State & { last_changed: string }>(`${url}/api/states/${ha.doorbell!.sensor}`, { headers });
   if (person.state !== "on" && Date.now() - Date.parse(person.last_changed) > 120_000) return false;
   const [domain] = entity.split(".");
-  const res = await callService(domain, domain === "lock" ? "unlock" : (services[domain] ?? "turn_on"), { entity_id: entity });
+  // lock.open also retracts the latch, so the door can be pushed open.
+  const res = await callService(domain, domain === "lock" ? "open" : (services[domain] ?? "turn_on"), { entity_id: entity });
   return res.ok;
 }
 

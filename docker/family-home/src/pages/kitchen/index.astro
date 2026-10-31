@@ -245,7 +245,7 @@ Astro.response.headers.set("Cache-Control", "no-store");
       <h2 id="doorbell-heading">Someone is at the door</h2>
       <img alt="Doorbell camera" />
       <form method="dialog">
-        {config.homeAssistant.doorbell?.unlock && <button type="button" class="unlock">Unlock the door</button>}
+        {config.homeAssistant.doorbell?.unlock && <button type="button" class="unlock">Open the door</button>}
         <button autofocus>Close</button>
       </form>
     </dialog>
@@ -393,16 +393,16 @@ Astro.response.headers.set("Cache-Control", "no-store");
       const unlock = dialog.querySelector<HTMLButtonElement>(".unlock");
       unlock?.addEventListener("click", async () => {
         unlock.disabled = true;
-        unlock.textContent = "Unlocking…";
+        unlock.textContent = "Opening…";
         // Astro rejects a POST without a JSON content type as a cross-site form submission.
         const ok = await fetch("/kitchen/api/unlock", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).then(
           (res) => res.ok,
           () => false,
         );
-        unlock.textContent = ok ? "Door unlocked" : "Couldn't unlock, try again";
+        unlock.textContent = ok ? "Door opened" : "Couldn't open, try again";
         setTimeout(() => {
           unlock.disabled = false;
-          unlock.textContent = "Unlock the door";
+          unlock.textContent = "Open the door";
         }, 5_000);
       });
       dialog.addEventListener("close", () => {
