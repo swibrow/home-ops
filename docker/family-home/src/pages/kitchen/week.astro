@@ -3,6 +3,7 @@ import "@fontsource-variable/bricolage-grotesque/standard.css";
 import "@fontsource-variable/atkinson-hyperlegible-next/index.css";
 import favicon from "../../../public/favicon.svg?raw";
 import "../../styles/global.css";
+import Reload from "../../components/Reload.astro";
 import { loadShopping } from "../../integrations/homeassistant";
 import { loadRecipes, loadWeek, mealTypes, suits, weekDays, weekShopping } from "../../integrations/mealie";
 import { settle } from "../../lib/cache";
@@ -35,6 +36,7 @@ Astro.response.headers.set("Cache-Control", "no-store");
     <link rel="apple-touch-icon" href="/kitchen/icon-180.png" />
     <title>Meals</title>
     <link rel="icon" href={`data:image/svg+xml,${encodeURIComponent(favicon)}`} type="image/svg+xml" />
+    <Reload src="/kitchen/api/version" />
   </head>
   <body>
     <div id="live">

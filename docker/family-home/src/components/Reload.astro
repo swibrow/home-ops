@@ -1,0 +1,20 @@
+---
+import { version } from "../lib/version";
+
+// Reloads the page once the server has restarted with new code or config.
+type Props = { src: string };
+const { src } = Astro.props;
+---
+
+<meta name="version" content={version} data-src={src} />
+
+<script>
+  const meta = document.querySelector<HTMLMetaElement>('meta[name="version"]')!;
+  setInterval(async () => {
+    if (document.querySelector("dialog[open], input:focus")) return;
+    try {
+      const res = await fetch(meta.dataset.src!, { cache: "no-store" });
+      if (res.ok && (await res.text()) !== meta.content) location.reload();
+    } catch {}
+  }, 60_000);
+</script>

@@ -4,6 +4,7 @@ import "@fontsource-variable/atkinson-hyperlegible-next/index.css";
 import "../styles/global.css";
 import Horizon from "../components/Horizon.astro";
 import Poster from "../components/Poster.astro";
+import Reload from "../components/Reload.astro";
 import Switches from "../components/Switches.astro";
 import Weather from "../components/Weather.astro";
 import { loadBudget } from "../integrations/actual";
@@ -69,6 +70,7 @@ Astro.response.headers.set("Cache-Control", "no-store");
     <title>{config.household} home</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     {config.analyticsSiteId && <script is:inline src="https://insights.wibrow.dev/api/script.js" data-site-id={config.analyticsSiteId} defer />}
+    <Reload src="/api/version" />
   </head>
   <body>
     <header class="sky" data-ink={colours.ink} style={`--sky-top:${colours.top};--sky-bottom:${colours.bottom}`}>

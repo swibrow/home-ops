@@ -236,3 +236,14 @@ export const doorbellSnapshot = () =>
   url && token && ha.doorbell
     ? fetch(`${url}/api/camera_proxy/${ha.doorbell.camera}`, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(5000) })
     : undefined;
+
+// Only while someone is or just was at the door, so the open kitchen page can't unlock it at any time.
+export async function unlockDoor() {
+  const entity = ha.doorbell?.unlock;
+  if (!url || !token || !entity) return undefined;
+  const person = await getJson<State & { last_changed: string }>(`${url}/api/states/${ha.doorbell!.sensor}`, { headers });
+  if (person.state !== "on" && Date.now() - Date.parse(person.last_changed) > 120_000) return false;
+  const [domain] = entity.split(".");
+  const res = await callService(domain, domain === "lock" ? "unlock" : (services[domain] ?? "turn_on"), { entity_id: entity });
+  return res.ok;
+}

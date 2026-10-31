@@ -4,6 +4,7 @@ import "@fontsource-variable/atkinson-hyperlegible-next/index.css";
 import favicon from "../../../public/favicon.svg?raw";
 import "../../styles/global.css";
 import Horizon from "../../components/Horizon.astro";
+import Reload from "../../components/Reload.astro";
 import Switches from "../../components/Switches.astro";
 import Weather from "../../components/Weather.astro";
 import { loadUpcoming } from "../../integrations/arr";
@@ -48,6 +49,7 @@ Astro.response.headers.set("Cache-Control", "no-store");
     <meta name="theme-color" content={colours.top} />
     <title>Kitchen</title>
     <link rel="icon" href={`data:image/svg+xml,${encodeURIComponent(favicon)}`} type="image/svg+xml" />
+    <Reload src="/kitchen/api/version" />
   </head>
   <body>
     <div id="live">
@@ -180,7 +182,10 @@ Astro.response.headers.set("Cache-Control", "no-store");
     <dialog class="doorbell" aria-labelledby="doorbell-heading">
       <h2 id="doorbell-heading">Someone is at the door</h2>
       <img alt="Doorbell camera" />
-      <form method="dialog"><button>Close</button></form>
+      <form method="dialog">
+        {config.homeAssistant.doorbell?.unlock && <button type="button" class="unlock">Unlock the door</button>}
+        <button autofocus>Close</button>
+      </form>
     </dialog>
 
     <script>
@@ -298,6 +303,17 @@ Astro.response.headers.set("Cache-Control", "no-store");
           }
         } catch {}
       }, 4_000);
+      const unlock = dialog.querySelector<HTMLButtonElement>(".unlock");
+      unlock?.addEventListener("click", async () => {
+        unlock.disabled = true;
+        unlock.textContent = "Unlocking…";
+        const ok = await fetch("/kitchen/api/unlock", { method: "POST" }).then((res) => res.ok, () => false);
+        unlock.textContent = ok ? "Door unlocked" : "Couldn't unlock, try again";
+        setTimeout(() => {
+          unlock.disabled = false;
+          unlock.textContent = "Unlock the door";
+        }, 5_000);
+      });
       dialog.addEventListener("close", () => {
         if (Date.now() - lastRing < 60_000) dialog.dataset.dismissed = "true";
       });
@@ -668,6 +684,7 @@ Astro.response.headers.set("Cache-Control", "no-store");
   .doorbell form {
     display: flex;
     justify-content: flex-end;
+    gap: 0.75rem;
     margin-top: 1rem;
   }
 
