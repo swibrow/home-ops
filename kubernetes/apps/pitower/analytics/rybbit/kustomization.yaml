@@ -6,6 +6,7 @@ namespace: analytics
 resources:
   - externalsecret.yaml
   - clickhouse-configmap.yaml
+  - dragonfly.yaml
 components:
   - ../../../../components/cnpg-db-shared
   - ../../../../components/pvc

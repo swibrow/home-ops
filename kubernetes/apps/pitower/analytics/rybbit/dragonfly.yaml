@@ -1,0 +1,16 @@
+---
+apiVersion: dragonflydb.io/v1alpha1
+kind: Dragonfly
+metadata:
+  name: rybbit-dragonfly
+  namespace: analytics
+spec:
+  replicas: 1
+  # maxmemory instead of a pod limit; Dragonfly needs more than 256Mi per io thread.
+  args:
+    - "--proactor_threads=1"
+    - "--maxmemory=512mb"
+  resources:
+    requests:
+      cpu: 20m
+      memory: 64Mi
