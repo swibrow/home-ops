@@ -67,8 +67,6 @@ controllers:
           requests:
             cpu: 341m
             memory: 153Mi
-          limits:
-            memory: 1Gi
 
   client:
     annotations:
@@ -96,8 +94,6 @@ controllers:
           requests:
             cpu: 10m
             memory: 124Mi
-          limits:
-            memory: 512Mi
 
   clickhouse:
     type: statefulset
@@ -157,8 +153,6 @@ controllers:
           requests:
             cpu: 75m
             memory: 512Mi
-          limits:
-            memory: 2Gi
 
 service:
   backend:
