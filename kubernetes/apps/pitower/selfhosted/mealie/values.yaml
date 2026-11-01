@@ -1,5 +1,7 @@
 controllers:
   mealie:
+    annotations:
+      reloader.stakater.com/auto: "true"
     containers:
       app:
         image:
@@ -61,3 +63,25 @@ persistence:
     existingClaim: mealie-data
     globalMounts:
       - path: /app/data
+  openai-patch:
+    type: configMap
+    name: mealie-openai-patch
+    globalMounts:
+      - path: /opt/mealie/lib/python3.14/site-packages/mealie/services/openai/openai.py
+        subPath: openai.py
+        readOnly: true
+  # The AI provider's API key is file:gateway. The app drops to uid 911, so
+  # the token needs to be world-readable.
+  ai-providers:
+    type: custom
+    volumeSpec:
+      projected:
+        defaultMode: 0444
+        sources:
+          - serviceAccountToken:
+              audience: agentgateway
+              expirationSeconds: 3600
+              path: gateway
+    globalMounts:
+      - path: /run/secrets/ai-providers
+        readOnly: true
