@@ -16,5 +16,13 @@ const { actions } = Astro.props;
   .lights {
     --switch-min: 10rem;
     --switch-pad: clamp(0.7rem, 1.6vh, 1.1rem) 1rem;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .lights :global(.switches) {
+    flex: 1;
+    grid-auto-rows: 1fr;
   }
 </style>
