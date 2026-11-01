@@ -15,7 +15,7 @@ controllers:
       app:
         image:
           repository: ghcr.io/swibrow/family-home
-          tag: 0.3.2
+          tag: 0.3.3
         env:
           TZ: Europe/Zurich
           DATA_DIR: /data
