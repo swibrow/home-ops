@@ -16,7 +16,6 @@ spec:
   cors:
     allowOrigins:
       - "https://wibrow.dev"
-      - "https://samuel.wibrow.dev"
       # Cloudflare Pages preview deployments
       - "https://*.wibrow-blog.pages.dev"
       # Local blog development
