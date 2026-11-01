@@ -1,0 +1,20 @@
+---
+import type { Button } from "../../integrations/homeassistant";
+import Switches from "../Switches.astro";
+import "./panel.css";
+
+type Props = { actions: Button[] };
+const { actions } = Astro.props;
+---
+
+<section class="panel lights" aria-labelledby="lights-heading">
+  <h2 id="lights-heading">Lights</h2>
+  <Switches actions={actions} endpoint="/kitchen/api/action" />
+</section>
+
+<style>
+  .lights {
+    --switch-min: 10rem;
+    --switch-pad: clamp(0.7rem, 1.6vh, 1.1rem) 1rem;
+  }
+</style>

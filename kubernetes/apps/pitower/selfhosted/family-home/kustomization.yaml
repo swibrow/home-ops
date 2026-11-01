@@ -6,7 +6,23 @@ namespace: selfhosted
 resources:
   - externalsecret.yaml
   - securitypolicy.yaml
+components:
+  - ../../../../components/pvc
+  - ../../../../components/kopiur
 configMapGenerator:
+  - name: pvc-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=family-home-pvc
+      - CLAIM_NAME=family-home-data
+      - STORAGE_SIZE=1Gi
+  - name: kopiur-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+      - APP_NAME=family-home-kopiur
+      - CLAIM_NAME=family-home-data
   - name: family-home-config
     files:
       - config.yaml

@@ -123,6 +123,56 @@ const forecast = (type: "daily" | "hourly") =>
     return body.service_response[ha.weather]?.forecast ?? [];
   });
 
+export type Daypart = "night" | "dawn" | "day" | "dusk";
+
+// The sun entity only knows the next rise and set, so earlier and later ones are a day apart.
+function daypart(at: number, rise: number, set: number): Daypart {
+  const events = [-1, 0, 1].flatMap((d) => [
+    { at: rise + d * 86_400_000, up: true },
+    { at: set + d * 86_400_000, up: false },
+  ]);
+  const near = events.find((e) => Math.abs(e.at - at) < 2_700_000);
+  if (near) return near.up ? "dawn" : "dusk";
+  return events.filter((e) => e.at <= at).sort((a, b) => b.at - a.at)[0].up ? "day" : "night";
+}
+
+export type SkySlot = { label: string; temperature: number; condition: string; daypart: Daypart };
+
+// Now and every four hours up to twelve hours ahead.
+export const loadSky = () =>
+  url && token
+    ? cached("ha:sky", 120, async () => {
+        const [weather, sun, hourly] = await Promise.all([
+          getJson<State>(`${url}/api/states/${ha.weather}`, { headers }),
+          getJson<State>(`${url}/api/states/${ha.sun}`, { headers }),
+          forecast("hourly"),
+        ]);
+        const rise = Date.parse(sun.attributes.next_rising);
+        const set = Date.parse(sun.attributes.next_setting);
+        const now = Date.now();
+        const ahead = [4, 8, 12].flatMap((h) => {
+          const f = hourly.find((f) => Math.abs(Date.parse(f.datetime) - now - h * 3_600_000) <= 1_800_000);
+          if (!f) return [];
+          const at = Date.parse(f.datetime);
+          return [
+            {
+              label: format(new Date(at), { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }),
+              temperature: Math.round(f.temperature),
+              condition: f.condition,
+              daypart: daypart(at, rise, set),
+            },
+          ];
+        });
+        const current: SkySlot = {
+          label: "Now",
+          temperature: Math.round(weather.attributes.temperature),
+          condition: weather.state,
+          daypart: daypart(now, rise, set),
+        };
+        return [current, ...ahead];
+      })
+    : undefined;
+
 const compass = (degrees: number) =>
   ["north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"][Math.round(degrees / 45) % 8];
 

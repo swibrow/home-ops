@@ -3,38 +3,52 @@ import "@fontsource-variable/bricolage-grotesque/standard.css";
 import "@fontsource-variable/atkinson-hyperlegible-next/index.css";
 import favicon from "../../../public/favicon.svg?raw";
 import "../../styles/global.css";
+import EditButton from "../../components/EditButton.astro";
 import Horizon from "../../components/Horizon.astro";
 import Reload from "../../components/Reload.astro";
 import ReloadButton from "../../components/ReloadButton.astro";
-import Switches from "../../components/Switches.astro";
+import SkyScene from "../../components/SkyScene.astro";
 import Weather from "../../components/Weather.astro";
+import Calendar from "../../components/widgets/Calendar.astro";
+import Coming from "../../components/widgets/Coming.astro";
+import Dinner from "../../components/widgets/Dinner.astro";
+import Lights from "../../components/widgets/Lights.astro";
+import Meals from "../../components/widgets/Meals.astro";
+import "../../components/widgets/panel.css";
+import Shopping from "../../components/widgets/Shopping.astro";
 import { loadUpcoming } from "../../integrations/arr";
 import { loadEvents, loadHome, loadShopping } from "../../integrations/homeassistant";
 import { loadMeals } from "../../integrations/mealie";
 import { settle } from "../../lib/cache";
 import { config } from "../../lib/config";
+import { loadLayout } from "../../lib/layout";
 import { sky } from "../../lib/sky";
-import { addDays, format, isoDay } from "../../lib/time";
+import { format } from "../../lib/time";
+import { widgets, type WidgetId } from "../../lib/widgets";
+
+const layout = await loadLayout();
+const placed = new Set(layout.pages.flatMap((p) => p.widgets));
 
 const [home, meals, upcoming, shopping, events] = await Promise.all([
   settle("homeassistant", loadHome()),
-  settle("mealie", loadMeals()),
-  settle("arr", loadUpcoming()),
-  settle("shopping", loadShopping()),
-  settle("calendar", loadEvents()),
+  settle("mealie", placed.has("dinner") || placed.has("meals") ? loadMeals() : undefined),
+  settle("arr", placed.has("coming") ? loadUpcoming() : undefined),
+  settle("shopping", placed.has("shopping") ? loadShopping() : undefined),
+  settle("calendar", placed.has("calendar") ? loadEvents() : undefined),
 ]);
 
 const now = new Date();
-const today = isoDay(now);
 const colours = sky(home?.sunElevation);
-const tonight = meals?.find((m) => m.date === today && m.type === "dinner") ?? meals?.find((m) => m.date === today);
-const laterMeals = meals?.filter((m) => m !== tonight && m.type === "dinner" && m.date !== today).slice(0, 4) ?? [];
-const weekday = (iso: string) => format(new Date(`${iso}T12:00:00Z`), { weekday: "long" });
-const tomorrow = isoDay(addDays(now, 1));
-const dayName = (iso: string) => (iso === today ? "Today" : iso === tomorrow ? "Tomorrow" : weekday(iso));
-const dayLabel = (date: Date) => (isoDay(date) === today ? "Today" : format(date, { weekday: "long" }));
-const days = Object.entries(Object.groupBy(upcoming ?? [], (u) => dayLabel(u.date))).slice(0, 4);
 const time = format(now, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+const shows: Record<WidgetId, boolean> = {
+  dinner: true,
+  shopping: !!shopping,
+  lights: !!home?.actions.length,
+  calendar: !!events,
+  coming: !!upcoming?.length,
+  meals: !!meals,
+};
+const pageOf = Object.fromEntries(layout.pages.flatMap((p) => p.widgets.map((w) => [w, p])));
 
 Astro.response.headers.set("Cache-Control", "no-store");
 ---
@@ -58,7 +72,9 @@ Astro.response.headers.set("Cache-Control", "no-store");
   <body>
     <div id="live">
       <header class="sky" data-ink={colours.ink} style={`--sky-top:${colours.top};--sky-bottom:${colours.bottom}`}>
+        <SkyScene />
         <ReloadButton />
+        <EditButton />
         <div class="sky-inner">
           <time class="clock" data-timezone={config.timezone}>{time}</time>
           <div class="day">
@@ -86,159 +102,110 @@ Astro.response.headers.set("Cache-Control", "no-store");
         <Horizon />
       </header>
 
-      <main>
-        <section class="panel dinner" aria-labelledby="dinner-heading">
-          <div class="panel-head">
-            <h2 id="dinner-heading">{tonight && tonight.type !== "dinner" ? `Today's ${tonight.type}` : "Dinner tonight"}</h2>
-            <a class="plan" href="/kitchen/week">Plan the week</a>
-          </div>
-          {
-            tonight ? (
-              <div class="tonight">
-                {tonight.image && <img src={tonight.image} alt="" />}
-                <p class="dish">{tonight.name}</p>
-              </div>
-            ) : (
-              <p class="dish quiet">Nothing planned yet</p>
-            )
-          }
-          {
-            laterMeals.length > 0 && (
-              <ul class="week">
-                {laterMeals.map((m) => (
-                  <li>
-                    <span>{weekday(m.date)}</span>
-                    {m.name}
-                  </li>
-                ))}
-              </ul>
-            )
-          }
-        </section>
-
+      <nav class="tabs" aria-label="Pages" data-count={layout.pages.length}>
         {
-          shopping && (
-            <section class="panel shopping" aria-labelledby="shopping-heading">
-              <h2 id="shopping-heading">Shopping list</h2>
-              {shopping.length ? (
-                <ul class="items">
-                  {shopping.map((item) => (
-                    <li>
-                      <button type="button" class="item" data-done={item.uid}>
-                        <span class="box" aria-hidden="true" />
-                        {item.summary}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p class="quiet">The list is empty.</p>
-              )}
-              <form class="add" data-shopping>
-                <label class="visually-hidden" for="add-item">
-                  Add to the shopping list
+          layout.pages.map((page, i) => (
+            <button type="button" data-goto={i} aria-current={i === 0 ? "true" : "false"}>
+              {page.name}
+            </button>
+          ))
+        }
+        <button type="button" class="edit-only" data-edit="add-page">Add page</button>
+        <button type="button" class="edit-only done" data-edit="toggle">Done</button>
+        <p class="edit-status edit-only" role="status"></p>
+      </nav>
+
+      <main class="pages">
+        {
+          layout.pages.map((page) => (
+            <section class="page" aria-label={page.name}>
+              <form class="page-tools edit-only" data-rename={page.id}>
+                <label class="visually-hidden" for={`name-${page.id}`}>
+                  Page name
                 </label>
-                <input id="add-item" name="add" autocomplete="off" placeholder="Add something…" maxlength="100" />
-                <button type="submit">Add</button>
-              </form>
-            </section>
-          )
-        }
-
-        {
-          !!home?.actions.length && (
-            <section class="panel lights" aria-labelledby="lights-heading">
-              <h2 id="lights-heading">Lights</h2>
-              <Switches actions={home.actions} endpoint="/kitchen/api/action" />
-            </section>
-          )
-        }
-
-        {
-          events && (
-            <section class="panel calendar" aria-labelledby="calendar-heading">
-              <div class="panel-head">
-                <h2 id="calendar-heading">This week</h2>
-                <button type="button" class="plan" data-open="add-event">
-                  Add
+                <input id={`name-${page.id}`} name="name" value={page.name} maxlength="24" autocomplete="off" required />
+                <button type="button" data-edit="add" data-page={page.id}>
+                  Add widget
                 </button>
+                <button type="button" class="secondary" data-edit="remove-page" data-page={page.id} disabled={layout.pages.length === 1}>
+                  Remove page
+                </button>
+              </form>
+              {!page.widgets.length && <p class="quiet empty">Nothing on this page yet. Use the pencil button to add widgets.</p>}
+              <div class="grid">
+                {page.widgets.map((id, i) => {
+                  const widget = widgets.find((w) => w.id === id)!;
+                  return (
+                    <div class:list={["widget", { wide: "wide" in widget }]} data-empty={!shows[id] || undefined}>
+                      <div class="widget-tools edit-only">
+                        <strong>{widget.name}</strong>
+                        <button type="button" data-edit="earlier" data-widget={id} disabled={i === 0} aria-label={`Move ${widget.name} earlier`}>
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M15 5l-7 7 7 7" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          data-edit="later"
+                          data-widget={id}
+                          disabled={i === page.widgets.length - 1}
+                          aria-label={`Move ${widget.name} later`}
+                        >
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                        <button type="button" data-edit="remove" data-widget={id} aria-label={`Remove ${widget.name}`}>
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M6 6l12 12M18 6L6 18" />
+                          </svg>
+                        </button>
+                      </div>
+                      <div class="widget-body">
+                        {id === "dinner" && <Dinner meals={meals} />}
+                        {id === "shopping" && shopping && <Shopping items={shopping} />}
+                        {id === "lights" && !!home?.actions.length && <Lights actions={home.actions} />}
+                        {id === "calendar" && events && <Calendar events={events} />}
+                        {id === "coming" && !!upcoming?.length && <Coming upcoming={upcoming} />}
+                        {id === "meals" && meals && <Meals meals={meals} />}
+                        {!shows[id] && <p class="quiet">Nothing to show right now.</p>}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              {events.length ? (
-                <ul class="week">
-                  {events.slice(0, 8).map((e) => (
-                    <li>
-                      <span>{dayName(e.day)}</span>
-                      <p>
-                        {e.time && <strong>{e.time}</strong>} {e.summary}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p class="quiet">Nothing on the calendar this week.</p>
-              )}
             </section>
-          )
-        }
-
-        {
-          days.length > 0 && (
-            <section class="panel coming" aria-labelledby="coming-heading">
-              <h2 id="coming-heading">Coming this week</h2>
-              <div class="days">
-                {days.map(([day, items]) => (
-                  <div>
-                    <h3>{day}</h3>
-                    <ul>
-                      {items!.slice(0, 3).map((u) => (
-                        <li>
-                          {u.image ? <img src={u.image} alt="" /> : <span class="thumb" />}
-                          <span>
-                            <strong>{u.title}</strong>
-                            <small>{u.detail}</small>
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )
+          ))
         }
       </main>
 
       {home?.weather && <Weather id="weather-details" weather={home.weather} />}
 
-      {
-        events && (
-          <dialog class="sheet" id="add-event" aria-labelledby="add-event-heading">
-            <form data-event>
-              <h2 id="add-event-heading">Add to the calendar</h2>
-              <label>
-                What
-                <input name="summary" required maxlength="100" autocomplete="off" />
-              </label>
-              <div class="when">
-                <label>
-                  Day
-                  <input name="date" type="date" required value={today} />
-                </label>
-                <label>
-                  Time, or leave empty for all day
-                  <input name="time" type="time" />
-                </label>
-              </div>
-              <div class="actions">
-                <button type="button" class="secondary" data-close>
-                  Cancel
-                </button>
-                <button type="submit">Add</button>
-              </div>
-            </form>
-          </dialog>
-        )
-      }
+      <dialog class="sheet" id="add-widget" aria-labelledby="add-widget-heading">
+        <form method="dialog">
+          <h2 id="add-widget-heading">Add a widget</h2>
+          <ul class="choices">
+            {
+              widgets.map((w) => (
+                <li>
+                  <button type="button" data-edit="place" data-widget={w.id} data-on={pageOf[w.id]?.id}>
+                    <strong>{w.name}</strong>
+                    <span>{w.description}</span>
+                    {pageOf[w.id] && <small>Now on {pageOf[w.id].name}, adding it here moves it</small>}
+                  </button>
+                </li>
+              ))
+            }
+          </ul>
+          <div class="actions">
+            <button type="button" class="secondary" data-close>
+              Cancel
+            </button>
+          </div>
+        </form>
+      </dialog>
+
+      <script is:inline type="application/json" id="layout" set:html={JSON.stringify(layout).replace(/</g, "\\u003c")} />
     </div>
 
     <dialog class="doorbell" aria-labelledby="doorbell-heading">
@@ -293,18 +260,127 @@ Astro.response.headers.set("Cache-Control", "no-store");
         } catch {}
       }, 10_000);
 
-      const refresh = async () => {
-        if (document.querySelector("#live input:focus, #live dialog[open]")) return;
+      const pager = () => document.querySelector<HTMLElement>(".pages");
+      const pageIndex = () => {
+        const el = pager();
+        return el?.clientWidth ? Math.round(el.scrollLeft / el.clientWidth) : 0;
+      };
+      const goTo = (index: number, smooth = true) => {
+        const el = pager();
+        el?.scrollTo({ left: index * el.clientWidth, behavior: smooth ? "smooth" : "auto" });
+      };
+      const markPage = () => {
+        const index = pageIndex();
+        document.querySelectorAll("[data-goto]").forEach((b, i) => b.setAttribute("aria-current", String(i === index)));
+      };
+      document.addEventListener("scroll", (event) => (event.target as Element).classList?.contains("pages") && markPage(), true);
+
+      const editing = () => document.body.classList.contains("editing");
+      const setEditing = (on: boolean) => {
+        document.body.classList.toggle("editing", on);
+        document.querySelector(".edit-toggle")?.setAttribute("aria-pressed", String(on));
+      };
+
+      const refresh = async (force = false) => {
+        if (!force && (editing() || document.querySelector("#live input:focus, #live dialog[open]"))) return;
         try {
           const res = await fetch(location.pathname, { cache: "no-store" });
           if (!res.ok) return;
           const next = new DOMParser().parseFromString(await res.text(), "text/html");
+          const index = pageIndex();
           document.querySelector("#live")!.replaceWith(next.querySelector("#live")!);
+          goTo(index, false);
+          markPage();
+          setEditing(editing());
           clock();
           timers();
         } catch {}
       };
-      setInterval(refresh, 60_000);
+      setInterval(() => refresh(), 60_000);
+
+      let lastInput = Date.now();
+      for (const type of ["pointerdown", "touchstart", "keydown", "wheel"])
+        document.addEventListener(type, () => (lastInput = Date.now()), { capture: true, passive: true });
+      setInterval(() => {
+        if (Date.now() - lastInput < 5 * 60_000) return;
+        if (editing()) {
+          document.querySelector<HTMLDialogElement>("#add-widget")?.close();
+          setEditing(false);
+        }
+        if (pageIndex() !== 0) goTo(0);
+      }, 10_000);
+
+      type Layout = { pages: { id: string; name: string; widgets: string[] }[] };
+      const save = async (change: (pages: Layout["pages"]) => Layout["pages"] | void) => {
+        const layout: Layout = JSON.parse(document.getElementById("layout")!.textContent!);
+        layout.pages = change(layout.pages) ?? layout.pages;
+        const status = document.querySelector(".edit-status")!;
+        status.textContent = "Saving…";
+        const res = await fetch("/kitchen/api/layout", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(layout),
+        }).catch(() => undefined);
+        if (!res?.ok) {
+          status.textContent = "Couldn't save, try again";
+          return false;
+        }
+        await refresh(true);
+        return true;
+      };
+      const unplace = (pages: Layout["pages"], widget: string) => pages.forEach((p) => (p.widgets = p.widgets.filter((w) => w !== widget)));
+
+      const edit = async (button: HTMLButtonElement) => {
+        const { edit: action, page, widget = "" } = button.dataset;
+        const picker = document.querySelector<HTMLDialogElement>("#add-widget")!;
+        if (action === "toggle") return setEditing(!editing());
+        if (action === "add") {
+          picker.dataset.page = page;
+          picker.querySelectorAll<HTMLButtonElement>("[data-on]").forEach((b) => (b.disabled = b.dataset.on === page));
+          return picker.showModal();
+        }
+        if (action === "place") {
+          picker.close();
+          return save((pages) => {
+            unplace(pages, widget);
+            pages.find((p) => p.id === picker.dataset.page)?.widgets.push(widget);
+          });
+        }
+        if (action === "remove") return save((pages) => unplace(pages, widget));
+        if (action === "earlier" || action === "later")
+          return save((pages) => {
+            const list = pages.find((p) => p.widgets.includes(widget))!.widgets;
+            const i = list.indexOf(widget);
+            const j = action === "earlier" ? i - 1 : i + 1;
+            if (j >= 0 && j < list.length) [list[i], list[j]] = [list[j], list[i]];
+          });
+        if (action === "add-page") {
+          let count = 0;
+          const ok = await save((pages) => {
+            pages.push({ id: `p${Date.now().toString(36)}`, name: `Page ${pages.length + 1}`, widgets: [] });
+            count = pages.length;
+          });
+          if (ok) goTo(count - 1);
+          return;
+        }
+        if (action === "remove-page") return save((pages) => pages.filter((p) => p.id !== page));
+      };
+
+      const rename = (form: HTMLFormElement) => {
+        const input = form.querySelector("input")!;
+        const name = input.value.trim();
+        const layout: Layout = JSON.parse(document.getElementById("layout")!.textContent!);
+        const current = layout.pages.find((p) => p.id === form.dataset.rename);
+        if (!name) input.value = current?.name ?? "";
+        else if (current && name !== current.name)
+          save((pages) => {
+            pages.find((p) => p.id === form.dataset.rename)!.name = name;
+          });
+      };
+      document.addEventListener("change", (event) => {
+        const form = (event.target as Element).closest<HTMLFormElement>("form[data-rename]");
+        if (form) rename(form);
+      });
 
       const shopping = async (body: object) => {
         const res = await fetch("/kitchen/api/shopping", {
@@ -317,6 +393,10 @@ Astro.response.headers.set("Cache-Control", "no-store");
       };
 
       document.addEventListener("click", (event) => {
+        const go = (event.target as Element).closest<HTMLElement>("[data-goto]");
+        if (go) return goTo(Number(go.dataset.goto));
+        const editor = (event.target as Element).closest<HTMLButtonElement>("button[data-edit]");
+        if (editor) return edit(editor);
         const opener = (event.target as Element).closest<HTMLElement>("[data-open]");
         const sheet = opener && document.getElementById(opener.dataset.open!);
         if (sheet instanceof HTMLDialogElement) {
@@ -342,6 +422,11 @@ Astro.response.headers.set("Cache-Control", "no-store");
       });
 
       document.addEventListener("submit", async (event) => {
+        const renamer = (event.target as Element).closest<HTMLFormElement>("form[data-rename]");
+        if (renamer) {
+          event.preventDefault();
+          return renamer.querySelector("input")!.blur();
+        }
         const add = (event.target as Element).closest<HTMLFormElement>("form[data-event]");
         if (add) {
           event.preventDefault();
@@ -420,7 +505,7 @@ Astro.response.headers.set("Cache-Control", "no-store");
   #live {
     min-height: 100dvh;
     display: grid;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto auto 1fr;
   }
 
   .sky {
@@ -450,7 +535,7 @@ Astro.response.headers.set("Cache-Control", "no-store");
     flex-wrap: wrap;
     align-items: flex-end;
     gap: 0.5rem 3rem;
-    padding: calc(clamp(1rem, 3vh, 2rem) + env(safe-area-inset-top)) var(--gutter) clamp(3rem, 9vh, 6rem);
+    padding: calc(clamp(1rem, 3vh, 2rem) + 2.25rem + env(safe-area-inset-top)) var(--gutter) clamp(3rem, 9vh, 6rem);
   }
 
   .clock {
@@ -545,233 +630,228 @@ Astro.response.headers.set("Cache-Control", "no-store");
     }
   }
 
-  main {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-template-rows: auto auto;
-    align-content: start;
-    gap: clamp(1rem, 2vw, 1.75rem);
-    padding: 0 var(--gutter) var(--gutter);
+  .sky :global(.edit-toggle) {
+    position: absolute;
+    top: calc(0.75rem + env(safe-area-inset-top));
+    right: calc(4rem + env(safe-area-inset-right));
+    z-index: 2;
   }
 
-  .panel h2 {
-    font-size: 1.125rem;
-    font-family: var(--body);
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem var(--gutter) 0;
+  }
+
+  .tabs[data-count="1"] {
+    display: none;
+  }
+
+  :global(.editing) .tabs {
+    display: flex;
+  }
+
+  .tabs button,
+  .page-tools button,
+  .widget-tools button {
+    border: 0;
+    background: var(--panel);
+    color: var(--ink);
+    font: inherit;
+    font-size: 1rem;
     font-weight: 700;
+    cursor: pointer;
+  }
+
+  .tabs button {
+    padding: 0.35rem 1rem;
+    border-radius: 999px;
     color: var(--muted);
+  }
+
+  .tabs [aria-current="true"] {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .tabs .done,
+  .page-tools button:not(.secondary) {
+    background: var(--lake);
+    color: var(--paper);
+  }
+
+  .edit-status {
+    flex-basis: 100%;
+    margin: 0;
+    color: var(--muted);
+    font-size: 1rem;
+    text-align: center;
+  }
+
+  .edit-status:empty {
+    display: none;
+  }
+
+  :global(body:not(.editing)) .edit-only {
+    display: none;
+  }
+
+  .pages {
+    display: flex;
+    align-items: flex-start;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  .pages::-webkit-scrollbar {
+    display: none;
+  }
+
+  .page {
+    flex: 0 0 100%;
+    min-width: 0;
+    padding: 1rem var(--gutter) var(--gutter);
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-content: start;
+    gap: clamp(1rem, 2vw, 1.75rem);
+  }
+
+  .widget.wide {
+    grid-column: 1 / -1;
+  }
+
+  .widget[data-empty] {
+    display: none;
+  }
+
+  :global(.editing) .widget {
+    display: block;
+    padding: 0.75rem 1rem 1rem;
+    border: 2px dashed var(--rule);
+    border-radius: 18px;
+  }
+
+  :global(.editing) .widget-body {
+    pointer-events: none;
+    opacity: 0.55;
+  }
+
+  .widget-tools {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
     margin-bottom: 0.75rem;
   }
 
-  .quiet {
-    color: var(--muted);
-    margin: 0;
+  .widget-tools strong {
+    flex: 1;
+    font-size: 1rem;
   }
 
-  .tonight {
+  .widget-tools button {
     display: grid;
-    grid-template-columns: auto 1fr;
-    align-items: center;
-    gap: 1rem;
-  }
-
-  .tonight img {
-    width: 6.5rem;
-    aspect-ratio: 1;
-    object-fit: cover;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
     border-radius: 50%;
   }
 
-  .dish {
-    margin: 0;
-    font-family: var(--display);
-    font-size: clamp(1.75rem, 3vw, 2.5rem);
-    font-weight: 650;
-    font-stretch: 88%;
-    line-height: 1.05;
+  .widget-tools button:disabled,
+  .page-tools button:disabled {
+    opacity: 0.35;
+    cursor: default;
   }
 
-  .dish.quiet {
-    color: var(--muted);
+  .widget-tools svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
 
-  .week {
-    list-style: none;
-    margin: 1.25rem 0 0;
-    padding: 0;
-  }
-
-  .week li {
-    display: grid;
-    grid-template-columns: 7.5rem 1fr;
-    padding: 0.45rem 0;
-    border-top: 1px solid var(--rule);
-  }
-
-  .week span {
-    color: var(--muted);
-  }
-
-  .panel-head {
+  .page-tools {
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
   }
 
-  .panel-head h2 {
-    margin-bottom: 0;
-  }
-
-  .calendar .week {
-    margin-top: 0;
-  }
-
-  .calendar p {
-    margin: 0;
-  }
-
-  .plan {
-    padding: 0.4rem 0.9rem;
-    border-radius: 10px;
-    background: var(--panel);
-    font-size: 1rem;
-    font-weight: 700;
-    text-decoration: none;
-  }
-
-  button.plan {
-    border: 0;
-    color: inherit;
-    font-family: inherit;
-    cursor: pointer;
-  }
-
-  .sheet {
-    width: min(92vw, 640px);
-    padding: 1.5rem;
-    border: 0;
-    border-radius: 20px;
-    background: var(--paper);
-    color: var(--ink);
-  }
-
-  .sheet::backdrop {
-    background: rgb(0 0 0 / 0.6);
-  }
-
-  .sheet form {
-    display: grid;
-    gap: 1rem;
-  }
-
-  .sheet h2 {
-    font-size: clamp(1.5rem, 3vw, 2rem);
-  }
-
-  .sheet label {
-    display: grid;
-    gap: 0.35rem;
-    color: var(--muted);
-    font-size: 1rem;
-  }
-
-  .sheet input {
-    padding: 0.7rem 0.9rem;
+  .page-tools input {
+    flex: 1 1 12rem;
+    max-width: 20rem;
+    padding: 0.5rem 0.9rem;
     border: 1px solid var(--rule);
     border-radius: 12px;
     background: var(--paper);
     color: var(--ink);
     font: inherit;
-    font-size: 1.25rem;
-  }
-
-  .when {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-    gap: 1rem;
-  }
-
-  .actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.75rem;
-  }
-
-  .actions button {
-    padding: 0.7rem 1.2rem;
-    border: 0;
-    border-radius: 12px;
-    background: var(--lake);
-    color: var(--paper);
-    font: inherit;
     font-weight: 700;
-    cursor: pointer;
   }
 
-  .actions .secondary {
+  .page-tools button {
+    padding: 0.5rem 1rem;
+    border-radius: 12px;
+  }
+
+  .empty {
+    color: var(--muted);
+  }
+
+  .choices {
+    display: grid;
+    gap: 0.5rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .choices button {
+    display: grid;
+    gap: 0.15rem;
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 0;
+    border-radius: 14px;
     background: var(--panel);
     color: var(--ink);
-  }
-
-  .items {
-    list-style: none;
-    margin: 0 0 0.75rem;
-    padding: 0;
-    columns: 2 10rem;
-    column-gap: 1rem;
-  }
-
-  .item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    width: 100%;
-    padding: 0.5rem 0;
-    border: 0;
-    background: none;
-    color: inherit;
     font: inherit;
     text-align: left;
     cursor: pointer;
-    break-inside: avoid;
   }
 
-  .box {
-    flex: none;
-    width: 1.4rem;
-    height: 1.4rem;
-    border-radius: 6px;
-    box-shadow: inset 0 0 0 2px var(--muted);
+  .choices button:disabled {
+    opacity: 0.45;
+    cursor: default;
   }
 
-  .item.done {
+  .choices span,
+  .choices small {
     color: var(--muted);
-    text-decoration: line-through;
+    font-size: 1rem;
+    line-height: 1.3;
   }
 
-  .item.done .box {
-    background: var(--moss);
-    box-shadow: none;
+  .choices small {
+    font-size: 0.875rem;
   }
 
-  .add {
-    display: flex;
-    gap: 0.5rem;
-  }
-
-  .add input {
-    flex: 1;
-    min-width: 0;
-    padding: 0.7rem 0.9rem;
-    border: 1px solid var(--rule);
-    border-radius: 12px;
-    background: var(--paper);
-    color: var(--ink);
-    font: inherit;
-  }
-
-  .add button,
   .doorbell button {
     padding: 0.7rem 1.2rem;
     border: 0;
@@ -781,63 +861,6 @@ Astro.response.headers.set("Cache-Control", "no-store");
     font: inherit;
     font-weight: 700;
     cursor: pointer;
-  }
-
-  .lights {
-    --switch-min: 10rem;
-    --switch-pad: clamp(0.7rem, 1.6vh, 1.1rem) 1rem;
-  }
-
-  .coming {
-    grid-column: 1 / -1;
-  }
-
-  .days {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 1.5rem;
-  }
-
-  .days h3 {
-    font-size: 1.125rem;
-    padding-bottom: 0.35rem;
-    border-bottom: 2px solid var(--ink);
-    margin-bottom: 0.6rem;
-  }
-
-  .days ul {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    gap: 0.6rem;
-  }
-
-  .days li {
-    display: grid;
-    grid-template-columns: 2.75rem 1fr;
-    gap: 0.75rem;
-    align-items: center;
-  }
-
-  .days img,
-  .days .thumb {
-    width: 2.75rem;
-    aspect-ratio: 2 / 3;
-    object-fit: cover;
-    border-radius: 4px;
-    background: var(--panel);
-  }
-
-  .days strong,
-  .days small {
-    display: block;
-    line-height: 1.25;
-  }
-
-  .days small {
-    color: var(--muted);
-    font-size: 0.875em;
   }
 
   .doorbell {
@@ -874,13 +897,9 @@ Astro.response.headers.set("Cache-Control", "no-store");
   }
 
   @media (max-width: 1000px) {
-    main {
+    .grid {
       grid-template-columns: 1fr;
       gap: 2rem;
-    }
-
-    .days {
-      grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
     }
   }
 </style>

@@ -16,6 +16,7 @@ controllers:
           tag: 0.2.11
         env:
           TZ: Europe/Zurich
+          DATA_DIR: /data
           PORT: &port 8080
           HASS_URL: https://ha.wibrow.dev
           JELLYFIN_URL: http://jellyfin.media.svc.cluster.local:8096
@@ -25,6 +26,9 @@ controllers:
           MEALIE_URL: http://mealie.selfhosted.svc.cluster.local:9000
           ACTUAL_URL: http://actual.banking.svc.cluster.local:5006
           PROMETHEUS_URL: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+          # Through the KEDA interceptor so a render wakes ComfyUI from zero.
+          COMFYUI_URL: http://keda-add-ons-http-interceptor-proxy.system.svc.cluster.local:8080
+          COMFYUI_HOST: comfyui.wibrow.dev
         envFrom:
           - secretRef:
               name: family-home-secret
@@ -101,6 +105,10 @@ persistence:
     name: family-home-config
     globalMounts:
       - path: /config
+  data:
+    existingClaim: family-home-data
+    globalMounts:
+      - path: /data
   tmp:
     type: emptyDir
     globalMounts:

@@ -21,3 +21,5 @@ export const format = (date: Date, options: Intl.DateTimeFormatOptions) =>
 
 export const money = (cents: number) =>
   new Intl.NumberFormat("de-CH", { style: "currency", currency: config.currency, maximumFractionDigits: 0 }).format(cents / 100);
+
+export const weekday = (iso: string) => format(new Date(`${iso}T12:00:00Z`), { weekday: "long" });

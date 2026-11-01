@@ -1,0 +1,70 @@
+---
+import type { Meal } from "../../integrations/mealie";
+import { isoDay, weekday } from "../../lib/time";
+import "./panel.css";
+
+type Props = { meals?: Meal[] };
+const { meals } = Astro.props;
+
+const today = isoDay();
+const tonight = meals?.find((m) => m.date === today && m.type === "dinner") ?? meals?.find((m) => m.date === today);
+const later = meals?.filter((m) => m !== tonight && m.type === "dinner" && m.date !== today).slice(0, 4) ?? [];
+---
+
+<section class="panel dinner" aria-labelledby="dinner-heading">
+  <div class="panel-head">
+    <h2 id="dinner-heading">{tonight && tonight.type !== "dinner" ? `Today's ${tonight.type}` : "Dinner tonight"}</h2>
+    <a class="plan" href="/kitchen/week">Plan the week</a>
+  </div>
+  {
+    tonight ? (
+      <div class="tonight">
+        {tonight.image && <img src={tonight.image} alt="" />}
+        <p class="dish">{tonight.name}</p>
+      </div>
+    ) : (
+      <p class="dish quiet">Nothing planned yet</p>
+    )
+  }
+  {
+    later.length > 0 && (
+      <ul class="week">
+        {later.map((m) => (
+          <li>
+            <span>{weekday(m.date)}</span>
+            {m.name}
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</section>
+
+<style>
+  .tonight {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .tonight img {
+    width: 6.5rem;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  .dish {
+    margin: 0;
+    font-family: var(--display);
+    font-size: clamp(1.75rem, 3vw, 2.5rem);
+    font-weight: 650;
+    font-stretch: 88%;
+    line-height: 1.05;
+  }
+
+  .dish.quiet {
+    color: var(--muted);
+  }
+</style>

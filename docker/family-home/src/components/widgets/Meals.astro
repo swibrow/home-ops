@@ -1,0 +1,76 @@
+---
+import type { Meal } from "../../integrations/mealie";
+import { addDays, isoDay, weekday } from "../../lib/time";
+import "./panel.css";
+
+type Props = { meals: Meal[] };
+const { meals } = Astro.props;
+
+const today = isoDay();
+const days = Array.from({ length: 7 }, (_, i) => isoDay(addDays(new Date(), i)));
+---
+
+<section class="panel meals" aria-labelledby="meals-heading">
+  <div class="panel-head">
+    <h2 id="meals-heading">Meal plan</h2>
+    <a class="plan" href="/kitchen/week">Plan the week</a>
+  </div>
+  <ol class="plan-days">
+    {
+      days.map((day) => {
+        const planned = meals.filter((m) => m.date === day);
+        return (
+          <li>
+            <h3>{day === today ? "Today" : weekday(day)}</h3>
+            {planned.length ? (
+              <ul>
+                {planned.map((m) => (
+                  <li>
+                    <small>{m.type}</small>
+                    {m.name}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p class="quiet">Nothing planned</p>
+            )}
+          </li>
+        );
+      })
+    }
+  </ol>
+</section>
+
+<style>
+  .plan-days {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: 1.5rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  h3 {
+    font-size: 1.125rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 0.6rem;
+  }
+
+  ul {
+    display: grid;
+    gap: 0.6rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    line-height: 1.25;
+  }
+
+  small {
+    display: block;
+    color: var(--muted);
+    font-size: 0.8em;
+    text-transform: capitalize;
+  }
+</style>

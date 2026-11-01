@@ -1,0 +1,75 @@
+---
+import type { Happening } from "../../integrations/homeassistant";
+import { addDays, isoDay, weekday } from "../../lib/time";
+import "./panel.css";
+
+type Props = { events: Happening[] };
+const { events } = Astro.props;
+
+const today = isoDay();
+const tomorrow = isoDay(addDays(new Date(), 1));
+const dayName = (iso: string) => (iso === today ? "Today" : iso === tomorrow ? "Tomorrow" : weekday(iso));
+---
+
+<section class="panel calendar" aria-labelledby="calendar-heading">
+  <div class="panel-head">
+    <h2 id="calendar-heading">This week</h2>
+    <button type="button" class="plan" data-open="add-event">Add</button>
+  </div>
+  {
+    events.length ? (
+      <ul class="week">
+        {events.slice(0, 8).map((e) => (
+          <li>
+            <span>{dayName(e.day)}</span>
+            <p>
+              {e.time && <strong>{e.time}</strong>} {e.summary}
+            </p>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <p class="quiet">Nothing on the calendar this week.</p>
+    )
+  }
+</section>
+
+<dialog class="sheet" id="add-event" aria-labelledby="add-event-heading">
+  <form data-event>
+    <h2 id="add-event-heading">Add to the calendar</h2>
+    <label>
+      What
+      <input name="summary" required maxlength="100" autocomplete="off" />
+    </label>
+    <div class="when">
+      <label>
+        Day
+        <input name="date" type="date" required value={today} />
+      </label>
+      <label>
+        Time, or leave empty for all day
+        <input name="time" type="time" />
+      </label>
+    </div>
+    <div class="actions">
+      <button type="button" class="secondary" data-close>Cancel</button>
+      <button type="submit">Add</button>
+    </div>
+  </form>
+</dialog>
+
+<style>
+  .calendar .week {
+    margin-top: 0;
+  }
+
+  .calendar p {
+    margin: 0;
+  }
+
+  .when {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: 1rem;
+  }
+</style>

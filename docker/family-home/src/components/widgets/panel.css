@@ -1,0 +1,118 @@
+.panel h2 {
+  font-size: 1.125rem;
+  font-family: var(--body);
+  font-weight: 700;
+  color: var(--muted);
+  margin-bottom: 0.75rem;
+}
+
+.panel .quiet {
+  color: var(--muted);
+  margin: 0;
+}
+
+.panel .week {
+  list-style: none;
+  margin: 1.25rem 0 0;
+  padding: 0;
+}
+
+.panel .week li {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr;
+  padding: 0.45rem 0;
+  border-top: 1px solid var(--rule);
+}
+
+.panel .week span {
+  color: var(--muted);
+}
+
+.panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.panel-head h2 {
+  margin-bottom: 0;
+}
+
+.plan {
+  padding: 0.4rem 0.9rem;
+  border-radius: 10px;
+  background: var(--panel);
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+button.plan {
+  border: 0;
+  color: inherit;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.sheet {
+  width: min(92vw, 640px);
+  padding: 1.5rem;
+  border: 0;
+  border-radius: 20px;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.sheet::backdrop {
+  background: rgb(0 0 0 / 0.6);
+}
+
+.sheet form {
+  display: grid;
+  gap: 1rem;
+}
+
+.sheet h2 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+}
+
+.sheet label {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 1rem;
+}
+
+.sheet input {
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.25rem;
+}
+
+.sheet .actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.sheet .actions button {
+  padding: 0.7rem 1.2rem;
+  border: 0;
+  border-radius: 12px;
+  background: var(--lake);
+  color: var(--paper);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sheet .actions .secondary {
+  background: var(--panel);
+  color: var(--ink);
+}

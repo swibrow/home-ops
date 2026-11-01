@@ -1,0 +1,92 @@
+---
+import type { Upcoming } from "../../integrations/arr";
+import { format, isoDay } from "../../lib/time";
+import "./panel.css";
+
+type Props = { upcoming: Upcoming[] };
+const { upcoming } = Astro.props;
+
+const today = isoDay();
+const dayLabel = (date: Date) => (isoDay(date) === today ? "Today" : format(date, { weekday: "long" }));
+const days = Object.entries(Object.groupBy(upcoming, (u) => dayLabel(u.date))).slice(0, 4);
+---
+
+<section class="panel coming" aria-labelledby="coming-heading">
+  <h2 id="coming-heading">Coming this week</h2>
+  <div class="days">
+    {
+      days.map(([day, items]) => (
+        <div>
+          <h3>{day}</h3>
+          <ul>
+            {items!.slice(0, 3).map((u) => (
+              <li>
+                {u.image ? <img src={u.image} alt="" /> : <span class="thumb" />}
+                <span>
+                  <strong>{u.title}</strong>
+                  <small>{u.detail}</small>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  .days {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1.5rem;
+  }
+
+  .days h3 {
+    font-size: 1.125rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 0.6rem;
+  }
+
+  .days ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  .days li {
+    display: grid;
+    grid-template-columns: 2.75rem 1fr;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .days img,
+  .days .thumb {
+    width: 2.75rem;
+    aspect-ratio: 2 / 3;
+    object-fit: cover;
+    border-radius: 4px;
+    background: var(--panel);
+  }
+
+  .days strong,
+  .days small {
+    display: block;
+    line-height: 1.25;
+  }
+
+  .days small {
+    color: var(--muted);
+    font-size: 0.875em;
+  }
+
+  @media (max-width: 1000px) {
+    .days {
+      grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+    }
+  }
+</style>
