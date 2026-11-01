@@ -7,24 +7,31 @@ type Memory = { type: string; data: { year: number }; assets: { id: string; type
 const url = env("IMMICH_URL");
 const key = env("IMMICH_API_KEY");
 
+const memories = () =>
+  cached("immich", 3600, () =>
+    getJson<Memory[]>(`${url}/api/memories?for=${isoDay()}&type=on_this_day`, { headers: { "x-api-key": key! } }),
+  );
+
+const images = (memory: Memory) => memory.assets.filter((a) => a.type === "IMAGE").map((a) => a.id);
+
 export const loadMemory = () =>
   url && key
-    ? cached("immich", 3600, async () => {
-        const memories = await getJson<Memory[]>(`${url}/api/memories?for=${isoDay()}&type=on_this_day`, {
-          headers: { "x-api-key": key },
-        });
-        const memory = memories.find((m) => m.assets.some((a) => a.type === "IMAGE"));
-        if (!memory) return undefined;
-        return {
-          year: memory.data.year,
-          photos: memory.assets.filter((a) => a.type === "IMAGE").slice(0, 3).map((a) => a.id),
-        };
+    ? memories().then((list) => {
+        const memory = list.find((m) => images(m).length);
+        return memory && { year: memory.data.year, photos: images(memory).slice(0, 3) };
       })
     : undefined;
 
+// A few photos from each year, newest year first, for the kitchen photo frame.
+export const loadOnThisDay = () =>
+  url && key
+    ? memories().then((list) => list.flatMap((m) => images(m).slice(0, 4).map((id) => ({ id, year: m.data.year }))))
+    : undefined;
+
 export async function photo(id: string) {
-  const memory = await loadMemory();
-  if (!url || !key || !memory?.photos.includes(id)) return undefined;
+  if (!url || !key) return undefined;
+  const list = await memories();
+  if (!list.some((m) => images(m).includes(id))) return undefined;
   return fetch(`${url}/api/assets/${id}/thumbnail?size=preview`, {
     headers: { "x-api-key": key },
     signal: AbortSignal.timeout(8000),

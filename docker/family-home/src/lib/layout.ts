@@ -11,7 +11,7 @@ const file = join(dir, "layout.json");
 export const fallback: Layout = {
   pages: [
     { id: "home", name: "Home", widgets: ["dinner", "shopping", "lights", "calendar"] },
-    { id: "media", name: "Media", widgets: ["coming"] },
+    { id: "media", name: "Media", widgets: ["coming", "photos"] },
     { id: "meals", name: "Meals", widgets: ["meals"] },
   ],
 };

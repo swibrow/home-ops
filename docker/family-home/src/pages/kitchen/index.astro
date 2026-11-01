@@ -14,10 +14,12 @@ import Coming from "../../components/widgets/Coming.astro";
 import Dinner from "../../components/widgets/Dinner.astro";
 import Lights from "../../components/widgets/Lights.astro";
 import Meals from "../../components/widgets/Meals.astro";
+import Photos from "../../components/widgets/Photos.astro";
 import "../../components/widgets/panel.css";
 import Shopping from "../../components/widgets/Shopping.astro";
 import { loadUpcoming } from "../../integrations/arr";
 import { loadEvents, loadHome, loadShopping } from "../../integrations/homeassistant";
+import { loadOnThisDay } from "../../integrations/immich";
 import { loadMeals } from "../../integrations/mealie";
 import { settle } from "../../lib/cache";
 import { config } from "../../lib/config";
@@ -29,12 +31,13 @@ import { widgets, type WidgetId } from "../../lib/widgets";
 const layout = await loadLayout();
 const placed = new Set(layout.pages.flatMap((p) => p.widgets));
 
-const [home, meals, upcoming, shopping, events] = await Promise.all([
+const [home, meals, upcoming, shopping, events, photos] = await Promise.all([
   settle("homeassistant", loadHome()),
   settle("mealie", placed.has("dinner") || placed.has("meals") ? loadMeals() : undefined),
   settle("arr", placed.has("coming") ? loadUpcoming() : undefined),
   settle("shopping", placed.has("shopping") ? loadShopping() : undefined),
   settle("calendar", placed.has("calendar") ? loadEvents() : undefined),
+  settle("immich", placed.has("photos") ? loadOnThisDay() : undefined),
 ]);
 
 const now = new Date();
@@ -47,6 +50,7 @@ const shows: Record<WidgetId, boolean> = {
   calendar: !!events,
   coming: !!upcoming?.length,
   meals: !!meals,
+  photos: !!photos?.length,
 };
 const pageOf = Object.fromEntries(layout.pages.flatMap((p) => p.widgets.map((w) => [w, p])));
 
@@ -168,6 +172,7 @@ Astro.response.headers.set("Cache-Control", "no-store");
                         {id === "calendar" && events && <Calendar events={events} />}
                         {id === "coming" && !!upcoming?.length && <Coming upcoming={upcoming} />}
                         {id === "meals" && meals && <Meals meals={meals} />}
+                        {id === "photos" && !!photos?.length && <Photos photos={photos} />}
                         {!shows[id] && <p class="quiet">Nothing to show right now.</p>}
                       </div>
                     </div>
@@ -502,10 +507,18 @@ Astro.response.headers.set("Cache-Control", "no-store");
     font-size: 1.25rem;
   }
 
+  :global(html),
+  :global(body) {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
   #live {
-    min-height: 100dvh;
+    height: 100vh;
+    height: 100dvh;
     display: grid;
-    grid-template-rows: auto auto 1fr;
+    grid-template-rows: auto auto minmax(0, 1fr);
   }
 
   .sky {
@@ -598,8 +611,10 @@ Astro.response.headers.set("Cache-Control", "no-store");
     display: grid;
     padding: 0.6rem 1.1rem 0.7rem;
     border-radius: 16px;
-    background: rgb(var(--sky-ink-rgb) / 0.14);
-    background: color-mix(in srgb, currentColor 14%, transparent);
+    background: rgb(255 255 255 / 0.8);
+    color: #000;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
     font-size: 1.125rem;
   }
 
@@ -701,7 +716,7 @@ Astro.response.headers.set("Cache-Control", "no-store");
 
   .pages {
     display: flex;
-    align-items: flex-start;
+    min-height: 0;
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
@@ -717,6 +732,9 @@ Astro.response.headers.set("Cache-Control", "no-store");
   .page {
     flex: 0 0 100%;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
     padding: 1rem var(--gutter) var(--gutter);
     scroll-snap-align: start;
     scroll-snap-stop: always;
@@ -724,9 +742,21 @@ Astro.response.headers.set("Cache-Control", "no-store");
 
   .grid {
     display: grid;
+    flex: 1;
+    min-height: 0;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    align-content: start;
+    grid-auto-rows: minmax(0, 1fr);
     gap: clamp(1rem, 2vw, 1.75rem);
+  }
+
+  .widget {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .widget-body {
+    height: 100%;
   }
 
   .widget.wide {
