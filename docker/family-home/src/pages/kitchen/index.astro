@@ -23,7 +23,7 @@ import { loadOnThisDay } from "../../integrations/immich";
 import { loadMeals } from "../../integrations/mealie";
 import { settle } from "../../lib/cache";
 import { config } from "../../lib/config";
-import { loadLayout, sizeOf } from "../../lib/layout";
+import { arrange, loadLayout, sizeOf } from "../../lib/layout";
 import { sky } from "../../lib/sky";
 import { format } from "../../lib/time";
 import { sizes, widgets, type WidgetId } from "../../lib/widgets";
@@ -53,6 +53,13 @@ const shows: Record<WidgetId, boolean> = {
   photos: !!photos?.length,
 };
 const pageOf = Object.fromEntries(layout.pages.flatMap((p) => p.widgets.map((w) => [w, p])));
+const areas = Object.fromEntries(
+  layout.pages.flatMap((p) => {
+    const visible = p.widgets.filter((id) => shows[id]);
+    const packed = arrange(visible.map((id) => sizeOf(layout, id)));
+    return visible.map((id, i) => [id, packed[i]]);
+  }),
+);
 
 const appVersion = process.env.APP_VERSION ?? "dev";
 
@@ -140,9 +147,13 @@ Astro.response.headers.set("Cache-Control", "no-store");
               <div class="grid">
                 {page.widgets.map((id, i) => {
                   const widget = widgets.find((w) => w.id === id)!;
-                  const [cols, rows] = sizeOf(layout, id).split("x");
+                  const area = areas[id];
                   return (
-                    <div class="widget" style={`--cols:${cols};--rows:${rows}`} data-empty={!shows[id] || undefined}>
+                    <div
+                      class="widget"
+                      style={area && `--col:${area.col + 1};--row:${area.row + 1};--cols:${area.cols};--rows:${area.rows}`}
+                      data-empty={!area || undefined}
+                    >
                       <div class="widget-tools edit-only">
                         <strong>{widget.name}</strong>
                         <label class="visually-hidden" for={`size-${id}`}>
@@ -776,8 +787,8 @@ Astro.response.headers.set("Cache-Control", "no-store");
   }
 
   .widget {
-    grid-column: span var(--cols);
-    grid-row: span var(--rows);
+    grid-column: var(--col) / span var(--cols);
+    grid-row: var(--row) / span var(--rows);
     min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -975,6 +986,11 @@ Astro.response.headers.set("Cache-Control", "no-store");
     .grid {
       grid-template-columns: 1fr;
       gap: 2rem;
+    }
+
+    .widget {
+      grid-column: auto;
+      grid-row: auto;
     }
   }
 </style>
