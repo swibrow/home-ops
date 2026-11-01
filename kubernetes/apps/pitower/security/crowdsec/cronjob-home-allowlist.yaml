@@ -101,7 +101,7 @@ spec:
               type: RuntimeDefault
           containers:
             - name: update
-              image: docker.io/alpine/k8s:1.37.1
+              image: docker.io/alpine/k8s:1.37.2
               command: ["sh", "-c"]
               args:
                 - sh /scripts/update.sh
