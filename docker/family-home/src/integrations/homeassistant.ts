@@ -136,7 +136,9 @@ function daypart(at: number, rise: number, set: number): Daypart {
   return events.filter((e) => e.at <= at).sort((a, b) => b.at - a.at)[0].up ? "day" : "night";
 }
 
-export type SkySlot = { label: string; temperature: number; condition: string; daypart: Daypart };
+export type SkySlot = { label: string; temperature: number; condition: string; summary: string; daypart: Daypart };
+// Where the sun or, at night, the moon is between its rise and set, from 0 to 1.
+export type SkyArc = { body: "sun" | "moon"; progress: number };
 
 // Now and every four hours up to twelve hours ahead.
 export const loadSky = () =>
@@ -159,6 +161,7 @@ export const loadSky = () =>
               label: format(new Date(at), { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }),
               temperature: Math.round(f.temperature),
               condition: f.condition,
+              summary: conditions[f.condition] ?? f.condition,
               daypart: daypart(at, rise, set),
             },
           ];
@@ -167,9 +170,14 @@ export const loadSky = () =>
           label: "Now",
           temperature: Math.round(weather.attributes.temperature),
           condition: weather.state,
+          summary: conditions[weather.state] ?? weather.state,
           daypart: daypart(now, rise, set),
         };
-        return [current, ...ahead];
+        const day = set < rise;
+        const from = day ? rise - 86_400_000 : set - 86_400_000;
+        const to = day ? set : rise;
+        const arc: SkyArc = { body: day ? "sun" : "moon", progress: (now - from) / (to - from) };
+        return { slots: [current, ...ahead], arc };
       })
     : undefined;
 

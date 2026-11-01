@@ -1,10 +1,10 @@
 ---
 import { scene } from "../integrations/comfyui";
-import { loadSky, type SkySlot } from "../integrations/homeassistant";
+import { loadSky } from "../integrations/homeassistant";
 import { settle } from "../lib/cache";
 
-type Props = { slots?: SkySlot[] };
-const slots = Astro.props.slots ?? (await settle("sky", loadSky())) ?? [];
+const { slots = [], arc } = (await settle("sky", loadSky())) ?? {};
+const angle = Math.PI * Math.min(Math.max(arc?.progress ?? 0, 0), 1);
 ---
 
 {
@@ -14,9 +14,17 @@ const slots = Astro.props.slots ?? (await settle("sky", loadSky())) ?? [];
         const file = scene(s.condition, s.daypart);
         return <div class="slot" style={`--i:${i}`}>{file && <img src={`/kitchen/api/scene/${file}`} alt="" />}</div>;
       })}
+      {arc && (
+        <div class="arc" aria-hidden="true">
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+            <path d="M0 100A50 100 0 0 1 100 100" />
+          </svg>
+          <span class={arc.body} style={`--x:${(1 - Math.cos(angle)) / 2};--y:${Math.sin(angle)}`} />
+        </div>
+      )}
       {slots.map((s, i) => (
         <span class="label" style={`--i:${i}`} data-ink={s.daypart === "day" ? "dark" : "light"}>
-          {s.label} <b>{s.temperature}°</b>
+          {s.label} <b>{s.temperature}°</b> {s.summary}
         </span>
       ))}
     </div>
@@ -25,7 +33,7 @@ const slots = Astro.props.slots ?? (await settle("sky", loadSky())) ?? [];
 
 <style>
   .scene {
-    --fade: 12rem;
+    --fade: calc(50% / var(--slots));
     --veil: 12 20 34;
     position: absolute;
     inset: 0;
@@ -42,8 +50,8 @@ const slots = Astro.props.slots ?? (await settle("sky", loadSky())) ?? [];
     bottom: 0;
     left: calc(100% * var(--i) / var(--slots) - var(--fade));
     width: calc(100% / var(--slots) + var(--fade));
-    -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--fade));
-    mask-image: linear-gradient(90deg, transparent, #000 var(--fade));
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 33%);
+    mask-image: linear-gradient(90deg, transparent, #000 33%);
   }
 
   .slot:first-child {
@@ -67,6 +75,49 @@ const slots = Astro.props.slots ?? (await settle("sky", loadSky())) ?? [];
     position: absolute;
     inset: 0;
     background: linear-gradient(90deg, rgb(var(--veil) / 0.45), rgb(var(--veil) / 0.25) 45%, rgb(var(--veil) / 0) 75%);
+  }
+
+  .arc {
+    position: absolute;
+    inset: 22% 4% 30%;
+  }
+
+  .arc svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .arc path {
+    fill: none;
+    stroke: rgb(255 255 255 / 0.35);
+    stroke-width: 2;
+    stroke-dasharray: 2 8;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .sun,
+  .moon {
+    position: absolute;
+    left: calc(var(--x) * 100%);
+    top: calc((1 - var(--y)) * 100%);
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .sun {
+    background: #f8d97a;
+    box-shadow: 0 0 0 6px rgb(248 217 122 / 0.3), 0 0 2.5rem 0.75rem rgb(248 217 122 / 0.55);
+  }
+
+  .moon {
+    box-shadow: inset -0.6rem 0.2rem 0 0 #e9eef5;
+    filter: drop-shadow(0 0 0.6rem rgb(233 238 245 / 0.5));
   }
 
   .label {

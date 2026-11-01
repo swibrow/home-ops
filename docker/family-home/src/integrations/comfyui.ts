@@ -31,13 +31,13 @@ const kinds: Record<string, string> = {
 };
 
 const skies: Record<string, string> = {
-  clear: "Clear cloudless sky",
-  partlycloudy: "A few soft scattered clouds drifting across the sky",
-  cloudy: "Overcast sky covered in soft layered grey clouds",
-  fog: "Thick fog and layers of mist, hazy muted light",
-  rain: "Gentle rain falling from heavy grey clouds, soft diagonal rain streaks",
-  storm: "Dark dramatic thunderstorm clouds, a distant lightning bolt, heavy rain",
-  snow: "Soft snowfall from a pale overcast sky, drifting snowflakes, snow-covered hills",
+  clear: "Completely clear cloudless sky, crisp and bright, not a single cloud",
+  partlycloudy: "Partly cloudy: two or three distinct puffy white clouds with open clear sky around them",
+  cloudy: "Fully overcast: a thick unbroken blanket of heavy grey cloud covering the whole sky",
+  fog: "Dense fog: thick pale mist hiding the hills, everything soft, white and hazy",
+  rain: "Rain: dark grey rain clouds with clearly visible long slanted rain streaks pouring down onto the hills",
+  storm: "Thunderstorm: towering dark storm clouds, a bright jagged lightning bolt striking down, heavy rain streaks",
+  snow: "Snowfall: many large white snowflakes falling from a pale grey sky, hills covered in white snow",
 };
 
 const light: Record<Daypart, string> = {
@@ -47,10 +47,12 @@ const light: Record<Daypart, string> = {
   dusk: "at dusk, warm orange and violet glow low on the horizon fading into deep blue",
 };
 
+// The scenes are cropped and crossfaded side by side, so the weather stays in the middle
+// and the horizon at one height.
 const style =
-  "flat vector illustration, minimal layered shapes, muted harmonious palette, wide open sky filling most of the frame, low distant alpine hills along the bottom edge, calm, painterly poster art";
+  "flat vector illustration, minimal layered shapes, muted harmonious palette, wide open sky filling most of the frame, the weather centred in the middle of the frame and fading out towards the left and right edges, low distant alpine hills along the bottom edge at a constant height, calm, painterly poster art";
 const negative =
-  "text, letters, watermark, signature, people, person, animals, buildings, photo, photorealistic, blurry, noisy, oversaturated, frame, border";
+  "text, letters, watermark, signature, people, person, animals, buildings, sun, moon, photo, photorealistic, blurry, noisy, oversaturated, frame, border, cropped clouds";
 
 // Wan 2.2 TI2V-5B is a video model; one frame of text-to-video is a still.
 const workflow = (prompt: string) => ({
@@ -59,7 +61,7 @@ const workflow = (prompt: string) => ({
   3: { class_type: "VAELoader", inputs: { vae_name: "wan2.2_vae.safetensors" } },
   4: { class_type: "CLIPTextEncode", inputs: { clip: ["2", 0], text: prompt } },
   5: { class_type: "CLIPTextEncode", inputs: { clip: ["2", 0], text: negative } },
-  6: { class_type: "Wan22ImageToVideoLatent", inputs: { vae: ["3", 0], width: 768, height: 576, length: 1, batch_size: 1 } },
+  6: { class_type: "Wan22ImageToVideoLatent", inputs: { vae: ["3", 0], width: 832, height: 480, length: 1, batch_size: 1 } },
   7: { class_type: "ModelSamplingSD3", inputs: { model: ["1", 0], shift: 8 } },
   8: {
     class_type: "KSampler",
