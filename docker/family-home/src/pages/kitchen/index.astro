@@ -23,10 +23,10 @@ import { loadOnThisDay } from "../../integrations/immich";
 import { loadMeals } from "../../integrations/mealie";
 import { settle } from "../../lib/cache";
 import { config } from "../../lib/config";
-import { loadLayout } from "../../lib/layout";
+import { loadLayout, sizeOf } from "../../lib/layout";
 import { sky } from "../../lib/sky";
 import { format } from "../../lib/time";
-import { widgets, type WidgetId } from "../../lib/widgets";
+import { sizes, widgets, type WidgetId } from "../../lib/widgets";
 
 const layout = await loadLayout();
 const placed = new Set(layout.pages.flatMap((p) => p.widgets));
@@ -53,6 +53,8 @@ const shows: Record<WidgetId, boolean> = {
   photos: !!photos?.length,
 };
 const pageOf = Object.fromEntries(layout.pages.flatMap((p) => p.widgets.map((w) => [w, p])));
+
+const appVersion = process.env.APP_VERSION ?? "dev";
 
 Astro.response.headers.set("Cache-Control", "no-store");
 ---
@@ -104,9 +106,7 @@ Astro.response.headers.set("Cache-Control", "no-store");
           </ul>
         </div>
         <Horizon />
-      </header>
-
-      <nav class="tabs" aria-label="Pages" data-count={layout.pages.length}>
+        <nav class="tabs" aria-label="Pages" data-count={layout.pages.length}>
         {
           layout.pages.map((page, i) => (
             <button type="button" data-goto={i} aria-current={i === 0 ? "true" : "false"}>
@@ -117,7 +117,8 @@ Astro.response.headers.set("Cache-Control", "no-store");
         <button type="button" class="edit-only" data-edit="add-page">Add page</button>
         <button type="button" class="edit-only done" data-edit="toggle">Done</button>
         <p class="edit-status edit-only" role="status"></p>
-      </nav>
+        </nav>
+      </header>
 
       <main class="pages">
         {
@@ -139,10 +140,22 @@ Astro.response.headers.set("Cache-Control", "no-store");
               <div class="grid">
                 {page.widgets.map((id, i) => {
                   const widget = widgets.find((w) => w.id === id)!;
+                  const [cols, rows] = sizeOf(layout, id).split("x");
                   return (
-                    <div class:list={["widget", { wide: "wide" in widget }]} data-empty={!shows[id] || undefined}>
+                    <div class="widget" style={`--cols:${cols};--rows:${rows}`} data-empty={!shows[id] || undefined}>
                       <div class="widget-tools edit-only">
                         <strong>{widget.name}</strong>
+                        <label class="visually-hidden" for={`size-${id}`}>
+                          Size of {widget.name}, columns by rows
+                        </label>
+                        <select id={`size-${id}`} data-size={id}>
+                          {sizes.map((size) => (
+                            <option value={size} selected={size === sizeOf(layout, id)}>
+                              {size.replace("x", " × ")}
+                              {size === "3x3" && ", full page"}
+                            </option>
+                          ))}
+                        </select>
                         <button type="button" data-edit="earlier" data-widget={id} disabled={i === 0} aria-label={`Move ${widget.name} earlier`}>
                           <svg viewBox="0 0 24 24" aria-hidden="true">
                             <path d="M15 5l-7 7 7 7" />
@@ -212,6 +225,8 @@ Astro.response.headers.set("Cache-Control", "no-store");
 
       <script is:inline type="application/json" id="layout" set:html={JSON.stringify(layout).replace(/</g, "\\u003c")} />
     </div>
+
+    <small class="version">{appVersion}</small>
 
     <dialog class="doorbell" aria-labelledby="doorbell-heading">
       <h2 id="doorbell-heading">Someone is at the door</h2>
@@ -315,10 +330,10 @@ Astro.response.headers.set("Cache-Control", "no-store");
         if (pageIndex() !== 0) goTo(0);
       }, 10_000);
 
-      type Layout = { pages: { id: string; name: string; widgets: string[] }[] };
-      const save = async (change: (pages: Layout["pages"]) => Layout["pages"] | void) => {
+      type Layout = { pages: { id: string; name: string; widgets: string[] }[]; sizes?: Record<string, string> };
+      const save = async (change: (pages: Layout["pages"], layout: Layout) => Layout["pages"] | void) => {
         const layout: Layout = JSON.parse(document.getElementById("layout")!.textContent!);
-        layout.pages = change(layout.pages) ?? layout.pages;
+        layout.pages = change(layout.pages, layout) ?? layout.pages;
         const status = document.querySelector(".edit-status")!;
         status.textContent = "Saving…";
         const res = await fetch("/kitchen/api/layout", {
@@ -383,6 +398,11 @@ Astro.response.headers.set("Cache-Control", "no-store");
           });
       };
       document.addEventListener("change", (event) => {
+        const select = (event.target as Element).closest<HTMLSelectElement>("select[data-size]");
+        if (select)
+          return save((_, layout) => {
+            layout.sizes = { ...layout.sizes, [select.dataset.size!]: select.value };
+          });
         const form = (event.target as Element).closest<HTMLFormElement>("form[data-rename]");
         if (form) rename(form);
       });
@@ -518,7 +538,7 @@ Astro.response.headers.set("Cache-Control", "no-store");
     height: 100vh;
     height: 100dvh;
     display: grid;
-    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
   .sky {
@@ -653,12 +673,15 @@ Astro.response.headers.set("Cache-Control", "no-store");
   }
 
   .tabs {
+    position: absolute;
+    inset: auto 0 0.35rem;
+    z-index: 2;
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem var(--gutter) 0;
+    gap: 0.4rem;
+    padding: 0 var(--gutter);
   }
 
   .tabs[data-count="1"] {
@@ -682,7 +705,8 @@ Astro.response.headers.set("Cache-Control", "no-store");
   }
 
   .tabs button {
-    padding: 0.35rem 1rem;
+    padding: 0.2rem 0.8rem;
+    font-size: 0.875rem;
     border-radius: 999px;
     color: var(--muted);
   }
@@ -745,11 +769,15 @@ Astro.response.headers.set("Cache-Control", "no-store");
     flex: 1;
     min-height: 0;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(3, minmax(0, 1fr));
     grid-auto-rows: minmax(0, 1fr);
+    grid-auto-flow: dense;
     gap: clamp(1rem, 2vw, 1.75rem);
   }
 
   .widget {
+    grid-column: span var(--cols);
+    grid-row: span var(--rows);
     min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -757,10 +785,6 @@ Astro.response.headers.set("Cache-Control", "no-store");
 
   .widget-body {
     height: 100%;
-  }
-
-  .widget.wide {
-    grid-column: 1 / -1;
   }
 
   .widget[data-empty] {
@@ -784,6 +808,27 @@ Astro.response.headers.set("Cache-Control", "no-store");
     align-items: center;
     gap: 0.4rem;
     margin-bottom: 0.75rem;
+  }
+
+  .widget-tools select {
+    padding: 0.45rem 0.6rem;
+    border: 0;
+    border-radius: 10px;
+    background: var(--panel);
+    color: var(--ink);
+    font: inherit;
+    font-size: 1rem;
+    font-weight: 700;
+  }
+
+  .version {
+    position: fixed;
+    right: calc(0.6rem + env(safe-area-inset-right));
+    bottom: calc(0.4rem + env(safe-area-inset-bottom));
+    color: var(--muted);
+    font-size: 0.75rem;
+    opacity: 0.7;
+    pointer-events: none;
   }
 
   .widget-tools strong {

@@ -1,9 +1,9 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { isWidget, type WidgetId } from "./widgets";
+import { isSize, isWidget, widgets as registry, type Size, type WidgetId } from "./widgets";
 
 export type Page = { id: string; name: string; widgets: WidgetId[] };
-export type Layout = { pages: Page[] };
+export type Layout = { pages: Page[]; sizes?: Partial<Record<WidgetId, Size>> };
 
 const dir = process.env.DATA_DIR ?? "./data";
 const file = join(dir, "layout.json");
@@ -35,8 +35,13 @@ export function parseLayout(value: unknown): Layout | undefined {
     ids.add(id);
     clean.push({ id, name, widgets });
   }
-  return { pages: clean };
+  const sizes = Object.fromEntries(
+    Object.entries((value as Layout).sizes ?? {}).filter(([id, size]) => placed.has(id) && isSize(size)),
+  );
+  return { pages: clean, sizes };
 }
+
+export const sizeOf = (layout: Layout, id: WidgetId) => layout.sizes?.[id] ?? registry.find((w) => w.id === id)!.size;
 
 export async function loadLayout() {
   try {

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Source lives next to this file; bump the version to publish a new tag.
-ARG FAMILY_HOME_VERSION=0.3.1
+ARG FAMILY_HOME_VERSION=0.3.2
 
 FROM node:24.22.2-slim AS base
 WORKDIR /app
@@ -26,4 +26,6 @@ COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 USER 2000:2000
 EXPOSE 8080
+ARG FAMILY_HOME_VERSION
+ENV APP_VERSION=$FAMILY_HOME_VERSION
 CMD ["node", "dist/server/entry.mjs"]
