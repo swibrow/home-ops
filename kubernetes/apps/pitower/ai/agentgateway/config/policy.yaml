@@ -9,19 +9,47 @@ spec:
       kind: Gateway
       name: agentgateway
   traffic:
+    # Clients authenticate with either a client key or a service account token
+    # (audience agentgateway). Both checks are Optional, so the Require rule
+    # below is what rejects a request carrying neither.
     apiKeyAuthentication:
-      mode: Strict
+      mode: Optional
       secretRef:
         name: agentgateway-client-keys
       # Accepts the key from x-agentgateway-api-key (Claude Code on the Max
       # plan, whose Authorization carries the sk-ant-oat OAuth token; set via
       # ANTHROPIC_CUSTOM_HEADERS), x-api-key (Anthropic SDK), or
-      # Authorization: Bearer (OpenAI SDK).
+      # Authorization: Bearer (OpenAI SDK). A bearer JWT (eyJ...) is left to
+      # jwtAuthentication: Optional mode rejects a present but unknown key.
       location:
         expression: >-
           coalesce(request.headers["x-agentgateway-api-key"],
           request.headers["x-api-key"],
+          request.headers["authorization"].startsWith("Bearer eyJ") ? null :
           request.headers["authorization"].stripPrefix("Bearer "))
+    jwtAuthentication:
+      mode: Optional
+      location:
+        expression: >-
+          request.headers["authorization"].startsWith("Bearer eyJ") ?
+          request.headers["authorization"].stripPrefix("Bearer ") : null
+      providers:
+        - issuer: https://raw.githubusercontent.com/swibrow/home-ops/main/pitower/kubernetes
+          audiences:
+            - agentgateway
+          jwks:
+            remote:
+              url: https://raw.githubusercontent.com/swibrow/home-ops/main/pitower/kubernetes/openid/v1/jwks
+    # Any pod can mint a token for its own service account, so the subjects
+    # are listed like the client keys are.
+    authorization:
+      action: Require
+      policy:
+        matchExpressions:
+          - >-
+            has(apiKey.key) || (has(jwt.sub) && jwt.sub in [
+            "system:serviceaccount:selfhosted:mealie"
+            ])
     # An expression location is not stripped after auth like a header
     # location is, so drop the gateway key before it reaches a provider.
     headerModifiers:
