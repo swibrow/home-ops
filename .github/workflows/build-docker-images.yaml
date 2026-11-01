@@ -76,6 +76,8 @@ jobs:
           context: docker/${{ matrix.image }}
           platforms: ${{ matrix.platform }}
           outputs: type=image,name=${{ env.REGISTRY }}/swibrow/${{ matrix.image }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/swibrow/${{ matrix.image }}:buildcache-${{ matrix.arch }}
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/swibrow/${{ matrix.image }}:buildcache-${{ matrix.arch }},mode=max
 
       - env:
           DIGEST: ${{ steps.build.outputs.digest }}
