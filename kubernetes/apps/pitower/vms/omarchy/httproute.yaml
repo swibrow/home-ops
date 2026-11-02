@@ -18,9 +18,8 @@ kind: HTTPRoute
 metadata:
   name: omarchy-sunshine
   annotations:
-    gatus.home-operations.com/endpoint: |
-      conditions:
-        - "[STATUS] == 401"
+    # The VM is only up while in use, so a probe would read it as down most of the time.
+    gatus.home-operations.com/enabled: "false"
 spec:
   hostnames:
     - omarchy-sunshine.wibrow.dev
