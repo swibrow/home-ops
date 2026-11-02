@@ -32,14 +32,17 @@ const parseTime = (t: string) => Date.UTC(+t.slice(0, 4), +t.slice(4, 6) - 1, +t
 async function nearest(lat: number, lon: number) {
   const res = await fetch(points, { signal: AbortSignal.timeout(30_000) });
   if (!res.ok) throw new Error(`${points} returned ${res.status}`);
-  const [head, ...rows] = new TextDecoder("latin1").decode(await res.arrayBuffer()).trim().split("\n");
+  const [head, ...rows] = new TextDecoder("latin1").decode(await res.arrayBuffer()).trim().split(/\r?\n/);
   const col = Object.fromEntries(head.split(";").map((name, i) => [name, i]));
   const distance = (r: string[]) =>
     Math.hypot(+r[col.point_coordinates_wgs84_lat] - lat, (+r[col.point_coordinates_wgs84_lon] - lon) * Math.cos((lat * Math.PI) / 180));
-  return rows
+  const point = rows
     .map((line) => line.split(";"))
     .filter((r) => r[col.point_type_id] === "2")
-    .reduce((a, b) => (distance(b) < distance(a) ? b : a))[col.point_id];
+    .reduce((a, b) => (distance(b) < distance(a) ? b : a));
+  if (!(distance(point) < 0.1)) throw new Error("no MeteoSwiss forecast point near the home zone");
+  console.log(`[meteoswiss] forecasting for ${point[col.point_name]}`);
+  return point[col.point_id];
 }
 
 // The newest run's file for each parameter; runs are filed under their UTC day.
