@@ -71,9 +71,16 @@ const { id, weather } = Astro.props;
       </ol>
     </>
   )}
+  {weather.source && <p class="source">Forecast: {weather.source}</p>}
 </dialog>
 
 <style>
+  .source {
+    margin: 1.5rem 0 0;
+    color: var(--muted);
+    font-size: 0.875rem;
+  }
+
   .weather-details {
     width: min(92vw, 900px);
     padding: 1.5rem;

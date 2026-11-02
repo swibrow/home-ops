@@ -1,9 +1,9 @@
 import { cached, forget, getJson } from "../lib/cache";
 import { config, env } from "../lib/config";
 import { addDays, format, isoDay } from "../lib/time";
+import { localForecast, type Forecast } from "./meteoswiss";
 
 type State = { entity_id: string; state: string; attributes: Record<string, any> };
-type Forecast = { datetime: string; condition: string; temperature: number; templow?: number; precipitation?: number };
 
 const url = env("HASS_URL");
 const token = env("HASS_TOKEN");
@@ -115,13 +115,26 @@ const callService = (domain: string, service: string, body: object, response = f
     signal: AbortSignal.timeout(5000),
   });
 
-const forecast = (type: "daily" | "hourly") =>
+const haForecast = (type: "daily" | "hourly") =>
   cached(`ha:forecast:${type}`, type === "daily" ? 1800 : 900, async () => {
     const res = await callService("weather", "get_forecasts", { entity_id: ha.weather, type }, true);
     if (!res.ok) throw new Error(`weather.get_forecasts returned ${res.status}`);
     const body = (await res.json()) as { service_response: Record<string, { forecast: Forecast[] }> };
     return body.service_response[ha.weather]?.forecast ?? [];
   });
+
+// MeteoSwiss's local forecast for the home zone, falling back to the Home Assistant weather entity.
+const forecast = (type: "daily" | "hourly") =>
+  cached("ha:home", 86_400, () => getJson<State>(`${url}/api/states/zone.home`, { headers }))
+    .then((home) => localForecast(home.attributes.latitude, home.attributes.longitude))
+    .then((local) => ({ source: "MeteoSwiss", forecast: local[type] }))
+    .catch(async (error) => {
+      console.error("[meteoswiss]", error.message);
+      return { source: "met.no", forecast: await haForecast(type) };
+    });
+
+const thisHour = (hourly: Forecast[], now = Date.now()) =>
+  hourly.find((h) => Date.parse(h.datetime) <= now && now < Date.parse(h.datetime) + 3_600_000);
 
 export type Daypart = "night" | "dawn" | "day" | "dusk";
 
@@ -147,7 +160,7 @@ export const loadSky = () =>
         const [weather, sun, hourly] = await Promise.all([
           getJson<State>(`${url}/api/states/${ha.weather}`, { headers }),
           getJson<State>(`${url}/api/states/${ha.sun}`, { headers }),
-          forecast("hourly"),
+          forecast("hourly").then((f) => f.forecast),
         ]);
         const rise = Date.parse(sun.attributes.next_rising);
         const set = Date.parse(sun.attributes.next_setting);
@@ -166,11 +179,13 @@ export const loadSky = () =>
             },
           ];
         });
+        const hour = thisHour(hourly, now);
+        const condition = hour?.condition ?? weather.state;
         const current: SkySlot = {
           label: "Now",
-          temperature: Math.round(weather.attributes.temperature),
-          condition: weather.state,
-          summary: conditions[weather.state] ?? weather.state,
+          temperature: Math.round(hour?.temperature ?? weather.attributes.temperature),
+          condition,
+          summary: conditions[condition] ?? condition,
           daypart: daypart(now, rise, set),
         };
         const day = set < rise;
@@ -196,8 +211,8 @@ export const loadHome = () =>
     ? cached("ha:states", 20, async () => {
         const [states, daily, hourly, buttons] = await Promise.all([
           getJson<State[]>(`${url}/api/states`, { headers }),
-          forecast("daily").catch(() => []),
-          forecast("hourly").catch(() => []),
+          forecast("daily").catch(() => ({ source: undefined, forecast: [] })),
+          forecast("hourly").then((f) => f.forecast).catch(() => []),
           buttonEntities().catch((error) => {
             console.error("[homeassistant] buttons:", error.message);
             return [];
@@ -206,13 +221,14 @@ export const loadHome = () =>
         const byId = new Map(states.map((s) => [s.entity_id, s]));
         const weather = byId.get(ha.weather);
         const sun = byId.get(ha.sun);
-        const [today, ...ahead] = daily;
+        const [today, ...ahead] = daily.forecast;
         const hours = hourly.filter((h) => Date.parse(h.datetime) > Date.now() - 3_600_000).slice(0, 12);
         const wettest = Math.max(2, ...hours.map((h) => h.precipitation ?? 0));
+        const hour = thisHour(hourly);
         return {
           weather: weather && {
-            condition: conditions[weather.state] ?? weather.state,
-            temperature: Math.round(weather.attributes.temperature),
+            condition: conditions[hour?.condition ?? weather.state] ?? weather.state,
+            temperature: Math.round(hour?.temperature ?? weather.attributes.temperature),
             high: today && Math.round(today.temperature),
             low: today?.templow !== undefined ? Math.round(today.templow) : undefined,
             rain: today?.precipitation,
@@ -231,6 +247,7 @@ export const loadHome = () =>
               share: (h.precipitation ?? 0) / wettest,
             })),
             days: ahead.slice(0, 3).map((d) => ({ at: new Date(d.datetime), ...summary(d) })),
+            source: daily.source,
           },
           sunElevation: sun ? Number(sun.attributes.elevation) : undefined,
           people: ha.people.flatMap((id) => {
