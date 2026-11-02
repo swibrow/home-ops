@@ -11,10 +11,10 @@ const label = (camera: string) => camera.charAt(0).toUpperCase() + camera.slice(
   <div class="feeds">
     {
       cameras.map((camera) => (
-        <figure>
-          <video data-camera={`${camera}_sub`} muted playsinline autoplay aria-label={`${label(camera)} camera`} />
-          <figcaption>{label(camera)}</figcaption>
-        </figure>
+        <button type="button" class="feed" data-view={camera} data-label={label(camera)} aria-label={`Show the ${label(camera).toLowerCase()} camera full screen`}>
+          <video data-camera={`${camera}_sub`} muted playsinline autoplay />
+          <span>{label(camera)}</span>
+        </button>
       ))
     }
   </div>
@@ -37,10 +37,12 @@ const label = (camera: string) => camera.charAt(0).toUpperCase() + camera.slice(
     overflow-y: auto;
   }
 
-  figure {
+  .feed {
     position: relative;
-    margin: 0;
     min-height: 0;
+    padding: 0;
+    border: 0;
+    cursor: pointer;
     border-radius: 14px;
     overflow: hidden;
     background: var(--panel);
@@ -53,7 +55,7 @@ const label = (camera: string) => camera.charAt(0).toUpperCase() + camera.slice(
     object-fit: cover;
   }
 
-  figcaption {
+  .feed span {
     position: absolute;
     left: 0.5rem;
     bottom: 0.5rem;

@@ -245,6 +245,14 @@ Astro.response.headers.set("Cache-Control", "no-store");
 
     <small class="version">{appVersion}</small>
 
+    <dialog class="camera-view" aria-label="Camera">
+      <video muted playsinline autoplay></video>
+      <p class="camera-name"></p>
+      <form method="dialog">
+        <button>Close</button>
+      </form>
+    </dialog>
+
     <dialog class="doorbell" aria-labelledby="doorbell-heading">
       <h2 id="doorbell-heading">Someone is at the door</h2>
       {
@@ -368,6 +376,18 @@ Astro.response.headers.set("Cache-Control", "no-store");
         document.querySelectorAll<HTMLVideoElement>("video[data-camera]").forEach((v) => !feeds.has(v) && onScreen(v) && watch(v));
       }, 1_000);
 
+      const viewer = document.querySelector<HTMLDialogElement>(".camera-view")!;
+      const viewed = viewer.querySelector("video")!;
+      document.addEventListener("click", (event) => {
+        const tile = (event.target as Element).closest<HTMLElement>("[data-view]");
+        if (!tile || editing()) return;
+        hangUp(viewed);
+        viewed.dataset.camera = tile.dataset.view;
+        viewer.querySelector(".camera-name")!.textContent = tile.dataset.label ?? "";
+        viewer.showModal();
+      });
+      viewer.addEventListener("click", () => viewer.close());
+
       const refresh = async (force = false) => {
         if (!force && (editing() || document.querySelector("#live input:focus, #live dialog[open]"))) return;
         try {
@@ -402,6 +422,7 @@ Astro.response.headers.set("Cache-Control", "no-store");
           setEditing(false);
         }
         if (pageIndex() !== 0) goTo(0);
+        if (viewer.open) viewer.close();
       }, 10_000);
 
       type Layout = { pages: { id: string; name: string; widgets: string[] }[]; sizes?: Record<string, string> };
@@ -1009,6 +1030,60 @@ Astro.response.headers.set("Cache-Control", "no-store");
     border-radius: 12px;
     background: var(--lake);
     color: var(--paper);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .camera-view {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: #000;
+  }
+
+  .camera-view::backdrop {
+    background: #000;
+  }
+
+  .camera-view video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .camera-name,
+  .camera-view form {
+    position: absolute;
+    top: calc(1rem + env(safe-area-inset-top));
+    margin: 0;
+  }
+
+  .camera-name {
+    left: var(--gutter);
+    padding: 0.3rem 0.9rem;
+    border-radius: 999px;
+    background: rgb(0 0 0 / 0.55);
+    color: #fff;
+    font-size: 1.25rem;
+  }
+
+  .camera-view form {
+    right: var(--gutter);
+  }
+
+  .camera-view button {
+    padding: 0.6rem 1.2rem;
+    border: 0;
+    border-radius: 12px;
+    background: rgb(255 255 255 / 0.85);
+    color: #000;
     font: inherit;
     font-weight: 700;
     cursor: pointer;
