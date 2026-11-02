@@ -1,0 +1,39 @@
+<button type="button" class="hold-toggle" aria-label="Stay on this page" aria-pressed="false">
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M9 4h6M10 4v6l-3 4h10l-3-4V4M12 14v6"></path>
+  </svg>
+</button>
+
+<style>
+  .hold-toggle {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    border: 1px solid var(--rule);
+    border-radius: 50%;
+    background: var(--paper);
+    color: var(--ink);
+    opacity: 0.7;
+    cursor: pointer;
+  }
+
+  .hold-toggle[aria-pressed="true"] {
+    background: var(--lake);
+    border-color: var(--lake);
+    color: var(--paper);
+    opacity: 1;
+  }
+
+  .hold-toggle svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.25;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+</style>
