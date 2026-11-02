@@ -5,6 +5,7 @@ export const widgets = [
   { id: "calendar", name: "This week", description: "What's on the calendar, with a button to add something", size: "3x1" },
   { id: "coming", name: "Coming this week", description: "New episodes and films from Sonarr and Radarr", size: "2x3" },
   { id: "photos", name: "On this day", description: "Photos from this day in past years, from Immich", size: "1x3" },
+  { id: "cameras", name: "Cameras", description: "Live video from the Frigate cameras", size: "2x2" },
   { id: "meals", name: "Meal plan", description: "Every planned meal for the next seven days", size: "3x3" },
 ] as const;
 

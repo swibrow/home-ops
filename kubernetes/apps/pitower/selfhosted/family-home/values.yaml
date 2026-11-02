@@ -22,6 +22,7 @@ controllers:
           PORT: &port 8080
           HASS_URL: https://ha.wibrow.dev
           JELLYFIN_URL: http://jellyfin.media.svc.cluster.local:8096
+          FRIGATE_URL: http://frigate-app.home-automation.svc.cluster.local:5000
           SONARR_URL: http://sonarr.media.svc.cluster.local:8989
           RADARR_URL: http://radarr.media.svc.cluster.local:7878
           IMMICH_URL: http://immich-server.media.svc.cluster.local:2283

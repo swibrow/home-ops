@@ -6,6 +6,10 @@ currency: CHF
 # Rybbit public site token for home.wibrow.dev
 analyticsSiteId: c643754b9477
 
+frigate:
+  # go2rtc stream names in Frigate, shown live by the kitchen Cameras widget.
+  cameras: [doorbell, backyard, basement, attic, bedroom_juno]
+  doorbell: doorbell
 homeAssistant:
   weather: weather.forecast_home
   sun: sun.sun

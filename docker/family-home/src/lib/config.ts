@@ -20,6 +20,8 @@ export type Config = {
     calendars?: string[];
     doorbell?: { sensor: string; camera: string; unlock?: string };
   };
+  // go2rtc stream names in Frigate; doorbell is the one the doorbell popup streams.
+  frigate?: { cameras: string[]; doorbell?: string };
   jellyfin: { url: string; userId: string };
   immich: { url: string };
   mealie: { url: string; group: string };

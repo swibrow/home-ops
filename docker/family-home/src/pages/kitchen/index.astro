@@ -11,6 +11,7 @@ import ReloadButton from "../../components/ReloadButton.astro";
 import SkyScene from "../../components/SkyScene.astro";
 import Weather from "../../components/Weather.astro";
 import Calendar from "../../components/widgets/Calendar.astro";
+import Cameras from "../../components/widgets/Cameras.astro";
 import Coming from "../../components/widgets/Coming.astro";
 import Dinner from "../../components/widgets/Dinner.astro";
 import Lights from "../../components/widgets/Lights.astro";
@@ -52,6 +53,7 @@ const shows: Record<WidgetId, boolean> = {
   coming: !!upcoming?.length,
   meals: !!meals,
   photos: !!photos?.length,
+  cameras: !!config.frigate?.cameras.length,
 };
 const pageOf = Object.fromEntries(layout.pages.flatMap((p) => p.widgets.map((w) => [w, p])));
 const areas = Object.fromEntries(
@@ -200,6 +202,7 @@ Astro.response.headers.set("Cache-Control", "no-store");
                         {id === "coming" && !!upcoming?.length && <Coming upcoming={upcoming} />}
                         {id === "meals" && meals && <Meals meals={meals} />}
                         {id === "photos" && !!photos?.length && <Photos photos={photos} />}
+                        {id === "cameras" && !!config.frigate?.cameras.length && <Cameras cameras={config.frigate.cameras} />}
                         {!shows[id] && <p class="quiet">Nothing to show right now.</p>}
                       </div>
                     </div>
@@ -244,7 +247,13 @@ Astro.response.headers.set("Cache-Control", "no-store");
 
     <dialog class="doorbell" aria-labelledby="doorbell-heading">
       <h2 id="doorbell-heading">Someone is at the door</h2>
-      <img alt="Doorbell camera" />
+      {
+        config.frigate?.doorbell ? (
+          <video data-camera={config.frigate.doorbell} muted playsinline autoplay aria-label="Doorbell camera" />
+        ) : (
+          <img alt="Doorbell camera" />
+        )
+      }
       <form method="dialog">
         {config.homeAssistant.doorbell?.unlock && <button type="button" class="unlock">Open the door</button>}
         <button autofocus>Close</button>
@@ -315,6 +324,50 @@ Astro.response.headers.set("Cache-Control", "no-store");
         document.querySelector(".edit-toggle")?.setAttribute("aria-pressed", String(on));
       };
 
+      // Live camera feeds over WebRTC from Frigate's go2rtc, connected only while on screen.
+      const feeds = new Map<HTMLVideoElement, RTCPeerConnection>();
+      const hangUp = (video: HTMLVideoElement) => {
+        feeds.get(video)?.close();
+        feeds.delete(video);
+        video.srcObject = null;
+      };
+      const watch = async (video: HTMLVideoElement) => {
+        const pc = new RTCPeerConnection();
+        feeds.set(video, pc);
+        pc.addTransceiver("video", { direction: "recvonly" });
+        pc.ontrack = (event) => {
+          video.srcObject = event.streams[0] ?? new MediaStream([event.track]);
+          video.play().catch(() => {});
+        };
+        pc.onconnectionstatechange = () => {
+          if (pc.connectionState === "failed" || pc.connectionState === "disconnected") hangUp(video);
+        };
+        try {
+          await pc.setLocalDescription(await pc.createOffer());
+          await new Promise<void>((done) => {
+            pc.onicegatheringstatechange = () => pc.iceGatheringState === "complete" && done();
+            setTimeout(done, 2000);
+          });
+          const res = await fetch(`/kitchen/api/camera/${video.dataset.camera}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sdp: pc.localDescription!.sdp }),
+          });
+          if (!res.ok) throw new Error(`camera ${video.dataset.camera} returned ${res.status}`);
+          if (feeds.get(video) === pc) await pc.setRemoteDescription({ type: "answer", sdp: await res.text() });
+        } catch {
+          if (feeds.get(video) === pc) hangUp(video);
+        }
+      };
+      const onScreen = (el: Element) => {
+        const r = el.getBoundingClientRect();
+        return !document.hidden && r.width > 0 && r.right > 1 && r.left < innerWidth - 1 && r.bottom > 0 && r.top < innerHeight;
+      };
+      setInterval(() => {
+        feeds.forEach((_, v) => (!v.isConnected || !onScreen(v)) && hangUp(v));
+        document.querySelectorAll<HTMLVideoElement>("video[data-camera]").forEach((v) => !feeds.has(v) && onScreen(v) && watch(v));
+      }, 1_000);
+
       const refresh = async (force = false) => {
         if (!force && (editing() || document.querySelector("#live input:focus, #live dialog[open]"))) return;
         try {
@@ -322,7 +375,14 @@ Astro.response.headers.set("Cache-Control", "no-store");
           if (!res.ok) return;
           const next = new DOMParser().parseFromString(await res.text(), "text/html");
           const index = pageIndex();
+          // Playing feeds move into the new page so the refresh doesn't restart them.
+          const playing = new Map([...feeds.keys()].map((v) => [v.dataset.camera, v]));
+          next.querySelectorAll<HTMLVideoElement>("#live video[data-camera]").forEach((v) => {
+            const old = playing.get(v.dataset.camera);
+            if (old) v.replaceWith(old);
+          });
           document.querySelector("#live")!.replaceWith(next.querySelector("#live")!);
+          feeds.forEach((_, v) => v.play().catch(() => {}));
           goTo(index, false);
           markPage();
           setEditing(editing());
@@ -499,14 +559,16 @@ Astro.response.headers.set("Cache-Control", "no-store");
       });
 
       const dialog = document.querySelector<HTMLDialogElement>(".doorbell")!;
-      const camera = dialog.querySelector("img")!;
+      const camera = dialog.querySelector<HTMLImageElement | HTMLVideoElement>("img, video")!;
       let lastRing = 0;
       setInterval(async () => {
         try {
           const { active } = await (await fetch("/kitchen/api/doorbell", { cache: "no-store" })).json();
           if (active) {
             lastRing = Date.now();
-            camera.src = `/kitchen/api/doorbell.jpg?t=${lastRing}`;
+            const snapshot = `/kitchen/api/doorbell.jpg?t=${lastRing}`;
+            if (camera instanceof HTMLVideoElement) camera.poster = snapshot;
+            else camera.src = snapshot;
             if (!dialog.open && !dialog.dataset.dismissed) dialog.showModal();
           } else if (Date.now() - lastRing > 60_000) {
             delete dialog.dataset.dismissed;
@@ -970,7 +1032,8 @@ Astro.response.headers.set("Cache-Control", "no-store");
     margin-bottom: 1rem;
   }
 
-  .doorbell img {
+  .doorbell img,
+  .doorbell video {
     width: 100%;
     border-radius: 12px;
     background: var(--panel);
