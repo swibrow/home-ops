@@ -13,6 +13,7 @@ export type Config = {
   homeAssistant: {
     weather: string;
     sun: string;
+    outdoor?: string;
     people: string[];
     buttons?: string;
     shoppingList?: string;

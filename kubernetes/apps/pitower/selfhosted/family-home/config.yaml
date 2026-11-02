@@ -9,6 +9,8 @@ analyticsSiteId: c643754b9477
 homeAssistant:
   weather: weather.forecast_home
   sun: sun.sun
+  # Measured outside temperature, shown as the current temperature over the forecast's.
+  outdoor: sensor.0x00124b0024cc7d16_temperature
   people:
     - person.sam
   shoppingList: todo.shopping_list

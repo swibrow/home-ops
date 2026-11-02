@@ -133,6 +133,8 @@ const forecast = (type: "daily" | "hourly") =>
       return { source: "met.no", forecast: await haForecast(type) };
     });
 
+const measured = (s: State | undefined) => (s && Number.isFinite(Number.parseFloat(s.state)) ? Number(s.state) : undefined);
+
 const thisHour = (hourly: Forecast[], now = Date.now()) =>
   hourly.find((h) => Date.parse(h.datetime) <= now && now < Date.parse(h.datetime) + 3_600_000);
 
@@ -157,10 +159,11 @@ export type SkyArc = { body: "sun" | "moon"; progress: number };
 export const loadSky = () =>
   url && token
     ? cached("ha:sky", 120, async () => {
-        const [weather, sun, hourly] = await Promise.all([
+        const [weather, sun, hourly, outdoor] = await Promise.all([
           getJson<State>(`${url}/api/states/${ha.weather}`, { headers }),
           getJson<State>(`${url}/api/states/${ha.sun}`, { headers }),
           forecast("hourly").then((f) => f.forecast),
+          ha.outdoor ? getJson<State>(`${url}/api/states/${ha.outdoor}`, { headers }).catch(() => undefined) : undefined,
         ]);
         const rise = Date.parse(sun.attributes.next_rising);
         const set = Date.parse(sun.attributes.next_setting);
@@ -183,7 +186,7 @@ export const loadSky = () =>
         const condition = hour?.condition ?? weather.state;
         const current: SkySlot = {
           label: "Now",
-          temperature: Math.round(hour?.temperature ?? weather.attributes.temperature),
+          temperature: Math.round(measured(outdoor) ?? hour?.temperature ?? weather.attributes.temperature),
           condition,
           summary: conditions[condition] ?? condition,
           daypart: daypart(now, rise, set),
@@ -228,7 +231,7 @@ export const loadHome = () =>
         return {
           weather: weather && {
             condition: conditions[hour?.condition ?? weather.state] ?? weather.state,
-            temperature: Math.round(hour?.temperature ?? weather.attributes.temperature),
+            temperature: Math.round(measured(byId.get(ha.outdoor ?? "")) ?? hour?.temperature ?? weather.attributes.temperature),
             high: today && Math.round(today.temperature),
             low: today?.templow !== undefined ? Math.round(today.templow) : undefined,
             rain: today?.precipitation,
