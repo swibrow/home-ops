@@ -31,7 +31,7 @@ split across two files. A badge is a single scalar, so it can count failing
 components but not name them; the `status_*` graphs, read as JSON, carry the
 labels the page uses to list each failing component, how long it has been
 failing, what recovered in the last hour, and the drill-down for `gitops`
-(unhealthy Argo CD apps) and `rook-ceph` (active health checks). Change them
+(Argo CD apps whose health is not Healthy or Suspended) and `rook-ceph` (active health checks). Change them
 together; an id that drifts renders as `unknown`, which fails safely but
 silently.
 

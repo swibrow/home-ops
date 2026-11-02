@@ -207,12 +207,7 @@ function stripCluster(name: string): string {
 const DETAIL_SOURCES: Record<string, { graph: string; describe: (labels: Record<string, string>) => string }> = {
   gitops: {
     graph: "status_gitops",
-    describe: (l) => {
-      const states = [l.health_status, l.sync_status].filter(
-        (s) => s && s !== "Healthy" && s !== "Synced",
-      );
-      return `${stripCluster(l.name ?? "unknown")}: ${states.join(", ")}`;
-    },
+    describe: (l) => `${stripCluster(l.name ?? "unknown")}: ${l.health_status ?? "unknown"}`,
   },
   "rook-ceph": {
     graph: "status_ceph",

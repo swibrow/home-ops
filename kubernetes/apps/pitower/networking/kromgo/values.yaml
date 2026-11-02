@@ -219,13 +219,11 @@ config:
       query: infra:component:stale == 1
       maxDuration: 1h
     # Drill-down for the gitops component, which is a fraction of apps.
-    # Matches that rule's definition of healthy, Suspended included.
+    # Matches that rule's definition of healthy: health only, Suspended included.
     - id: status_gitops
       title: unhealthy apps
       query: |
-        max by (name, health_status, sync_status) (
-          argocd_app_info{health_status!~"Healthy|Suspended"} or argocd_app_info{sync_status!="Synced"}
-        )
+        max by (name, health_status) (argocd_app_info{health_status!~"Healthy|Suspended"})
       maxDuration: 1h
     # Drill-down for rook-ceph, which only says OK/WARN/ERR.
     - id: status_ceph

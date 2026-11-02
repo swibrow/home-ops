@@ -166,8 +166,8 @@ describe("issueStates", () => {
         series({ tier: "edge", component: "towonel-agent", scope: "cluster" }, 900, 600, 0),
       ),
       status_gitops: graph(
-        series({ name: "pitower-selfhosted-family-home", health_status: "Degraded", sync_status: "Synced" }, 600, 0, 1),
-        series({ name: "pitower-old-app", health_status: "Missing", sync_status: "Synced" }, 3600, 1800, 1),
+        series({ name: "pitower-selfhosted-family-home", health_status: "Degraded" }, 600, 0, 1),
+        series({ name: "pitower-old-app", health_status: "Missing" }, 3600, 1800, 1),
       ),
       status_missing: graph(series({ component: "ups-eaton" }, 300, 0, 1)),
     };
