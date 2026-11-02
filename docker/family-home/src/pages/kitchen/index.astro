@@ -5,6 +5,7 @@ import favicon from "../../../public/favicon.svg?raw";
 import "../../styles/global.css";
 import EditButton from "../../components/EditButton.astro";
 import Horizon from "../../components/Horizon.astro";
+import Measured from "../../components/Measured.astro";
 import Reload from "../../components/Reload.astro";
 import ReloadButton from "../../components/ReloadButton.astro";
 import SkyScene from "../../components/SkyScene.astro";
@@ -95,7 +96,9 @@ Astro.response.headers.set("Cache-Control", "no-store");
             {
               home?.weather && (
                 <button type="button" class="weather" data-open="weather-details">
-                  <span class="temp">{home.weather.temperature}°</span>
+                  <span class="temp">
+                    {home.weather.temperature}°{home.weather.measured && <Measured />}
+                  </span>
                   {home.weather.condition}
                   {home.weather.high !== undefined && `, up to ${home.weather.high}°`}
                   {!!home.weather.rain && `, ${home.weather.rain} mm rain`}

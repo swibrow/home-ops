@@ -1,6 +1,7 @@
 ---
 import type { loadHome } from "../integrations/homeassistant";
 import { format } from "../lib/time";
+import Measured from "./Measured.astro";
 
 type Props = { id: string; weather: NonNullable<NonNullable<Awaited<ReturnType<typeof loadHome>>>["weather"]> };
 const { id, weather } = Astro.props;
@@ -14,7 +15,9 @@ const { id, weather } = Astro.props;
     </form>
   </div>
   <p class="now">
-    <span class="temp">{weather.temperature}°</span>
+    <span class="temp">
+      {weather.temperature}°{weather.measured && <Measured />}
+    </span>
     {weather.condition}
     {weather.low !== undefined && weather.high !== undefined && `, ${weather.low}° to ${weather.high}°`}
     {!!weather.rain && `, ${weather.rain} mm rain`}
@@ -71,7 +74,12 @@ const { id, weather } = Astro.props;
       </ol>
     </>
   )}
-  {weather.source && <p class="source">Forecast: {weather.source}</p>}
+  {(weather.measured || weather.source) && (
+    <p class="source">
+      {weather.measured && "Now: measured by the outdoor sensor. "}
+      {weather.source && `Forecast: ${weather.source}`}
+    </p>
+  )}
 </dialog>
 
 <style>

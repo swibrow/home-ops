@@ -151,7 +151,7 @@ function daypart(at: number, rise: number, set: number): Daypart {
   return events.filter((e) => e.at <= at).sort((a, b) => b.at - a.at)[0].up ? "day" : "night";
 }
 
-export type SkySlot = { label: string; temperature: number; condition: string; summary: string; daypart: Daypart };
+export type SkySlot = { label: string; temperature: number; measured?: boolean; condition: string; summary: string; daypart: Daypart };
 // Where the sun or, at night, the moon is between its rise and set, from 0 to 1.
 export type SkyArc = { body: "sun" | "moon"; progress: number };
 
@@ -187,6 +187,7 @@ export const loadSky = () =>
         const current: SkySlot = {
           label: "Now",
           temperature: Math.round(measured(outdoor) ?? hour?.temperature ?? weather.attributes.temperature),
+          measured: measured(outdoor) !== undefined,
           condition,
           summary: conditions[condition] ?? condition,
           daypart: daypart(now, rise, set),
@@ -232,6 +233,7 @@ export const loadHome = () =>
           weather: weather && {
             condition: conditions[hour?.condition ?? weather.state] ?? weather.state,
             temperature: Math.round(measured(byId.get(ha.outdoor ?? "")) ?? hour?.temperature ?? weather.attributes.temperature),
+            measured: measured(byId.get(ha.outdoor ?? "")) !== undefined,
             high: today && Math.round(today.temperature),
             low: today?.templow !== undefined ? Math.round(today.templow) : undefined,
             rain: today?.precipitation,

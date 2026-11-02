@@ -2,6 +2,7 @@
 import { scene } from "../integrations/comfyui";
 import { loadSky } from "../integrations/homeassistant";
 import { settle } from "../lib/cache";
+import Measured from "./Measured.astro";
 
 const { slots = [], arc } = (await settle("sky", loadSky())) ?? {};
 const angle = Math.PI * Math.min(Math.max(arc?.progress ?? 0, 0), 1);
@@ -24,7 +25,7 @@ const angle = Math.PI * Math.min(Math.max(arc?.progress ?? 0, 0), 1);
       )}
       {slots.map((s, i) => (
         <span class="label" style={`--i:${i}`} data-ink={s.daypart === "day" ? "dark" : "light"}>
-          {s.label} <b>{s.temperature}°</b> {s.summary}
+          {s.label} <b>{s.temperature}°{s.measured && <Measured />}</b> {s.summary}
         </span>
       ))}
     </div>
