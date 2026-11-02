@@ -24,8 +24,11 @@ Prometheus ──▶ kromgo ──▶ Worker ──▶ KV (last known good)
   it, so during an outage the page still renders — labelled with how old the
   reading is, and downgraded to "Status unknown" past five minutes.
 
-The badge ids in `src/kromgo.ts` and the `config.badges` entries in kromgo's
-values are one contract in two files; change them together. An id that drifts
+The badge and graph ids in `src/kromgo.ts` and the `config.badges` /
+`config.graphs` entries in kromgo's values are one contract in two files;
+change them together. Badges carry the counts and ratios; the `status_*`
+graphs (read as JSON) carry component names, which is how the page lists what
+is failing, for how long, and what recovered in the last hour. An id that drifts
 renders as `unknown`, which is a safe failure but a silent one.
 
 ### What the page leads with

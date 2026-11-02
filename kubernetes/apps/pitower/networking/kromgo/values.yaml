@@ -204,6 +204,35 @@ config:
       height: 110
       valueExpr: string(int(result)) + "%"
 
+    # --- status.wibrow.dev, per-component detail --------------------------
+    # Read as ?format=json by the Worker (workers/status/src/kromgo.ts,
+    # GRAPH_IDS). Graphs rather than badges because a badge is one scalar and
+    # can count failing components but never name them; a graph returns every
+    # series with its labels. The 1h window lets the page show how long an
+    # issue has lasted and what recovered recently.
+    - id: status_issues
+      title: failing components
+      query: infra:component:up < 1
+      maxDuration: 1h
+    - id: status_missing
+      title: missing signals
+      query: infra:component:stale == 1
+      maxDuration: 1h
+    # Drill-down for the gitops component, which is a fraction of apps.
+    # Matches that rule's definition of healthy, Suspended included.
+    - id: status_gitops
+      title: unhealthy apps
+      query: |
+        max by (name, health_status, sync_status) (
+          argocd_app_info{health_status!~"Healthy|Suspended"} or argocd_app_info{sync_status!="Synced"}
+        )
+      maxDuration: 1h
+    # Drill-down for rook-ceph, which only says OK/WARN/ERR.
+    - id: status_ceph
+      title: ceph health checks
+      query: max by (name, severity) (ceph_health_detail > 0)
+      maxDuration: 1h
+
 # Public endpoint for the wibrow.dev blog dashboard (cross-origin; CORS is
 # handled by the SecurityPolicy in securitypolicy.yaml).
 httpRoute:

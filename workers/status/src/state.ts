@@ -1,4 +1,4 @@
-import type { Badge, Snapshot } from "./kromgo";
+import type { Badge, Graph, Series, Snapshot } from "./kromgo";
 
 /**
  * How old a snapshot may be before the page stops presenting it as current.
@@ -151,4 +151,142 @@ export function relativeAge(seconds: number): string {
   const hours = Math.round(minutes / 60);
   if (hours < 36) return `${hours}h ago`;
   return `${Math.round(hours / 24)}d ago`;
+}
+
+export interface Issue {
+  tier: string;
+  tierLabel: string;
+  component: string;
+  /** "wan" means the probe crossed the internet; worth saying, since the same name can fail on the LAN only. */
+  scope: string;
+  level: Level;
+  value: string;
+  /** Seconds the issue has lasted, measured to the end of the window (current) or to recovery (resolved). */
+  durationSeconds: number;
+  /** True when the run reaches back to the start of the window, so the duration is a lower bound. */
+  durationIsFloor: boolean;
+  /** Seconds since recovery; only set on resolved issues. */
+  resolvedSecondsAgo?: number;
+  details: string[];
+}
+
+export interface Issues {
+  current: Issue[];
+  resolved: Issue[];
+  missing: string[];
+}
+
+/** Points further apart than this belong to separate runs. */
+function gapLimit(graph: Graph): number {
+  return graph.step * 2;
+}
+
+function isCurrent(series: Series, graph: Graph): boolean {
+  const last = series.data.at(-1);
+  return last !== undefined && last.t >= graph.end - gapLimit(graph);
+}
+
+/** The last contiguous run of points, which is the issue the page talks about. */
+function lastRun(series: Series, graph: Graph): { from: number; to: number; value: number } | null {
+  const data = series.data;
+  if (data.length === 0) return null;
+  let i = data.length - 1;
+  while (i > 0 && data[i].t - data[i - 1].t <= gapLimit(graph)) i--;
+  const last = data[data.length - 1];
+  return { from: data[i].t, to: last.t, value: last.v };
+}
+
+function stripCluster(name: string): string {
+  return name.replace(/^pitower-/, "");
+}
+
+/**
+ * Some components are rollups whose own value says only "something inside is
+ * wrong". These pull the inside from a second graph so the page names it.
+ */
+const DETAIL_SOURCES: Record<string, { graph: string; describe: (labels: Record<string, string>) => string }> = {
+  gitops: {
+    graph: "status_gitops",
+    describe: (l) => {
+      const states = [l.health_status, l.sync_status].filter(
+        (s) => s && s !== "Healthy" && s !== "Synced",
+      );
+      return `${stripCluster(l.name ?? "unknown")}: ${states.join(", ")}`;
+    },
+  },
+  "rook-ceph": {
+    graph: "status_ceph",
+    describe: (l) => l.name ?? "unknown check",
+  },
+};
+
+function details(component: string, snapshot: Snapshot): string[] {
+  const source = DETAIL_SOURCES[component];
+  const graph = source && snapshot.graphs?.[source.graph];
+  if (!source || !graph) return [];
+  return graph.series
+    .filter((s) => isCurrent(s, graph))
+    .map((s) => source.describe(s.labels))
+    .sort();
+}
+
+const LEVEL_ORDER: Record<Level, number> = { outage: 0, degraded: 1, unknown: 2, operational: 3 };
+
+export function issueStates(snapshot: Snapshot, tiers: { id: string; label: string }[]): Issues {
+  const tierLabel = (tier: string) => tiers.find((t) => t.id === `tier_${tier}`)?.label ?? tier;
+  const tierOrder = (tier: string) => {
+    const i = tiers.findIndex((t) => t.id === `tier_${tier}`);
+    return i === -1 ? tiers.length : i;
+  };
+
+  const current: Issue[] = [];
+  const resolved: Issue[] = [];
+  const graph = snapshot.graphs?.status_issues;
+  for (const series of graph?.series ?? []) {
+    const run = graph && lastRun(series, graph);
+    if (!graph || !run) continue;
+    const { tier = "unknown", component = "unknown", scope = "" } = series.labels;
+    const live = isCurrent(series, graph);
+    const level: Level = run.value > 0 ? "degraded" : "outage";
+    const issue: Issue = {
+      tier,
+      tierLabel: tierLabel(tier),
+      component,
+      scope,
+      level,
+      value: level === "outage" ? "Down" : `Degraded · ${formatRatio(run.value * 100)}`,
+      durationSeconds: Math.max(graph.step, (live ? graph.end : run.to) - run.from),
+      durationIsFloor: run.from <= graph.start + graph.step,
+      details: live ? details(component, snapshot) : [],
+    };
+    if (live) {
+      current.push(issue);
+    } else {
+      issue.resolvedSecondsAgo = Math.max(0, graph.end - run.to);
+      resolved.push(issue);
+    }
+  }
+
+  current.sort(
+    (a, b) =>
+      LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level] ||
+      tierOrder(a.tier) - tierOrder(b.tier) ||
+      a.component.localeCompare(b.component),
+  );
+  resolved.sort((a, b) => (a.resolvedSecondsAgo ?? 0) - (b.resolvedSecondsAgo ?? 0));
+
+  const missingGraph = snapshot.graphs?.status_missing;
+  const missing = (missingGraph?.series ?? [])
+    .filter((s) => missingGraph && isCurrent(s, missingGraph))
+    .map((s) => s.labels.component ?? "unknown")
+    .sort();
+
+  return { current, resolved, missing };
+}
+
+export function formatDuration(seconds: number): string {
+  if (seconds < 90) return `${seconds}s`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes}m`;
+  return `${Math.round(minutes / 60)}h`;
 }

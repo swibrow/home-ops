@@ -235,9 +235,12 @@ spec:
         # Fractional on purpose: this is the one component where "mostly fine"
         # is the normal state and a hard 0/1 would be either always red or
         # useless. It renders as degraded rather than down.
+        #
+        # Suspended counts as healthy: it is the deliberate parked state of
+        # on-demand workloads (the omarchy VM, scaled-to-zero strata).
         - record: infra:component:up
           expr: |
-            (count(argocd_app_info{sync_status="Synced", health_status="Healthy"}) / count(argocd_app_info))
+            (count(argocd_app_info{sync_status="Synced", health_status=~"Healthy|Suspended"}) / count(argocd_app_info))
               or on () vector(0)
           labels:
             tier: platform

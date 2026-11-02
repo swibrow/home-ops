@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { BADGE_IDS, fetchSnapshot, TIERS, type Badge, type Snapshot } from "../src/kromgo";
+import { BADGE_IDS, fetchSnapshot, TIERS, type Badge, type Graph, type Snapshot } from "../src/kromgo";
 import { renderPage } from "../src/render";
-import { formatRatio, pageState, relativeAge, STALE_AFTER_MS, tierStates } from "../src/state";
+import { formatRatio, issueStates, pageState, relativeAge, STALE_AFTER_MS, tierStates } from "../src/state";
 
 const NOW = 1_760_000_000_000;
 
@@ -142,6 +142,59 @@ describe("tierStates", () => {
   });
 });
 
+const END = NOW / 1000;
+const STEP = 60;
+
+/** A series with a point every step from `from` to `to` seconds before END. */
+function series(labels: Record<string, string>, fromAgo: number, toAgo: number, v: number) {
+  const data = [];
+  for (let t = END - fromAgo; t <= END - toAgo; t += STEP) data.push({ t, v });
+  return { labels, data };
+}
+
+function graph(...s: ReturnType<typeof series>[]): Graph {
+  return { start: END - 3600, end: END, step: STEP, series: s };
+}
+
+describe("issueStates", () => {
+  test("names what is failing now, for how long, and what recovered", () => {
+    const snap = snapshot({ status_public: 100 });
+    snap.graphs = {
+      status_issues: graph(
+        series({ tier: "platform", component: "gitops", scope: "cluster" }, 1200, 0, 0.96),
+        series({ tier: "app", component: "sunshine", scope: "lan" }, 3600, 0, 0),
+        series({ tier: "edge", component: "towonel-agent", scope: "cluster" }, 900, 600, 0),
+      ),
+      status_gitops: graph(
+        series({ name: "pitower-selfhosted-family-home", health_status: "Degraded", sync_status: "Synced" }, 600, 0, 1),
+        series({ name: "pitower-old-app", health_status: "Missing", sync_status: "Synced" }, 3600, 1800, 1),
+      ),
+      status_missing: graph(series({ component: "ups-eaton" }, 300, 0, 1)),
+    };
+    const issues = issueStates(snap, TIERS);
+
+    expect(issues.current.map((i) => i.component)).toEqual(["sunshine", "gitops"]);
+    const [sunshine, gitops] = issues.current;
+    expect(sunshine.value).toBe("Down");
+    expect(sunshine.durationIsFloor).toBe(true);
+    expect(gitops.value).toBe("Degraded · 96%");
+    expect(gitops.tierLabel).toBe("Platform");
+    expect(gitops.durationSeconds).toBe(1200);
+    expect(gitops.details).toEqual(["selfhosted-family-home: Degraded"]);
+
+    expect(issues.resolved).toHaveLength(1);
+    expect(issues.resolved[0].component).toBe("towonel-agent");
+    expect(issues.resolved[0].resolvedSecondsAgo).toBe(600);
+    expect(issues.resolved[0].durationSeconds).toBe(300);
+
+    expect(issues.missing).toEqual(["ups-eaton"]);
+  });
+
+  test("a snapshot without graphs yields no issues rather than throwing", () => {
+    expect(issueStates(snapshot({ status_public: 100 }), TIERS)).toEqual({ current: [], resolved: [], missing: [] });
+  });
+});
+
 describe("formatRatio", () => {
   test.each([
     [100, "100%"],
@@ -177,6 +230,23 @@ describe("renderPage", () => {
     const html = renderPage(old, NOW);
     expect(html).toContain("serving last known good");
     expect(html).not.toContain("All systems operational");
+  });
+
+  test("lists failing components by name, escaped", () => {
+    const snap = snapshot({ status_public: 100, status_health: 0.5 });
+    snap.graphs = {
+      status_issues: graph(series({ tier: "storage", component: "<b>rook-ceph</b>", scope: "cluster" }, 600, 0, 0.5)),
+    };
+    const html = renderPage(snap, NOW);
+    expect(html).toContain("Current issues");
+    expect(html).toContain("&lt;b&gt;rook-ceph&lt;/b&gt;");
+    expect(html).toContain("For 10m");
+  });
+
+  test("says so when no component is failing", () => {
+    const snap = snapshot({ status_public: 100, status_health: 1 });
+    snap.graphs = { status_issues: graph() };
+    expect(renderPage(snap, NOW)).toContain("No component is failing right now.");
   });
 
   test("escapes values that reach the page from kromgo", () => {

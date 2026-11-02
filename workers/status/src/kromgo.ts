@@ -39,6 +39,11 @@ export const TIERS: Tier[] = [
 
 export const BADGE_IDS: string[] = [...HEADLINE_IDS, ...TIERS.map((t) => t.id)];
 
+// Badges resolve to one scalar, so they can say "1 component down" but never
+// which one. Graph endpoints return every series with its labels, which is the
+// only way component names leave the cluster.
+export const GRAPH_IDS = ["status_issues", "status_missing", "status_gitops", "status_ceph"] as const;
+
 export interface Badge {
   id: string;
   title: string;
@@ -47,11 +52,26 @@ export interface Badge {
   result: number;
 }
 
+export interface Series {
+  labels: Record<string, string>;
+  data: { t: number; v: number }[];
+}
+
+export interface Graph {
+  /** Unix seconds. */
+  start: number;
+  end: number;
+  step: number;
+  series: Series[];
+}
+
 export interface Snapshot {
   /** Unix milliseconds at which the fetch that produced this ran. */
   fetchedAt: number;
   /** Missing entries mean kromgo did not answer for that id on this pass. */
   badges: Record<string, Badge>;
+  /** Absent on snapshots stored before graphs were fetched. */
+  graphs?: Record<string, Graph>;
 }
 
 const FETCH_TIMEOUT_MS = 5000;
@@ -89,12 +109,48 @@ async function fetchBadge(origin: string, id: string): Promise<Badge | null> {
  *
  * Returns null when every request failed, which is what an outage looks like.
  */
+async function fetchGraph(origin: string, id: string): Promise<Graph | null> {
+  try {
+    const res = await fetch(`${origin}/graphs/${id}?format=json`, {
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      headers: { accept: "application/json" },
+    });
+    if (!res.ok) return null;
+    const body = (await res.json()) as Partial<Graph>;
+    if (
+      typeof body.start !== "number" ||
+      typeof body.end !== "number" ||
+      typeof body.step !== "number" ||
+      !Array.isArray(body.series)
+    ) {
+      return null;
+    }
+    const series = body.series
+      .filter((s) => s && typeof s.labels === "object" && Array.isArray(s.data))
+      .map((s) => ({
+        labels: s.labels,
+        data: s.data.filter((p) => typeof p.t === "number" && Number.isFinite(p.v)),
+      }));
+    return { start: body.start, end: body.end, step: body.step, series };
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchSnapshot(origin: string, now: number): Promise<Snapshot | null> {
-  const results = await Promise.all(BADGE_IDS.map((id) => fetchBadge(origin, id)));
+  const [badgeResults, graphResults] = await Promise.all([
+    Promise.all(BADGE_IDS.map((id) => fetchBadge(origin, id))),
+    Promise.all(GRAPH_IDS.map((id) => fetchGraph(origin, id))),
+  ]);
   const badges: Record<string, Badge> = {};
-  for (const badge of results) {
+  for (const badge of badgeResults) {
     if (badge) badges[badge.id] = badge;
   }
   if (Object.keys(badges).length === 0) return null;
-  return { fetchedAt: now, badges };
+  const graphs: Record<string, Graph> = {};
+  GRAPH_IDS.forEach((id, i) => {
+    const graph = graphResults[i];
+    if (graph) graphs[id] = graph;
+  });
+  return { fetchedAt: now, badges, graphs };
 }

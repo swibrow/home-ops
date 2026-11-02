@@ -25,8 +25,13 @@ cluster at all. A refresh that fails never overwrites the stored snapshot, so
 during an outage the page still renders -- labelled with the age of the reading,
 and downgraded to "Status unknown" once that age passes five minutes.
 
-The badge ids in `workers/status/src/kromgo.ts` and the `config.badges` entries
-in kromgo's values are one contract split across two files. Change them
+The badge and graph ids in `workers/status/src/kromgo.ts` and the
+`config.badges` / `config.graphs` entries in kromgo's values are one contract
+split across two files. A badge is a single scalar, so it can count failing
+components but not name them; the `status_*` graphs, read as JSON, carry the
+labels the page uses to list each failing component, how long it has been
+failing, what recovered in the last hour, and the drill-down for `gitops`
+(unhealthy Argo CD apps) and `rook-ceph` (active health checks). Change them
 together; an id that drifts renders as `unknown`, which fails safely but
 silently.
 

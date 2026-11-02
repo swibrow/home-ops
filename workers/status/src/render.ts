@@ -1,5 +1,13 @@
 import { TIERS, type Snapshot } from "./kromgo";
-import { pageState, relativeAge, tierStates, type Level } from "./state";
+import {
+  formatDuration,
+  issueStates,
+  pageState,
+  relativeAge,
+  tierStates,
+  type Issue,
+  type Level,
+} from "./state";
 
 const LEVEL_LABEL: Record<Level, string> = {
   operational: "Operational",
@@ -79,6 +87,16 @@ h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color
 .tier-name { font-weight: 550; }
 .tier-blurb { color: var(--muted); font-size: 0.85rem; flex: 1; }
 .tier-value { color: var(--level); font-variant-numeric: tabular-nums; font-size: 0.9rem; }
+.issues { margin-bottom: 2.25rem; }
+.issue { padding: 0.85rem 1.25rem; border-top: 1px solid var(--border); }
+.issue:first-child { border-top: 0; }
+.issue-head { display: flex; align-items: baseline; gap: 0.85rem; flex-wrap: wrap; }
+.issue-name { font-weight: 550; overflow-wrap: anywhere; }
+.issue-tier { color: var(--muted); font-size: 0.85rem; flex: 1; }
+.issue-meta { color: var(--muted); font-size: 0.8rem; font-variant-numeric: tabular-nums; margin: 0.15rem 0 0 1.45rem; }
+.issue-details { margin: 0.4rem 0 0 1.45rem; padding: 0; list-style: none; font-size: 0.85rem; }
+.issue-details li { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8rem; overflow-wrap: anywhere; }
+.quiet { color: var(--muted); font-size: 0.9rem; margin: 0 0 2.25rem; }
 footer { margin-top: 2.5rem; color: var(--muted); font-size: 0.85rem; }
 footer a { color: inherit; }
 @media (max-width: 32rem) {
@@ -86,6 +104,65 @@ footer a { color: inherit; }
   .tier-blurb { flex-basis: 100%; padding-left: 1.45rem; }
 }
 `;
+
+function issueRow(issue: Issue, resolved: boolean): string {
+  const scope = issue.scope === "wan" ? " · from the internet" : "";
+  const lasted = `${issue.durationIsFloor ? "over " : ""}${formatDuration(issue.durationSeconds)}`;
+  const meta = resolved
+    ? `Resolved ${formatDuration(issue.resolvedSecondsAgo ?? 0)} ago · lasted ${lasted}`
+    : `For ${lasted}`;
+  const details = issue.details.length
+    ? `<ul class="issue-details">${issue.details.map((d) => `<li>${escapeHtml(d)}</li>`).join("")}</ul>`
+    : "";
+  const level: Level = resolved ? "operational" : issue.level;
+  return `
+      <div class="issue" style="--level: var(--${level})">
+        <div class="issue-head">
+          <span class="dot" role="img" aria-label="${resolved ? "Resolved" : LEVEL_LABEL[issue.level]}"></span>
+          <span class="issue-name">${escapeHtml(issue.component)}</span>
+          <span class="issue-tier">${escapeHtml(issue.tierLabel + scope)}</span>
+          <span class="tier-value" style="--level: var(--${issue.level})">${escapeHtml(issue.value)}</span>
+        </div>
+        <p class="issue-meta">${escapeHtml(meta)}</p>${details}
+      </div>`;
+}
+
+function renderIssues(snapshot: Snapshot): string {
+  if (!snapshot.graphs?.status_issues) {
+    return `<h3>Current issues</h3>
+  <p class="quiet">Component detail is unavailable in this reading.</p>`;
+  }
+  const issues = issueStates(snapshot, TIERS);
+  const current = issues.current.length
+    ? `<div class="tiers issues">${issues.current.map((i) => issueRow(i, false)).join("")}
+  </div>`
+    : `<p class="quiet">No component is failing right now.</p>`;
+  const resolved = issues.resolved.length
+    ? `<h3>Resolved in the last hour</h3>
+  <div class="tiers issues">${issues.resolved.map((i) => issueRow(i, true)).join("")}
+  </div>`
+    : "";
+  const missing = issues.missing.length
+    ? `<h3>Missing signals</h3>
+  <div class="tiers issues">${issues.missing
+    .map(
+      (m) => `
+      <div class="issue" style="--level: var(--unknown)">
+        <div class="issue-head">
+          <span class="dot" role="img" aria-label="Unknown"></span>
+          <span class="issue-name">${escapeHtml(m)}</span>
+          <span class="issue-tier">No data, so its health is untested</span>
+        </div>
+      </div>`,
+    )
+    .join("")}
+  </div>`
+    : "";
+  return `<h3>Current issues</h3>
+  ${current}
+  ${resolved}
+  ${missing}`;
+}
 
 export function renderPage(snapshot: Snapshot, now: number): string {
   const state = pageState(snapshot, now);
@@ -130,6 +207,8 @@ export function renderPage(snapshot: Snapshot, now: number): string {
     state.stale ? " · serving last known good" : ""
   }</p>
 
+  ${renderIssues(snapshot)}
+
   <h3>Components</h3>
   <div class="tiers">${rows}
   </div>
@@ -148,5 +227,6 @@ export function renderJson(snapshot: Snapshot, now: number): unknown {
   return {
     ...pageState(snapshot, now),
     tiers: tierStates(snapshot, TIERS),
+    issues: snapshot.graphs?.status_issues ? issueStates(snapshot, TIERS) : null,
   };
 }
