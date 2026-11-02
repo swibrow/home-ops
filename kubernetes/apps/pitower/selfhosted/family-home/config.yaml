@@ -15,6 +15,11 @@ homeAssistant:
   sun: sun.sun
   # Measured outside temperature, shown as the current temperature over the forecast's.
   outdoor: sensor.0x00124b0024cc7d16_temperature
+  # Echo speakers the kitchen Now playing widget shows and controls.
+  speakers:
+    - media_player.kitchen_kitchen_echo
+    - media_player.living_room_echo
+    - media_player.bedroom_master_juno_echo
   people:
     - person.sam
   shoppingList: todo.shopping_list

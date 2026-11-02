@@ -17,11 +17,12 @@ import Coming from "../../components/widgets/Coming.astro";
 import Dinner from "../../components/widgets/Dinner.astro";
 import Lights from "../../components/widgets/Lights.astro";
 import Meals from "../../components/widgets/Meals.astro";
+import Music from "../../components/widgets/Music.astro";
 import Photos from "../../components/widgets/Photos.astro";
 import "../../components/widgets/panel.css";
 import Shopping from "../../components/widgets/Shopping.astro";
 import { loadUpcoming } from "../../integrations/arr";
-import { loadEvents, loadHome, loadShopping } from "../../integrations/homeassistant";
+import { loadEvents, loadHome, loadPlaying, loadShopping } from "../../integrations/homeassistant";
 import { loadOnThisDay } from "../../integrations/immich";
 import { loadMeals } from "../../integrations/mealie";
 import { settle } from "../../lib/cache";
@@ -34,13 +35,14 @@ import { sizes, widgets, type WidgetId } from "../../lib/widgets";
 const layout = await loadLayout();
 const placed = new Set(layout.pages.flatMap((p) => p.widgets));
 
-const [home, meals, upcoming, shopping, events, photos] = await Promise.all([
+const [home, meals, upcoming, shopping, events, photos, playing] = await Promise.all([
   settle("homeassistant", loadHome()),
   settle("mealie", placed.has("dinner") || placed.has("meals") ? loadMeals() : undefined),
   settle("arr", placed.has("coming") ? loadUpcoming() : undefined),
   settle("shopping", placed.has("shopping") ? loadShopping() : undefined),
   settle("calendar", placed.has("calendar") ? loadEvents() : undefined),
   settle("immich", placed.has("photos") ? loadOnThisDay() : undefined),
+  settle("music", placed.has("music") ? loadPlaying() : undefined),
 ]);
 
 const now = new Date();
@@ -55,6 +57,7 @@ const shows: Record<WidgetId, boolean> = {
   meals: !!meals,
   photos: !!photos?.length,
   cameras: !!config.frigate?.cameras.length,
+  music: !!config.homeAssistant.speakers?.length,
 };
 const pageOf = Object.fromEntries(layout.pages.flatMap((p) => p.widgets.map((w) => [w, p])));
 const areas = Object.fromEntries(
@@ -204,6 +207,7 @@ Astro.response.headers.set("Cache-Control", "no-store");
                         {id === "coming" && !!upcoming?.length && <Coming upcoming={upcoming} />}
                         {id === "meals" && meals && <Meals meals={meals} />}
                         {id === "photos" && !!photos?.length && <Photos photos={photos} />}
+                        {id === "music" && <Music playing={playing} />}
                         {id === "cameras" && !!config.frigate?.cameras.length && <Cameras cameras={config.frigate.cameras} />}
                         {!shows[id] && <p class="quiet">Nothing to show right now.</p>}
                       </div>
@@ -312,6 +316,46 @@ Astro.response.headers.set("Cache-Control", "no-store");
           timers();
         } catch {}
       }, 10_000);
+
+      // Now playing on the Echo speakers, kept fresher than the minutely page refresh.
+      const music = async () => {
+        const panel = document.querySelector<HTMLElement>("[data-music]");
+        if (!panel) return;
+        try {
+          const res = await fetch("/kitchen/api/media", { cache: "no-store" });
+          if (!res.ok) return;
+          const p: { id: string; name: string; state: string; title?: string; artist?: string; art?: string; volume?: number } | null = await res.json();
+          panel.dataset.music = p?.id ?? "";
+          panel.dataset.state = p?.state ?? "";
+          panel.querySelector(".title")!.textContent = p?.title ?? "Nothing playing";
+          panel.querySelector(".artist")!.textContent = p?.artist ?? "";
+          panel.querySelector(".where")!.textContent = p?.name ?? "";
+          const art = panel.querySelector<HTMLImageElement>(".art")!;
+          art.hidden = !p?.art;
+          if (p?.art && art.getAttribute("src") !== p.art) art.src = p.art;
+          const volume = panel.querySelector<HTMLInputElement>('[data-media="volume"]')!;
+          if (document.activeElement !== volume && p?.volume !== undefined) volume.value = String(Math.round(p.volume * 100));
+        } catch {}
+      };
+      setInterval(music, 5_000);
+      const media = async (command: string, volume?: number) => {
+        const id = document.querySelector<HTMLElement>("[data-music]")?.dataset.music;
+        if (!id) return;
+        await fetch("/kitchen/api/media", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id, command, volume }),
+        }).catch(() => undefined);
+        setTimeout(music, 800);
+      };
+      document.addEventListener("click", (event) => {
+        const button = (event.target as Element).closest<HTMLButtonElement>("button[data-media]");
+        if (button && !editing()) media(button.dataset.media!);
+      });
+      document.addEventListener("change", (event) => {
+        const input = event.target as HTMLInputElement;
+        if (input.matches('input[data-media="volume"]')) media("volume", Number(input.value) / 100);
+      });
 
       const pager = () => document.querySelector<HTMLElement>(".pages");
       const pageIndex = () => {

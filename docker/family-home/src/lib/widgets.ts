@@ -6,6 +6,7 @@ export const widgets = [
   { id: "coming", name: "Coming this week", description: "New episodes and films from Sonarr and Radarr", size: "2x3" },
   { id: "photos", name: "On this day", description: "Photos from this day in past years, from Immich", size: "1x3" },
   { id: "cameras", name: "Cameras", description: "Live video from the Frigate cameras", size: "2x2" },
+  { id: "music", name: "Now playing", description: "What the Echo speakers are playing, with play, pause, skip and volume", size: "1x1" },
   { id: "meals", name: "Meal plan", description: "Every planned meal for the next seven days", size: "3x3" },
 ] as const;
 

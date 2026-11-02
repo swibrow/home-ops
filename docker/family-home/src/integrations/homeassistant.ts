@@ -370,3 +370,44 @@ export async function addEvent({ summary, date, time }: { summary: string; date:
   forget("ha:events");
   return res.ok;
 }
+
+export type Playing = { id: string; name: string; state: string; title?: string; artist?: string; art?: string; volume?: number };
+
+// The speaker that is playing, else one paused mid-song, else the first one that is up.
+export const loadPlaying = () =>
+  url && token && ha.speakers?.length
+    ? cached("ha:playing", 3, async () => {
+        const states = await Promise.all(ha.speakers!.map((id) => getJson<State>(`${url}/api/states/${id}`, { headers }).catch(() => undefined)));
+        const up = states.filter((s): s is State => !!s && s.state !== "unavailable");
+        const s = up.find((s) => s.state === "playing") ?? up.find((s) => s.state === "paused" && s.attributes.media_title) ?? up[0];
+        if (!s) return undefined;
+        const a = s.attributes;
+        return {
+          id: s.entity_id,
+          name: a.friendly_name ?? s.entity_id,
+          state: s.state,
+          title: a.media_title,
+          artist: a.media_artist,
+          // Changes with the song, so the display knows when to fetch new cover art.
+          art: a.entity_picture ? `/kitchen/api/media-art?id=${encodeURIComponent(s.entity_id)}&v=${encodeURIComponent(a.media_title ?? "")}` : undefined,
+          volume: a.volume_level,
+        } satisfies Playing;
+      })
+    : undefined;
+
+const mediaServices = { toggle: "media_play_pause", next: "media_next_track", previous: "media_previous_track", volume: "volume_set" };
+export type MediaCommand = keyof typeof mediaServices;
+export const isMediaCommand = (command: unknown): command is MediaCommand => typeof command === "string" && command in mediaServices;
+
+export async function controlSpeaker(id: string, command: MediaCommand, volume?: number) {
+  if (!url || !token || !ha.speakers?.includes(id)) return undefined;
+  const res = await callService("media_player", mediaServices[command], { entity_id: id, ...(command === "volume" && { volume_level: volume }) });
+  forget("ha:playing");
+  return res.ok;
+}
+
+export async function speakerArt(id: string) {
+  if (!url || !token || !ha.speakers?.includes(id)) return undefined;
+  const picture = (await getJson<State>(`${url}/api/states/${id}`, { headers })).attributes.entity_picture;
+  return picture ? fetch(new URL(picture, url), { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(5000) }) : undefined;
+}

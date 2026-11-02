@@ -1,0 +1,140 @@
+---
+import type { Playing } from "../../integrations/homeassistant";
+import "./panel.css";
+
+type Props = { playing?: Playing };
+const { playing } = Astro.props;
+---
+
+<section class="panel music" aria-labelledby="music-heading" data-music={playing?.id} data-state={playing?.state}>
+  <h2 id="music-heading">Now playing</h2>
+  <div class="track">
+    <img class="art" src={playing?.art} alt="" hidden={!playing?.art} />
+    <div>
+      <p class="title">{playing?.title ?? "Nothing playing"}</p>
+      <p class="artist">{playing?.artist}</p>
+      <p class="where">{playing?.name}</p>
+    </div>
+  </div>
+  <div class="controls">
+    <button type="button" data-media="previous" aria-label="Previous song">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14M19 5l-10 7 10 7z" /></svg>
+    </button>
+    <button type="button" data-media="toggle" class="toggle" aria-label="Play or pause">
+      <svg class="play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z" /></svg>
+      <svg class="pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14" /></svg>
+    </button>
+    <button type="button" data-media="next" aria-label="Next song">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14M5 5l10 7-10 7z" /></svg>
+    </button>
+  </div>
+  <label class="volume">
+    <span class="visually-hidden">Volume</span>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4zM16.5 8.5a5 5 0 0 1 0 7" /></svg>
+    <input type="range" min="0" max="100" step="5" data-media="volume" value={Math.round((playing?.volume ?? 0) * 100)} />
+  </label>
+</section>
+
+<style>
+  .music {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    height: 100%;
+  }
+
+  .track {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-height: 0;
+  }
+
+  .art {
+    width: 5.5rem;
+    height: 5.5rem;
+    flex: none;
+    border-radius: 12px;
+    object-fit: cover;
+    background: var(--panel);
+  }
+
+  .title {
+    margin: 0;
+    font-family: var(--display);
+    font-size: 1.4rem;
+    font-weight: 700;
+    line-height: 1.15;
+  }
+
+  .artist,
+  .where {
+    margin: 0.2rem 0 0;
+    color: var(--muted);
+  }
+
+  .where {
+    font-size: 0.875rem;
+  }
+
+  .controls {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+  }
+
+  .controls button {
+    display: grid;
+    place-items: center;
+    width: 3.25rem;
+    height: 3.25rem;
+    padding: 0;
+    border: 1px solid var(--rule);
+    border-radius: 50%;
+    background: var(--paper);
+    color: var(--ink);
+    cursor: pointer;
+  }
+
+  .controls .toggle {
+    width: 3.75rem;
+    height: 3.75rem;
+    background: var(--lake);
+    border-color: var(--lake);
+    color: var(--paper);
+  }
+
+  .controls svg,
+  .volume svg {
+    width: 1.4rem;
+    height: 1.4rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.25;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .controls .play path,
+  .controls [data-media="previous"] path,
+  .controls [data-media="next"] path {
+    fill: currentColor;
+  }
+
+  .music[data-state="playing"] .play,
+  .music:not([data-state="playing"]) .pause {
+    display: none;
+  }
+
+  .volume {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--muted);
+  }
+
+  .volume input {
+    flex: 1;
+    accent-color: var(--lake);
+  }
+</style>

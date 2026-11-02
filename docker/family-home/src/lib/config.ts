@@ -14,6 +14,7 @@ export type Config = {
     weather: string;
     sun: string;
     outdoor?: string;
+    speakers?: string[];
     people: string[];
     buttons?: string;
     shoppingList?: string;
