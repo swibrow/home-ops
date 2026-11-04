@@ -23,7 +23,7 @@ kind: MCPServer
 metadata:
   name: github
 spec:
-  image: ghcr.io/github/github-mcp-server:v2.0.3
+  image: ghcr.io/github/github-mcp-server:v2.1.0
   transport: stdio
   proxyPort: 8080
   groupRef:
