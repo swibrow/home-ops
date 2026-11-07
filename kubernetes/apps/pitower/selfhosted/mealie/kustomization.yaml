@@ -22,14 +22,6 @@ configMapGenerator:
     literals:
       - APP_NAME=mealie-kopiur
       - CLAIM_NAME=mealie-data
-  # Unreleased upstream change: AI provider API keys read from files
-  # (file:<name>), so the provider can use the projected token below.
-  # Drop once a release includes it.
-  - name: mealie-openai-patch
-    options:
-      disableNameSuffixHash: true
-    files:
-      - openai.py
 patches:
   # mealie writes its data as uid 911; the kopiur mover must match to read it.
   - target:

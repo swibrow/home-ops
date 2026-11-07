@@ -5,8 +5,8 @@ controllers:
     containers:
       app:
         image:
-          repository: ghcr.io/mealie-recipes/mealie
-          tag: v3.30.0
+          repository: ghcr.io/cloudsnacks/mealie
+          tag: 3.30.0-1
         env:
           ALLOW_SIGNUP: "false"
           ALLOW_PASSWORD_LOGIN: "false"
@@ -63,14 +63,8 @@ persistence:
     existingClaim: mealie-data
     globalMounts:
       - path: /app/data
-  openai-patch:
-    type: configMap
-    name: mealie-openai-patch
-    globalMounts:
-      - path: /opt/mealie/lib/python3.14/site-packages/mealie/services/openai/openai.py
-        subPath: openai.py
-        readOnly: true
-  # The AI provider's API key is file:gateway. The app drops to uid 911, so
+  # The AI provider's API key is file:gateway, which upstream can't read yet;
+  # ghcr.io/cloudsnacks/mealie adds that until a release includes it. The app drops to uid 911, so
   # the token needs to be world-readable.
   ai-providers:
     type: custom
