@@ -24,6 +24,10 @@ alertmanager:
     configMaps:
       - alertmanager-templates
 defaultRules:
+  # A resolved alert that re-fires sends a new notification despite the 720h
+  # repeat_interval, so ride out short dips (load hovering at a threshold, a
+  # missed scrape, a kube-state-metrics restart) instead of resolving.
+  keepFiringFor: 15m
   disabled:
     # Replaced by prometheusrule.yaml, which alerts per owning CronJob instead
     # of per job run. The stock rule mints a new alert for every failed run.
@@ -111,12 +115,16 @@ kube-state-metrics:
   prometheus:
     monitor:
       enabled: true
+      # Stock rules without aggregation copy the scrape target's labels into the
+      # alert, so a label naming this pod or its node gives every alert a new
+      # identity when the pod moves: all of them resolve and re-fire. honorLabels
+      # keeps the exported pod label on the metrics that have one.
       relabelings:
         - action: replace
-          sourceLabels: ["__meta_kubernetes_pod_node_name"]
-          regex: ^(.*)$
-          replacement: $1
-          targetLabel: kubernetes_node
+          targetLabel: instance
+          replacement: kube-state-metrics
+        - action: labeldrop
+          regex: pod
 kubelet:
   enabled: true
   serviceMonitor:

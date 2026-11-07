@@ -17,6 +17,11 @@ toolbox:
 monitoring:
   enabled: true
   createPrometheusRules: true
+  prometheusRuleOverrides:
+    # A single timed-out mgr scrape makes ceph_health_status go stale, which
+    # resolves this long-running alert and re-notifies 15m later.
+    CephHealthWarning:
+      keep_firing_for: 15m
 
 ingress:
   dashboard: {}
