@@ -38,3 +38,12 @@ spec:
   claimPropertySets:
     - accessModes: ["ReadWriteOnce"]
       volumeMode: Filesystem
+---
+apiVersion: cdi.kubevirt.io/v1beta1
+kind: StorageProfile
+metadata:
+  name: openebs-hostpath-runners
+spec:
+  claimPropertySets:
+    - accessModes: ["ReadWriteOnce"]
+      volumeMode: Filesystem
