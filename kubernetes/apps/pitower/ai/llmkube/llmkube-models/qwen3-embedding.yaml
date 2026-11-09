@@ -51,7 +51,7 @@ spec:
       value: gpu
       effect: NoSchedule
   resources:
-    cpu: "4"
+    cpu: "1"
     memory: "2Gi"
     ephemeralStorage: 2Gi
   # Pooled embeddings need the whole input inside one ubatch, so batch sizes
@@ -60,8 +60,10 @@ spec:
   batchSize: 8192
   uBatchSize: 8192
   parallelSlots: 1
-  # llama.cpp defaults to every core; keep it at the CPU request so it does
-  # not starve qwen38-27b's prompt processing on the same node.
+  # llama.cpp defaults to every core; capping threads bounds a burst so it does
+  # not starve qwen38-27b's prompt processing on the same node. The request
+  # stays low because a 4-core request did not fit beside qwen38-27b and
+  # deadlocked the rollout; idle use is a few millicores.
   extraArgs:
     - --threads
     - "4"
