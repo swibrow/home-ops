@@ -1,0 +1,19 @@
+---
+# Talos sends from the host network, before Cilium is up on a booting node, so
+# it needs an address routed by the gateway rather than a ClusterIP.
+apiVersion: v1
+kind: Service
+metadata:
+  name: kernel-logs-receiver-udp
+  annotations:
+    lbipam.cilium.io/ips: "10.20.10.241"
+spec:
+  type: LoadBalancer
+  selector:
+    app.kubernetes.io/instance: kernel-logs-receiver
+    app.kubernetes.io/name: fluent-bit
+  ports:
+    - name: kmsg
+      port: 5170
+      targetPort: kmsg
+      protocol: UDP

@@ -1,0 +1,35 @@
+# Kernel logs from every node's Talos KmsgLogConfig. A separate instance because
+# VictoriaLogs retention is per instance: a month normally, but a noisy kernel
+# (a driver error loop) only costs the oldest days, not the pod logs' history.
+fullnameOverride: kernel-logs
+
+server:
+  enabled: true
+  fullnameOverride: kernel-logs
+  replicaCount: 1
+  nodeSelector:
+    wibrow.dev/compute: "true"
+  retentionPeriod: 30d
+  extraArgs:
+    envflag.enable: "true"
+    envflag.prefix: VM_
+    loggerFormat: json
+    retention.maxDiskSpaceUsageBytes: 4GiB
+  persistentVolume:
+    enabled: true
+    accessModes:
+      - ReadWriteOnce
+    storageClassName: openebs-hostpath-fast
+    size: 5Gi
+  service:
+    servicePort: 9428
+    type: ClusterIP
+  serviceMonitor:
+    enabled: true
+  resources:
+    requests:
+      cpu: 20m
+      memory: 128Mi
+
+dashboards:
+  enabled: false

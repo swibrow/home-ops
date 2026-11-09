@@ -1,0 +1,20 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/grafana.integreatly.org/grafanadatasource_v1beta1.json
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  name: kernel-logs
+  namespace: monitoring
+spec:
+  plugins:
+    - name: victoriametrics-logs-datasource
+      version: latest
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  datasource:
+    name: Kernel logs
+    uid: kernel-logs
+    type: victoriametrics-logs-datasource
+    access: proxy
+    url: http://kernel-logs.monitoring.svc.cluster.local:9428

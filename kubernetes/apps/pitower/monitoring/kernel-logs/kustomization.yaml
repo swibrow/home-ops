@@ -1,0 +1,21 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/kustomization.json
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: monitoring
+resources:
+  - service.yaml
+  - grafanadatasource.yaml
+helmCharts:
+  - name: victoria-logs-single
+    repo: https://victoriametrics.github.io/helm-charts
+    version: 0.13.11
+    releaseName: kernel-logs
+    valuesFile: values-victoria-logs.yaml
+    namespace: monitoring
+  - name: fluent-bit
+    repo: https://fluent.github.io/helm-charts
+    version: 0.58.3
+    releaseName: kernel-logs-receiver
+    valuesFile: values-fluent-bit.yaml
+    namespace: monitoring

@@ -1,0 +1,83 @@
+# Receives Talos kmsg JSON over UDP. Off the dedicated=* nodes (no tolerations)
+# and spread out, so a node that hangs is rarely the one holding its last lines.
+kind: Deployment
+replicaCount: 2
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - topologyKey: kubernetes.io/hostname
+        labelSelector:
+          matchLabels:
+            app.kubernetes.io/instance: kernel-logs-receiver
+
+rbac:
+  create: false
+daemonSetVolumes: []
+daemonSetVolumeMounts: []
+
+extraPorts:
+  - name: kmsg
+    port: 5170
+    containerPort: 5170
+    protocol: UDP
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 32Mi
+
+luaScripts:
+  node.lua: |
+    -- Talos records carry no hostname; the sender's address is the node IP.
+    local nodes = {
+      ["10.20.10.1"] = "worker-01", ["10.20.10.2"] = "worker-02",
+      ["10.20.10.3"] = "worker-03", ["10.20.10.4"] = "worker-04",
+      ["10.20.10.5"] = "worker-05", ["10.20.10.6"] = "worker-06",
+      ["10.20.10.7"] = "worker-07", ["10.20.10.8"] = "worker-08",
+      ["10.20.10.9"] = "worker-09", ["10.20.10.10"] = "worker-10",
+      ["10.20.10.11"] = "worker-ai-01",
+    }
+    function set_node(tag, ts, record)
+      local ip = string.match(record["source"] or "", "(%d+%.%d+%.%d+%.%d+)")
+      record["node"] = nodes[ip] or ip or "unknown"
+      return 2, ts, record
+    end
+
+config:
+  service: |
+    [SERVICE]
+      Daemon Off
+      Flush 1
+      Log_Level {{ .Values.logLevel }}
+      HTTP_Server On
+      HTTP_Listen 0.0.0.0
+      HTTP_Port {{ .Values.metricsPort }}
+      Health_Check On
+
+  inputs: |
+    [INPUT]
+      name udp
+      tag kmsg
+      port 5170
+      format json
+      source_address_key source
+
+  filters: |
+    [FILTER]
+      name lua
+      match kmsg
+      script /fluent-bit/scripts/node.lua
+      call set_node
+
+  outputs: |
+    [OUTPUT]
+      Name    http
+      Match   kmsg
+      Host    kernel-logs.monitoring.svc.cluster.local
+      Port    9428
+      URI     /insert/jsonline?_stream_fields=node,facility&_time_field=talos-time&_msg_field=msg
+      Format  json_lines
+      Compress gzip
+
+testFramework:
+  enabled: false
