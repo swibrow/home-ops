@@ -82,7 +82,14 @@ game-off:
 
 # Stop a VM, releasing its GPU
 stop vm="omarchy":
-    @echo '{}' | kubectl replace --raw "{{ api }}/{{ vm }}/stop" -f - >/dev/null && echo "Stopping {{ vm }}"
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! kubectl -n {{ ns }} get vmi {{ vm }} >/dev/null 2>&1; then
+        echo "{{ vm }} is not running"
+        exit 0
+    fi
+    echo '{}' | kubectl replace --raw "{{ api }}/{{ vm }}/stop" -f - >/dev/null
+    echo "Stopping {{ vm }}"
 
 # Restart a VM
 restart vm="omarchy":
