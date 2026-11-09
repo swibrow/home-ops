@@ -78,6 +78,8 @@ spec:
               deviceName: kubevirt.io/usb-controller
             - name: hdmi-audio
               deviceName: nvidia.com/GA102_HDMI_AUDIO
+            - name: headset
+              deviceName: steelseries.com/arctis-7
           inputs:
             - name: tablet
               type: tablet

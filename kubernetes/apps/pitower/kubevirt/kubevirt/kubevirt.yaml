@@ -21,6 +21,12 @@ spec:
           resourceName: kubevirt.io/usb-controller
         - pciVendorSelector: "10DE:1AEF"
           resourceName: nvidia.com/GA102_HDMI_AUDIO
+      # Single devices on worker-ai-01's onboard ports, passed to omarchy.
+      usb:
+        - resourceName: steelseries.com/arctis-7
+          selectors:
+            - vendor: "1038"
+              product: "12ad"
     # VM nodes have mismatched CPUs (Ryzen, N100, Xeon), so live migration
     # never finds a target; drains and upgrades restart VMs instead.
     evictionStrategy: None
