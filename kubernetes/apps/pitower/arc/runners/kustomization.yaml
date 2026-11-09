@@ -93,7 +93,7 @@ helmCharts:
           # bakes in make/just/task and the mise toolchain.
           containers:
             - name: runner
-              image: ghcr.io/cloudsnacks/actions-runner:2.336.0-6
+              image: ghcr.io/cloudsnacks/actions-runner:2.338.2-1
               command: ["/home/runner/run.sh"]
               env:
                 - name: DOCKER_HOST
@@ -255,7 +255,7 @@ helmCharts:
                 sizeLimit: 2Gi
           containers:
             - name: runner
-              image: ghcr.io/cloudsnacks/actions-runner:2.336.0-6
+              image: ghcr.io/cloudsnacks/actions-runner:2.338.2-1
               command: ["/home/runner/run.sh"]
               env:
                 - name: DOCKER_HOST
@@ -416,7 +416,7 @@ helmCharts:
           # repeating them).
           containers:
             - name: runner
-              image: ghcr.io/cloudsnacks/actions-runner:2.336.0-6
+              image: ghcr.io/cloudsnacks/actions-runner:2.338.2-1
               command: ["/home/runner/run.sh"]
               env:
                 - name: DOCKER_HOST
