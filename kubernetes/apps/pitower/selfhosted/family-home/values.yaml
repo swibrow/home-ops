@@ -27,7 +27,6 @@ controllers:
           RADARR_URL: http://radarr.media.svc.cluster.local:7878
           IMMICH_URL: http://immich-server.media.svc.cluster.local:2283
           MEALIE_URL: http://mealie.selfhosted.svc.cluster.local:9000
-          ACTUAL_URL: http://actual.banking.svc.cluster.local:5006
           PROMETHEUS_URL: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
           # Through the KEDA interceptor so a render wakes ComfyUI from zero.
           COMFYUI_URL: http://keda-add-ons-http-interceptor-proxy.system.svc.cluster.local:8080
@@ -37,9 +36,6 @@ controllers:
               name: family-home-secret
           - secretRef:
               name: family-home-integrations
-              optional: true
-          - secretRef:
-              name: family-home-actual
               optional: true
         probes:
           liveness: &probes
