@@ -16,9 +16,49 @@ daemonSetVolumes: []
 daemonSetVolumeMounts: []
 
 extraPorts:
-  - name: kmsg
-    port: 5170
-    containerPort: 5170
+  - name: worker-01
+    port: 5101
+    containerPort: 5101
+    protocol: UDP
+  - name: worker-02
+    port: 5102
+    containerPort: 5102
+    protocol: UDP
+  - name: worker-03
+    port: 5103
+    containerPort: 5103
+    protocol: UDP
+  - name: worker-04
+    port: 5104
+    containerPort: 5104
+    protocol: UDP
+  - name: worker-05
+    port: 5105
+    containerPort: 5105
+    protocol: UDP
+  - name: worker-06
+    port: 5106
+    containerPort: 5106
+    protocol: UDP
+  - name: worker-07
+    port: 5107
+    containerPort: 5107
+    protocol: UDP
+  - name: worker-08
+    port: 5108
+    containerPort: 5108
+    protocol: UDP
+  - name: worker-09
+    port: 5109
+    containerPort: 5109
+    protocol: UDP
+  - name: worker-10
+    port: 5110
+    containerPort: 5110
+    protocol: UDP
+  - name: worker-ai-01
+    port: 5111
+    containerPort: 5111
     protocol: UDP
 
 resources:
@@ -26,22 +66,6 @@ resources:
     cpu: 10m
     memory: 32Mi
 
-luaScripts:
-  node.lua: |
-    -- Talos records carry no hostname; the sender's address is the node IP.
-    local nodes = {
-      ["10.20.10.1"] = "worker-01", ["10.20.10.2"] = "worker-02",
-      ["10.20.10.3"] = "worker-03", ["10.20.10.4"] = "worker-04",
-      ["10.20.10.5"] = "worker-05", ["10.20.10.6"] = "worker-06",
-      ["10.20.10.7"] = "worker-07", ["10.20.10.8"] = "worker-08",
-      ["10.20.10.9"] = "worker-09", ["10.20.10.10"] = "worker-10",
-      ["10.20.10.11"] = "worker-ai-01",
-    }
-    function set_node(tag, ts, record)
-      local ip = string.match(record["source"] or "", "(%d+%.%d+%.%d+%.%d+)")
-      record["node"] = nodes[ip] or ip or "unknown"
-      return 2, ts, record
-    end
 
 config:
   service: |
@@ -57,22 +81,81 @@ config:
   inputs: |
     [INPUT]
       name udp
-      tag kmsg
-      port 5170
+      tag kmsg.worker-01
+      port 5101
       format json
-      source_address_key source
+
+    [INPUT]
+      name udp
+      tag kmsg.worker-02
+      port 5102
+      format json
+
+    [INPUT]
+      name udp
+      tag kmsg.worker-03
+      port 5103
+      format json
+
+    [INPUT]
+      name udp
+      tag kmsg.worker-04
+      port 5104
+      format json
+
+    [INPUT]
+      name udp
+      tag kmsg.worker-05
+      port 5105
+      format json
+
+    [INPUT]
+      name udp
+      tag kmsg.worker-06
+      port 5106
+      format json
+
+    [INPUT]
+      name udp
+      tag kmsg.worker-07
+      port 5107
+      format json
+
+    [INPUT]
+      name udp
+      tag kmsg.worker-08
+      port 5108
+      format json
+
+    [INPUT]
+      name udp
+      tag kmsg.worker-09
+      port 5109
+      format json
+
+    [INPUT]
+      name udp
+      tag kmsg.worker-10
+      port 5110
+      format json
+
+    [INPUT]
+      name udp
+      tag kmsg.worker-ai-01
+      port 5111
+      format json
 
   filters: |
     [FILTER]
       name lua
-      match kmsg
-      script /fluent-bit/scripts/node.lua
+      match kmsg.*
       call set_node
+      code function set_node(tag, ts, record) record["node"] = string.sub(tag, 6) return 2, ts, record end
 
   outputs: |
     [OUTPUT]
       Name    http
-      Match   kmsg
+      Match   kmsg.*
       Host    kernel-logs.monitoring.svc.cluster.local
       Port    9428
       URI     /insert/jsonline?_stream_fields=node,facility&_time_field=talos-time&_msg_field=msg

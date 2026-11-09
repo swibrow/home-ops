@@ -1,6 +1,8 @@
 ---
 # Talos sends from the host network, before Cilium is up on a booting node, so
-# it needs an address routed by the gateway rather than a ClusterIP.
+# it needs an address routed by the gateway rather than a ClusterIP. One port
+# per node (5100 + last octet of its IP, see talos/pitower/all/04-kernel-logs):
+# the L2 announcer SNATs boot-time packets, so the port is what names the node.
 apiVersion: v1
 kind: Service
 metadata:
@@ -13,7 +15,47 @@ spec:
     app.kubernetes.io/instance: kernel-logs-receiver
     app.kubernetes.io/name: fluent-bit
   ports:
-    - name: kmsg
-      port: 5170
-      targetPort: kmsg
+    - name: worker-01
+      port: 5101
+      targetPort: 5101
+      protocol: UDP
+    - name: worker-02
+      port: 5102
+      targetPort: 5102
+      protocol: UDP
+    - name: worker-03
+      port: 5103
+      targetPort: 5103
+      protocol: UDP
+    - name: worker-04
+      port: 5104
+      targetPort: 5104
+      protocol: UDP
+    - name: worker-05
+      port: 5105
+      targetPort: 5105
+      protocol: UDP
+    - name: worker-06
+      port: 5106
+      targetPort: 5106
+      protocol: UDP
+    - name: worker-07
+      port: 5107
+      targetPort: 5107
+      protocol: UDP
+    - name: worker-08
+      port: 5108
+      targetPort: 5108
+      protocol: UDP
+    - name: worker-09
+      port: 5109
+      targetPort: 5109
+      protocol: UDP
+    - name: worker-10
+      port: 5110
+      targetPort: 5110
+      protocol: UDP
+    - name: worker-ai-01
+      port: 5111
+      targetPort: 5111
       protocol: UDP
