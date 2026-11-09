@@ -45,13 +45,19 @@ name: nvidia_modeset
 # vfio-pci when a KubeVirt VM claims it. The GPU function itself is not in ids=:
 # it stays on nvidia until a vfio.gpu.nvidia.com claim asks for it. Its HDMI
 # audio function (10de:1aef) and the Exsys ASM2142 USB card (1b21:2142, the
-# omarchy keyboard and mouse) are bound here for KubeVirt to pass to omarchy.
-# xhci_pci also claims the USB card, so vfio_pci must win the module load race.
+# omarchy keyboard, mouse and headset) are bound here for KubeVirt to pass to omarchy.
 apiVersion: v1alpha1
 kind: KernelModuleConfig
 name: vfio_pci
 parameters:
   - ids=10de:1aef,1b21:2142
+---
+# udev coldplug loads xhci_pci seconds before machined loads vfio_pci, so ids=
+# never wins the USB card at boot; this moves it over afterwards.
+apiVersion: v1alpha1
+kind: PCIDriverRebindConfig
+name: "0000:06:00.0"
+targetDriver: vfio-pci
 ---
 apiVersion: v1alpha1
 kind: KernelModuleConfig
