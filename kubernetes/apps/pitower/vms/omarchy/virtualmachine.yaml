@@ -43,6 +43,9 @@ spec:
       labels:
         kubevirt.io/vm: omarchy
     spec:
+      # Stop presses the ACPI power button; the guest's logind drop-in
+      # 90-power-key-poweroff.conf turns that into a clean shutdown.
+      terminationGracePeriodSeconds: 300
       # The claimed GPU pins the VM to worker-ai-01.
       tolerations:
         - key: dedicated
