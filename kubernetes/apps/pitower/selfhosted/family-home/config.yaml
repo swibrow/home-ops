@@ -99,11 +99,6 @@ categories:
   - name: Money and paperwork
     namespace: banking
     apps:
-      - name: Budget
-        description: Where the money goes each month
-        url: https://actual.wibrow.dev
-        icon: actual-budget
-        status: actual
       - name: Documents
         description: Scanned letters, bills and contracts, searchable
         url: https://paperless.wibrow.dev
