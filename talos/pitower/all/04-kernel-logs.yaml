@@ -1,0 +1,8 @@
+# Ships kmsg to monitoring/kernel-logs, so the lines before a hang or a panic
+# outlive the node. UDP sends each line as it is written; a frozen kernel takes
+# TCP's unsent buffer with it.
+---
+apiVersion: v1alpha1
+kind: KmsgLogConfig
+name: kernel-logs
+url: udp://10.20.10.241:5170/
