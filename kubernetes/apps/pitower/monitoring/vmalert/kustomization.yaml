@@ -6,7 +6,7 @@ namespace: monitoring
 helmCharts:
   - name: victoria-metrics-alert
     repo: https://victoriametrics.github.io/helm-charts
-    version: 0.52.1
+    version: 0.53.0
     releaseName: vmalert
     namespace: monitoring
     valuesFile: values.yaml
