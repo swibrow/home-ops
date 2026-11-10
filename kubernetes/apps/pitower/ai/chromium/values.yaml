@@ -35,7 +35,7 @@ controllers:
       mcp:
         image:
           repository: mcr.microsoft.com/playwright/mcp
-          tag: v0.0.83@sha256:690763cbb437ee7233f538a953bb5390bf03791eb5c965b471e59d17a6132fcb
+          tag: v0.0.85@sha256:91838ad4927e574dcf787dd677e63c924b80f4adba6fe8ce47b92fab4a7841d6
         # --allowed-hosts '*' because clients use the Service name; ingress is
         # limited to hermes by networkpolicy.yaml.
         args:
