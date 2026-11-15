@@ -154,6 +154,11 @@ def remote_items(ha: HA) -> dict:
     return items
 
 
+def remote_config(ha: HA, key: str):
+    kind, _, name = key.partition("/")
+    return ha.rest("GET", f"config/{ID_CONFIGS.get(kind, 'script')}/config/{name}")
+
+
 def write_remote(ha: HA, key: str, data) -> None:
     kind, _, name = key.partition("/")
     if kind in ID_CONFIGS:
@@ -278,10 +283,13 @@ def push(ha: HA, paths: list[str], force: bool) -> None:
     if changes:
         remote = remote_items(ha)
         for key, rel, mine in changes:
-            if mine is not None and key in remote:
-                state[key] = digest(remote[key][1])
-                if remote[key][1] != mine:
-                    (REPO / rel).write_text(dump(remote[key][1]))
+            if mine is None:
+                continue
+            # A new automation, scene or script has no entity yet, so remote_items does not list it.
+            theirs = remote[key][1] if key in remote else remote_config(ha, key)
+            state[key] = digest(theirs)
+            if theirs != mine:
+                (REPO / rel).write_text(dump(theirs))
     save_state(state)
 
 
