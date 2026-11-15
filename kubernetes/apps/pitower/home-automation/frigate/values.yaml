@@ -19,6 +19,16 @@ controllers:
         fsGroup: 0
         fsGroupChangePolicy: "OnRootMismatch"
         supplementalGroups: [44, 109]
+    initContainers:
+      # Frigate only migrates a config file it can write, and a ConfigMap mount is always read-only.
+      init-config:
+        image:
+          repository: public.ecr.aws/docker/library/busybox
+          tag: latest
+        command:
+          - sh
+          - -c
+          - cp /tmp/config/config.yml /config/config.yml
     containers:
       app:
         image:
@@ -103,15 +113,15 @@ persistence:
       frigate:
         app:
           - path: /config
+        init-config:
+          - path: /config
   config-file:
     type: configMap
     name: frigate-config
     advancedMounts:
       frigate:
-        app:
-          - path: /config/config.yml
-            subPath: config.yml
-            readOnly: true
+        init-config:
+          - path: /tmp/config
   media:
     type: nfs
     server: data
