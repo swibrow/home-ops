@@ -15,7 +15,7 @@ conditions:
          and person.label == 'person'
          and 'walkway' in person.current_zones
          and person.sub_label is not none
-         and person.sub_label[0] | lower in ['sam'] }}
+         and person.sub_label[0] | lower in ['sam', 'jaanika', 'juno'] }}
 actions:
   - action: lock.open
     target:
