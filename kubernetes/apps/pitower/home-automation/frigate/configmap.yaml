@@ -31,6 +31,9 @@ data:
     ffmpeg:
       hwaccel_args: preset-vaapi
 
+    face_recognition:
+      enabled: true
+
     go2rtc:
       streams:
         basement:
@@ -57,6 +60,8 @@ data:
     cameras:
       basement:
         enabled: true
+        face_recognition:
+          enabled: false
         ffmpeg:
           inputs:
             - path: rtsp://127.0.0.1:8554/basement
@@ -78,6 +83,8 @@ data:
 
       bedroom_juno:
         enabled: true
+        face_recognition:
+          enabled: false
         ffmpeg:
           inputs:
             - path: rtsp://127.0.0.1:8554/bedroom_juno
@@ -127,6 +134,8 @@ data:
 
       backyard:
         enabled: true
+        face_recognition:
+          enabled: false
         ffmpeg:
           inputs:
             - path: rtsp://127.0.0.1:8554/backyard
@@ -148,6 +157,8 @@ data:
 
       attic:
         enabled: true
+        face_recognition:
+          enabled: false
         ffmpeg:
           inputs:
             - path: rtsp://127.0.0.1:8554/attic

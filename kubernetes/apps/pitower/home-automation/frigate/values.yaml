@@ -60,7 +60,6 @@ controllers:
             memory: 2810Mi
           limits:
             gpu.intel.com/i915: 1
-            memory: 4Gi
 
 service:
   app:

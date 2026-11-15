@@ -1,0 +1,32 @@
+id: front_door_face_unlock
+alias: Front Door - Face Unlock
+description: Open the front door when Frigate recognizes an allowed face on the doorbell camera's walkway. Frigate only
+  sets sub_label once several recognition attempts average above its recognition_threshold. The trailing delay is the
+  cooldown, so one visit opens the door once.
+triggers:
+  - trigger: mqtt
+    topic: frigate/events
+conditions:
+  - condition: template
+    value_template: >-
+      {% set person = trigger.payload_json.after %}
+      {{ trigger.payload_json.type != 'end'
+         and person.camera == 'doorbell'
+         and person.label == 'person'
+         and 'walkway' in person.current_zones
+         and person.sub_label is not none
+         and person.sub_label[0] | lower in ['sam'] }}
+actions:
+  - action: lock.open
+    target:
+      entity_id: lock.aqara_smart_lock_u200
+  - action: notify.mobile_app_sammi_iphone
+    data:
+      title: Front door opened
+      message: >-
+        Recognized {{ trigger.payload_json.after.sub_label[0] }}
+        ({{ (trigger.payload_json.after.sub_label[1] * 100) | round }}%).
+  - delay:
+      minutes: 2
+mode: single
+max_exceeded: silent
