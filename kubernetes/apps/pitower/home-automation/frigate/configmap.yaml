@@ -33,6 +33,8 @@ data:
 
     face_recognition:
       enabled: true
+      # A name only sticks after this many matching faces in one visit, so walking past or turning away is not enough.
+      min_faces: 4
 
     go2rtc:
       streams:
