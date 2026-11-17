@@ -6,7 +6,7 @@ namespace: system
 helmCharts:
   - name: keda
     repo: https://kedacore.github.io/charts
-    version: 2.21.0
+    version: 2.21.1
     releaseName: keda
     includeCRDs: true
     valuesFile: values.yaml
