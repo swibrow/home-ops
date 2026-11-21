@@ -47,20 +47,20 @@ config:
   maxPods: 250
 ---
 # The zfs extension ships the module but does not load it. ARC is invisible to
-# kubelet memory accounting, so it is capped (64GiB of 755GiB) rather than left
+# kubelet memory accounting, so it is capped (32GiB of 256GiB) rather than left
 # to take half the machine.
 apiVersion: v1alpha1
 kind: KernelModuleConfig
 name: zfs
 parameters:
-  - zfs_arc_max=68719476736
+  - zfs_arc_max=34359738368
 ---
 # ext-zfs-service loads the module before Talos applies KernelModuleConfig, so
 # the parameter above is lost at boot. The ARC cap is writable at runtime.
 apiVersion: v1alpha1
 kind: SysfsConfig
 params:
-  module.zfs.parameters.zfs_arc_max: "68719476736"
+  module.zfs.parameters.zfs_arc_max: "34359738368"
 ---
 # The X710 (i40e) defaults to 512 RX descriptors, which overflow on line-rate
 # bursts (image pulls) and show up as rx_missed_errors. Changing rings resets

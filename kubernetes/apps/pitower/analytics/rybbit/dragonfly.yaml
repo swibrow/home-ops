@@ -6,6 +6,9 @@ metadata:
   namespace: analytics
 spec:
   replicas: 1
+  # The arm64 build dies with SIGILL on the Pi nodes' CPUs.
+  nodeSelector:
+    kubernetes.io/arch: amd64
   # maxmemory instead of a pod limit; Dragonfly needs more than 256Mi per io thread.
   args:
     - "--proactor_threads=1"
