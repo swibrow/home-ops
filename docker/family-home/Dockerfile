@@ -2,7 +2,7 @@
 # Source lives next to this file; bump the version to publish a new tag.
 ARG FAMILY_HOME_VERSION=0.4.3
 
-FROM node:24.22.3-slim AS base
+FROM node:26.13.1-slim AS base
 WORKDIR /app
 RUN npm install --global bun@1.3.14
 COPY package.json bun.lock ./
@@ -18,7 +18,7 @@ RUN bun install --frozen-lockfile --ignore-scripts
 COPY . .
 RUN bun run build
 
-FROM node:24.22.3-slim
+FROM node:26.13.1-slim
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=8080 CONFIG_PATH=/config/config.yaml ACTUAL_DATA_DIR=/tmp/actual
 WORKDIR /app
 COPY --from=build /app/package.json ./
