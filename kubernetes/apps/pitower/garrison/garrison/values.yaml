@@ -138,6 +138,34 @@ secrets:
       - ANTHROPIC_CUSTOM_HEADERS
 persistence:
   size: 5Gi
+# The hub: the Go build of garrison. Terminals and outposts run as Sandbox
+# pods in garrison-terminals; the hub fronts them for hc, AG-UI and A2A at
+# hub.wibrow.dev. GARRISON_HUB_TOKEN syncs from Infisical (/garrison). CI's
+# deploy job bumps both image tags while hub.enabled is true.
+hub:
+  enabled: true
+  image: ghcr.io/swibrow/garrison-hub:v0.62.0
+  publicUrl: https://hub.wibrow.dev
+  allowOrigins:
+    - https://garrison.wibrow.dev
+  httpRoute:
+    enabled: true
+    hostname: hub.wibrow.dev
+    gateway:
+      name: envoy-internal
+      namespace: networking
+      sectionName: https
+  outpost:
+    image: ghcr.io/swibrow/garrison-outpost:v0.62.0
+    # Outposts clone with plain git: a private repo also needs GH_TOKEN plus
+    # GIT_CONFIG_COUNT/KEY_0/VALUE_0 (credential helper `!gh auth
+    # git-credential`) in Infisical and listed here.
+    externalSecretKeys:
+      - CLAUDE_CODE_OAUTH_TOKEN
+      - ANTHROPIC_BASE_URL
+      - ANTHROPIC_MODEL
+      - ANTHROPIC_CUSTOM_HEADERS
+      - MEMINI_API_KEY
 networkPolicy:
   enabled: true
   # Narrow exception to the runner sandboxes' private-range egress fence:
@@ -161,6 +189,19 @@ networkPolicy:
     # other internal vhost behind them; NetworkPolicy cannot filter by SNI.
     # The port is the envoy pod's 10443, not the Service's 443: policy is
     # evaluated after the LoadBalancer DNAT.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: networking
+          podSelector:
+            matchLabels:
+              gateway.networking.k8s.io/gateway-name: envoy-internal
+      ports:
+        - protocol: TCP
+          port: 10443
+  # Terminal and outpost pods share the runner fence; the model gateway
+  # (llm.wibrow.dev) and memini sit behind envoy-internal, same as above.
+  terminalExtraEgress:
     - to:
         - namespaceSelector:
             matchLabels:

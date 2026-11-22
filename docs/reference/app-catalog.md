@@ -337,7 +337,7 @@ Single-app categories for projects developed outside this repository.
 | Category / Name | Chart | Gateway | URL |
 |:----------------|:------|:--------|:----|
 | flickerd/flickerd | manifests | -- | -- |
-| garrison/garrison | garrison | external / internal | `garrison.wibrow.dev`, `garrison-hooks.wibrow.dev`, `garrison-alexa.wibrow.dev` |
+| garrison/garrison | garrison | external / internal | `garrison.wibrow.dev`, `garrison-hooks.wibrow.dev`, `garrison-alexa.wibrow.dev`, `hub.wibrow.dev` |
 | goat/goat | goat | external | `goat.wibrow.dev`, `goat-hooks.wibrow.dev` |
 | pantry-system/pantry | manifests | external | `api.pantry.cloudsnacks.dev` |
 | rackrat/rackrat | app-template | external | `rackrat.wibrow.dev` |
