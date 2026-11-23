@@ -14,7 +14,7 @@ use_blueprint:
         domain: light
         brightness_pct: 100
         flash: short
-    no_motion_wait: 300
+    no_motion_wait: 900
     motion_cleared_action:
       - type: turn_off
         device_id: 92d342591f528f72fa6412ab3043e1ae
