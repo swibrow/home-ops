@@ -6,7 +6,7 @@ controllers:
       app:
         image:
           repository: fireflyiii/core
-          tag: version-6.7.9
+          tag: version-6.7.12
         resources:
           requests:
             cpu: 15m
